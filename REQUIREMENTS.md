@@ -2,7 +2,7 @@
 
 Rocket League with terriers: two packs of small dogs corral a giant rubber ball into goals.
 
-Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the owner accepted this draft's default for every open question but steering, which stays open; the rest is still a proposal. "(as roslambo)" marks a rule carried over from roslambo's requirements or plan, which the owner approved there or left to Claude's judgement. **TBD** marks a value not yet chosen. After the requirements come the configuration, notes for the implementation plan, the open question and the settled ones.
+Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the owner settled its open questions, accepting every default and choosing anchored steering; the rest is still a proposal. "(as roslambo)" marks a rule carried over from roslambo's requirements or plan, which the owner approved there or left to Claude's judgement. **TBD** marks a value not yet chosen. After the requirements come the configuration, notes for the implementation plan, and the settled questions.
 
 ## Concept
 
@@ -70,7 +70,9 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 ### Controls
 
 - Six controls: **run** (in a direction), **zoomies**, **jump**, **pounce**, **bark**, and **view**, which switches the camera (see *Cameras*)
-- Directions are relative to the camera, on every device
+- Directions are anchored, on every device (the owner, 2026-11-14). In ball view they're relative to the line from your terrier to the ball: forward runs at the ball, back runs away from it, and sideways circles it. In chase view a direction is read from the screen when it's pressed, then kept on the pitch while the camera swings round, so holding sideways turns the terrier once and runs straight (see *Cameras*). Pressing a new direction, or moving the stick to one, reads it from the screen again
+- When the ball is nearly straight above your terrier, so the line to it has no direction, ball view's directions are taken from the way the terrier faces
+- The steering scheme can change without much trouble (the owner, 2026-11-14). It's one setting (see *Configuration*), and the simulation takes the inputs of all three schemes in *Settled questions* from the start, so switching to screen-relative or vehicle-style steering, or offering a choice to each player later, changes only what the controls send
 - Keyboard, by physical key position, so other layouts play on the same keys (as roslambo): `W` `A` `S` `D` run; `Space` jump; `Shift` zoomies; `E` pounce; `Q` bark; `C` view. `Ctrl` is never used, because `Ctrl`+`W` closes the tab
 - Touch: a stick on the left of the screen runs, and pushing it out past its rim sets off zoomies; on the right, buttons for jump and pounce, and smaller ones for bark and view. One thumb runs and zooms while the other jumps and pounces
 - Gamepad, with the browser's standard mapping: the left stick runs; the bottom face button jumps; the left face button pounces; the right trigger is zoomies; the top face button barks; the right shoulder button switches the view
@@ -81,7 +83,7 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 
 ### Cameras
 
-- **Chase view**: from behind and above your terrier, swinging round behind it more slowly than it turns, so holding a direction to the side runs your terrier in a wide circle instead of spinning it and the view
+- **Chase view**: from behind and above your terrier, swinging round behind it as it turns, at a comfortable rate that steering doesn't depend on
 - **Ball view**: from behind your terrier, aimed at the ball, so the ball stays in sight. A match starts in ball view unless Settings says otherwise
 - A player's camera stays inside the pitch, and a wall or the ball that comes between it and their terrier turns see-through
 - When the ball is off screen, an arrow at the edge points to it
@@ -237,7 +239,7 @@ Beyond roslambo's approach:
 ## Quality
 
 - Readable, modular code with a short README covering how to run, build and deploy
-- Automated tests for the non-rendering core: physics, scoring and the clock, kickoff spots, touches, consensus, match IDs and bots
+- Automated tests for the non-rendering core: physics, scoring and the clock, kickoff spots, touches, steering in all three schemes, consensus, match IDs and bots
 - A cross-browser determinism test: the same inputs produce bit-identical states in Chromium, Firefox and WebKit
 - End-to-end tests that play matches through the real page and its controls, not only through test modes
 - The gate tooling shared with amorfus and roslambo, from hermet
@@ -276,7 +278,7 @@ Beyond roslambo's approach:
 
 ## First deliverable
 
-A written plan, approved before any code is written, covering rendering and the look, including where the terriers' models and animations come from; input and cameras on each device; the deterministic simulation; bots; networking and consensus; persistence; sound; build tooling; and milestones. It should take *Notes for the plan* and *Open questions* into account, say what it reuses from roslambo and amorfus, and flag any requirement that conflicts with another or looks unrealistic.
+A written plan, approved before any code is written, covering rendering and the look, including where the terriers' models and animations come from; input and cameras on each device; the deterministic simulation; bots; networking and consensus; persistence; sound; build tooling; and milestones. It should take *Notes for the plan* into account, say what it reuses from roslambo and amorfus, and flag any requirement that conflicts with another or looks unrealistic.
 
 ## Configuration
 
@@ -302,8 +304,9 @@ Every setting should be easy to change. These are starting values, to be tuned o
 | Re-arm gap | **TBD** | How far a terrier must get from the ball before its next contact is a new touch, as roslambo's re-arm gap does for collisions |
 | Run speed | 6 m/s | |
 | Acceleration | 15 m/s² | Run speed from rest in 0.4 s |
-| Turn rate | 2 turns per second | |
-| Chase view swing | **TBD**, well under the turn rate | How fast the chase view swings round behind a turning terrier. Each viewer's own; it changes nothing in the match |
+| Turn rate | 2 turns per second | Vehicle-style steering, if chosen, needs a slower one |
+| Steering | Anchored | Screen-relative and vehicle-style steering are the alternatives (see *Settled questions*); switching changes only what the controls send |
+| Chase view swing | **TBD** | How fast the chase view swings round behind a turning terrier, for comfort only. Each viewer's own; it changes nothing in the match |
 | Zoomies speed | 9 m/s | |
 | Zoomies meter | 3 s of zoomies when full; refills from empty in 6 s | Full at every kickoff |
 | Jump | 1 m high | About 0.9 s in the air |
@@ -321,36 +324,21 @@ These aren't requirements. They're findings the implementation plan should accou
 
 - **Reuse.** roslambo is the template for everything but the game itself: the match ID, the room config from hermet, the timeline and consensus, bot hosting, storage and the one-tab rule. hermet takes each app's policy as options, so its README and CLAUDE.md, which name only amorfus and roslambo, need only a docs update. Its dist audit, though, allows only .html, .css, .js, .txt, .ico, .png, .svg and .webmanifest files, so sound files or 3D models need a change there first, unless they're made in code. amorfus and roslambo each have their own ID codec; whether terriest's becomes a third copy or all three move to a shared module is the owner's call
 - **Determinism without rotations.** Terriers stay upright and turn only about the vertical, so a heading is one angle, which roslambo's binary angles and its own sine and cosine already handle. A ball without spin needs no rotation at all. The simulation then works in 3D positions and velocities with spheres, capsules and planes, using only the exactly rounded operations roslambo allows (its PLAN D-1), which hermet's exact-ops lint enforces. No stock physics engine keeps to that, so contacts are hand-written, as roslambo's are. Goal mouths make the pitch non-convex, unlike roslambo's arena
+- **Steering that can change.** One input format can carry all three schemes: a direction and the frame it's measured in, which is the pitch, the line to the ball or the terrier's own nose, and the simulation resolves it into a heading. Anchored sends the line to the ball in ball view and the pitch in chase view. Screen-relative would send the pitch, read from the camera every tick, and vehicle-style steering would send the nose, which the simulation reads as turning. Each player's input carries its own frame, so players could even steer differently in one match. The golden hashes and the tests cover all three frames from the start, so a switch changes only the controls and, for vehicle-style steering, the turn rate
 - **Simultaneous contacts.** With mirrored kickoff spots, two terriers rushing the ball with mirrored inputs, as two copies of one bot do at every kickoff, reach it in the same substep. Contacts settled one at a time in a fixed order, as roslambo's are, would then favor the same pack every time. Settle contacts that begin in the same substep together, and test that a mirrored kickoff gives a mirrored result
 - **Resting and rolling contact.** roslambo measured planets resting in contact at 137 to 174 contact events a second, against about 5.5 separate episodes a second, which is why touches count once per episode. Here the ball and the terriers rest on the floor almost all the time, and a push is a lasting contact. That's the case roslambo's integrator handles worst: it splits a substep at each predicted contact, but bodies resting together hit a per-substep event cap, and their overlaps are settled the old way (its PLAN D-4, M2). Every bounce here also loses speed on purpose, which roslambo's physics appendix shows ends in a contact every tick. Plan a rule for resting and rolling contact, and test that a bounce keeps its set fraction of speed and a resting ball stays still
 - **A ball on terriers.** With true sphere contacts, two terriers squeezing the ball from opposite sides lift it, and it can come to rest on top of them. Plan a rule for that, such as terriers slipping out from under it, and test that a squeezed ball doesn't stay up
 - **A shared, contested ball.** Everyone watches the ball, so a late input that changes a touch moves the ball on every screen. That's why corrections are smoothed on screen here (see *Simulation and consensus*), where roslambo draws them as they come. roslambo's 2-tick input delay and 12-tick window for late inputs, at 60 ticks a second, carry over, to be measured again with a contested ball
 - **A giant ball forgives some latency.** A pounce sends a resting ball off at 5 m/s, so an input 3 ticks (50 ms) late moves it 0.25 m, about a sixth of its size, and one 12 ticks late, at the end of the late window, 1 m. A pounce into a ball coming at 5 m/s changes its speed by 7.5 m/s, up to 1.5 m in 12 ticks, nearly its size. A small ball kicked hard would forgive less still
-- **Cost on the phone.** 8 terriers and a ball make 36 pairs, against roslambo's 28, and a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks, plus the pitch, inside a Pixel 8a frame. Each split of a substep at a contact re-predicts contacts, so the budget counts splits too. A run input is a direction, from a stick or from keys read against a turning camera, so it changes almost every tick, and roslambo's prediction, the last input received, would miss almost every tick and replay almost every frame. Send a run direction as a coarse angle on the pitch, so a steady stick or key mostly repeats the same input. roslambo measured tick cost on desktops only, and a 3D scene with 8 animated terriers is GPU load that no sibling has measured on the phone, so measure both first
+- **Cost on the phone.** 8 terriers and a ball make 36 pairs, against roslambo's 28, and a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks, plus the pitch, inside a Pixel 8a frame. Each split of a substep at a contact re-predicts contacts, so the budget counts splits too. Anchored steering keeps a held direction's input the same from tick to tick, so roslambo's prediction, the last input received, holds. A thumb still wobbles on a stick, so send its direction in coarse steps, such as 32 to a turn, so that a wobble doesn't change the input. roslambo measured tick cost on desktops only, and a 3D scene with 8 animated terriers is GPU load that no sibling has measured on the phone, so measure both first
 - **Mesh and networks.** 4 a side fills the mesh cap exactly, and roslambo's load run was desktop-only. Nobody has measured phones on mobile data or behind strict NATs. A pair that can't connect hurts more around a contested ball, and forwarding adds a hop. On 2026-10-24 roslambo's relay check found relay.damus.io refusing connections, probably for a while only, after the test machine's traffic got it banned, and yabu.me/v2 answering 2 of 3 probes. Check again before the first deploy the way roslambo did: probe each relay by writing an event and reading it back, then decide with a round signaled through that relay alone, because one relay passed every probe and still refused every event Trystero sent
 - **Tests through the real page.** amorfus's two worst first-build defects, a player who couldn't move and installs that could never join each other, passed a green gate because the tests went through test modes. The gate should play a scripted match through the real page and controls, and check that terriers move, the ball moves, and a goal reaches every peer's scoreboard
 - **The look.** The owner chose roslambo's look from samples. Plan the same step for the terriers, the packs' colors and patterns, and the ball, checked for color blindness
 - **Trystero and the player ID.** As roslambo: Trystero 0.26.0, exact and unpatched, and a persistent player ID kept apart from Trystero's `selfId`, which changes on every page load. An upgrade of Trystero now moves three apps at once
 
-## Open questions
-
-- **Steering?** How a direction from the keys or a stick moves your terrier. It sets how the game feels on every device, and how well each browser can predict the others' inputs. There are three ways, compared below. *Controls* and *Cameras* describe the first; the third is recommended
-
-| | Screen-relative (this draft's default) | Steering | Anchored (recommended) |
-|---|---|---|---|
-| What a direction means | Where to go on screen: the terrier turns to face that way and runs | Forward runs, back brakes and backs up, and left and right turn the terrier, whatever the camera does | Where to go on screen, as in the first, but anchored to something the simulation knows (next two rows) |
-| Ball view | Forward runs at the ball and sideways circles it, because the camera keeps aiming at the ball | You steer by your terrier's nose while the camera aims at the ball: a beginner's hardest moment | Directions are relative to the line from your terrier to the ball: forward runs at it, back away from it, sideways circles it. On screen it's the same as the first, because the view looks along that line |
-| Chase view | The camera must swing round behind the terrier more slowly than it turns, or holding sideways spins both. Holding sideways then runs a wide circle | Natural: the camera stays behind the terrier's nose | A direction is taken from the screen when it's pressed, then kept on the pitch while the camera swings round, so holding sideways turns once and runs straight |
-| Touch or gamepad stick | Natural: most third-person games work this way | Steering a dog like a car takes learning | Natural |
-| Keyboard | Eight directions | Any heading | Eight directions |
-| Network | The simulation doesn't know anyone's camera, so each browser turns the direction into one on the pitch before sending it. The camera keeps moving, so that changes while the stick is held still, roslambo's prediction (the last input received) keeps missing, and corrections come far more often | Held keys repeat exactly, so prediction holds | A still stick repeats exactly, and every browser works out the same heading from the ball's position, so prediction holds |
-| Also needs | The chase view's swing rate (see *Configuration*) | A slower turn rate: at 2 turns a second, holding left spins the terrier dizzily | A rule for a ball right overhead, where the line to it has no direction |
-
-Anchored keeps the feel of the first, which suits a phone, the reference device, and fixes its two faults: the chase view no longer runs in circles, and a held stick costs the network nothing. Choosing it would change *Controls*, whose directions would no longer be read from the camera alone, and *Cameras*, whose chase view could swing at any comfortable rate.
-
 ## Settled questions
 
-The owner settled these on 2026-11-14 at this draft's defaults, which the sections above state as requirements.
+The owner settled these on 2026-11-14: steering by choosing anchored from the three schemes compared at the end, and the rest at this draft's defaults. The sections above state each as a requirement.
 
 - **3D or 2D?** 3D with WebGL 2, not top-down 2D on Canvas 2D like roslambo
 - **Can a push lift the ball?** Yes, with true sphere contacts, not pushes along the floor only
@@ -361,3 +349,16 @@ The owner settled these on 2026-11-14 at this draft's defaults, which the sectio
 - **Tumbles?** Pounces and fast balls tumble terriers, rather than terriers only pushing each other
 - **Anything that lasts?** No balance or record, unlike roslambo
 - **IPFS?** Not required, as in roslambo, with the build still safe to serve from a subpath
+- **Steering?** Anchored, not screen-relative or vehicle-style steering, with the system designed so the scheme can change without much trouble (see *Controls* and *Notes for the plan*). The three, compared:
+
+| | Screen-relative | Steering | Anchored (chosen) |
+|---|---|---|---|
+| What a direction means | Where to go on screen: the terrier turns to face that way and runs | Forward runs, back brakes and backs up, and left and right turn the terrier, whatever the camera does | Where to go on screen, as in the first, but anchored to something the simulation knows (next two rows) |
+| Ball view | Forward runs at the ball and sideways circles it, because the camera keeps aiming at the ball | You steer by your terrier's nose while the camera aims at the ball: a beginner's hardest moment | Directions are relative to the line from your terrier to the ball: forward runs at it, back away from it, sideways circles it. On screen it's the same as the first, because the view looks along that line |
+| Chase view | The camera must swing round behind the terrier more slowly than it turns, or holding sideways spins both. Holding sideways then runs a wide circle | Natural: the camera stays behind the terrier's nose | A direction is taken from the screen when it's pressed, then kept on the pitch while the camera swings round, so holding sideways turns once and runs straight |
+| Touch or gamepad stick | Natural: most third-person games work this way | Steering a dog like a car takes learning | Natural |
+| Keyboard | Eight directions | Any heading | Eight directions |
+| Network | The simulation doesn't know anyone's camera, so each browser turns the direction into one on the pitch before sending it. The camera keeps moving, so that changes while the stick is held still, roslambo's prediction (the last input received) keeps missing, and corrections come far more often | Held keys repeat exactly, so prediction holds | A still stick repeats exactly, and every browser works out the same heading from the ball's position, so prediction holds |
+| Also needs | A chase view that swings well under the turn rate (see *Configuration*) | A slower turn rate: at 2 turns a second, holding left spins the terrier dizzily | A rule for a ball right overhead, where the line to it has no direction |
+
+Anchored keeps the feel of the first, which suits a phone, the reference device, and fixes its two faults: the chase view doesn't run in circles, and a held stick costs the network nothing.
