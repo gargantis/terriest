@@ -2,7 +2,7 @@
 
 Rocket League with terriers: two packs of small dogs corral a giant rubber ball into goals.
 
-Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the owner settled its open questions, accepting every default and choosing anchored steering; the rest is still a proposal. "(as roslambo)" marks a rule carried over from roslambo's requirements or plan, which the owner approved there or left to Claude's judgement. **TBD** marks a value not yet chosen. After the requirements come the configuration, notes for the implementation plan, and the settled questions.
+Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the owner settled its open questions, accepting every default, choosing anchored steering and planning modeled terriers for after the MVP; the rest is still a proposal. "(as roslambo)" marks a rule carried over from roslambo's requirements or plan, which the owner approved there or left to Claude's judgment. **TBD** marks a value not yet chosen. After the requirements come the configuration, notes for the implementation plan, and the settled questions.
 
 ## Concept
 
@@ -41,6 +41,7 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 
 - Every terrier has the same size, mass, speed and abilities. Only looks differ: each player picks their terrier's **coat**, its fur color and markings, on Home (see *Screens*), and each bot gets one at random
 - Each pack wears bandanas in its own color and pattern, such as plain for one pack and striped for the other, so color-blind players can tell the packs apart. No coat uses a pack's color
+- Coats are a fixed list, chosen with the look (see *Notes for the plan*). Each is a fur color and markings, defined apart from how terriers are drawn, and stored and sent by its place in the list, so code-built and modeled terriers paint the same coats, and a new way of drawing them changes nothing stored or sent
 - A terrier runs the way its player points it, in any direction, turning to face that way fast but not instantly (see *Configuration*)
 - **Zoomies**: a burst of speed. While its player holds zoomies and its **zoomies meter** isn't empty, a terrier runs at zoomies speed and the meter drains. The meter refills on its own while the terrier isn't zooming, and is full at every kickoff
 - **Jump**: one jump, from the floor only
@@ -92,12 +93,13 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 
 ### Look and sound
 
-- A bright cartoon look: chunky terriers with big heads, short legs and perky ears, animated as they run, jump, pounce and tumble; a glossy rubber ball; a grass pitch inside padded walls under a rope net. The owner picks the final look from samples (see *Notes for the plan*)
+- A bright cartoon look: chunky terriers with big heads, short legs and perky ears; a glossy rubber ball; a grass pitch inside padded walls under a rope net. The owner picks the look from samples, for the code-built terriers now and the models later (see *Notes for the plan*)
 - In the MVP, terriers are built in code from rounded shapes and animated by code. Later they'll be modeled and animated in a 3D tool, or bought (the owner, 2026-11-14), and the MVP is built for that swap: how a terrier is drawn is one replaceable part, and replacing it changes nothing in play, in the simulation or on the network
-- Every terrier look, built in code or modeled, plays the same **animations**, each started and timed by the simulation: standing, running at any speed, zoomies, turning, jumping and landing, pouncing, tumbling and getting up, barking, sitting, and celebrating a goal. A model can add detail, such as flapping ears, but never changes how long anything takes in play
-- Every look fits the terrier's size on the pitch, shows every coat and both packs' bandanas, and fits the same drawing budget on the reference phone (see *Configuration*)
+- Built in code or modeled, every terrier plays the same **animations**, each started and timed by the simulation, except barking (see *Simulation and consensus*): standing, running at any speed, zoomies, turning, pushing the ball or another terrier, being pushed or bounced in any direction, jumping and landing, pouncing, tumbling and getting up, barking, sitting, and celebrating a goal. Barking plays over any other animation, and celebrating over standing and running; the rest blend from one into the next. Every animation plays in place: only the simulation moves or turns a terrier. A model can add detail, such as flapping ears, but never changes how long anything takes in play
+- Either kind fits the terrier's size in *Configuration*, shows every coat and both packs' bandanas, and fits the drawing budget in *Performance*
+- A model can take time to load, or fail to. Until it has loaded, or if it fails, terriers are drawn built in code, which stays in the build for that, and nothing in a match waits for a model
 - Every hit shows its strength: the ball squashes and thumps harder the harder it's hit, zoomies kick up dust, a tumbled terrier rolls over and shakes itself off, and a goal bulges the net
-- Sound: simple effects only: barks, the ball's bounces, pounces and tumbles, a whistle at each kickoff and at the end, and a chorus of barks for a goal. No music
+- Sound: simple effects only, made in code: barks, the ball's bounces, pounces and tumbles, a whistle at each kickoff and at the end, and a chorus of barks for a goal. No music
 - Nothing in play is told by sound alone: kickoffs, goals and the end show on screen as well
 
 ### Scoring
@@ -197,13 +199,14 @@ The same approach as roslambo:
 - The majority is counted among the votes received for that tick
 - On a tie, the state with the smallest hash wins: an arbitrary choice, but every peer makes the same one
 - Only browsers that control a terrier vote, one vote each however many terriers they control: a player's, or a spectator's that hosts bots and sends their inputs. Other spectators follow the majority state
-- Goals and the end of the match are taken from final ticks, so a correction never takes one back. A goal's score, whistle and celebration show once its tick is final, about 0.2 s after the ball crosses the line
+- Goals and the end of the match are taken from final ticks, so a correction never takes one back. A goal's score, whistle and celebration, including the terriers' celebrating animation, show once its tick is final, about 0.2 s after the ball crosses the line
 - Cheating is left to the honor system in the MVP
 
 Beyond roslambo's approach:
 
-- When a late input corrects the simulation, the ball and the terriers glide to their corrected places on screen instead of jumping, where roslambo draws each correction as it comes. The simulation itself is never smoothed
-- A remote terrier's bark plays when its input arrives, never from a predicted input
+- When a late input corrects the simulation, the ball and the terriers glide to their corrected places and headings on screen instead of jumping, where roslambo draws each correction as it comes. The simulation itself is never smoothed
+- Corrections reach animations too: one a correction takes back, such as a pounce, blends out; one it adds blends in part-way through; one it moves in time blends to its new timing. None snaps
+- A remote terrier's bark, with its sound, mark and animation, plays when its input arrives, never from a predicted input
 
 ### Disconnects
 
@@ -237,6 +240,7 @@ Beyond roslambo's approach:
 ## Performance
 
 - 60 fps on mid-range hardware: a mid-range phone, whose reference is a Pixel 8a in Chrome, as for roslambo. There is no laptop to test on, so the phone is the only reference device, and desktop browsers are checked in development only
+- A drawing budget, set by runs on the reference phone, that the code-built terriers and the later models both fit: **TBD** triangles, bones and texture size per terrier, draw calls for 8 terriers, and download size for each way of drawing them. The gate counts them in the real page and fails one over budget
 - A match supports 8 terriers, 4 a side, and 4 spectators, which is roslambo's mesh cap
 
 ## Quality
@@ -245,6 +249,7 @@ Beyond roslambo's approach:
 - Automated tests for the non-rendering core: physics, scoring and the clock, kickoff spots, touches, steering in all three schemes, consensus, match IDs and bots
 - A cross-browser determinism test: the same inputs produce bit-identical states in Chromium, Firefox and WebKit
 - End-to-end tests that play matches through the real page and its controls, not only through test modes
+- End-to-end tests also play a match with a stand-in skinned model, kept out of the shipped build, in place of the code-built terriers, and lint keeps the simulation from importing the drawing code, so the swap is tested before any model exists
 - The gate tooling shared with amorfus and roslambo, from hermet
 - No secrets, API keys or tracking
 
@@ -264,7 +269,7 @@ Beyond roslambo's approach:
 - Pickups and power-ups
 - Replays
 - Bot skill levels
-- Unlockable or paid looks
+- Unlockable coats, or coats players pay for
 - Terriers modeled and animated in a 3D tool, which come after the MVP (see *Look and sound*)
 - Remapping controls
 - Terriers running up walls, and more than one ball
@@ -302,8 +307,7 @@ Every setting should be easy to change. These are starting values, to be tuned o
 | Ball | 1.6 m across, twice a terrier's mass | About 5 times a terrier's height |
 | Ball bounce | Keeps 70% of its speed into the surface off the floor, walls, nets and goal frame, and all of its speed along it | Rubber: lively bounces. Unlike roslambo's walls, which scale the whole speed, this lets a rolling ball keep rolling |
 | Ball rolling slowdown | **TBD** | |
-| Terrier | 0.3 m at the shoulder, 0.6 m long | Every look fits this size, so a model never changes play |
-| Terrier drawing budget | **TBD** triangles and bones per terrier, and draw calls for 8 terriers | Measured on the Pixel 8a. The code-built terriers and the later models both fit it |
+| Terrier | 0.3 m at the shoulder, 0.6 m long | Code-built and modeled terriers both fit this size, so a model never changes play |
 | Terrier–ball bounce | Keeps 50% of their closing speed | Sets how hard hits are. Struck level through its middle, a resting ball goes off at half the hitter's speed: 3 m/s at a run, 4.5 m/s at zoomies speed, 5 m/s from a pounce. A push from the floor meets it low, so part of that speed goes into a hop |
 | Terrier bounce | **TBD** | Off other terriers and the walls. A landing terrier doesn't bounce |
 | Re-arm gap | **TBD** | How far a terrier must get from the ball before its next contact is a new touch, as roslambo's re-arm gap does for collisions |
@@ -327,7 +331,7 @@ Every setting should be easy to change. These are starting values, to be tuned o
 
 These aren't requirements. They're findings the implementation plan should account for.
 
-- **Reuse.** roslambo is the template for everything but the game itself: the match ID, the room config from hermet, the timeline and consensus, bot hosting, storage and the one-tab rule. hermet takes each app's policy as options, so its README and CLAUDE.md, which name only amorfus and roslambo, need only a docs update. Its dist audit, though, allows only .html, .css, .js, .txt, .ico, .png, .svg and .webmanifest files, so sound files or 3D models need a change there first, unless they're made in code. amorfus and roslambo each have their own ID codec; whether terriest's becomes a third copy or all three move to a shared module is the owner's call
+- **Reuse.** roslambo is the template for everything but the game itself: the match ID, the room config from hermet, the timeline and consensus, bot hosting, storage and the one-tab rule. hermet takes each app's policy as options, so its README and CLAUDE.md, which name only amorfus and roslambo, need only a docs update. Its dist audit, though, allows only .html, .css, .js, .txt, .ico, .png, .svg and .webmanifest files, which is enough while sounds and terriers are made in code (see *Terriers that will be modeled*). amorfus and roslambo each have their own ID codec; whether terriest's becomes a third copy or all three move to a shared module is the owner's call
 - **Determinism without rotations.** Terriers stay upright and turn only about the vertical, so a heading is one angle, which roslambo's binary angles and its own sine and cosine already handle. A ball without spin needs no rotation at all. The simulation then works in 3D positions and velocities with spheres, capsules and planes, using only the exactly rounded operations roslambo allows (its PLAN D-1), which hermet's exact-ops lint enforces. No stock physics engine keeps to that, so contacts are hand-written, as roslambo's are. Goal mouths make the pitch non-convex, unlike roslambo's arena
 - **Steering that can change.** One input format can carry all three schemes: a direction and the frame it's measured in, which is the pitch, the line to the ball or the terrier's own nose, and the simulation resolves it into a heading. Anchored sends the line to the ball in ball view and the pitch in chase view. Screen-relative would send the pitch, read from the camera every tick, and vehicle-style steering would send the nose, which the simulation reads as turning. Each player's input carries its own frame, so players could even steer differently in one match. The golden hashes and the tests cover all three frames from the start, so a switch changes only the controls and, for vehicle-style steering, the turn rate
 - **Simultaneous contacts.** With mirrored kickoff spots, two terriers rushing the ball with mirrored inputs, as two copies of one bot do at every kickoff, reach it in the same substep. Contacts settled one at a time in a fixed order, as roslambo's are, would then favor the same pack every time. Settle contacts that begin in the same substep together, and test that a mirrored kickoff gives a mirrored result
@@ -338,20 +342,20 @@ These aren't requirements. They're findings the implementation plan should accou
 - **Cost on the phone.** 8 terriers and a ball make 36 pairs, against roslambo's 28, and a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks, plus the pitch, inside a Pixel 8a frame. Each split of a substep at a contact re-predicts contacts, so the budget counts splits too. Anchored steering keeps a held direction's input the same from tick to tick, so roslambo's prediction, the last input received, holds. A thumb still wobbles on a stick, so send its direction in coarse steps, such as 32 to a turn, so that a wobble doesn't change the input. roslambo measured tick cost on desktops only, and a 3D scene with 8 animated terriers is GPU load that no sibling has measured on the phone, so measure both first
 - **Mesh and networks.** 4 a side fills the mesh cap exactly, and roslambo's load run was desktop-only. Nobody has measured phones on mobile data or behind strict NATs. A pair that can't connect hurts more around a contested ball, and forwarding adds a hop. On 2026-10-24 roslambo's relay check found relay.damus.io refusing connections, probably for a while only, after the test machine's traffic got it banned, and yabu.me/v2 answering 2 of 3 probes. Check again before the first deploy the way roslambo did: probe each relay by writing an event and reading it back, then decide with a round signaled through that relay alone, because one relay passed every probe and still refused every event Trystero sent
 - **Tests through the real page.** amorfus's two worst first-build defects, a player who couldn't move and installs that could never join each other, passed a green gate because the tests went through test modes. The gate should play a scripted match through the real page and controls, and check that terriers move, the ball moves, and a goal reaches every peer's scoreboard
-- **Terriers that will be modeled.** Pick a renderer that can already load glTF models and play their skeletal animations, such as three.js with its WebGL renderer, so the upgrade isn't a rewrite. Give the code-built terrier the interface a model will have: it takes the animation states, a coat and a bandana, and the simulation never reads anything back from it. hermet's dist audit allows no model format, so the upgrade starts with an option there to allow .glb, unless the models are embedded in the code. A bought model's licence goes into the shipped notices through hermet's licence script, which takes extra entries. Corrections reach animations too: a pounce the simulation takes back must blend out on screen, not snap. Measure the drawing budget on the Pixel 8a early, with a stand-in skinned model as well as the code-built terrier, so the models can be made to fit it
-- **The look.** The owner chose roslambo's look from samples. Plan the same step for the terriers, the packs' colors and patterns, and the ball, checked for color blindness
+- **Terriers that will be modeled.** Pick a renderer that can already load glTF models and play their skeletal animations, such as three.js with its WebGL renderer, so the upgrade isn't a rewrite. Give the code-built terrier the interface a model will have: it takes the animation states, a coat and a bandana, and the simulation never reads anything back from it. Every animation but barking, and how far through it is, is read from the simulation's state, never kept by the drawing code, which keeps only its blends, so a rollback or a resync redraws it right. Whatever a model needs that play doesn't, such as when a terrier last landed, goes into the state from the start, because a field added at the upgrade would change the state's hash, its golden hashes and what peers send. hermet's dist audit allows no model format and scans only text files, so the upgrade starts with a new option there that allows .glb and reads each model's JSON, failing on any `uri` that names a host or a file that isn't shipped, since three.js fetches whatever a model names. Models ship as those files, not embedded in the code, where the scan can't read them, and a model compressed with Draco or KTX2 also needs its decoder's .wasm allowed. A bought model's license must let anyone download its file as shipped, from the site and from a public repo, as CC0 and CC BY do; one that forbids redistributing the asset rules the model out. Its notice, and any decoder's, goes into the shipped notices through hermet's license script, which takes extra entries, and into the expected list the dist audit checks them against. Measure the drawing budget on the Pixel 8a early, with a stand-in skinned model as well as the code-built terrier, so the models can be made to fit it
+- **The look.** The owner chose roslambo's look from samples. Plan the same step for the terriers and their coats, the packs' colors and patterns, and the ball, with every coat checked against both packs' colors for color blindness, as roslambo's palette test does. Drive the moving samples from recorded matches through the interface a model will have, as roslambo's look book replays recorded rounds, so the same step runs again for the models
 - **Trystero and the player ID.** As roslambo: Trystero 0.26.0, exact and unpatched, and a persistent player ID kept apart from Trystero's `selfId`, which changes on every page load. An upgrade of Trystero now moves three apps at once
 
 ## Settled questions
 
-The owner settled these on 2026-11-14: steering by choosing anchored from the three schemes compared at the end, and the rest at this draft's defaults. The sections above state each as a requirement.
+The owner settled these on 2026-11-14: steering by choosing anchored from the three schemes compared at the end, the terriers by planning modeled ones for after the MVP, and the rest at this draft's defaults. The sections above state each as a requirement.
 
 - **3D or 2D?** 3D with WebGL 2, not top-down 2D on Canvas 2D like roslambo
 - **Can a push lift the ball?** Yes, with true sphere contacts, not pushes along the floor only
 - **Is a lone terrier slow with the ball?** No: one terrier can push it at its own speed, and a pack gets it moving sooner and hits it harder
 - **Pack size?** 1 to 4 a side, chosen for each match, 2 by default, not always 3
 - **Phones?** In scope, with a match played on a phone held sideways, not desktop only
-- **How are the terriers built?** In code, from rounded shapes, with sounds made in code too, for the MVP. Modeled and animated terriers come later, and the MVP anticipates them (the owner, 2026-11-14; see *Look and sound*)
+- **How are the terriers built?** In code, from rounded shapes, with sounds made in code too, for the MVP. Modeled and animated terriers come later, and the MVP anticipates them (see *Look and sound*)
 - **Tumbles?** Pounces and fast balls tumble terriers, rather than terriers only pushing each other
 - **Anything that lasts?** No balance or record, unlike roslambo
 - **IPFS?** Not required, as in roslambo, with the build still safe to serve from a subpath
