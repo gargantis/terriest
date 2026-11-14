@@ -2,7 +2,7 @@
 
 Rocket League with terriers: two packs of small dogs corral a giant rubber ball into goals.
 
-Status: first draft, written from the README on 2026-11-13 and not yet discussed with the owner, so every line is a proposal. "(as roslambo)" marks a rule carried over from roslambo's requirements or plan, which the owner approved there or left to Claude's judgement. **TBD** marks a value not yet chosen. After the requirements come the configuration, notes for the implementation plan, and the open questions this draft most needs answered.
+Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the owner accepted this draft's default for every open question but steering, which stays open; the rest is still a proposal. "(as roslambo)" marks a rule carried over from roslambo's requirements or plan, which the owner approved there or left to Claude's judgement. **TBD** marks a value not yet chosen. After the requirements come the configuration, notes for the implementation plan, the open question and the settled ones.
 
 ## Concept
 
@@ -53,7 +53,7 @@ Status: first draft, written from the README on 2026-11-13 and not yet discussed
 ### The ball
 
 - One giant rubber ball, twice a terrier's mass (see *Configuration*). A lone terrier's hit sends it off at up to half the terrier's speed, and several hitting it at once send it faster. Pushing, one terrier gets it up to running speed in about 1.2 s, and four in about 0.6 s
-- A terrier on the floor meets the ball below its middle, so a push also lifts it into a hop. A jump meets it nearer the middle and hits it level
+- A terrier on the floor meets the ball below its middle, so a push also lifts it into a hop. A jump meets it nearer the middle and hits it level. Two terriers squeezing it from opposite sides can lift it off the floor
 - It bounces off the floor, the walls, the overhead net, the goal frame and the goal's netting. Each bounce keeps part of its speed into the surface and all of its speed along it, and it slows as it rolls
 - The simulation gives it no spin, so it never curves in the air or kicks sideways off a bounce. On screen it turns as if rolling with its motion (MVP; may be revisited)
 - It never leaves the pitch
@@ -323,6 +323,7 @@ These aren't requirements. They're findings the implementation plan should accou
 - **Determinism without rotations.** Terriers stay upright and turn only about the vertical, so a heading is one angle, which roslambo's binary angles and its own sine and cosine already handle. A ball without spin needs no rotation at all. The simulation then works in 3D positions and velocities with spheres, capsules and planes, using only the exactly rounded operations roslambo allows (its PLAN D-1), which hermet's exact-ops lint enforces. No stock physics engine keeps to that, so contacts are hand-written, as roslambo's are. Goal mouths make the pitch non-convex, unlike roslambo's arena
 - **Simultaneous contacts.** With mirrored kickoff spots, two terriers rushing the ball with mirrored inputs, as two copies of one bot do at every kickoff, reach it in the same substep. Contacts settled one at a time in a fixed order, as roslambo's are, would then favor the same pack every time. Settle contacts that begin in the same substep together, and test that a mirrored kickoff gives a mirrored result
 - **Resting and rolling contact.** roslambo measured planets resting in contact at 137 to 174 contact events a second, against about 5.5 separate episodes a second, which is why touches count once per episode. Here the ball and the terriers rest on the floor almost all the time, and a push is a lasting contact. That's the case roslambo's integrator handles worst: it splits a substep at each predicted contact, but bodies resting together hit a per-substep event cap, and their overlaps are settled the old way (its PLAN D-4, M2). Every bounce here also loses speed on purpose, which roslambo's physics appendix shows ends in a contact every tick. Plan a rule for resting and rolling contact, and test that a bounce keeps its set fraction of speed and a resting ball stays still
+- **A ball on terriers.** With true sphere contacts, two terriers squeezing the ball from opposite sides lift it, and it can come to rest on top of them. Plan a rule for that, such as terriers slipping out from under it, and test that a squeezed ball doesn't stay up
 - **A shared, contested ball.** Everyone watches the ball, so a late input that changes a touch moves the ball on every screen. That's why corrections are smoothed on screen here (see *Simulation and consensus*), where roslambo draws them as they come. roslambo's 2-tick input delay and 12-tick window for late inputs, at 60 ticks a second, carry over, to be measured again with a contested ball
 - **A giant ball forgives some latency.** A pounce sends a resting ball off at 5 m/s, so an input 3 ticks (50 ms) late moves it 0.25 m, about a sixth of its size, and one 12 ticks late, at the end of the late window, 1 m. A pounce into a ball coming at 5 m/s changes its speed by 7.5 m/s, up to 1.5 m in 12 ticks, nearly its size. A small ball kicked hard would forgive less still
 - **Cost on the phone.** 8 terriers and a ball make 36 pairs, against roslambo's 28, and a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks, plus the pitch, inside a Pixel 8a frame. Each split of a substep at a contact re-predicts contacts, so the budget counts splits too. A run input is a direction, from a stick or from keys read against a turning camera, so it changes almost every tick, and roslambo's prediction, the last input received, would miss almost every tick and replay almost every frame. Send a run direction as a coarse angle on the pitch, so a steady stick or key mostly repeats the same input. roslambo measured tick cost on desktops only, and a 3D scene with 8 animated terriers is GPU load that no sibling has measured on the phone, so measure both first
@@ -333,15 +334,30 @@ These aren't requirements. They're findings the implementation plan should accou
 
 ## Open questions
 
-The forks where this draft's default could be wrong and a wrong guess would cost the most. Each gives the default used above and the main alternative.
+- **Steering?** How a direction from the keys or a stick moves your terrier. It sets how the game feels on every device, and how well each browser can predict the others' inputs. There are three ways, compared below. *Controls* and *Cameras* describe the first; the third is recommended
 
-- **3D or 2D?** Default: 3D with WebGL 2, a camera behind your terrier, and jumps. Alternative: top-down 2D on Canvas 2D like roslambo, which keeps roslambo's renderer and phone bench but loses height: no jumps, and the giant ball becomes a disc
-- **Steering?** Default: a direction runs the terrier that way on screen, in both views and on every device. Alternative: in chase view, forward runs and left and right turn the terrier, as when steering a vehicle, which suits a camera fixed behind it but gives the two views different controls
-- **Can a push lift the ball?** Default: yes, with true sphere contacts: pushes from the floor make the ball hop, a jump into its middle hits it level, and two terriers squeezing it from opposite sides lift it, so the simulation needs a rule for a ball resting on terriers. Alternative: pushes act only along the floor, which keeps the ball down and hits predictable, but leaves jumps, the crossbar and the net nothing to do
-- **Is a lone terrier slow with the ball?** Default: no. One terrier can push it at its own speed, and a pack only gets it moving sooner and hits it harder. Alternative: a terrier pushing the ball runs slower, at a speed that rises with the number of terriers pushing, so moving the ball fast really takes a pack
-- **Pack size?** Default: 1 to 4 a side, chosen for each match, 2 by default. Alternative: always 3 a side, the genre's usual size
-- **Phones?** Default: in scope, as in roslambo, but a match plays only with the phone held sideways, where roslambo is laid out for a phone held upright. Alternative: desktop only, as in amorfus, here with keyboard and gamepad, which drops touch controls and the phone's frame budget
-- **How are the terriers built?** Default: in code, from a few rounded shapes animated by code, with sounds made in code too, so there are no model or sound files to make, license or pass through hermet's audit, and the phone's GPU has little to draw. Alternative: modeled and animated in a 3D tool, or bought as an asset pack, which can look richer but needs a model pipeline, a license check and more of the phone's frame
-- **Tumbles?** Default: pounces and fast balls tumble terriers. Alternative: terriers only push each other and never lose control
-- **Anything that lasts?** Default: no balance or record, so a match changes nothing once it ends, and there's no saving, pausing or collecting missed results. Alternative: a win record or a balance like roslambo's, which brings those back
-- **IPFS?** Default: not required, as in roslambo, though the build stays safe to serve from a subpath. Alternative: required, as in amorfus and in line with the gargantis protocol's Helia/IPFS, at the cost of a release chain like amorfus's, and of old pinned releases losing multiplayer once their relays change
+| | Screen-relative (this draft's default) | Steering | Anchored (recommended) |
+|---|---|---|---|
+| What a direction means | Where to go on screen: the terrier turns to face that way and runs | Forward runs, back brakes and backs up, and left and right turn the terrier, whatever the camera does | Where to go on screen, as in the first, but anchored to something the simulation knows (next two rows) |
+| Ball view | Forward runs at the ball and sideways circles it, because the camera keeps aiming at the ball | You steer by your terrier's nose while the camera aims at the ball: a beginner's hardest moment | Directions are relative to the line from your terrier to the ball: forward runs at it, back away from it, sideways circles it. On screen it's the same as the first, because the view looks along that line |
+| Chase view | The camera must swing round behind the terrier more slowly than it turns, or holding sideways spins both. Holding sideways then runs a wide circle | Natural: the camera stays behind the terrier's nose | A direction is taken from the screen when it's pressed, then kept on the pitch while the camera swings round, so holding sideways turns once and runs straight |
+| Touch or gamepad stick | Natural: most third-person games work this way | Steering a dog like a car takes learning | Natural |
+| Keyboard | Eight directions | Any heading | Eight directions |
+| Network | The simulation doesn't know anyone's camera, so each browser turns the direction into one on the pitch before sending it. The camera keeps moving, so that changes while the stick is held still, roslambo's prediction (the last input received) keeps missing, and corrections come far more often | Held keys repeat exactly, so prediction holds | A still stick repeats exactly, and every browser works out the same heading from the ball's position, so prediction holds |
+| Also needs | The chase view's swing rate (see *Configuration*) | A slower turn rate: at 2 turns a second, holding left spins the terrier dizzily | A rule for a ball right overhead, where the line to it has no direction |
+
+Anchored keeps the feel of the first, which suits a phone, the reference device, and fixes its two faults: the chase view no longer runs in circles, and a held stick costs the network nothing. Choosing it would change *Controls*, whose directions would no longer be read from the camera alone, and *Cameras*, whose chase view could swing at any comfortable rate.
+
+## Settled questions
+
+The owner settled these on 2026-11-14 at this draft's defaults, which the sections above state as requirements.
+
+- **3D or 2D?** 3D with WebGL 2, not top-down 2D on Canvas 2D like roslambo
+- **Can a push lift the ball?** Yes, with true sphere contacts, not pushes along the floor only
+- **Is a lone terrier slow with the ball?** No: one terrier can push it at its own speed, and a pack gets it moving sooner and hits it harder
+- **Pack size?** 1 to 4 a side, chosen for each match, 2 by default, not always 3
+- **Phones?** In scope, with a match played on a phone held sideways, not desktop only
+- **How are the terriers built?** In code, from rounded shapes, with sounds made in code too, not modeled in a 3D tool or bought
+- **Tumbles?** Pounces and fast balls tumble terriers, rather than terriers only pushing each other
+- **Anything that lasts?** No balance or record, unlike roslambo
+- **IPFS?** Not required, as in roslambo, with the build still safe to serve from a subpath
