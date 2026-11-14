@@ -93,6 +93,9 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 ### Look and sound
 
 - A bright cartoon look: chunky terriers with big heads, short legs and perky ears, animated as they run, jump, pounce and tumble; a glossy rubber ball; a grass pitch inside padded walls under a rope net. The owner picks the final look from samples (see *Notes for the plan*)
+- In the MVP, terriers are built in code from rounded shapes and animated by code. Later they'll be modeled and animated in a 3D tool, or bought (the owner, 2026-11-14), and the MVP is built for that swap: how a terrier is drawn is one replaceable part, and replacing it changes nothing in play, in the simulation or on the network
+- Every terrier look, built in code or modeled, plays the same **animations**, each started and timed by the simulation: standing, running at any speed, zoomies, turning, jumping and landing, pouncing, tumbling and getting up, barking, sitting, and celebrating a goal. A model can add detail, such as flapping ears, but never changes how long anything takes in play
+- Every look fits the terrier's size on the pitch, shows every coat and both packs' bandanas, and fits the same drawing budget on the reference phone (see *Configuration*)
 - Every hit shows its strength: the ball squashes and thumps harder the harder it's hit, zoomies kick up dust, a tumbled terrier rolls over and shakes itself off, and a goal bulges the net
 - Sound: simple effects only: barks, the ball's bounces, pounces and tumbles, a whistle at each kickoff and at the end, and a chorus of barks for a goal. No music
 - Nothing in play is told by sound alone: kickoffs, goals and the end show on screen as well
@@ -262,6 +265,7 @@ Beyond roslambo's approach:
 - Replays
 - Bot skill levels
 - Unlockable or paid looks
+- Terriers modeled and animated in a 3D tool, which come after the MVP (see *Look and sound*)
 - Remapping controls
 - Terriers running up walls, and more than one ball
 
@@ -278,7 +282,7 @@ Beyond roslambo's approach:
 
 ## First deliverable
 
-A written plan, approved before any code is written, covering rendering and the look, including where the terriers' models and animations come from; input and cameras on each device; the deterministic simulation; bots; networking and consensus; persistence; sound; build tooling; and milestones. It should take *Notes for the plan* into account, say what it reuses from roslambo and amorfus, and flag any requirement that conflicts with another or looks unrealistic.
+A written plan, approved before any code is written, covering rendering and the look, including how the code-built terriers give way to modeled and animated ones later; input and cameras on each device; the deterministic simulation; bots; networking and consensus; persistence; sound; build tooling; and milestones. It should take *Notes for the plan* into account, say what it reuses from roslambo and amorfus, and flag any requirement that conflicts with another or looks unrealistic.
 
 ## Configuration
 
@@ -298,7 +302,8 @@ Every setting should be easy to change. These are starting values, to be tuned o
 | Ball | 1.6 m across, twice a terrier's mass | About 5 times a terrier's height |
 | Ball bounce | Keeps 70% of its speed into the surface off the floor, walls, nets and goal frame, and all of its speed along it | Rubber: lively bounces. Unlike roslambo's walls, which scale the whole speed, this lets a rolling ball keep rolling |
 | Ball rolling slowdown | **TBD** | |
-| Terrier | 0.3 m at the shoulder, 0.6 m long | |
+| Terrier | 0.3 m at the shoulder, 0.6 m long | Every look fits this size, so a model never changes play |
+| Terrier drawing budget | **TBD** triangles and bones per terrier, and draw calls for 8 terriers | Measured on the Pixel 8a. The code-built terriers and the later models both fit it |
 | Terrier–ball bounce | Keeps 50% of their closing speed | Sets how hard hits are. Struck level through its middle, a resting ball goes off at half the hitter's speed: 3 m/s at a run, 4.5 m/s at zoomies speed, 5 m/s from a pounce. A push from the floor meets it low, so part of that speed goes into a hop |
 | Terrier bounce | **TBD** | Off other terriers and the walls. A landing terrier doesn't bounce |
 | Re-arm gap | **TBD** | How far a terrier must get from the ball before its next contact is a new touch, as roslambo's re-arm gap does for collisions |
@@ -333,6 +338,7 @@ These aren't requirements. They're findings the implementation plan should accou
 - **Cost on the phone.** 8 terriers and a ball make 36 pairs, against roslambo's 28, and a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks, plus the pitch, inside a Pixel 8a frame. Each split of a substep at a contact re-predicts contacts, so the budget counts splits too. Anchored steering keeps a held direction's input the same from tick to tick, so roslambo's prediction, the last input received, holds. A thumb still wobbles on a stick, so send its direction in coarse steps, such as 32 to a turn, so that a wobble doesn't change the input. roslambo measured tick cost on desktops only, and a 3D scene with 8 animated terriers is GPU load that no sibling has measured on the phone, so measure both first
 - **Mesh and networks.** 4 a side fills the mesh cap exactly, and roslambo's load run was desktop-only. Nobody has measured phones on mobile data or behind strict NATs. A pair that can't connect hurts more around a contested ball, and forwarding adds a hop. On 2026-10-24 roslambo's relay check found relay.damus.io refusing connections, probably for a while only, after the test machine's traffic got it banned, and yabu.me/v2 answering 2 of 3 probes. Check again before the first deploy the way roslambo did: probe each relay by writing an event and reading it back, then decide with a round signaled through that relay alone, because one relay passed every probe and still refused every event Trystero sent
 - **Tests through the real page.** amorfus's two worst first-build defects, a player who couldn't move and installs that could never join each other, passed a green gate because the tests went through test modes. The gate should play a scripted match through the real page and controls, and check that terriers move, the ball moves, and a goal reaches every peer's scoreboard
+- **Terriers that will be modeled.** Pick a renderer that can already load glTF models and play their skeletal animations, such as three.js with its WebGL renderer, so the upgrade isn't a rewrite. Give the code-built terrier the interface a model will have: it takes the animation states, a coat and a bandana, and the simulation never reads anything back from it. hermet's dist audit allows no model format, so the upgrade starts with an option there to allow .glb, unless the models are embedded in the code. A bought model's licence goes into the shipped notices through hermet's licence script, which takes extra entries. Corrections reach animations too: a pounce the simulation takes back must blend out on screen, not snap. Measure the drawing budget on the Pixel 8a early, with a stand-in skinned model as well as the code-built terrier, so the models can be made to fit it
 - **The look.** The owner chose roslambo's look from samples. Plan the same step for the terriers, the packs' colors and patterns, and the ball, checked for color blindness
 - **Trystero and the player ID.** As roslambo: Trystero 0.26.0, exact and unpatched, and a persistent player ID kept apart from Trystero's `selfId`, which changes on every page load. An upgrade of Trystero now moves three apps at once
 
@@ -345,7 +351,7 @@ The owner settled these on 2026-11-14: steering by choosing anchored from the th
 - **Is a lone terrier slow with the ball?** No: one terrier can push it at its own speed, and a pack gets it moving sooner and hits it harder
 - **Pack size?** 1 to 4 a side, chosen for each match, 2 by default, not always 3
 - **Phones?** In scope, with a match played on a phone held sideways, not desktop only
-- **How are the terriers built?** In code, from rounded shapes, with sounds made in code too, not modeled in a 3D tool or bought
+- **How are the terriers built?** In code, from rounded shapes, with sounds made in code too, for the MVP. Modeled and animated terriers come later, and the MVP anticipates them (the owner, 2026-11-14; see *Look and sound*)
 - **Tumbles?** Pounces and fast balls tumble terriers, rather than terriers only pushing each other
 - **Anything that lasts?** No balance or record, unlike roslambo
 - **IPFS?** Not required, as in roslambo, with the build still safe to serve from a subpath
