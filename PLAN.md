@@ -1,9 +1,11 @@
 # terriest: Plan
 
-**Status:** draft for approval, 2026-11-14. Nothing here is decided until you approve it.
-- *The owner, 2026-11-14:* desktop browsers are tested by hand for now.
-- This plan reads that as follows. Your desktop browsers are the real-browser check from M0 on, and the headless gate still runs all three engines.
-- REQUIREMENTS L342 and L345 ask for the phone to be measured early, so Q-4 asks whether the Pixel 8a can be run at M0 too. If not, its runs wait for M5, and the drawing budget stays provisional until then.
+**Status:** draft for approval, 2026-11-14. Nothing here is decided until you approve it, except what you've settled:
+- *The owner, 2026-11-14:* desktop browsers are tested by hand for now, and no more devices are asked for yet (Q-4).
+  - So your desktop browsers are the real-browser check from M0 on, and the headless gate still runs all three engines.
+  - The phone, a third device and a gamepad come up again before M5.
+  - REQUIREMENTS L342 and L345 ask for the phone early, so until it runs, the drawing budget stays provisional (C-2).
+- *The owner, 2026-11-14:* the domain is terriest.com, on Cloudflare (Q-5). Deploys use wrangler's stored full login (Q-6). hermet's licence fix is to be made and pushed (Q-3).
 
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
 
@@ -57,17 +59,17 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 - Chase view re-reads the screen only when a direction starts or moves 45° or more, a change to your 2026-11-14 steering wording (Q-19).
 - The goal's netting is softer than the walls, so a goal bulges the net (C-48).
 - Rules the text leaves open are stated: what terriers may do in each phase, the celebration and overtime order, Practice's pause, abandoned matches, a match of bots alone, late Play-again presses, and what "joins" means for contacting third parties.
-- Your answers to Q-5 and Q-14 fill in the domain and any relay swap.
+- The domain becomes terriest.com (Q-5), and Q-14 fills in any relay swap.
 
 **Biggest risks:**
 1. **Contacts.** Resting, rolling and simultaneous contacts under exact operations are new, and roslambo's integrator doesn't carry over (C-3). M0 tackles this first.
-2. **The phone is unmeasured**, CPU and GPU both. Unless Q-4 finds a way to run it at M0, its first run comes at acceptance. roslambo's timeline also re-simulates its whole window every tick, which the requirements' cost note doesn't count (C-2).
+2. **The phone is unmeasured**, CPU and GPU both, and by your choice its first run comes at acceptance (Q-4). roslambo's timeline also re-simulates its whole window every tick, which the requirements' cost note doesn't count (C-2).
 3. **Without TURN**, some pairs of networks can't connect (C-1, from roslambo).
 4. **The gate draws WebGL 2 in software**, at 5–26 frames a second for a busy scene. So end-to-end tests must never depend on the frame rate (C-6).
-5. **hermet's licence notices ship without their texts**, in roslambo's and amorfus's live builds too, and three.js has never been through hermet's dist audit (C-8, C-9).
+5. **hermet's licence notices shipped without their texts**, in roslambo's and amorfus's live builds too. The fix is pushed (Q-3), but each sibling still needs a bump and a redeploy. And three.js has never been through hermet's dist audit (C-8, C-9).
 
 **What approval authorises:** the decisions in §4; M0, a throwaway spike that uses no network beyond installing packages; then M1–M5.
-- It does **not** authorise pushing, deploying, the relay check that writes to public relays, or pushing hermet. Each waits for your go-ahead (Q-3, Q-5, Q-6, §17).
+- It does **not** authorise pushing terriest, deploying, or the relay check that writes to public relays. Each waits for your go-ahead (§17). hermet's fix is pushed at your request (Q-3).
 - REQUIREMENTS.md is yours. Approving the plan accepts it as amended by §2. The edits go in after you answer, in one commit that cites the Q- and C-numbers, with the status line updated.
 
 **What this rests on (§5):** your requirements; roslambo's, amorfus's and hermet's plans, code and reports; and a two-round audit on 2026-11-14 that checked every claim the requirements make about them, probed WebGL 2 in the three headless engines here, and rebuilt both siblings to confirm the licence bug. Nothing in the physics or rendering has been measured yet. Every cost here is an estimate, labelled as one.
@@ -76,7 +78,7 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 
 ## 1. Questions for you
 
-**Settled by the owner on 2026-11-14:** desktop browsers are tested by hand for now (part of Q-4).
+**Settled by the owner on 2026-11-14:** Q-3, Q-4, Q-5 and Q-6, as each row records. Q-1 and Q-2 still need your answer.
 
 ### Group A — needs your answer
 
@@ -84,10 +86,10 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 |---|---|---|---|
 | Q-1 | Licence, and whether the repo is public | As roslambo: public, no licence, all rights reserved. `package.json` says `"license": "UNLICENSED"`, the README says no licence is granted, and `public-scan` runs in the gate. Bundled packages' notices still ship (§20). | M1 |
 | Q-2 | The match-ID code: a third copy, or one module shared with amorfus and roslambo? REQUIREMENTS L334 leaves this to you. | A third copy: roslambo's `round-id.ts` and its tests, renamed for matches, with its own Play-again prefix. The two existing codecs share the format, but sharing would change two finished apps and stretch hermet's charter, which is checks rather than app behaviour. A shared module can come later, as one change across all three. | M1 |
-| Q-3 | hermet's licence writer ships no licence texts (C-8). May I fix it in hermet and push it, and do roslambo and amorfus take the fix? | **In hermet:** I fix it on a hermet branch at M1: read Vite 8's `identifier` and `text`, test with Vite's real output, and make the audit fail a notice with no text. I also name terriest in hermet's docs.<br>• **The push** waits for your go-ahead. Until then terriest stays on 18a37b2, and its own wrappers map Vite's fields and check every notice for text, so its gate is right from M1 (D-37).<br>• **The siblings:** roslambo and amorfus each need a pin bump and a redeploy before their live notices are right, and each redeploy is your call. amorfus also needs an `extra` notice for its vendored FastNoiseLite. | before terriest's first deploy |
-| Q-4 | Devices, people and networks. You've chosen desktop browsers by hand for now. Can the Pixel 8a also be run at M0, as L342 and L345 ask? For acceptance (L280, L284, L286): what is the third device, and do you have a standard gamepad? | **Now:** your desktop browsers by hand from M0, as you asked.<br>• **The phone at M0,** if it can reach this machine. This machine runs WSL2 behind NAT, with no adb and no USB passthrough, so it needs one of these:<br>&nbsp;&nbsp;– Android wireless debugging, paired from here (adb from Google's platform-tools, no sudo needed; untried);<br>&nbsp;&nbsp;– adb or usbipd on the Windows side;<br>&nbsp;&nbsp;– a Windows port forward and firewall rule, which is an administrator step;<br>&nbsp;&nbsp;– a go-ahead to deploy the spike's bench page at M0.<br>If none suits, the phone waits for M5, and the drawing budget stays provisional until then.<br>• **Acceptance** needs three devices, one of them the Pixel 8a. You have no laptop, so a third has to be found: any phone, tablet or computer. It also needs a standard gamepad. Different networks, mobile data and strict NATs are best effort, as in roslambo. | M0 for the phone's route; M5 for the rest |
-| Q-5 | Domain | Three options:<br>• the account's `workers.dev` address, free, but it shows the account's subdomain to everyone you share the link with;<br>• a gargantis.com subdomain such as terriest.gargantis.com, free: gargantis.com is already a custom domain on the account this machine deploys with;<br>• a new domain, which costs money.<br>Proposal: `workers.dev` for the first deploy, and a choice before release. The address is never written into the repo. | the first deploy |
-| Q-6 | How deploys sign in | A scoped Cloudflare API token in the environment, as roslambo's README says, with `npm run deploy` refusing to run without one. wrangler's logs on this machine show the earlier deploys of roslambo, amorfus and gargantis signed in with its stored full-account login instead (C-46). Choose the domain first, because a custom domain needs zone permissions on the token. | the first deploy |
+| Q-3 | hermet's licence writer ships no licence texts (C-8). May I fix it in hermet and push it, and do roslambo and amorfus take the fix? | **Settled 2026-11-14 by the owner: make the fix and push it.**<br>• **In hermet:** its writer reads Vite 8's `identifier` and `text`, its test uses Vite's real output, and its audit fails a notice with no text (§5).<br>• **terriest** pins that commit from M1, so it needs no shim. Naming terriest in hermet's docs waits until terriest mounts it, at M1.<br>• **The siblings** take it at their next pin bump. Each then needs a rebuild and a redeploy before its live notices are right, and each redeploy is your call. amorfus also needs an `extra` notice for its vendored FastNoiseLite. | — |
+| Q-4 | Devices, people and networks | **Settled 2026-11-14 by the owner: desktop browsers by hand for now, and no more devices asked for yet.**<br>• Your desktop browsers are the real-browser check from M0 on, and the headless gate runs all three engines.<br>• Acceptance still needs three devices, one of them the Pixel 8a, and a standard gamepad (L280, L284, L286). They come up again before M5.<br>• Until the phone runs, the drawing budget is provisional (C-2). | asked again before M5 |
+| Q-5 | Domain | **Settled 2026-11-14 by the owner: terriest.com, hosted on Cloudflare.**<br>• `wrangler.jsonc` routes it as a custom domain (A.7), as the workspace's site does gargantis.com.<br>• The `workers.dev` address is turned off, because it would show the account's name (C-45).<br>• That the zone is on the account this machine deploys with is checked at the first deploy. | — |
+| Q-6 | How deploys sign in | **Settled 2026-11-14 by the owner: wrangler's stored full login.**<br>• `npm run deploy` uses it, with no API token.<br>• The login refreshes itself. If it has lapsed, `wrangler login` renews it, which needs you at a browser.<br>• Each deploy still waits for your go-ahead. | — |
 
 ### Group B — proposal ready; confirm or override
 
@@ -143,10 +145,10 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
 | Notes, Trystero: "An upgrade of Trystero now moves three apps at once" | "… now couples three apps: hermet's room config is typed against the Trystero each app installs, so a change to that type is a hermet change every app takes at its next pin bump" | C-43 |
 | Notes, Cost on the phone: "a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks" | Add: "roslambo's timeline re-simulates the whole window on every tick, 13 steps, so in its scheme that's at least 3,744 pair checks a tick" (its `timeline.ts` and `physics.ts`) | C-44 |
 | Notes, Resting and rolling contact: "bodies resting together hit a per-substep event cap" | Only once M0 has measured it: in the audit's probe (research/audit/REPORT.md §5) roslambo's cap never bound, and its per-substep overlap pass settled resting bodies; and the 137–174 events a second came from roslambo's M0 integrator, which its M2 replaced | C-44 |
-| Platform: "Domain **TBD**" | The domain you choose | Q-5 |
+| Platform: "Domain **TBD**" | "Domain **terriest.com**" | Q-5 |
 | Stack: the six relays | Any relay that fails the pre-deploy check, replaced as you choose | Q-14 |
 | Configuration: the TBD values | The values you sign off at M2 | Q-10 |
-| Acceptance: devices and runs | The devices, people and networks you name, recorded in `docs/acceptance.md` | Q-4 |
+| Acceptance: devices and runs | The devices, people and networks you name before M5, recorded in `docs/acceptance.md` | Q-4 |
 
 ---
 
@@ -166,7 +168,7 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
 **C-2 — The phone's cost is unmeasured, and now comes last.**
 - **CPU:** roslambo re-simulates the whole 12-tick window from the final state on every tick, plus one finalising step: 13 steps a tick, not a 12-tick replay now and then. In roslambo's scheme, with 9 bodies and 4 substeps, that's at least 3,744 pair checks a tick before any contact splits; L342 counts 1,728 for one replay. roslambo measured tick cost on desktops only.
 - **GPU:** 8 animated terriers, a ball and a netted pitch in 3D, never measured on any phone. Every headless engine here draws in software (C-6), so nothing local stands in for the Pixel 8a.
-- **Timing:** the first phone run is at M0 if Q-4 finds a route, otherwise at M5.
+- **Timing:** by your choice (Q-4), the first phone run is at M5.
 - **Resolution:**
   - D-11 re-simulates only from the earliest tick whose inputs changed, usually 1–2 steps; the budget still assumes 13.
   - M0 measures tick cost on the desktop and in throttled Chromium at the Pixel 8a's size, as roslambo's proxy does.
@@ -220,7 +222,7 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
   - The gate stays green: the audit checks only the headings, and hermet's test asserts the text only for `extra` entries, never for npm ones.
   - amorfus's vendored FastNoiseLite has no notice at all.
   - terriest would ship MIT three.js and Trystero the same way.
-- **Resolution:** the fix in Q-3. Until it's pinned, terriest's own wrappers map Vite's field names onto hermet's, and fail any notice with no text (D-37). Both shims go when the pin moves.
+- **Resolution:** fixed and pushed in hermet at your request (Q-3), and pinned by terriest from M1. The siblings' live notices stay wrong until each bumps its pin and redeploys.
 
 **C-9 — three.js has never been through hermet's dist audit.**
 - **Problem:** the audit reads every string in the bundle, library code included. A documentation URL in a warning, or in GLSL comment text, fails it. So might a tokenizer edge case, such as a regular expression after `)` that holds a quote. No copy of three.js is on this machine to check.
@@ -265,8 +267,8 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
 | C-42 | Play-again presses come at different times; a player's old pack may be full. | D-12 |
 | C-43 | L334's "need only a docs update" and L347's "moves three apps at once" are inaccurate. | §2 |
 | C-44 | The notes describe roslambo's integrator and cost imprecisely. | §2: the cost now; the event cap only once M0 has measured it |
-| C-45 | A `workers.dev` address shows the account's name. | Q-5; never written into the repo |
-| C-46 | The earlier sibling deploys signed in with wrangler's full-account login, not a scoped token. | Q-6 |
+| C-45 | A `workers.dev` address shows the account's name. | Settled by Q-5: terriest.com, with `workers_dev` off |
+| C-46 | The earlier sibling deploys signed in with wrangler's full-account login, not the scoped token their docs describe. | Settled by Q-6: you chose the full login |
 | C-47 | Holding sideways in ball view spirals outward, about 0.3 m a lap from 3 m away, because each tick aims along the tangent. | Accepted, or an inward correction tuned at M2 (D-7) |
 | C-48 | At 70%, the goal's netting sends a ball shot in at 5 m/s back out at 3.5 m/s during the celebration, at odds with "a goal bulges the net" (L101). | §2: a softer netting, tuned |
 | C-49 | The mesh cap counts browsers, not terriers; bots aren't peers. | §2 |
@@ -582,13 +584,13 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 
 **D-34 — The toolchain (roslambo D-24).** roslambo's pins (Appendix A.6), plus three. Playwright 1.64.1, whose browsers are already installed here.
 
-**D-35 — Hosting (roslambo D-25).** Workers static assets, assets only, observability off. A `public/_headers` file, as amorfus's, marks the hashed assets immutable and sets its security headers; everything else is revalidated. Deploys need your go-ahead and Q-6's token.
+**D-35 — Hosting (roslambo D-25).** Workers static assets, assets only, observability off. A `public/_headers` file, as amorfus's, marks the hashed assets immutable and sets its security headers; everything else is revalidated. Served at terriest.com (Q-5). Deploys use wrangler's stored login (Q-6), and each waits for your go-ahead.
 
 **D-36 — The spike stays separate (roslambo D-26).** M0 lives in `research/spike/`, with its own `package.json`. Nothing in `src/` imports it; its findings go in `research/spike/REPORT.md`.
 
 **D-37 — The gate tooling is hermet's (roslambo D-28).**
 - **Choice:**
-  - hermet mounted as the submodule `vendor/hermet`, at 18a37b2 until Q-3's fix is pushed.
+  - hermet mounted as the submodule `vendor/hermet`, at the commit with Q-3's fix.
   - terriest's own policy stays in `scripts/` and the configs:
     - `public-scan` reads `TERRIEST_PRIVATE_TERMS`;
     - the dist audit passes:
@@ -597,11 +599,6 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
       - `loopbackFiles: ['boot.js']`, because the boot messages say how to serve the folder on localhost, as amorfus's do;
       - whatever C-9's check justifies;
     - the licence writer passes `product: 'terriest'`.
-  - **Until Q-3's fix is pinned,** two shims keep terriest's gate right from M1:
-    - `scripts/licenses.mjs` maps Vite's `identifier` and `text` onto the names hermet reads;
-    - `scripts/audit-dist.mjs` fails any notice with no text.
-
-    Both go when the pin moves.
   - The gate runs hermet's tests under terriest's own ESLint, ws and vitest. Never edit `vendor/hermet` in place.
 - **Cost if wrong:** as roslambo.
 
@@ -926,7 +923,7 @@ D-39, with roslambo's hosting:
 | `e2e` | Playwright: Chromium, Firefox and WebKit, against the built page and the local relay |
 | `public-scan` | tracked files contain no home paths, keys or private terms |
 | `check` | `lint && public-scan && typecheck && test && build && e2e`: the gate |
-| `deploy` | `check && wrangler deploy`, refusing without `CLOUDFLARE_API_TOKEN` (Q-6) |
+| `deploy` | `check && wrangler deploy`, with wrangler's stored login (Q-6); each run waits for your go-ahead |
 | `emit-goldens` | rewrites the golden hashes; refuses unless `TERRIEST_EMIT_GOLDENS=1` |
 
 **Vite:**
@@ -940,9 +937,9 @@ D-39, with roslambo's hosting:
 - sound is made in code;
 - data is imported into the bundle.
 
-**Licences:** hermet's writer through terriest's wrapper, with D-37's shim until Q-3's fix is pinned. `scripts/expected-licenses.json` lists Trystero's two packages, `@noble/secp256k1` and three.
+**Licences:** hermet's writer, as fixed (Q-3), through terriest's wrapper. `scripts/expected-licenses.json` lists Trystero's two packages, `@noble/secp256k1` and three.
 
-**wrangler.jsonc:** assets only, `./dist`, observability off, `workers_dev` until Q-5 (Appendix A.7). A test checks it, as roslambo's does.
+**wrangler.jsonc:** assets only, `./dist`, observability off, terriest.com as a custom domain, `workers_dev` off (Appendix A.7). A test checks it, as roslambo's does.
 
 **CI:**
 - **The workflow:** roslambo's `check.yml`: a checkout with submodules, `npm ci`, the Playwright browsers, `npm run check`, plus the unit suite on arm64 for the goldens.
@@ -1027,7 +1024,7 @@ D-39, with roslambo's hosting:
 - **Everywhere:** no request outside `third-party.json`, and no console errors.
 
 **By hand, for now** (you, on your desktop; logged in `docs/acceptance.md`):
-- **M0:** the spike's scene page in Chrome, Edge and Firefox on Windows (`http://localhost:<port>`, through WSL2's forwarding): its frame verdict on your GPU. Also on the Pixel 8a, if Q-4 gives it a route.
+- **M0:** the spike's scene page in Chrome, Edge and Firefox on Windows (`http://localhost:<port>`, through WSL2's forwarding): its frame verdict on your GPU.
 - **M2:** the tuning page: the feel and the values (Q-10).
 - **M4:** Practice in each desktop browser with the keyboard, and a gamepad if you have one. A match between your three desktop browsers through `npm run dev:local`. The frame bench on your GPU. The look book (Q-11).
 - **M5:** the deployed site, in desktop browsers and on the phone (Q-4).
@@ -1060,7 +1057,7 @@ D-39, with roslambo's hosting:
   3. **Cost:** tick cost with a 13-step replay every tick, on the desktop and in throttled Chromium at the Pixel 8a's size.
   4. **The page in all three headless engines at once:** frame-rate independence; draw counts and download sizes for both drawers.
   5. **The audit:** every finding classified (C-9).
-  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and on the Pixel 8a if Q-4 gives it a route, and read off the frame verdict.
+  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and read off the frame verdict.
 - *Questions answered,* each with a number in `research/spike/REPORT.md`:
   - determinism, pass or fail per engine;
   - whether resting contact is bit-still;
@@ -1077,14 +1074,14 @@ D-39, with roslambo's hosting:
 **M1 — Skeleton and gate**
 - *Build:*
   - Vite, TypeScript, ESLint (D-38), vitest and Playwright (three engines);
-  - `vendor/hermet` at 18a37b2 and its wrappers, with D-37's licence shims;
+  - `vendor/hermet` at the commit with Q-3's fix, and its wrappers;
   - `src/config.ts` with every setting and the §7.4 checks;
   - the match-ID module (Q-2);
   - the boot page and its failure messages (D-30);
   - a three.js page drawing the empty pitch;
   - `third-party.json`; `wrangler.jsonc` and its test; CI;
   - `CLAUDE.md`; the README skeleton; no LICENSE (Q-1).
-  - On a hermet branch: the licence-writer fix and its test, and the docs naming terriest (Q-3).
+  - In hermet: the docs naming terriest, now that it mounts hermet, pushed with your go-ahead.
 - *Exit:* `npm install && npm run build` emits `dist/`; `npm run check` is green locally, and in CI once pushed.
 
 **M2 — Simulation core, tuning and the bot brain**
@@ -1129,8 +1126,8 @@ D-39, with roslambo's hosting:
   - you've picked the look (Q-11).
 
 **M5 — Acceptance and release**
-- *Prerequisites:* Q-4's devices; Q-5 and Q-6 before the deploy; the relay-check go-ahead.
-- *Build:* the README in full; Q-3's fix taken, if pushed; the relay check and any swap (Q-14).
+- *Prerequisites:* the devices of Q-4, asked for then; the relay-check go-ahead; your go-ahead to deploy.
+- *Build:* the README in full; the relay check and any swap (Q-14).
 - *Release:*
   - `npm run check`;
   - deploy, with your go-ahead;
@@ -1355,7 +1352,8 @@ roslambo's (its PLAN A.6, checked 2026-10-24), re-checked at M1: Node ≥ 22.12 
   "assets": { "directory": "./dist", "not_found_handling": "none" },
   // Request logs would keep visitor IP addresses.
   "observability": { "enabled": false },
-  "workers_dev": true
-  // "routes": the domain, once Q-5 is answered
+  // The workers.dev address would show the account's name (C-45).
+  "workers_dev": false,
+  "routes": [{ "pattern": "terriest.com", "custom_domain": true }] // Q-5
 }
 ```
