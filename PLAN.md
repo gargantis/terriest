@@ -1,7 +1,9 @@
 # terriest: Plan
 
 **Status:** draft for approval, 2026-11-14. Nothing here is decided until you approve it.
-- *The owner, 2026-11-14:* desktop browsers are tested by hand for now. So the runs on the Pixel 8a move to the acceptance milestone, and the drawing budget stays provisional until they happen (Q-4, §16).
+- *The owner, 2026-11-14:* desktop browsers are tested by hand for now.
+- This plan reads that as follows. Your desktop browsers are the real-browser check from M0 on, and the headless gate still runs all three engines.
+- REQUIREMENTS L342 and L345 ask for the phone to be measured early, so Q-4 asks whether the Pixel 8a can be run at M0 too. If not, its runs wait for M5, and the drawing budget stays provisional until then.
 
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
 
@@ -52,11 +54,14 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 - The example match ID, "majority", and the 32-byte name limit match what roslambo actually does.
 - Goals and the end show at the vote-confirmed tick, about 0.4 s after the ball crosses, so a correction never takes one back (Q-7).
 - The bowling rule exempts a lunging terrier and the last to touch the ball, and its examples are restated (Q-8).
-- Rules the text leaves open are stated: what terriers may do in each phase, the celebration and overtime order, Practice's pause, abandoned matches, and what "joins" means for contacting third parties.
+- Chase view re-reads the screen only when a direction starts or moves 45° or more, a change to your 2026-11-14 steering wording (Q-19).
+- The goal's netting is softer than the walls, so a goal bulges the net (C-48).
+- Rules the text leaves open are stated: what terriers may do in each phase, the celebration and overtime order, Practice's pause, abandoned matches, a match of bots alone, late Play-again presses, and what "joins" means for contacting third parties.
+- Your answers to Q-5 and Q-14 fill in the domain and any relay swap.
 
 **Biggest risks:**
 1. **Contacts.** Resting, rolling and simultaneous contacts under exact operations are new, and roslambo's integrator doesn't carry over (C-3). M0 tackles this first.
-2. **The phone is unmeasured**, CPU and GPU both, and with desktop browsers tested by hand for now the first phone run comes at acceptance. roslambo's timeline also re-simulates its whole window every tick, which the requirements' cost note doesn't count (C-2).
+2. **The phone is unmeasured**, CPU and GPU both. Unless Q-4 finds a way to run it at M0, its first run comes at acceptance. roslambo's timeline also re-simulates its whole window every tick, which the requirements' cost note doesn't count (C-2).
 3. **Without TURN**, some pairs of networks can't connect (C-1, from roslambo).
 4. **The gate draws WebGL 2 in software**, at 5–26 frames a second for a busy scene. So end-to-end tests must never depend on the frame rate (C-6).
 5. **hermet's licence notices ship without their texts**, in roslambo's and amorfus's live builds too, and three.js has never been through hermet's dist audit (C-8, C-9).
@@ -79,17 +84,17 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 |---|---|---|---|
 | Q-1 | Licence, and whether the repo is public | As roslambo: public, no licence, all rights reserved. `package.json` says `"license": "UNLICENSED"`, the README says no licence is granted, and `public-scan` runs in the gate. Bundled packages' notices still ship (§20). | M1 |
 | Q-2 | The match-ID code: a third copy, or one module shared with amorfus and roslambo? REQUIREMENTS L334 leaves this to you. | A third copy: roslambo's `round-id.ts` and its tests, renamed for matches, with its own Play-again prefix. The two existing codecs share the format, but sharing would change two finished apps and stretch hermet's charter, which is checks rather than app behaviour. A shared module can come later, as one change across all three. | M1 |
-| Q-3 | hermet's licence writer ships no licence texts (C-8). May I fix it in hermet and push it, and do roslambo and amorfus take the fix? | I fix it on a hermet branch at M1: read Vite 8's `identifier` and `text`, test with Vite's real output, and make the audit fail a notice with no text. I also name terriest in hermet's docs. The push waits for your go-ahead, and terriest stays on 18a37b2 until then. roslambo and amorfus each need a pin bump and a redeploy before their live notices are right; each redeploy is your call. amorfus also needs an `extra` notice for its vendored FastNoiseLite. | before terriest's first push that pins the fix, and before its first deploy |
-| Q-4 | Devices, people and networks. You've chosen desktop browsers by hand for now. For acceptance (L280, L284, L286): when can you run the Pixel 8a, what is the third device, and do you have a standard gamepad? | Development and M0–M4 need only this machine and your desktop browsers. Acceptance needs three devices, one of them the Pixel 8a (you have no laptop, so a third device has to be found: any phone, tablet or computer); a standard gamepad; and a route from the phone to this machine or a deploy (§17 M5). Different networks, mobile data and strict NATs are best effort, as in roslambo. | M5 |
-| Q-5 | Domain | Three options:<br>• the account's `workers.dev` address, free, but it shows the account's subdomain to everyone you share the link with;<br>• a gargantis.com subdomain, possibly free if that zone is in the same account (not checked);<br>• a new domain, which costs money.<br>Proposal: `workers.dev` for the first deploy, and a choice before release. The address is never written into the repo. | the first deploy |
+| Q-3 | hermet's licence writer ships no licence texts (C-8). May I fix it in hermet and push it, and do roslambo and amorfus take the fix? | **In hermet:** I fix it on a hermet branch at M1: read Vite 8's `identifier` and `text`, test with Vite's real output, and make the audit fail a notice with no text. I also name terriest in hermet's docs.<br>• **The push** waits for your go-ahead. Until then terriest stays on 18a37b2, and its own wrappers map Vite's fields and check every notice for text, so its gate is right from M1 (D-37).<br>• **The siblings:** roslambo and amorfus each need a pin bump and a redeploy before their live notices are right, and each redeploy is your call. amorfus also needs an `extra` notice for its vendored FastNoiseLite. | before terriest's first deploy |
+| Q-4 | Devices, people and networks. You've chosen desktop browsers by hand for now. Can the Pixel 8a also be run at M0, as L342 and L345 ask? For acceptance (L280, L284, L286): what is the third device, and do you have a standard gamepad? | **Now:** your desktop browsers by hand from M0, as you asked.<br>• **The phone at M0,** if it can reach this machine. This machine runs WSL2 behind NAT, with no adb and no USB passthrough, so it needs one of these:<br>&nbsp;&nbsp;– Android wireless debugging, paired from here (adb from Google's platform-tools, no sudo needed; untried);<br>&nbsp;&nbsp;– adb or usbipd on the Windows side;<br>&nbsp;&nbsp;– a Windows port forward and firewall rule, which is an administrator step;<br>&nbsp;&nbsp;– a go-ahead to deploy the spike's bench page at M0.<br>If none suits, the phone waits for M5, and the drawing budget stays provisional until then.<br>• **Acceptance** needs three devices, one of them the Pixel 8a. You have no laptop, so a third has to be found: any phone, tablet or computer. It also needs a standard gamepad. Different networks, mobile data and strict NATs are best effort, as in roslambo. | M0 for the phone's route; M5 for the rest |
+| Q-5 | Domain | Three options:<br>• the account's `workers.dev` address, free, but it shows the account's subdomain to everyone you share the link with;<br>• a gargantis.com subdomain such as terriest.gargantis.com, free: gargantis.com is already a custom domain on the account this machine deploys with;<br>• a new domain, which costs money.<br>Proposal: `workers.dev` for the first deploy, and a choice before release. The address is never written into the repo. | the first deploy |
 | Q-6 | How deploys sign in | A scoped Cloudflare API token in the environment, as roslambo's README says, with `npm run deploy` refusing to run without one. wrangler's logs on this machine show the earlier deploys of roslambo, amorfus and gargantis signed in with its stored full-account login instead (C-46). Choose the domain first, because a custom domain needs zone permissions on the token. | the first deploy |
 
 ### Group B — proposal ready; confirm or override
 
 | # | Question | Proposal |
 |---|---|---|
-| Q-7 | When does a goal show? (C-4) | At the vote-confirmed tick, about 0.4 s after the ball crosses, as roslambo shows its end (roslambo D-10). The net bulges at once, from the predicted state; the score, the whistle and the scorer's name come 0.4 s later. The celebration is held 3.4 s in the simulation, so 3 s of it is seen. The end and the results also come from confirmed ticks. Alternative: show goals at the final tick, 0.2 s, and accept a rare goal undone on a peer that loses a vote. |
-| Q-8 | The bowling rule (C-5) | A terrier is bowled over when the ball comes at it at the bowling speed or faster, measured in plan view: the ball's horizontal velocity along the horizontal line from the ball to the terrier, before the contact is settled. Two exceptions: a terrier in its lunge, and the terrier that touched the ball last. So a terrier is never bowled by a ball it's pushing, chasing or just shot, even off a wall, and a pounce can meet an oncoming ball. A ball dribbled at a run, about 6 m/s, does bowl the rivals in its way. The bowling speed is tuned with you (Q-10). |
+| Q-7 | When does a goal show? (C-4) | At the vote-confirmed tick, about 0.4 s after the ball crosses, as roslambo shows its end (roslambo D-10).<br>• **At once,** from the predicted state: the net bulges.<br>• **0.4 s later:** the score, the whistle, the scorer's name, and the celebrating animation of the pack the goal counts for, which blends in part-way through.<br>• **The celebration** is held 3.4 s in the simulation, so 3 s of it is seen. The end and the results also come from confirmed ticks.<br>Alternative: show goals at the final tick, 0.2 s, and accept a rare goal undone on a peer that loses a vote. |
+| Q-8 | The bowling rule (C-5) | **The rule:** a terrier is bowled over when the ball comes at it at the bowling speed or faster, measured in plan view: the ball's horizontal velocity along the horizontal line from the ball to the terrier, before the contact is settled.<br>• **Two exceptions:** a terrier in its lunge, and the terrier that touched the ball last. So a terrier is never bowled by a ball it's pushing or has just shot, even off a wall, and a pounce can meet an oncoming ball.<br>• **What remains:** a terrier chasing a ball that someone else touched last can be bowled by its rebound. A ball dribbled at a run, about 6 m/s, bowls the rivals in its way, so only a lunging terrier can meet a fast ball safely.<br>The bowling speed is tuned with you (Q-10). |
 | Q-9 | How bots are accepted, "about a new player's level" (L142) | Roles by distance rank: the nearest chases, the next supports behind the ball, the rest defend between the ball and their goal. Bots react after about 0.25 s, with aim noise seeded per bot, so mirrored bots diverge. Pass marks, in the gate: a bot scores into an empty goal within 20 s in at least 95% of seeded runs; a 2-a-side bot match has a goal in regulation in at least 90% of seeds; no bot is stuck for 5 s. Then you play against them and accept the level. |
 | Q-10 | Tuning | As roslambo's Q-12: on M2's tuning page, together. It covers the six TBDs, the terrier's collision size, the drive and friction, the goal netting's bounce and the bowling speed, starting from Appendix A.5. The values go into the Configuration table. |
 | Q-11 | The look | Placeholders until M4. Then a look book, as roslambo's, offers samples driven by recorded matches through the terrier drawer (§12), and you pick the terriers, coats, pack colours and patterns, the ball and the pitch. Every coat is checked against both packs for colour blindness. |
@@ -98,8 +103,9 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 | Q-14 | A relay that fails the pre-deploy check (L343) | Replace it with nostr.mom, roslambo's next choice, in terriest only, and offer the same swap to roslambo and amorfus separately. |
 | Q-15 | Practice (C-30) | Pause and Resume appear in the match menu in Practice only. Opening the menu or hiding the tab pauses it: play, the clock, animations and sound stop. A reload goes Home, because no peer holds the match. The player starts in the first pack and may switch; bots fill every other place, so Add and Remove a bot are hidden. Play again starts a new Practice with the same settings and contacts no one. |
 | Q-16 | Abandoned matches (C-31) | When no browser that controls a terrier is left, the match runs on for 30 s, so a player who reloads can come back. After that the browsers still there show "The players have left", with the score so far and **Home**. L282 then reads "while another browser stays in the match". |
-| Q-17 | Keys on Pre-match and in the menu (C-34) | Keys and buttons outside the play set: Escape, or the gamepad's Back button, opens the menu on Pre-match and Match; Enter, or Start, presses Ready; the arrow keys or the d-pad move between buttons. The pitch keeps keyboard focus, so Space only ever jumps. Results also takes the usual confirm button. |
+| Q-17 | Keys on Pre-match and in the menu (C-34) | Keys and buttons outside the play set. Escape, or the gamepad's Back button, opens the menu on Pre-match and Match. The arrow keys or the d-pad move between Pre-match's buttons, with Ready focused first, and Enter or Start presses the focused one. The pitch keeps the other keys, so Space only ever jumps. Results also takes the usual confirm button. |
 | Q-18 | Claude's own setup in this repo | Right after approval, in one sitting with you there (every write under `.claude/` asks you to approve it): amorfus's hand-written `.claude/` (session-branch rules, the guard against editing `main`, `/merge-to-main`, `/sync-with-main`), with a narrow allowlist for the gate's commands. No claude-kit submodule, because it comes from another organisation. `CLAUDE.md` comes at M1. Alternative: no `.claude/`, as roslambo. |
+| Q-19 | Chase view's re-read (C-24): your 2026-11-14 wording reads the screen again whenever the stick moves to a new direction | The stick is sent in 32 steps a turn. Under that wording, a wobble across one step after the camera has swung would turn the terrier again: the spin anchored steering was chosen to remove. Proposal: read the screen when a direction starts from neutral, or when it moves 45° or more from the direction last read; a smaller move turns the kept direction by the same angle. This changes only what the controls send (L76). |
 
 ---
 
@@ -114,9 +120,9 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
 | Match ID: "so presses at the same moment lead to the same match" | "so every press leads to the same match" | C-42 |
 | Consensus: "the state held by the **majority** wins"; "The majority is counted among the votes received" | "the state with the most votes wins"; "The votes are counted among those received" | C-16 |
 | Consensus: "Each player broadcasts its control inputs …" | "Each browser that controls a terrier broadcasts …" (a spectator hosting bots does too) | C-16 |
-| Consensus: "Goals and the end of the match are taken from final ticks, so a correction never takes one back. A goal's score, whistle and celebration … show once its tick is final, about 0.2 s after the ball crosses the line" | "Goals and the end are taken from ticks the vote has confirmed, so a correction never takes one back. A goal's score, whistle and celebration … show once its tick is confirmed, about 0.4 s after the ball crosses the line. The net bulges at once." | Q-7 |
+| Consensus: "Goals and the end of the match are taken from final ticks, so a correction never takes one back. A goal's score, whistle and celebration, including the terriers' celebrating animation, show once its tick is final, about 0.2 s after the ball crosses the line" | "Goals and the end are taken from ticks the vote has confirmed, so a correction never takes one back. A goal's score, whistle and celebration, including the terriers' celebrating animation, show once its tick is confirmed, about 0.4 s after the ball crosses the line. The net bulges at once." | Q-7 |
 | Configuration: Goal celebration "3 seconds" | "3 seconds, as seen: the simulation holds it for 3 s plus the confirmation delay" | Q-7 |
-| Tumble: "So does a ball that comes at a terrier at the **bowling speed** or faster, counting only the ball's own speed toward the terrier, so a terrier is never tumbled by a ball it's pushing or chasing." | "So does a ball that comes at a terrier at the **bowling speed** or faster, counting only the ball's own horizontal speed toward the terrier, except for a terrier in its lunge and the terrier that touched the ball last. So a terrier is never tumbled by a ball it's pushing, chasing or has just shot." | Q-8 |
+| Tumble: "So does a ball that comes at a terrier at the **bowling speed** or faster, counting only the ball's own speed toward the terrier, so a terrier is never tumbled by a ball it's pushing or chasing." | "So does a ball that comes at a terrier at the **bowling speed** or faster, counting only the ball's own horizontal speed toward the terrier, except for a terrier in its lunge and the terrier that touched the ball last. So a terrier is never tumbled by a ball it's pushing or has just shot, even off a wall, but one chasing a ball a rival touched last can be." | Q-8 |
 | Configuration, Bowling speed: "A pounce, or a push at zoomies speed, sends a resting ball off fast enough; a push at a run doesn't" | "A pounce from the air sends a resting ball off fast enough. Pushes from the floor meet the ball low, so whether they bowl depends on the tuned values. A ball dribbled at a run does bowl." | Q-8, C-5 |
 | Persistence: "Display names are up to 20 characters" | "… up to 20 characters and 32 bytes, without control characters" | C-17 |
 | Scoring: "A goal is credited to the terrier whose touch was the latest …" | "… whose contact with the ball was the latest …; each attacker sharing it counts a goal" | C-26 |
@@ -129,13 +135,16 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
 | Platform: "Nothing contacts a third party until a player proposes or joins a match" | Add: "Opening a `#join=` link or entering a code counts as joining" | C-32 |
 | Quality: "a stand-in skinned model, kept out of the shipped build" | Add: "served to the shipped build by the tests" | C-33 |
 | The ball: "On screen it turns as if rolling with its motion" | Add: "That turning is drawing only, and may differ between viewers" | C-29 |
-| Controls: "Pressing a new direction, or moving the stick to one, reads it from the screen again" | "Pressing a direction from neutral, or moving the stick 45° or more from the direction last read, reads it from the screen again; a smaller move turns the kept direction by the same angle" | C-24 |
+| Controls: "Pressing a new direction, or moving the stick to one, reads it from the screen again" | "Pressing a direction from neutral, or moving the stick 45° or more from the direction last read, reads it from the screen again; a smaller move turns the kept direction by the same angle" | Q-19 |
 | Pack size: "4 a side is the mesh cap of 8 players" | "… the mesh cap of 8 browsers that play; bots aren't peers" | C-49 |
 | Joining and packs: "A bot is always ready, so the people's Ready starts the match" | Add: "A match of bots alone starts when its packs are full" | C-41 |
 | Configuration, Ball bounce: "Keeps 70% … off the floor, walls, nets and goal frame" | "… off the floor, the walls, the overhead net and the goal frame. The goal's netting keeps less, tuned at M2, so a goal bulges the net instead of springing back out" | C-48 |
 | Notes, Reuse: "need only a docs update" | "hermet takes each app's policy as options, so a third app needs no hermet change for its own policy. Its docs name only amorfus and roslambo, its licence writer must be fixed before any app ships licence texts (C-8), and the three.js build must be checked against its audit (C-9)." | C-43 |
 | Notes, Trystero: "An upgrade of Trystero now moves three apps at once" | "… now couples three apps: hermet's room config is typed against the Trystero each app installs, so a change to that type is a hermet change every app takes at its next pin bump" | C-43 |
-| Notes, Resting and rolling contact; Cost on the phone | State that roslambo settles resting contacts in its per-substep overlap pass (its event cap never bound), that the 137–174 contact events a second came from its superseded M0 integrator, and that its timeline re-simulates the whole window, 13 steps, on every tick. In its scheme that's at least 3,744 pair checks a tick for 9 bodies, where the note counts 1,728 for one replay | C-44 |
+| Notes, Cost on the phone: "a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks" | Add: "roslambo's timeline re-simulates the whole window on every tick, 13 steps, so in its scheme that's at least 3,744 pair checks a tick" (its `timeline.ts` and `physics.ts`) | C-44 |
+| Notes, Resting and rolling contact: "bodies resting together hit a per-substep event cap" | Only once M0 has measured it: in the audit's probe (research/audit/REPORT.md §5) roslambo's cap never bound, and its per-substep overlap pass settled resting bodies; and the 137–174 events a second came from roslambo's M0 integrator, which its M2 replaced | C-44 |
+| Platform: "Domain **TBD**" | The domain you choose | Q-5 |
+| Stack: the six relays | Any relay that fails the pre-deploy check, replaced as you choose | Q-14 |
 | Configuration: the TBD values | The values you sign off at M2 | Q-10 |
 | Acceptance: devices and runs | The devices, people and networks you name, recorded in `docs/acceptance.md` | Q-4 |
 
@@ -157,7 +166,7 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
 **C-2 — The phone's cost is unmeasured, and now comes last.**
 - **CPU:** roslambo re-simulates the whole 12-tick window from the final state on every tick, plus one finalising step: 13 steps a tick, not a 12-tick replay now and then. In roslambo's scheme, with 9 bodies and 4 substeps, that's at least 3,744 pair checks a tick before any contact splits; L342 counts 1,728 for one replay. roslambo measured tick cost on desktops only.
 - **GPU:** 8 animated terriers, a ball and a netted pitch in 3D, never measured on any phone. Every headless engine here draws in software (C-6), so nothing local stands in for the Pixel 8a.
-- **Timing:** you've chosen desktop browsers by hand for now, so the first phone run is at M5.
+- **Timing:** the first phone run is at M0 if Q-4 finds a route, otherwise at M5.
 - **Resolution:**
   - D-11 re-simulates only from the earliest tick whose inputs changed, usually 1–2 steps; the budget still assumes 13.
   - M0 measures tick cost on the desktop and in throttled Chromium at the Pixel 8a's size, as roslambo's proxy does.
@@ -171,7 +180,8 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
   - a rolling body loses 30% of its speed every substep;
   - its bounce swaps velocities, which is right only for equal masses, and the ball weighs twice a terrier.
 - Settled one at a time in a fixed order, as roslambo's are, contacts bias a mirrored kickoff once masses differ and bounces lose speed: the pack settled first sees the ball roll back at an eighth of the terriers' speed.
-- **Resolution:** a new solver (D-5): the floor as support, simultaneous impulses in a mirror-symmetric order, restitution only above a closing speed. M0 proves it, and its stop rule sends it back to D-5 if a resting ball can't be held bit-still.
+- Settled all at once instead, in plain Jacobi iterations, several contacts on one body mis-solve. The review of this plan's first draft modelled three or four terriers hitting the ball together: they created energy, or sent the ball slower than one terrier did (research/audit/REPORT.md §6).
+- **Resolution:** a new solver (D-5): the floor as support, accumulated impulses by Gauss–Seidel over mirror pairs, restitution only above a closing speed. M0 proves it. Its stop rule sends it back to D-5 if a resting ball can't be held bit-still, or if simultaneous hitters gain energy.
 
 **C-4 — "A correction never takes one back" isn't true at final ticks.**
 - **Problem:** a final tick is safe from late inputs, but a peer whose hash loses the vote replaces its final state, about 0.4 s plus a round trip later. That's why roslambo acts on its end only at the vote-confirmed tick. Even a confirmed tick can rarely be re-tallied by a very late vote.
@@ -207,10 +217,10 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
 - **Problem**, verified twice on 2026-11-14:
   - hermet's `licenses.mjs` reads `license` and `licenseText`, but Vite 8 writes `identifier` and `text`, so every notice is a bare `## name@version` heading.
   - roslambo's and amorfus's live sites serve MIT and ISC code that way, and no licence text is inside their bundles either. A rebuild of each from HEAD reproduced its shipped notices byte for byte.
-  - The gate stays green: the audit checks only the headings, and hermet's test never asserts the text.
+  - The gate stays green: the audit checks only the headings, and hermet's test asserts the text only for `extra` entries, never for npm ones.
   - amorfus's vendored FastNoiseLite has no notice at all.
   - terriest would ship MIT three.js and Trystero the same way.
-- **Resolution:** the fix in Q-3. terriest's audit also fails any notice with no text.
+- **Resolution:** the fix in Q-3. Until it's pinned, terriest's own wrappers map Vite's field names onto hermet's, and fail any notice with no text (D-37). Both shims go when the pin moves.
 
 **C-9 — three.js has never been through hermet's dist audit.**
 - **Problem:** the audit reads every string in the bundle, library code included. A documentation URL in a warning, or in GLSL comment text, fails it. So might a tokenizer edge case, such as a regular expression after `)` that holds a quote. No copy of three.js is on this machine to check.
@@ -248,13 +258,13 @@ REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that
 | C-35 | A hidden tab draws nothing, so "60 fps" can only mean a visible page. A covered window also counts as hidden. | D-31 |
 | C-36 | Losing WebGL 2 mid-match isn't covered. | D-30 |
 | C-37 | Unstated: how a phone is told from a tablet, whether spectators are asked to turn the phone, safe areas, and a screen that sleeps on a spectator. | D-30 |
-| C-38 | "High above one side" is outside the 6 m walls and net, which hide the pitch. | D-28 |
+| C-38 | The walls and net are both 6 m high, so "high above one side" puts the spectators' camera outside them, looking through. | D-28: the near wall and the net fade where they're in the way |
 | C-39 | Settings defaults, which settings apply mid-match, what mirroring moves, and whether control hints are remembered. | §11 |
 | C-40 | The one-tab rule doesn't say whether it covers Practice and watching. | D-24: one lock for the whole app |
 | C-41 | Bots are always ready, so a match of bots alone starts when the last is added. | As roslambo; §2 |
 | C-42 | Play-again presses come at different times; a player's old pack may be full. | D-12 |
 | C-43 | L334's "need only a docs update" and L347's "moves three apps at once" are inaccurate. | §2 |
-| C-44 | The notes describe roslambo's integrator and cost imprecisely. | §2 |
+| C-44 | The notes describe roslambo's integrator and cost imprecisely. | §2: the cost now; the event cap only once M0 has measured it |
 | C-45 | A `workers.dev` address shows the account's name. | Q-5; never written into the repo |
 | C-46 | The earlier sibling deploys signed in with wrangler's full-account login, not a scoped token. | Q-6 |
 | C-47 | Holding sideways in ball view spirals outward, about 0.3 m a lap from 3 m away, because each tick aims along the tangent. | Accepted, or an inward correction tuned at M2 (D-7) |
@@ -277,14 +287,16 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 
 **D-2 — Headings are binary angles, with roslambo's sine and cosine and a new exact `datan2`.**
 - **Choice:**
-  - A heading is a u32 binary angle (2³² per turn), as L335 asks. Turning is integer arithmetic. roslambo's `angle.ts` (`dcos`, `dsin`, `dir`) is copied.
+  - A heading is a u32 binary angle (2³² per turn), as L335 asks. Turning is integer arithmetic. roslambo's `angle.ts` is copied: binary angles and `dir`, its exact cosine and sine of an angle, computed together, plus `fractionOfTurn`.
   - New: `datan2(y, x)` → binary angle. It reduces to an octant by comparisons and swaps, takes one exact division, then a fixed polynomial in Horner form, rounded to an integer. It's tested against `Math.atan2` to about 1e-9 of a turn, and pinned by the goldens in all three engines.
   - It's needed because the ball frame (D-7) resolves a direction against the line from the terrier to the ball, inside the simulation.
 - **Rejected:** headings kept as unit vectors, renormalised with `Math.sqrt` every tick. That needs no `datan2`, but every turn and snap gets harder to keep exact, and the animations read turning as an angle. It's the fallback if `datan2` fails a golden.
 - **Cost if wrong:** a polynomial error is a tiny direction error, identical everywhere. Low.
 
 **D-3 — 60 ticks a second, 4 physics substeps (roslambo D-3).**
-- **Choice:** one input per browser per tick; substeps of 1/240 s. The fastest closing speed, about 25 m/s, moves 0.1 m a substep, against a smallest combined radius of 0.35 m (a terrier against a post): no tunnelling, which a test checks.
+- **Choice:** one input per browser per tick; substeps of 1/240 s. No tunnelling, which a test checks:
+  - **Against the pitch's pieces,** which may be thin: a body moves less than its radius in a substep. A terrier at 10 m/s moves 0.04 m against its 0.25 m.
+  - **Between two bodies:** they close by less than their radius sum. The fastest, about 25 m/s, closes 0.1 m against at least 0.5 m between two terriers.
 - **Cost if wrong:** as roslambo.
 
 **D-4 — Bodies and the pitch.**
@@ -294,7 +306,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - **A terrier:** a sphere, radius 0.25 m *provisional*, mass 1, centred 0.25 m above the floor when standing. The drawn terrier fits a 0.6 m × 0.5 m × 0.5 m box around it (L310), so its nose and tail overhang the sphere by up to 5 cm. Turning never changes a collision, so turning into the ball or a wall creates no contact.
   - **The pitch:** a list of bounded static pieces, each a convex shape with a closest-point test:
     - planes: the floor and the overhead net;
-    - quads: the four walls, the four cut corners, the end-wall panels beside each mouth, and each goal's back, side and top netting;
+    - quads: the side walls, the four cut corners, the end-wall panels beside and above each mouth, and each goal's back, side and top netting;
     - capsules of radius 0.1 m: the posts and crossbars, on the end-wall plane, leaving the mouth 8 m wide and 3 m high clear.
 
     Nothing in the code depends on the pitch's shape (L69). The list is built from the Configuration, and the tests run a second, different shape.
@@ -310,24 +322,35 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   2. **Integrate:** semi-implicit Euler, velocity then position.
   3. **Detect:** every pair of bodies, and every body against the pitch's pieces behind a cheap bound test. Contacts go into one list in a fixed, mirror-symmetric order: bodies interleaved by spot across packs (A1, B1, A2, B2 …, then the ball), so a sum over mirrored partners pairs them.
   4. **Floor as support:** a body touching the floor and not moving up is set to z = radius exactly, with vertical speed 0, unless it closes faster than the threshold, when it bounces. A resting ball is then bit-still: gravity and the support cancel exactly.
-  5. **Impulses:** a fixed number of simultaneous (Jacobi) iterations, 4 *provisional*. Each contact's normal impulse is computed from the same velocities at the start of the iteration, weighted by mass (static pieces are infinitely heavy), and never pulls. Restitution applies only when the closing speed at the start of the substep exceeds 0.3 m/s; slower contacts settle with no bounce. Contacts are frictionless: their tangential speed is left alone.
+  5. **Impulses:** accumulated normal impulses, solved by Gauss–Seidel over mirror pairs.
+     - **Order:** contacts are taken in mirror pairs in the fixed order. The two contacts of a pair are computed from the same velocities and applied together, then the next pair is taken. Each sweep runs forward, then back, for a fixed number of iterations, 8 *provisional*.
+     - **Clamping:** each contact's total impulse is clamped so it never pulls; the step within an iteration may be negative. Impulses are weighted by mass, and static pieces are infinitely heavy.
+     - **Restitution:** a contact's target separating speed is its restitution × its closing speed at the start of the substep, when that exceeds 0.3 m/s. Slower contacts settle with no bounce.
+     - **No friction:** contacts leave tangential speed alone.
+
+     Mirror pairs computed together keep a mirrored state exactly mirrored: each pair's impulses are exact mirror images, and a sum over mirror images cancels exactly.
   6. **Positions:** overlaps are pushed apart by mass-weighted fractions, in a fixed number of passes, without touching velocities.
   7. **Slip-out:** a contact whose normal is within 45° of vertical never holds anything up. It pushes the lower terrier out sideways at 2 m/s, away from the upper body's centre, or along its own heading if exactly centred; the upper body falls. So a squeezed or pinched ball comes down, and two sitting terriers can't hold it up.
   8. **Touches and the goal test** (D-8).
 - **Restitution:** the ball keeps 70% of its normal speed off the floor, walls, overhead net and goal frame (L308); the goal netting is tuned from 0.3 *provisional*, so a goal bulges the net rather than springing out. Terrier against ball 0.5 (L311); terrier against terrier and walls 0.3 *provisional* (L312).
 - **Rejected:**
   - roslambo's split Verlet: built for elastic, equal-mass bounces (C-3).
-  - Sequential impulses in a fixed order: they bias mirrored kickoffs (C-3).
+  - Sequential impulses in one fixed order: they bias mirrored kickoffs (C-3).
+  - Plain simultaneous (Jacobi) impulses: with several contacts on one body, as when a pack hits the ball together, they create energy or under-solve (C-3). Jacobi with each body's share relaxed (1 ÷ its contact count) is the fallback, if mirror pairs prove awkward.
   - A stock physics engine: none keeps to exact operations (L335).
-- **Cost if wrong:** jitter, a creeping ball, pushes that bounce. The solver is one module, M0 proves it first, and its tests (§16) catch a regression.
+- **Cost if wrong:** jitter, a creeping ball, pushes that bounce, hits that gain energy. The solver is one module, M0 proves it first, and its tests (§16) catch a regression.
 
 **D-6 — Movement and actions.**
-- **Run:** target velocity = the input's direction × run speed, 6 m/s, or zoomies speed, 9 m/s. The drive moves the velocity toward the target by at most 15 m/s² × dt, so it acts as a force: shared with whatever the terrier pushes, it gives L56's 1.2 s for one pusher and 0.6 s for four in a line. The heading turns toward the target direction at 2 turns/s and snaps onto it within a step; pounces follow the heading.
+- **Run:** target velocity = the input's direction × run speed, 6 m/s, or zoomies speed, 9 m/s. The drive moves the velocity toward the target by at most 15 m/s² × dt, so it acts as a force shared with whatever the terrier pushes. With the rolling slowdown, it brings the ball to 95% of run speed in about 1.2 s for one pusher and 0.6 s for four in a line, L56's figures (research/audit/REPORT.md §6). The heading turns toward the target direction at 2 turns/s and snaps onto it within a step; pounces follow the heading.
 - **Idle friction:** with no direction held, or tumbled, or sitting, the horizontal velocity falls at 8 m/s² *provisional*. A pusher at 15 m/s² against an idle terrier then moves it at 3.5 m/s², so idle and sitting terriers can be pushed (L51, L213).
-- **Zoomies:** while held with a direction, if the terrier can act and the meter isn't empty, the terrier runs at zoomies speed and the meter drains, 3 s from full. The meter refills only while zoomies isn't held, 6 s from empty. Once emptied, zoomies needs a release before it works again, so a held button doesn't flicker. It's full at every kickoff (L46).
+- **Zoomies:** while held with a direction, if the terrier can act and the meter isn't empty, the terrier runs at zoomies speed and the meter drains, 3 s from full. The meter refills whenever the terrier isn't zooming, 6 s from empty (L46). Once emptied, zoomies needs a release before it works again, so a held button doesn't flicker between zooming and refilling. It's full at every kickoff.
 - **Jump:** from the pitch floor only (not from a terrier or the ball): vertical speed √(2 g × 1 m) ≈ 4.43 m/s, about 0.9 s in the air. In the air the terrier keeps its velocity and can still turn, so an air pounce can be aimed.
-- **Pounce:** a press, with no wait pending and not tumbled, sets the horizontal velocity to 10 m/s along the heading and keeps the vertical speed. The lunge lasts 0.3 s, or until it hits the ball, a terrier or a wall, which ends it. The heading is locked and jumps are refused during it. The 1.5 s wait starts when it ends. A jump and a pounce pressed in the same tick: the jump first.
-- **Tumble:** 1.5 s, including a 0.5 s get-up. A tumbled terrier can't act and slides under idle friction. Then the tumble guard, 1.5 s *provisional*, protects it. A pouncing terrier tumbles the rival it hits; two pouncing into each other both tumble. Sitting terriers are never tumbled. The ball tumbles by Q-8's rule.
+- **Pounce:** a press, with no wait pending and not tumbled, sets the horizontal velocity to 10 m/s along the heading and keeps the vertical speed.
+  - **The lunge** lasts 0.3 s, or until it hits the ball, a terrier or a wall, which ends it. Neither the drive nor friction acts during it, so it holds 10 m/s for its 3 m unless it hits something.
+  - **During it,** the heading is locked and jumps are refused.
+  - **The 1.5 s wait** starts when it ends.
+  - **A jump and a pounce** pressed in the same tick: the jump first.
+- **Tumble:** 1.5 s, including a 0.5 s get-up. A tumbled terrier can't act and slides under idle friction. Then the tumble guard, 1.5 s *provisional*, protects it. A pouncing terrier tumbles the rival it hits; two pouncing into each other both tumble. A sitting terrier can be tumbled like any other, and sits again once it's up. The ball tumbles by Q-8's rule.
 - **Bark:** carried in the input, never in the state (D-10, D-16).
 - **Cost if wrong:** feel only; the tuning page shows it, and every constant is in `src/config.ts`.
 
@@ -355,7 +378,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - **Goal:** tested every substep. A goal is the ball's centre more than its radius behind the goal line, the end wall's inner plane, while in play. Only the mouth lets the ball behind that plane, which a fuzz test checks at up to 25 m/s.
   - **Credit:** the terriers whose contact with the ball was the latest share it, if they attack that goal, each counting one goal. Otherwise it's an own goal and nobody is credited. The goal counts for the attacking pack either way (L108).
 - **Tick order:** events, presence, phase changes, inputs, then the substeps with the goal test, then the clock. So a goal in the tick that brings the clock to 0 counts (L107).
-- **Clock:** counts down in play only. It stops from a goal until the next kickoff countdown ends.
+- **Clock:** counts down in every tick that begins in play, so a goal in the last tick still brings it to 0. It stops from a goal until the next kickoff countdown ends.
   - **At 0:** the pack ahead wins; if level, the overtime kickoff, and in overtime the next goal wins.
   - **Every goal gets its celebration**, then a kickoff, the overtime kickoff, or the end.
   - **Overtime** shows its time counting up from 0:00. Match length is whole minutes, 1 to 10.
@@ -364,13 +387,14 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 
 **D-9 — Everything an animation needs is in the state from the start (L345).**
 - **Per terrier:**
-  - its animation phase and the tick it started: standing, running, zooming, airborne, lunging, tumbled, getting up, sitting or celebrating;
+  - its animation phase and the tick it started: standing, running, zooming, airborne, lunging, tumbled, getting up or sitting;
   - a gait phase, a binary angle advanced by the distance run;
   - its last take-off and landing ticks;
   - its last contact with the ball and with a terrier, with their ticks;
   - the direction and tick of the last push it received;
   - this tick's change of heading.
 - **The ball:** its last hit's tick and strength (the closing speed), for the squash and the thump; the last goal's tick and pack, for the net's bulge.
+- **Celebrating is an overlay, not a phase:** the match's celebration phase and the last goal's pack say who celebrates, the pack the goal counts for. The drawing shows it from the goal's confirmed tick (D-14), blending in part-way through (L208).
 - **Not in the state:** barks (L98, L209), and anything a model needs that play doesn't, which must be added here now: a field added later changes the hash, the goldens and what peers send.
 - **Cost if wrong:** a missing field costs new goldens and a new build. The build hash keeps old and new builds out of one match.
 
@@ -382,7 +406,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - a 2-bit press counter each for jump, pounce and bark.
 
   The simulation acts once for each new count, so a predicted input never repeats a press, and a tap shorter than a tick still counts. A press that can't act is dropped: in the air, waiting, tumbled, in a countdown.
-- **Bark:** the simulation ignores the bark counter. A peer plays a remote bark when an input with a new count arrives (D-16), and the sender keeps to one a second (L327).
+- **Bark:** the simulation ignores the bark counter. A peer plays a remote bark when an input with a new count arrives (D-16), and the sender keeps to one a second (L327). The state keeps each terrier's previous input to spot new presses, with the bark bits cleared, so barks stay out of the hash.
 - **Prediction holds:** anchored steering keeps a held direction's input the same from tick to tick. The stick is read in 32 steps with half-step hysteresis, so a wobble doesn't change it (L342).
 - **Rejected:**
   - Held buttons only: prediction repeats them, and quick taps are lost.
@@ -418,7 +442,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - An animation a correction takes back blends out, one it adds blends in part-way through, and one it moves blends to its new timing.
   - Drawing never writes to the state, which a test checks by hash.
 - **Barks:** a timeline accessor gives the input actually received for a tick, never a predicted one. A remote bark plays when that input's bark count changes (L209).
-- **The away mark:** from the state. A terrier sits after 60 final ticks without its browser's input, and is back from that browser's next final input (L167, L213).
+- **The away mark:** from the state. From the start countdown on, a terrier sits after 60 final ticks without its browser's input, and is back from that browser's next final input (L138, L167, L213).
 - **Cost if wrong:** looks only. M4 measures correction sizes with the bench's virtual peers before tuning the glide.
 
 **D-17 — Returning players and abandoned matches.**
@@ -498,11 +522,11 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - **Cost if wrong:** contained: the interface is one module, and the stand-in tests it before any model exists.
 
 **D-28 — Cameras (L87–L92).**
-- **Chase view:** behind and above the terrier, its yaw easing toward the heading with a 0.3 s time constant, at most 1 turn/s. The calmer camera uses 0.6 s and 0.5 turn/s. Steering doesn't depend on either (L74).
+- **Chase view:** behind and above the terrier, its yaw easing toward the heading with a 0.3 s time constant, at most 1 turn/s. The calmer camera uses 0.6 s and 0.5 turn/s. Steering doesn't depend on either (L87).
 - **Ball view:** behind the terrier, aimed at the ball.
-- **Spectators:** one camera inside the pitch, above one side wall and under the net, tracking the ball or the chosen terrier.
+- **Players' cameras** stay inside the pitch (L89). A wall, the net or the ball between the camera and the terrier fades to see-through.
+- **Spectators:** one camera high above one side of the pitch, outside the walls (L91), following the ball or the chosen terrier. The near wall and the net fade where they're in the way.
 - **All cameras:**
-  - stay inside the pitch, and a wall, the net or the ball between the camera and the terrier fades to see-through;
   - when the ball is off screen, an arrow at the edge points to it;
   - are each viewer's own, and change nothing in the match.
 - **Cost if wrong:** looks only.
@@ -530,7 +554,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - the simulation and network keep running, so the terrier and its vote stay;
   - the pitch says "Graphics were lost; restoring", and the drawing is rebuilt on restore;
   - if the context isn't back within 5 s, the plain message shows with **Leave**, and the match goes on for the others.
-  - If WebGL 2 is missing at load, Home says so and disables Propose, Join and Practice.
+  - If WebGL 2 is missing at load, the boot page's message stays: nothing in the app works without it.
 - **Phones (L170):**
   - any coarse-pointer screen with a narrow portrait viewport is asked to turn sideways for Pre-match and Match, spectators included;
   - the layout respects the safe-area insets;
@@ -551,14 +575,14 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - **Cost if wrong:** low.
 
 **D-33 — A render-quality setting.**
-- **Choice:** in Settings, high or low. Low caps the pixel ratio at 1, turns MSAA off, and simplifies the effects (dust, net detail). It's a real player option, and the gate runs at low, so no test mode changes what a page draws.
+- **Choice:** in Settings, high or low. Low caps the pixel ratio at 1, turns MSAA off, and simplifies the effects (dust, net detail). It's a real player option, so no test mode changes what a page draws. The gate plays its matches at low, and counts the drawing budget at both settings.
 - **Cost if wrong:** none.
 
 ### Build
 
 **D-34 — The toolchain (roslambo D-24).** roslambo's pins (Appendix A.6), plus three. Playwright 1.64.1, whose browsers are already installed here.
 
-**D-35 — Hosting (roslambo D-25).** Workers static assets, assets only, observability off, hashed assets cached forever, `index.html` revalidated. Deploys need your go-ahead and Q-6's token.
+**D-35 — Hosting (roslambo D-25).** Workers static assets, assets only, observability off. A `public/_headers` file, as amorfus's, marks the hashed assets immutable and sets its security headers; everything else is revalidated. Deploys need your go-ahead and Q-6's token.
 
 **D-36 — The spike stays separate (roslambo D-26).** M0 lives in `research/spike/`, with its own `package.json`. Nothing in `src/` imports it; its findings go in `research/spike/REPORT.md`.
 
@@ -567,8 +591,17 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - hermet mounted as the submodule `vendor/hermet`, at 18a37b2 until Q-3's fix is pushed.
   - terriest's own policy stays in `scripts/` and the configs:
     - `public-scan` reads `TERRIEST_PRIVATE_TERMS`;
-    - the dist audit passes `ignoredHosts: ['stun']`, plus whatever C-9's check justifies;
+    - the dist audit passes:
+      - `ignoredHosts: ['stun']`;
+      - `textFiles: ['_headers']` (D-35);
+      - `loopbackFiles: ['boot.js']`, because the boot messages say how to serve the folder on localhost, as amorfus's do;
+      - whatever C-9's check justifies;
     - the licence writer passes `product: 'terriest'`.
+  - **Until Q-3's fix is pinned,** two shims keep terriest's gate right from M1:
+    - `scripts/licenses.mjs` maps Vite's `identifier` and `text` onto the names hermet reads;
+    - `scripts/audit-dist.mjs` fails any notice with no text.
+
+    Both go when the pin moves.
   - The gate runs hermet's tests under terriest's own ESLint, ws and vitest. Never edit `vendor/hermet` in place.
 - **Cost if wrong:** as roslambo.
 
@@ -605,11 +638,12 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - amorfus at f4a272f: PLAN.md (sections 0–3, 8.2, 10.2, 13–15), `docs/`, its ID codec, its boot page and failure messages, its end-to-end guards.
 - hermet at 18a37b2: every file.
 
-**Measured or computed for this plan, 2026-11-14** (two audit rounds, 13 agents, local files only):
+**Measured or computed for this plan, 2026-11-14**, from local files only: two audit rounds of 13 agents, then a review of this plan's first draft. The methods and numbers are in [research/audit/REPORT.md](research/audit/REPORT.md). The probes' scratch code isn't kept, and M0 re-measures what the design rests on.
 - WebGL 2 in headless Chromium 156, Firefox 157 and WebKit 27.2 on this machine: a context and a draw with readback in each, with no extra flags; throughput (C-6); `Math` bit-identity across the engines (D-1); missing WebGL 2 and a lost context can be produced in tests.
 - hermet's licence bug, by rebuilding roslambo and amorfus from HEAD (C-8).
 - roslambo's integrator on a floor, its fixed-order settling with unequal masses, and the event cap (C-3).
 - The requirements' arithmetic, re-derived. These hold: the 7 s crossing, 0.4 s to run speed, the 0.9 s jump, 1.4 m under the crossbar, the half-speed level hit (3, 4.5 and 5 m/s), the latency figures in L341, and 36 pairs. These don't: the bowling examples (C-5), four abreast (C-18) and the pair count (C-2).
+- The first draft's contact solver, modelled by the review: simultaneous hitters gained energy (C-3), which D-5 now avoids.
 - The example match ID's check character (C-15).
 - npm, read only: three 0.187.0 (MIT), `@trystero-p2p/nostr` 0.26.0, and the hermet submodule fetchable at 18a37b2.
 
@@ -638,7 +672,7 @@ score, celebration, results ◄── confirmed ticks
 
 ```
 src/config.ts           every setting (the Configuration table and Appendix A); the build hash covers it
-src/core/sim/           math (binary angles, dsin/dcos, datan2), bodies, pitch pieces, contacts, movement,
+src/core/sim/           math (binary angles, dir, datan2), bodies, pitch pieces, contacts, movement,
                         steering frames, rules, state codec, hash, goldens, canary            [exact-ops]
 src/core/timeline/      from roslambo: input buffers, prediction, finalisation, rollback, votes, resync
 src/core/protocol/      from roslambo: message codecs (§9), widened inputs
@@ -655,8 +689,10 @@ src/input/              keyboard, touch, gamepad; anchoring; control hints
 src/audio/              synthesised effects
 src/ui/                 screens, the match menu, messages; game.ts (one match), practice.ts
 src/bench/              the frame-time bench's virtual peers (from roslambo)
-src/main.ts             wiring; the #test= pages (determinism, frames)
+src/nettest.ts          the #test=net page: matches without the screens, for M3's tests (from roslambo)
+src/main.ts             wiring; the #test= pages (determinism, net, frames)
 index.html, public/boot.js   the boot message (from amorfus)
+public/_headers         caching and security headers (from amorfus; D-35)
 dev/tuning.html         the tuning page: dev only, never built
 dev/look-book.html      the look book: dev only, never built
 third-party.json        relays and STUN: drives the runtime, the dist audit and §20
@@ -690,7 +726,7 @@ Everything below is in the canonical state (Appendix A.1), and so in the hash. S
 ### 7.2 One tick, in order
 
 1. **Events:** LEAVE, then JOIN and SWITCH in player-ID order, then READY and UNREADY (D-12). A warm-up arrival appears on a free spot.
-2. **Presence:** record which browsers have a final input. Before the start countdown, remove players silent for 180 ticks. In play, mark a terrier sitting after 60 silent ticks (D-16).
+2. **Presence:** record which browsers have a final input. Before the start countdown, remove players silent for 180 ticks. From the start countdown on, mark a terrier sitting after 60 silent ticks (D-16).
 3. **Phase changes:**
    - Ready expiry (60 s);
    - the start countdown when both packs are full and every player is ready;
@@ -700,7 +736,7 @@ Everything below is in the canonical state (Appendix A.1), and so in the hash. S
    At the start of each countdown, the kickoff placement (D-8).
 4. **Inputs to intents:** resolve each direction in its frame (D-7); take new presses (D-10); apply what the phase allows (D-8).
 5. **Physics:** 4 substeps (D-5), with touches and the goal test in each. The first goal of the tick counts; the ball is out of play from then on.
-6. **The clock:** in play, count down a tick. At 0, the end or the overtime kickoff (D-8).
+6. **The clock:** if the tick began in play, count down a tick. At 0, the end or the overtime kickoff (D-8).
 7. **Animation fields** (D-9).
 
 ### 7.3 Contacts, in brief
@@ -712,7 +748,7 @@ Everything below is in the canonical state (Appendix A.1), and so in the hash. S
 
 ### 7.4 Configuration checks (unit tests on `src/config.ts`)
 
-- No tunnelling at the fastest closing speed (D-3).
+- No tunnelling (D-3): the fastest body moves less than the smallest radius in a substep, and the fastest pair closes less than the smallest radius sum.
 - The late window and the vote window fit in the state history.
 - The kickoff spots are inside the pitch, apart from each other, and mirrored for every pack size.
 - The goal mouth leaves the ball room under the crossbar (L306).
@@ -834,7 +870,7 @@ roslambo's §9 applies: one Trystero action, `[u8 type][payload]`, little-endian
 
 **The drawing budget (L243):**
 - **What's counted, per terrier:** triangles, bones and texture size; draw calls for 8 terriers; download size for each way of drawing them.
-- **How:** counted in the real page through three's `renderer.info` and the drawer's own counts. The gate fails a page over budget.
+- **How:** counted in the real page through three's `renderer.info` and the drawer's own counts, at both render-quality settings. The gate fails a page over budget.
 - **The figures:** provisional, from M0's desktop measurements, until the Pixel 8a run at M5 (Q-4).
 - **Starting guesses** (*estimates*, for M0 to replace):
   - a code-built terrier, 2,000 triangles;
@@ -847,6 +883,7 @@ roslambo's §9 applies: one Trystero action, `[u8 type][payload]`, little-endian
 **The look (Q-11):** placeholders until M4.
 - **The look book:** a dev page served by Vite (`dev/look-book.html`) that replays matches recorded from the tuning page and the bots through the drawer interface, with several sample looks side by side.
 - **Your pick:** terriers and coats, pack colours and patterns, the ball and the pitch.
+- **A look of its own:** no name, term or look comes from the game in the pitch line (L15). The samples are made to that rule, and the screens' wording is checked against it.
 - **Again for models:** the same page runs again for the models later.
 
 **The model upgrade, later (L97, L345):**
@@ -903,7 +940,7 @@ D-39, with roslambo's hosting:
 - sound is made in code;
 - data is imported into the bundle.
 
-**Licences:** hermet's writer, once Q-3's fix is in; `scripts/expected-licenses.json` lists Trystero's two packages, `@noble/secp256k1` and three.
+**Licences:** hermet's writer through terriest's wrapper, with D-37's shim until Q-3's fix is pinned. `scripts/expected-licenses.json` lists Trystero's two packages, `@noble/secp256k1` and three.
 
 **wrangler.jsonc:** assets only, `./dist`, observability off, `workers_dev` until Q-5 (Appendix A.7). A test checks it, as roslambo's does.
 
@@ -928,8 +965,9 @@ D-39, with roslambo's hosting:
 **Simulation (vitest, fast-check):**
 - A resting ball's and a standing terrier's state stays bit-identical for 10 minutes of ticks.
 - A bounce above the threshold keeps 70% (ball against surfaces) or 50% (terrier against ball) of its normal speed, within 1%; below it, contacts settle.
+- **Simultaneous hits:** k = 1 to 4 terriers hit a resting ball at once. Momentum is conserved, no kinetic energy is gained, and the ball leaves faster as k grows.
 - A rolling ball slows by exactly the configured rate and stops exactly.
-- One pusher reaches run speed in 1.2 s ± 10%, and four in a line in 0.6 s ± 10%.
+- With the rolling slowdown, one pusher brings the ball to 95% of run speed in 1.2 s ± 10%, and four in a line in 0.6 s ± 10%.
 - A squeezed ball is down within 0.5 s; two sitting terriers can't hold it up; a kickoff pinch, its fall and the slip-out land mirrored, for each pack size.
 - A mirrored kickoff gives a bit-exact point-mirrored state at every pack size (P8).
 - No tunnelling at 25 m/s; the ball never leaves the pitch or sits wholly behind a goal line outside the goal (fuzzed).
@@ -941,6 +979,7 @@ D-39, with roslambo's hosting:
   - tumbles, get-up and guard;
   - idle terriers can be pushed.
 - **Steering:** all three frames resolve as D-7 says, including the ball overhead and its hysteresis; `datan2` against `Math.atan2`.
+- **Presses:** a press acts once, a predicted input never repeats one, and a tap shorter than a tick still counts (D-10). The bark bits never reach the state's hash.
 - **Rules:**
   - what each phase allows;
   - kickoff placement and resets;
@@ -967,7 +1006,11 @@ D-39, with roslambo's hosting:
 
 **Protocol, match ID, storage:** every message round-trips and fuzzing never makes a decoder throw. roslambo's match-ID tests are ported, plus the documented example. The profile and settings schema, recovery from bad data, and the tab lock.
 
-**Rendering (vitest):** interpolation and smoothing maths; drawing leaves the state's hash unchanged (P11); the palette.
+**Rendering, input and sound (vitest):**
+- interpolation and smoothing maths; drawing leaves the state's hash unchanged (P11); the palette;
+- the cameras: a player's stays inside the pitch, occluders fade, and the arrow points to an off-screen ball;
+- anchoring: chase view re-reads the screen only from neutral or at 45° (Q-19);
+- remote barks play only from received inputs, never predicted ones (D-16), and the sender keeps to one a second (L327).
 
 **Bots:** seeded games reach their pass marks (Q-9); mirrored bots diverge; a host's bots in its TICK, one vote per host, and a host that reloads takes them back, as in roslambo.
 
@@ -975,7 +1018,8 @@ D-39, with roslambo's hosting:
 - **A full match through the screens and real controls**, one browser per engine: Chromium proposes, Firefox joins by link and WebKit by typed code. They fill both packs with bots, mark Ready, and play scripted keyboard input to the end. Every page shows the same results. The terriers move, the ball moves, and a goal reaches every scoreboard (L344).
 - **A spectator joining mid-match** sees the same state. **A reload mid-match** takes the terrier back.
 - **Touch** in Chromium's emulation, through the DevTools protocol: the stick, its rim for zoomies, two buttons held at once. **A gamepad** through a stubbed `navigator.getGamepads` in all three engines.
-- **Practice** plays a whole match against bots, and the request guard sees no contact with anything (L238, L283, P10).
+- **Practice** plays a whole match against bots, and the request guard sees no contact with anything (L238, L283, P10). Its pause stops the clock and play, and resumes them (Q-15).
+- **Pre-match and Results without a mouse:** their buttons are pressed from the keyboard and a stubbed gamepad (L82, Q-17).
 - **The stand-in skinned model**, served by interception, plays a match in place of the code-built terriers, and its budget counts are checked (L252).
 - **Boot failures:** no WebGL 2 (Chromium `--disable-webgl2`, Firefox's pref, a WebKit init script), an insecure context, and a lost context mid-match. Each shows its message and is checked with axe.
 - **The site served from a subpath**, with every request staying under it (L232).
@@ -983,7 +1027,7 @@ D-39, with roslambo's hosting:
 - **Everywhere:** no request outside `third-party.json`, and no console errors.
 
 **By hand, for now** (you, on your desktop; logged in `docs/acceptance.md`):
-- **M0:** the spike's scene page in Chrome, Edge and Firefox on Windows (`http://localhost:<port>`, through WSL2's forwarding): its frame verdict on your GPU.
+- **M0:** the spike's scene page in Chrome, Edge and Firefox on Windows (`http://localhost:<port>`, through WSL2's forwarding): its frame verdict on your GPU. Also on the Pixel 8a, if Q-4 gives it a route.
 - **M2:** the tuning page: the feel and the values (Q-10).
 - **M4:** Practice in each desktop browser with the keyboard, and a gamepad if you have one. A match between your three desktop browsers through `npm run dev:local`. The frame bench on your GPU. The look book (Q-11).
 - **M5:** the deployed site, in desktop browsers and on the phone (Q-4).
@@ -1012,11 +1056,11 @@ D-39, with roslambo's hosting:
   - a production build of that page, run through hermet's dist audit with no exceptions.
 - *Runs:*
   1. **Engine goldens:** Node, Chromium, Firefox and WebKit run the same scripted contact-heavy runs and compare hashes. These are kickoffs at every pack size, resting and rolling balls, pushes by one to four terriers, squeezes and pinches, pounces, goals, and long runs.
-  2. **Contact behaviour:** a resting ball stays bit-still; bounces keep their fractions; push times; slip-out; mirrored kickoffs are bit-exact.
+  2. **Contact behaviour:** a resting ball stays bit-still; bounces keep their fractions; one to four terriers hitting the ball at once gain no energy; push times; slip-out; mirrored kickoffs are bit-exact.
   3. **Cost:** tick cost with a 13-step replay every tick, on the desktop and in throttled Chromium at the Pixel 8a's size.
   4. **The page in all three headless engines at once:** frame-rate independence; draw counts and download sizes for both drawers.
   5. **The audit:** every finding classified (C-9).
-  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and read off the frame verdict.
+  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and on the Pixel 8a if Q-4 gives it a route, and read off the frame verdict.
 - *Questions answered,* each with a number in `research/spike/REPORT.md`:
   - determinism, pass or fail per engine;
   - whether resting contact is bit-still;
@@ -1027,13 +1071,13 @@ D-39, with roslambo's hosting:
   - the provisional drawing budget;
   - what three.js and GLTFLoader cost to download;
   - what the audit found.
-- *Stop rule:* if any engine mismatches in run 1, or a resting ball can't be held bit-still, stop and revisit D-1, D-2 or D-5 before M1.
+- *Stop rule:* if any engine mismatches in run 1, a resting ball can't be held bit-still, or simultaneous hitters gain energy, stop and revisit D-1, D-2 or D-5 before M1.
 - *Exit:* the report is committed. D-2 to D-6, D-26, D-27 and the budget are confirmed or amended in this plan, each amendment citing the measurement behind it.
 
 **M1 — Skeleton and gate**
 - *Build:*
   - Vite, TypeScript, ESLint (D-38), vitest and Playwright (three engines);
-  - `vendor/hermet` at 18a37b2 and its wrappers;
+  - `vendor/hermet` at 18a37b2 and its wrappers, with D-37's licence shims;
   - `src/config.ts` with every setting and the §7.4 checks;
   - the match-ID module (Q-2);
   - the boot page and its failure messages (D-30);
@@ -1059,7 +1103,8 @@ D-39, with roslambo's hosting:
   - `src/net`: the loopback transport, the Trystero transport, forwarding, the local transport;
   - bot hosting;
   - the network simulator tests;
-  - an end-to-end scripted match over the local relay.
+  - the `#test=net` page, as roslambo's, for matches before the screens exist;
+  - an end-to-end scripted match over the local relay, through that page.
 - *Exit:*
   - P1–P5 and P7–P10 are green;
   - the end-to-end match is green;
@@ -1131,7 +1176,8 @@ D-39, with roslambo's hosting:
 | The pitch: walls, net, cut corners, goals, colours; shape-independent | D-4, §12 | pitch tests with a second shape |
 | Six controls; anchored steering; scheme changeable | D-7, D-29 | steering tests in three frames; goldens |
 | Keyboard, touch, gamepad; held together; menus; hints | D-29, Q-17 | end-to-end; by hand on the desktop; the phone at M5 |
-| Cameras; see-through; ball arrow; spectators | D-28 | by hand; end-to-end screenshots |
+| Cameras; see-through; ball arrow; spectators | D-28 | camera tests; by hand |
+| A game of its own: no names, terms or look from the pitch line's game | §12, Q-11 | the look-book review; the screens' wording |
 | Look and sound; animations; model swap | §12, §13, D-27, D-32 | look book; stand-in model in the gate |
 | Scoring, credit, celebration, clock, overtime, Terriest | D-8, D-14 | rules tests; P9 |
 | Kickoff spots and countdowns | D-8, A.5 | rules tests; P8 |
@@ -1216,7 +1262,7 @@ n × terrier, in (spot, pack) order:
      u8+n    display name (UTF-8, ≤ 32 bytes)
      u8      pack, u8 spot, u8 coat
      u32     join tick, u32 ready until (0: not ready), u32 last tick with an input
-     u16     previous final input
+     u16     previous final input, with the bark bits cleared
      u32     heading (binary angle)
      f64     x, y, z, vx, vy, vz
      u8      flags: on the floor, sitting, lunging, zoomies locked out, ball overhead
@@ -1261,7 +1307,7 @@ About 175 bytes per terrier, about 1.5 KB for 8 (*estimate*). The hash is roslam
 | Tick rate, substeps | 60 a second, 4 a tick |
 | Input delay d, late window w, vote window v | 2, 12, 12 ticks (roslambo) |
 | State history, input history per TICK | 256 ticks, 16 ticks (roslambo's code) |
-| Solver iterations, position passes | 4, 2 |
+| Solver iterations (forward and back sweeps over mirror pairs), position passes | 8, 2 |
 | Restitution threshold | 0.3 m/s |
 | Slip-out | normals within 45° of vertical; 2 m/s sideways |
 | Ball overhead | enter under 0.3 m, leave above 0.4 m (horizontal centre distance) |
