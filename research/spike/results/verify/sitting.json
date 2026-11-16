@@ -1,0 +1,110 @@
+{
+ "about": "worst seconds from first landing to the floor, and the angle, per reading; Infinity: held for 8 s",
+ "rows": [
+  {
+   "rule": "flag42",
+   "within1cm": [
+    0.4708333333333333,
+    4
+   ],
+   "within1um": [
+    "held 8 s",
+    19.25
+   ],
+   "floorContact": [
+    0.475,
+    4
+   ]
+  },
+  {
+   "rule": "flag42E0",
+   "within1cm": [
+    0.4625,
+    42
+   ],
+   "within1um": [
+    "held 8 s",
+    24.75
+   ],
+   "floorContact": [
+    0.4708333333333333,
+    42
+   ]
+  },
+  {
+   "rule": "flag44E0",
+   "within1cm": [
+    0.3875,
+    44
+   ],
+   "within1um": [
+    "held 8 s",
+    24.75
+   ],
+   "floorContact": [
+    0.3958333333333333,
+    44
+   ]
+  },
+  {
+   "rule": "flagE0",
+   "within1cm": [
+    0.37083333333333335,
+    13.5
+   ],
+   "within1um": [
+    "held 8 s",
+    24.75
+   ],
+   "floorContact": [
+    0.375,
+    13.5
+   ]
+  },
+  {
+   "rule": "wideFlagE0",
+   "within1cm": [
+    0.36666666666666664,
+    13.5
+   ],
+   "within1um": [
+    0.37083333333333335,
+    13.5
+   ],
+   "floorContact": [
+    0.37083333333333335,
+    13.5
+   ]
+  },
+  {
+   "rule": "review57",
+   "within1cm": [
+    0.36666666666666664,
+    13.5
+   ],
+   "within1um": [
+    "held 8 s",
+    57.75
+   ],
+   "floorContact": [
+    0.37083333333333335,
+    13.5
+   ]
+  },
+  {
+   "rule": "drafted",
+   "within1cm": [
+    0.4708333333333333,
+    4
+   ],
+   "within1um": [
+    "held 8 s",
+    19.25
+   ],
+   "floorContact": [
+    0.475,
+    4
+   ]
+  }
+ ]
+}

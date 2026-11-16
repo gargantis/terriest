@@ -1,0 +1,2526 @@
+{
+ "utc": "2026-11-16T03:57:56.551Z",
+ "chromium": "156.0.8078.4",
+ "cpu": "12th Gen Intel(R) Core(TM) i7-1255U",
+ "cpus": 12,
+ "method": {
+  "ticks": 1200,
+  "settleTicks": 120,
+  "warmupTicks": 120,
+  "burstRuns": 30,
+  "bursts": [
+   30,
+   42,
+   270
+  ],
+  "quality": "low",
+  "isolated": true
+ },
+ "summary": {
+  "chromiumVsNode": {
+   "scrum at the wall, flag42": {
+    "backToBack": {
+     "chromium": {
+      "mean": 0.36675416633486746,
+      "p50": 0.33000004291534424,
+      "p95": 0.6700000166893005,
+      "max": 1.4700000286102295
+     },
+     "node": {
+      "mean": 0.3799982041666676,
+      "p50": 0.3312939999999571,
+      "p95": 0.7150110000000041,
+      "max": 1.659624000000008
+     }
+    },
+    "paced": {
+     "chromiumDrawn": {
+      "mean": 0.6062750001748403,
+      "p50": 0.574999988079071,
+      "p95": 1.0299999713897705,
+      "max": 1.8350000381469727
+     },
+     "node": {
+      "mean": 0.7945914191666262,
+      "p50": 0.7070779999994556,
+      "p95": 1.5723299999999654,
+      "max": 2.7295819999999367
+     }
+    }
+   },
+   "scrum in the corner, flag42": {
+    "backToBack": {
+     "chromium": {
+      "mean": 0.3974208331604799,
+      "p50": 0.3700000047683716,
+      "p95": 0.6500000357627869,
+      "max": 1.3700000047683716
+     },
+     "node": {
+      "mean": 0.4276276708333351,
+      "p50": 0.3816559999997935,
+      "p95": 0.8474659999999403,
+      "max": 1.940864000000147
+     }
+    },
+    "paced": {
+     "chromiumDrawn": {
+      "mean": 0.6230625002582868,
+      "p50": 0.5649999976158142,
+      "p95": 1.0399999618530273,
+      "max": 2.300000011920929
+     },
+     "node": {
+      "mean": 0.8083168399998674,
+      "p50": 0.7507450000048266,
+      "p95": 1.5382959999988088,
+      "max": 4.15780800000357
+     }
+    }
+   }
+  },
+  "stopRule": {
+   "judgedOn": "Chromium at 4×, every script, device and mode",
+   "p95LimitMs": 4,
+   "worstTickP95Ms": 4.1049999594688416,
+   "within": false
+  },
+  "worstSingleTicksAt4x": {
+   "limitMs": 50,
+   "maxMs": {
+    "30": 8.200000047683716,
+    "42": 22.035000026226044,
+    "270": 96.21999996900558
+   },
+   "within": {
+    "30": true,
+    "42": true,
+    "270": false
+   }
+  }
+ },
+ "runs": [
+  {
+   "script": "scrum at the wall, flag42",
+   "device": "desktop",
+   "rate": 1,
+   "draw": true,
+   "wallMs": 23255.49500000477,
+   "env": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 1,
+    "viewport": {
+     "width": 1280,
+     "height": 720
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": {
+    "count": 740,
+    "interval": {
+     "n": 740,
+     "mean": 27.04845945945934,
+     "min": 16.659999999999854,
+     "p50": 33.32999999999993,
+     "p95": 33.335000000002765,
+     "p99": 50,
+     "max": 66.65999999999985
+    }
+   },
+   "report": {
+    "script": "scrum at the wall, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 0.6062750001748403,
+     "min": 0.2850000262260437,
+     "p50": 0.574999988079071,
+     "p95": 1.0299999713897705,
+     "p99": 1.3600000143051147,
+     "max": 1.8350000381469727
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.046636538474987714,
+     "min": 0.021923078940464902,
+     "p50": 0.0442307683137747,
+     "p95": 0.07923076702998236,
+     "p99": 0.10461538571577807,
+     "max": 0.14115384908822867
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.65363782051282,
+     "floorPerSubstep": 8.528333333333334,
+     "otherPerSubstep": 3.1253044871794873,
+     "maxInSubstep": 19,
+     "slipOutsPerSubstep": 0.0008333333333333334
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.3226666609446207,
+       "min": 0.9549999833106995,
+       "p50": 1.2899999618530273,
+       "p95": 1.7649999856948853,
+       "p99": 2.0149999856948853,
+       "max": 2.0149999856948853
+      },
+      "perStepMs": 0.04299999872843425,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.876388888888888
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 2.1248333354791007,
+       "min": 1.425000011920929,
+       "p50": 1.9049999713897705,
+       "p95": 3.9850000143051147,
+       "p99": 5.0299999713897705,
+       "max": 5.0299999713897705
+      },
+      "perStepMs": 0.04535714217594692,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.69265873015873
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 9.781499995787938,
+       "min": 7.149999976158142,
+       "p50": 9.754999995231628,
+       "p95": 12.689999997615814,
+       "p99": 12.90499997138977,
+       "max": 12.90499997138977
+      },
+      "perStepMs": 0.03612962961196899,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 9.949845679012345
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 1.0299999713897705,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum at the wall, flag42",
+   "device": "desktop",
+   "rate": 1,
+   "draw": false,
+   "wallMs": 1168.2150000333786,
+   "env": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 1,
+    "viewport": {
+     "width": 1280,
+     "height": 720
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": null,
+   "report": {
+    "script": "scrum at the wall, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 0.36675416633486746,
+     "min": 0.16499996185302734,
+     "p50": 0.33000004291534424,
+     "p95": 0.6700000166893005,
+     "p99": 0.949999988079071,
+     "max": 1.4700000286102295
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.02821185894883596,
+     "min": 0.01269230475792518,
+     "p50": 0.025384618685795713,
+     "p95": 0.05153846282225389,
+     "p99": 0.07307692215992855,
+     "max": 0.11307692527770996
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.65363782051282,
+     "floorPerSubstep": 8.528333333333334,
+     "otherPerSubstep": 3.1253044871794873,
+     "maxInSubstep": 19,
+     "slipOutsPerSubstep": 0.0008333333333333334
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.0709999918937683,
+       "min": 0.7249999642372131,
+       "p50": 1.0699999928474426,
+       "p95": 1.465000033378601,
+       "p99": 1.9599999785423279,
+       "max": 1.9599999785423279
+      },
+      "perStepMs": 0.03566666642824809,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.876388888888888
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.514333329598109,
+       "min": 0.925000011920929,
+       "p50": 1.5199999809265137,
+       "p95": 1.8700000047683716,
+       "p99": 2.134999990463257,
+       "max": 2.134999990463257
+      },
+      "perStepMs": 0.03619047573634556,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.69265873015873
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 8.220833331346512,
+       "min": 6.4049999713897705,
+       "p50": 8.1700000166893,
+       "p95": 10.1700000166893,
+       "p99": 14.099999964237213,
+       "max": 14.099999964237213
+      },
+      "perStepMs": 0.030259259321071482,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 9.949845679012345
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 0.6700000166893005,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum at the wall, flag42",
+   "device": "desktop",
+   "rate": 4,
+   "draw": true,
+   "wallMs": 23451.525000035763,
+   "env": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 1,
+    "viewport": {
+     "width": 1280,
+     "height": 720
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": {
+    "count": 482,
+    "interval": {
+     "n": 482,
+     "mean": 41.492116182572595,
+     "min": 16.659999999999854,
+     "p50": 33.335000000000036,
+     "p95": 50.00500000000011,
+     "p99": 83.32999999999993,
+     "max": 100
+    }
+   },
+   "report": {
+    "script": "scrum at the wall, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 2.427083333482345,
+     "min": 0.33000004291534424,
+     "p50": 2.3549999594688416,
+     "p95": 3.85999995470047,
+     "p99": 5.910000026226044,
+     "max": 11.979999959468842
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.1866987179601804,
+     "min": 0.025384618685795713,
+     "p50": 0.18115384303606474,
+     "p95": 0.2969230734384977,
+     "p99": 0.4546153866327726,
+     "max": 0.9215384584206802
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.65363782051282,
+     "floorPerSubstep": 8.528333333333334,
+     "otherPerSubstep": 3.1253044871794873,
+     "maxInSubstep": 19,
+     "slipOutsPerSubstep": 0.0008333333333333334
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 4.560666664441427,
+       "min": 3.0299999713897705,
+       "p50": 4.199999988079071,
+       "p95": 6.824999988079071,
+       "p99": 7.480000019073486,
+       "max": 7.480000019073486
+      },
+      "perStepMs": 0.1399999996026357,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.876388888888888
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 6.1259999970595045,
+       "min": 4.650000035762787,
+       "p50": 5.879999995231628,
+       "p95": 8.839999973773956,
+       "p99": 9.550000011920929,
+       "max": 9.550000011920929
+      },
+      "perStepMs": 0.13999999988646733,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.69265873015873
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 36.325166674455005,
+       "min": 27.44999998807907,
+       "p50": 32.230000019073486,
+       "p95": 53.19499999284744,
+       "p99": 96.21999996900558,
+       "max": 96.21999996900558
+      },
+      "perStepMs": 0.11937037044101291,
+      "limitMs": 50,
+      "overLimit": 3,
+      "within": false,
+      "contactsPerSubstep": 9.949845679012345
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 3.85999995470047,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum at the wall, flag42",
+   "device": "desktop",
+   "rate": 4,
+   "draw": false,
+   "wallMs": 5125.300000011921,
+   "env": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 1,
+    "viewport": {
+     "width": 1280,
+     "height": 720
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": null,
+   "report": {
+    "script": "scrum at the wall, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 1.7391125002503396,
+     "min": 0.2250000238418579,
+     "p50": 1.6650000214576721,
+     "p95": 2.9449999928474426,
+     "p99": 4.1049999594688416,
+     "max": 9.620000004768372
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.13377788463464152,
+     "min": 0.01730769414168138,
+     "p50": 0.12807692472751325,
+     "p95": 0.22653846098826483,
+     "p99": 0.3157692276514494,
+     "max": 0.7400000003667978
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.65363782051282,
+     "floorPerSubstep": 8.528333333333334,
+     "otherPerSubstep": 3.1253044871794873,
+     "maxInSubstep": 19,
+     "slipOutsPerSubstep": 0.0008333333333333334
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 4.051833335558573,
+       "min": 2.7649999856948853,
+       "p50": 4,
+       "p95": 5.169999957084656,
+       "p99": 6.004999995231628,
+       "max": 6.004999995231628
+      },
+      "perStepMs": 0.13333333333333333,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.876388888888888
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 6.536500000953675,
+       "min": 4.350000023841858,
+       "p50": 5.740000009536743,
+       "p95": 8.614999949932098,
+       "p99": 22.035000026226044,
+       "max": 22.035000026226044
+      },
+      "perStepMs": 0.13666666689373197,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.69265873015873
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 33.243166661262514,
+       "min": 26.855000019073486,
+       "p50": 30.289999961853027,
+       "p95": 49.10000002384186,
+       "p99": 61.35000002384186,
+       "max": 61.35000002384186
+      },
+      "perStepMs": 0.1121851850439001,
+      "limitMs": 50,
+      "overLimit": 1,
+      "within": false,
+      "contactsPerSubstep": 9.949845679012345
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 2.9449999928474426,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum at the wall, flag42",
+   "device": "Pixel 8a",
+   "rate": 1,
+   "draw": true,
+   "wallMs": 23298.490000009537,
+   "env": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 2.625,
+    "viewport": {
+     "width": 412,
+     "height": 839
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": {
+    "count": 1075,
+    "interval": {
+     "n": 1075,
+     "mean": 18.61941395348841,
+     "min": 16.659999999999854,
+     "p50": 16.665000000000873,
+     "p95": 33.33499999999913,
+     "p99": 33.335000000002765,
+     "max": 50
+    }
+   },
+   "report": {
+    "script": "scrum at the wall, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 0.6403000002602736,
+     "min": 0.2900000214576721,
+     "p50": 0.5950000286102295,
+     "p95": 1.1299999952316284,
+     "p99": 1.5199999809265137,
+     "max": 2.274999976158142
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.0492538461738672,
+     "min": 0.02230769395828247,
+     "p50": 0.045769232970017656,
+     "p95": 0.08692307655627911,
+     "p99": 0.11692307545588568,
+     "max": 0.17499999816601094
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.65363782051282,
+     "floorPerSubstep": 8.528333333333334,
+     "otherPerSubstep": 3.1253044871794873,
+     "maxInSubstep": 19,
+     "slipOutsPerSubstep": 0.0008333333333333334
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.388500012954076,
+       "min": 1.0550000071525574,
+       "p50": 1.274999976158142,
+       "p95": 2.0950000286102295,
+       "p99": 2.200000047683716,
+       "max": 2.200000047683716
+      },
+      "perStepMs": 0.0424999992052714,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.876388888888888
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 2.069333334763845,
+       "min": 1.6549999713897705,
+       "p50": 1.9399999976158142,
+       "p95": 2.900000035762787,
+       "p99": 2.9850000143051147,
+       "max": 2.9850000143051147
+      },
+      "perStepMs": 0.046190476133709864,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.69265873015873
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 10.422333339850107,
+       "min": 8.689999997615814,
+       "p50": 10.110000014305115,
+       "p95": 13.4549999833107,
+       "p99": 14.1700000166893,
+       "max": 14.1700000166893
+      },
+      "perStepMs": 0.03744444449742635,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 9.949845679012345
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 1.1299999952316284,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum at the wall, flag42",
+   "device": "Pixel 8a",
+   "rate": 1,
+   "draw": false,
+   "wallMs": 1231.2649999856949,
+   "env": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 2.625,
+    "viewport": {
+     "width": 412,
+     "height": 839
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": null,
+   "report": {
+    "script": "scrum at the wall, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 0.38771249979734423,
+     "min": 0.15999996662139893,
+     "p50": 0.375,
+     "p95": 0.6300000548362732,
+     "p99": 0.8700000047683716,
+     "max": 2.7149999737739563
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.02982403844594956,
+     "min": 0.01230768974010761,
+     "p50": 0.028846153846153848,
+     "p95": 0.048461542679713324,
+     "p99": 0.06692307728987475,
+     "max": 0.20884615182876587
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.65363782051282,
+     "floorPerSubstep": 8.528333333333334,
+     "otherPerSubstep": 3.1253044871794873,
+     "maxInSubstep": 19,
+     "slipOutsPerSubstep": 0.0008333333333333334
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.1194999953111013,
+       "min": 0.7749999761581421,
+       "p50": 1.0699999928474426,
+       "p95": 1.7299999594688416,
+       "p99": 1.800000011920929,
+       "max": 1.800000011920929
+      },
+      "perStepMs": 0.03566666642824809,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.876388888888888
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.5373333315054576,
+       "min": 1.2100000381469727,
+       "p50": 1.5399999618530273,
+       "p95": 1.925000011920929,
+       "p99": 2.1600000262260437,
+       "max": 2.1600000262260437
+      },
+      "perStepMs": 0.036666665758405416,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.69265873015873
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 8.535833336909612,
+       "min": 6.214999973773956,
+       "p50": 8.72000002861023,
+       "p95": 10.580000042915344,
+       "p99": 11.464999973773956,
+       "max": 11.464999973773956
+      },
+      "perStepMs": 0.03229629640226011,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 9.949845679012345
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 0.6300000548362732,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum at the wall, flag42",
+   "device": "Pixel 8a",
+   "rate": 4,
+   "draw": true,
+   "wallMs": 23481.459999978542,
+   "env": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 2.625,
+    "viewport": {
+     "width": 412,
+     "height": 839
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": {
+    "count": 749,
+    "interval": {
+     "n": 749,
+     "mean": 26.701208277703497,
+     "min": 16.659999999999854,
+     "p50": 33.32999999999811,
+     "p95": 33.335000000002765,
+     "p99": 50,
+     "max": 66.66999999999825
+    }
+   },
+   "report": {
+    "script": "scrum at the wall, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 2.499854166855415,
+     "min": 0.3399999737739563,
+     "p50": 2.435000002384186,
+     "p95": 4.100000023841858,
+     "p99": 5.375,
+     "max": 9.014999985694885
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.19229647437349345,
+     "min": 0.026153844136458177,
+     "p50": 0.18730769249109122,
+     "p95": 0.31538461721860445,
+     "p99": 0.4134615384615385,
+     "max": 0.693461537361145
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.65363782051282,
+     "floorPerSubstep": 8.528333333333334,
+     "otherPerSubstep": 3.1253044871794873,
+     "maxInSubstep": 19,
+     "slipOutsPerSubstep": 0.0008333333333333334
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 4.538166670004527,
+       "min": 3.0199999809265137,
+       "p50": 4.120000004768372,
+       "p95": 7.115000009536743,
+       "p99": 7.790000021457672,
+       "max": 7.790000021457672
+      },
+      "perStepMs": 0.13733333349227905,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.876388888888888
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 6.705333334207535,
+       "min": 4.550000011920929,
+       "p50": 6.289999961853027,
+       "p95": 10.840000033378601,
+       "p99": 14,
+       "max": 14
+      },
+      "perStepMs": 0.14976190385364352,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.69265873015873
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 35.23283333182335,
+       "min": 28.77000004053116,
+       "p50": 32.519999980926514,
+       "p95": 47.924999952316284,
+       "p99": 59.0900000333786,
+       "max": 59.0900000333786
+      },
+      "perStepMs": 0.1204444443738019,
+      "limitMs": 50,
+      "overLimit": 1,
+      "within": false,
+      "contactsPerSubstep": 9.949845679012345
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 4.100000023841858,
+     "within": false
+    }
+   }
+  },
+  {
+   "script": "scrum at the wall, flag42",
+   "device": "Pixel 8a",
+   "rate": 4,
+   "draw": false,
+   "wallMs": 5086.780000030994,
+   "env": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 2.625,
+    "viewport": {
+     "width": 412,
+     "height": 839
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": null,
+   "report": {
+    "script": "scrum at the wall, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 1.6756541660428048,
+     "min": 0.19999998807907104,
+     "p50": 1.5600000023841858,
+     "p95": 2.8949999809265137,
+     "p99": 4.254999995231628,
+     "max": 9.564999997615814
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.128896474310985,
+     "min": 0.01538461446762085,
+     "p50": 0.12000000018339892,
+     "p95": 0.22269230622511646,
+     "p99": 0.3273076919408945,
+     "max": 0.7357692305858319
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.65363782051282,
+     "floorPerSubstep": 8.528333333333334,
+     "otherPerSubstep": 3.1253044871794873,
+     "maxInSubstep": 19,
+     "slipOutsPerSubstep": 0.0008333333333333334
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 4.563833338022232,
+       "min": 3.01500004529953,
+       "p50": 4.449999988079071,
+       "p95": 6.535000026226044,
+       "p99": 8.200000047683716,
+       "max": 8.200000047683716
+      },
+      "perStepMs": 0.14833333293596904,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.876388888888888
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 6.546500007311503,
+       "min": 4.405000030994415,
+       "p50": 6.310000002384186,
+       "p95": 9.520000040531158,
+       "p99": 9.870000004768372,
+       "max": 9.870000004768372
+      },
+      "perStepMs": 0.15023809529486157,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 10.69265873015873
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 35.70816666682561,
+       "min": 28.22999995946884,
+       "p50": 33.6700000166893,
+       "p95": 48.7049999833107,
+       "p99": 59.605000019073486,
+       "max": 59.605000019073486
+      },
+      "perStepMs": 0.12470370376551593,
+      "limitMs": 50,
+      "overLimit": 1,
+      "within": false,
+      "contactsPerSubstep": 9.949845679012345
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 2.8949999809265137,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum in the corner, flag42",
+   "device": "desktop",
+   "rate": 1,
+   "draw": true,
+   "wallMs": 23299.100000023842,
+   "env": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 1,
+    "viewport": {
+     "width": 1280,
+     "height": 720
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": {
+    "count": 709,
+    "interval": {
+     "n": 709,
+     "mean": 28.207616361071796,
+     "min": 16.659999999999854,
+     "p50": 33.32999999999993,
+     "p95": 49.99499999999898,
+     "p99": 50,
+     "max": 83.32999999999993
+    }
+   },
+   "report": {
+    "script": "scrum in the corner, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 0.6230625002582868,
+     "min": 0.3100000023841858,
+     "p50": 0.5649999976158142,
+     "p95": 1.0399999618530273,
+     "p99": 1.590000033378601,
+     "max": 2.300000011920929
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.04792788463525283,
+     "min": 0.023846154029552754,
+     "p50": 0.043461538278139554,
+     "p95": 0.07999999706561749,
+     "p99": 0.12230769487527701,
+     "max": 0.17692307784007147
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.580833333333333,
+     "floorPerSubstep": 8.531073717948718,
+     "otherPerSubstep": 3.0497596153846156,
+     "maxInSubstep": 17,
+     "slipOutsPerSubstep": 0.00125
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.2784999986489614,
+       "min": 0.6549999713897705,
+       "p50": 1.2549999952316284,
+       "p95": 1.965000033378601,
+       "p99": 2.5449999570846558,
+       "max": 2.5449999570846558
+      },
+      "perStepMs": 0.041833333174387616,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.495
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.6989999989668527,
+       "min": 1.215000033378601,
+       "p50": 1.6550000309944153,
+       "p95": 2.1200000047683716,
+       "p99": 2.274999976158142,
+       "max": 2.274999976158142
+      },
+      "perStepMs": 0.039404762642724175,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.419246031746031
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 9.92433333992958,
+       "min": 7.790000021457672,
+       "p50": 9.770000040531158,
+       "p95": 11.939999997615814,
+       "p99": 13.9549999833107,
+       "max": 13.9549999833107
+      },
+      "perStepMs": 0.03618518533530059,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.09891975308642
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 1.0399999618530273,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum in the corner, flag42",
+   "device": "desktop",
+   "rate": 1,
+   "draw": false,
+   "wallMs": 1248.9350000023842,
+   "env": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 1,
+    "viewport": {
+     "width": 1280,
+     "height": 720
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": null,
+   "report": {
+    "script": "scrum in the corner, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 0.3974208331604799,
+     "min": 0.1899999976158142,
+     "p50": 0.3700000047683716,
+     "p95": 0.6500000357627869,
+     "p99": 0.9050000309944153,
+     "max": 1.3700000047683716
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.030570833320036916,
+     "min": 0.01461538443198571,
+     "p50": 0.028461538828336276,
+     "p95": 0.05000000275098361,
+     "p99": 0.06961538699957041,
+     "max": 0.10538461575141321
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.580833333333333,
+     "floorPerSubstep": 8.531073717948718,
+     "otherPerSubstep": 3.0497596153846156,
+     "maxInSubstep": 17,
+     "slipOutsPerSubstep": 0.00125
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.1813333292802175,
+       "min": 0.6299999952316284,
+       "p50": 0.8950000405311584,
+       "p95": 2.5399999618530273,
+       "p99": 2.6399999856948853,
+       "max": 2.6399999856948853
+      },
+      "perStepMs": 0.029833334684371948,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.495
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.5491666654745737,
+       "min": 0.8600000143051147,
+       "p50": 1.2149999737739563,
+       "p95": 2.674999952316284,
+       "p99": 6.4049999713897705,
+       "max": 6.4049999713897705
+      },
+      "perStepMs": 0.028928570804141816,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.419246031746031
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 8.872833335399628,
+       "min": 6.055000007152557,
+       "p50": 8.425000011920929,
+       "p95": 15.919999957084656,
+       "p99": 21.619999945163727,
+       "max": 21.619999945163727
+      },
+      "perStepMs": 0.03120370374785529,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.09891975308642
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 0.6500000357627869,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum in the corner, flag42",
+   "device": "desktop",
+   "rate": 4,
+   "draw": true,
+   "wallMs": 23472.39500004053,
+   "env": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 1,
+    "viewport": {
+     "width": 1280,
+     "height": 720
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": {
+    "count": 491,
+    "interval": {
+     "n": 491,
+     "mean": 40.69763747454173,
+     "min": 16.664999999997235,
+     "p50": 33.335000000000036,
+     "p95": 66.65999999999985,
+     "p99": 66.67000000000007,
+     "max": 99.99499999999898
+    }
+   },
+   "report": {
+    "script": "scrum in the corner, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 2.407720832725366,
+     "min": 0.4700000286102295,
+     "p50": 2.2699999809265137,
+     "p95": 3.924999952316284,
+     "p99": 5.699999988079071,
+     "max": 10.060000002384186
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.18520929482502815,
+     "min": 0.03615384835463304,
+     "p50": 0.17461538314819336,
+     "p95": 0.3019230732550988,
+     "p99": 0.438461537544544,
+     "max": 0.7738461540295528
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.580833333333333,
+     "floorPerSubstep": 8.531073717948718,
+     "otherPerSubstep": 3.0497596153846156,
+     "maxInSubstep": 17,
+     "slipOutsPerSubstep": 0.00125
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 4.051999990145365,
+       "min": 2.6799999475479126,
+       "p50": 3.814999997615814,
+       "p95": 5.7049999833106995,
+       "p99": 7.165000021457672,
+       "max": 7.165000021457672
+      },
+      "perStepMs": 0.1271666665871938,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.495
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 6.045833325386047,
+       "min": 4.084999978542328,
+       "p50": 5.555000007152557,
+       "p95": 9.489999949932098,
+       "p99": 12.415000021457672,
+       "max": 12.415000021457672
+      },
+      "perStepMs": 0.13226190493220374,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.419246031746031
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 36.05949999888738,
+       "min": 29.730000019073486,
+       "p50": 35.59999996423721,
+       "p95": 44.464999973773956,
+       "p99": 49.69999998807907,
+       "max": 49.69999998807907
+      },
+      "perStepMs": 0.1318518517193971,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.09891975308642
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 3.924999952316284,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum in the corner, flag42",
+   "device": "desktop",
+   "rate": 4,
+   "draw": false,
+   "wallMs": 5516.714999973774,
+   "env": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 1,
+    "viewport": {
+     "width": 1280,
+     "height": 720
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": null,
+   "report": {
+    "script": "scrum in the corner, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 1.8878833333651224,
+     "min": 0.23499995470046997,
+     "p50": 1.7550000548362732,
+     "p95": 3.1799999475479126,
+     "p99": 4.995000004768372,
+     "max": 9.865000009536743
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.1452217948742402,
+     "min": 0.018076919592343844,
+     "p50": 0.13500000421817487,
+     "p95": 0.24461538058060867,
+     "p99": 0.3842307695975671,
+     "max": 0.7588461545797495
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.580833333333333,
+     "floorPerSubstep": 8.531073717948718,
+     "otherPerSubstep": 3.0497596153846156,
+     "maxInSubstep": 17,
+     "slipOutsPerSubstep": 0.00125
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 4.046833338340123,
+       "min": 2.8899999856948853,
+       "p50": 4.1549999713897705,
+       "p95": 5.2299999594688416,
+       "p99": 5.735000014305115,
+       "max": 5.735000014305115
+      },
+      "perStepMs": 0.13849999904632568,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.495
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 5.920999997854233,
+       "min": 4.689999997615814,
+       "p50": 5.814999997615814,
+       "p95": 7.474999964237213,
+       "p99": 7.5200000405311584,
+       "max": 7.5200000405311584
+      },
+      "perStepMs": 0.13845238089561462,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.419246031746031
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 38.62983333269755,
+       "min": 32.60000002384186,
+       "p50": 37.14999997615814,
+       "p95": 46.264999985694885,
+       "p99": 71.2049999833107,
+       "max": 71.2049999833107
+      },
+      "perStepMs": 0.1375925925042894,
+      "limitMs": 50,
+      "overLimit": 1,
+      "within": false,
+      "contactsPerSubstep": 12.09891975308642
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 3.1799999475479126,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum in the corner, flag42",
+   "device": "Pixel 8a",
+   "rate": 1,
+   "draw": true,
+   "wallMs": 23285.84500002861,
+   "env": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 2.625,
+    "viewport": {
+     "width": 412,
+     "height": 839
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": {
+    "count": 1102,
+    "interval": {
+     "n": 1102,
+     "mean": 18.132967332123425,
+     "min": 16.659999999999854,
+     "p50": 16.665000000000873,
+     "p95": 33.330000000001746,
+     "p99": 33.335000000000946,
+     "max": 66.66500000000087
+    }
+   },
+   "report": {
+    "script": "scrum in the corner, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 0.6313291664421559,
+     "min": 0.26499998569488525,
+     "p50": 0.5699999928474426,
+     "p95": 1.050000011920929,
+     "p99": 1.4850000143051147,
+     "max": 2.840000033378601
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.048563782034011994,
+     "min": 0.020384614284221943,
+     "p50": 0.043846153295957126,
+     "p95": 0.08076923168622531,
+     "p99": 0.11423077033116268,
+     "max": 0.21846154102912319
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.580833333333333,
+     "floorPerSubstep": 8.531073717948718,
+     "otherPerSubstep": 3.0497596153846156,
+     "maxInSubstep": 17,
+     "slipOutsPerSubstep": 0.00125
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.3798333386580148,
+       "min": 0.9799999594688416,
+       "p50": 1.350000023841858,
+       "p95": 2.075000047683716,
+       "p99": 2.4549999833106995,
+       "max": 2.4549999833106995
+      },
+      "perStepMs": 0.045000000794728594,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.495
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.9521666626135508,
+       "min": 1.3199999928474426,
+       "p50": 1.8349999785423279,
+       "p95": 2.8649999499320984,
+       "p99": 3.2600000500679016,
+       "max": 3.2600000500679016
+      },
+      "perStepMs": 0.04369047567957923,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.419246031746031
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 10.430500002702077,
+       "min": 8.625,
+       "p50": 10.405000030994415,
+       "p95": 11.909999966621399,
+       "p99": 14.474999964237213,
+       "max": 14.474999964237213
+      },
+      "perStepMs": 0.03853703715183117,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.09891975308642
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 1.050000011920929,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum in the corner, flag42",
+   "device": "Pixel 8a",
+   "rate": 1,
+   "draw": false,
+   "wallMs": 1140.785000026226,
+   "env": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 2.625,
+    "viewport": {
+     "width": 412,
+     "height": 839
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": null,
+   "report": {
+    "script": "scrum in the corner, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 0.36535000026226044,
+     "min": 0.17500001192092896,
+     "p50": 0.3349999785423279,
+     "p95": 0.5950000286102295,
+     "p99": 0.89000004529953,
+     "max": 1.725000023841858
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.028103846174020036,
+     "min": 0.013461539378532998,
+     "p50": 0.02576922911864061,
+     "p95": 0.045769232970017656,
+     "p99": 0.0684615419461177,
+     "max": 0.13269230952629676
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.580833333333333,
+     "floorPerSubstep": 8.531073717948718,
+     "otherPerSubstep": 3.0497596153846156,
+     "maxInSubstep": 17,
+     "slipOutsPerSubstep": 0.00125
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 0.8898333330949147,
+       "min": 0.5699999928474426,
+       "p50": 0.8949999809265137,
+       "p95": 1.1749999523162842,
+       "p99": 1.1899999976158142,
+       "max": 1.1899999976158142
+      },
+      "perStepMs": 0.029833332697550455,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.495
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 1.221499991416931,
+       "min": 0.8149999976158142,
+       "p50": 1.2350000143051147,
+       "p95": 1.6399999856948853,
+       "p99": 2.0449999570846558,
+       "max": 2.0449999570846558
+      },
+      "perStepMs": 0.029404762245359876,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.419246031746031
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 7.940166668097178,
+       "min": 6.375,
+       "p50": 8.235000014305115,
+       "p95": 9.490000009536743,
+       "p99": 9.580000042915344,
+       "max": 9.580000042915344
+      },
+      "perStepMs": 0.030500000052981906,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.09891975308642
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 0.5950000286102295,
+     "within": true
+    }
+   }
+  },
+  {
+   "script": "scrum in the corner, flag42",
+   "device": "Pixel 8a",
+   "rate": 4,
+   "draw": true,
+   "wallMs": 23461.62999999523,
+   "env": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 2.625,
+    "viewport": {
+     "width": 412,
+     "height": 839
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": {
+    "count": 728,
+    "interval": {
+     "n": 728,
+     "mean": 27.471428571428437,
+     "min": 16.659999999999854,
+     "p50": 33.32999999999993,
+     "p95": 33.340000000000146,
+     "p99": 50,
+     "max": 83.33000000000175
+    }
+   },
+   "report": {
+    "script": "scrum in the corner, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 2.479658333907525,
+     "min": 0.4299999475479126,
+     "p50": 2.3600000143051147,
+     "p95": 4.1049999594688416,
+     "p99": 5.275000035762787,
+     "max": 9.660000026226044
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.1907429487621173,
+     "min": 0.03307691904214712,
+     "p50": 0.18153846263885498,
+     "p95": 0.3157692276514494,
+     "p99": 0.4057692335202144,
+     "max": 0.7430769250943111
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.580833333333333,
+     "floorPerSubstep": 8.531073717948718,
+     "otherPerSubstep": 3.0497596153846156,
+     "maxInSubstep": 17,
+     "slipOutsPerSubstep": 0.00125
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 4.149166665474573,
+       "min": 2.584999978542328,
+       "p50": 4.100000023841858,
+       "p95": 5.7049999833106995,
+       "p99": 6.634999990463257,
+       "max": 6.634999990463257
+      },
+      "perStepMs": 0.13666666746139527,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.495
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 5.835333331425985,
+       "min": 4.299999952316284,
+       "p50": 5.300000011920929,
+       "p95": 8.160000026226044,
+       "p99": 8.2950000166893,
+       "max": 8.2950000166893
+      },
+      "perStepMs": 0.12619047647430784,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.419246031746031
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 37.58166666229566,
+       "min": 27.894999980926514,
+       "p50": 34.7849999666214,
+       "p95": 73.31999999284744,
+       "p99": 80.48500001430511,
+       "max": 80.48500001430511
+      },
+      "perStepMs": 0.12883333320970888,
+      "limitMs": 50,
+      "overLimit": 2,
+      "within": false,
+      "contactsPerSubstep": 12.09891975308642
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 4.1049999594688416,
+     "within": false
+    }
+   }
+  },
+  {
+   "script": "scrum in the corner, flag42",
+   "device": "Pixel 8a",
+   "rate": 4,
+   "draw": false,
+   "wallMs": 5287.25,
+   "env": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36",
+    "crossOriginIsolated": true,
+    "clockResolutionMs": 0.004999995231628418,
+    "devicePixelRatio": 2.625,
+    "viewport": {
+     "width": 412,
+     "height": 839
+    },
+    "hardwareConcurrency": 12
+   },
+   "frames": null,
+   "report": {
+    "script": "scrum in the corner, flag42",
+    "slipOut": "flag42",
+    "packSize": 4,
+    "window": 12,
+    "stepsPerTick": 13,
+    "settleTicks": 120,
+    "warmupTicks": 120,
+    "baseTicks": {
+     "from": 240,
+     "to": 1440
+    },
+    "tick": {
+     "n": 1200,
+     "mean": 1.7979249998927116,
+     "min": 0.24500000476837158,
+     "p50": 1.6700000166893005,
+     "p95": 2.950000047683716,
+     "p99": 4.514999985694885,
+     "max": 7.944999992847443
+    },
+    "step": {
+     "n": 1200,
+     "mean": 0.13830192306867012,
+     "min": 0.01884615421295166,
+     "p50": 0.1284615397453308,
+     "p95": 0.22692308059105507,
+     "p99": 0.3473076912072989,
+     "max": 0.6111538456036495
+    },
+    "contacts": {
+     "substeps": 62400,
+     "perSubstep": 11.580833333333333,
+     "floorPerSubstep": 8.531073717948718,
+     "otherPerSubstep": 3.0497596153846156,
+     "maxInSubstep": 17,
+     "slipOutsPerSubstep": 0.00125
+    },
+    "bursts": [
+     {
+      "steps": 30,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 4.013999996582667,
+       "min": 2.9800000190734863,
+       "p50": 4.069999992847443,
+       "p95": 5.105000019073486,
+       "p99": 5.519999980926514,
+       "max": 5.519999980926514
+      },
+      "perStepMs": 0.1356666664282481,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.495
+     },
+     {
+      "steps": 42,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 5.802166660626729,
+       "min": 4.385000050067902,
+       "p50": 6.014999985694885,
+       "p95": 7.864999949932098,
+       "p99": 8.210000038146973,
+       "max": 8.210000038146973
+      },
+      "perStepMs": 0.14321428537368774,
+      "limitMs": 50,
+      "overLimit": 0,
+      "within": true,
+      "contactsPerSubstep": 12.419246031746031
+     },
+     {
+      "steps": 270,
+      "runs": 30,
+      "ms": {
+       "n": 30,
+       "mean": 36.81183332800865,
+       "min": 30.57499998807907,
+       "p50": 35.360000014305115,
+       "p95": 43.93000000715256,
+       "p99": 74.94499999284744,
+       "max": 74.94499999284744
+      },
+      "perStepMs": 0.13096296301594487,
+      "limitMs": 50,
+      "overLimit": 1,
+      "within": false,
+      "contactsPerSubstep": 12.09891975308642
+     }
+    ],
+    "stopRule": {
+     "p95LimitMs": 4,
+     "tickP95": 2.950000047683716,
+     "within": true
+    }
+   }
+  }
+ ],
+ "node": {
+  "engine": "node",
+  "node": "v22.23.4",
+  "v8": "12.4.254.21-node.57",
+  "cpu": "12th Gen Intel(R) Core(TM) i7-1255U",
+  "cpus": 12,
+  "clockResolutionMs": 0.00004099999932805076,
+  "runs": [
+   {
+    "engine": "node",
+    "mode": "tight",
+    "wallMs": 862.5382229999999,
+    "report": {
+     "script": "scrum at the wall, flag42",
+     "slipOut": "flag42",
+     "packSize": 4,
+     "window": 12,
+     "stepsPerTick": 13,
+     "settleTicks": 120,
+     "warmupTicks": 120,
+     "baseTicks": {
+      "from": 240,
+      "to": 1440
+     },
+     "tick": {
+      "n": 1200,
+      "mean": 0.3799982041666676,
+      "min": 0.16419500000000653,
+      "p50": 0.3312939999999571,
+      "p95": 0.7150110000000041,
+      "p99": 0.9951540000000136,
+      "max": 1.659624000000008
+     },
+     "step": {
+      "n": 1200,
+      "mean": 0.02923063108974366,
+      "min": 0.012630384615385118,
+      "p50": 0.025484153846150548,
+      "p95": 0.05500084615384647,
+      "p99": 0.07655030769230875,
+      "max": 0.12766338461538523
+     },
+     "contacts": {
+      "substeps": 62400,
+      "perSubstep": 11.65363782051282,
+      "floorPerSubstep": 8.528333333333334,
+      "otherPerSubstep": 3.1253044871794873,
+      "maxInSubstep": 19,
+      "slipOutsPerSubstep": 0.0008333333333333334
+     },
+     "bursts": [
+      {
+       "steps": 30,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 1.0251820333333361,
+        "min": 0.6850309999999808,
+        "p50": 0.8609129999999823,
+        "p95": 2.654543999999987,
+        "p99": 2.9813310000000683,
+        "max": 2.9813310000000683
+       },
+       "perStepMs": 0.02869709999999941,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 10.876388888888888
+      },
+      {
+       "steps": 42,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 1.4282924333333313,
+        "min": 0.9872080000000096,
+        "p50": 1.280356000000097,
+        "p95": 2.3246480000000247,
+        "p99": 2.829305999999974,
+        "max": 2.829305999999974
+       },
+       "perStepMs": 0.030484666666668978,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 10.69265873015873
+      },
+      {
+       "steps": 270,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 7.938490933333322,
+        "min": 5.472941999999989,
+        "p50": 6.978770000000054,
+        "p95": 14.9864409999999,
+        "p99": 19.801398999999947,
+        "max": 19.801398999999947
+       },
+       "perStepMs": 0.025847296296296497,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 9.949845679012345
+      }
+     ],
+     "stopRule": {
+      "p95LimitMs": 4,
+      "tickP95": 0.7150110000000041,
+      "within": true
+     }
+    }
+   },
+   {
+    "engine": "node",
+    "mode": "tight",
+    "wallMs": 872.832322,
+    "report": {
+     "script": "scrum in the corner, flag42",
+     "slipOut": "flag42",
+     "packSize": 4,
+     "window": 12,
+     "stepsPerTick": 13,
+     "settleTicks": 120,
+     "warmupTicks": 120,
+     "baseTicks": {
+      "from": 240,
+      "to": 1440
+     },
+     "tick": {
+      "n": 1200,
+      "mean": 0.4276276708333351,
+      "min": 0.1775119999999788,
+      "p50": 0.3816559999997935,
+      "p95": 0.8474659999999403,
+      "p99": 1.2569170000001577,
+      "max": 1.940864000000147
+     },
+     "step": {
+      "n": 1200,
+      "mean": 0.03289443621794885,
+      "min": 0.0136547692307676,
+      "p50": 0.029358153846137963,
+      "p95": 0.06518969230768772,
+      "p99": 0.09668592307693522,
+      "max": 0.1492972307692421
+     },
+     "contacts": {
+      "substeps": 62400,
+      "perSubstep": 11.580833333333333,
+      "floorPerSubstep": 8.531073717948718,
+      "otherPerSubstep": 3.0497596153846156,
+      "maxInSubstep": 17,
+      "slipOutsPerSubstep": 0.00125
+     },
+     "bursts": [
+      {
+       "steps": 30,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 0.873450866666667,
+        "min": 0.5951359999999113,
+        "p50": 0.8087040000000343,
+        "p95": 1.5707870000001094,
+        "p99": 1.647564999999986,
+        "max": 1.647564999999986
+       },
+       "perStepMs": 0.026956800000001144,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 12.495
+      },
+      {
+       "steps": 42,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 1.1284325666666821,
+        "min": 0.8262700000000223,
+        "p50": 1.072418000000198,
+        "p95": 1.7514320000000225,
+        "p99": 1.8576069999999163,
+        "max": 1.8576069999999163
+       },
+       "perStepMs": 0.025533761904766618,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 12.419246031746031
+      },
+      {
+       "steps": 270,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 7.154878366666662,
+        "min": 5.917924000000085,
+        "p50": 7.0320939999999155,
+        "p95": 8.072143000000096,
+        "p99": 11.565998000000036,
+        "max": 11.565998000000036
+       },
+       "perStepMs": 0.026044792592592278,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 12.09891975308642
+      }
+     ],
+     "stopRule": {
+      "p95LimitMs": 4,
+      "tickP95": 0.8474659999999403,
+      "within": true
+     }
+    }
+   },
+   {
+    "engine": "node",
+    "mode": "paced",
+    "wallMs": 23524.519158000003,
+    "report": {
+     "script": "scrum at the wall, flag42",
+     "slipOut": "flag42",
+     "packSize": 4,
+     "window": 12,
+     "stepsPerTick": 13,
+     "settleTicks": 120,
+     "warmupTicks": 120,
+     "baseTicks": {
+      "from": 240,
+      "to": 1440
+     },
+     "tick": {
+      "n": 1200,
+      "mean": 0.7945914191666262,
+      "min": 0.24151900000015303,
+      "p50": 0.7070779999994556,
+      "p95": 1.5723299999999654,
+      "p99": 2.06956700000228,
+      "max": 2.7295819999999367
+     },
+     "step": {
+      "n": 1200,
+      "mean": 0.061122416858971254,
+      "min": 0.018578384615396386,
+      "p50": 0.054390615384573515,
+      "p95": 0.12094846153845888,
+      "p99": 0.15919746153863695,
+      "max": 0.2099678461538413
+     },
+     "contacts": {
+      "substeps": 62400,
+      "perSubstep": 11.65363782051282,
+      "floorPerSubstep": 8.528333333333334,
+      "otherPerSubstep": 3.1253044871794873,
+      "maxInSubstep": 19,
+      "slipOutsPerSubstep": 0.0008333333333333334
+     },
+     "bursts": [
+      {
+       "steps": 30,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 1.0478547666666904,
+        "min": 0.7088139999978011,
+        "p50": 0.9988640000010491,
+        "p95": 1.46400800000265,
+        "p99": 1.5248519999986456,
+        "max": 1.5248519999986456
+       },
+       "perStepMs": 0.03329546666670164,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 10.876388888888888
+      },
+      {
+       "steps": 42,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 1.7659905333331456,
+        "min": 1.0977850000017497,
+        "p50": 1.5441740000023856,
+        "p95": 3.1102109999992535,
+        "p99": 3.5378319999981613,
+        "max": 3.5378319999981613
+       },
+       "perStepMs": 0.03676604761910442,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 10.69265873015873
+      },
+      {
+       "steps": 270,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 8.1255533333333,
+        "min": 6.147209999999177,
+        "p50": 7.643841000000975,
+        "p95": 9.919905000002473,
+        "p99": 20.03016100000241,
+        "max": 20.03016100000241
+       },
+       "perStepMs": 0.028310522222225836,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 9.949845679012345
+      }
+     ],
+     "stopRule": {
+      "p95LimitMs": 4,
+      "tickP95": 1.5723299999999654,
+      "within": true
+     }
+    }
+   },
+   {
+    "engine": "node",
+    "mode": "paced",
+    "wallMs": 23521.33337,
+    "report": {
+     "script": "scrum in the corner, flag42",
+     "slipOut": "flag42",
+     "packSize": 4,
+     "window": 12,
+     "stepsPerTick": 13,
+     "settleTicks": 120,
+     "warmupTicks": 120,
+     "baseTicks": {
+      "from": 240,
+      "to": 1440
+     },
+     "tick": {
+      "n": 1200,
+      "mean": 0.8083168399998674,
+      "min": 0.22800400000051013,
+      "p50": 0.7507450000048266,
+      "p95": 1.5382959999988088,
+      "p99": 2.0084699999933946,
+      "max": 4.15780800000357
+     },
+     "step": {
+      "n": 1200,
+      "mean": 0.06217821846152826,
+      "min": 0.017538769230808472,
+      "p50": 0.057749615384986665,
+      "p95": 0.11833046153836992,
+      "p99": 0.15449769230718421,
+      "max": 0.31983138461565924
+     },
+     "contacts": {
+      "substeps": 62400,
+      "perSubstep": 11.580833333333333,
+      "floorPerSubstep": 8.531073717948718,
+      "otherPerSubstep": 3.0497596153846156,
+      "maxInSubstep": 17,
+      "slipOutsPerSubstep": 0.00125
+     },
+     "bursts": [
+      {
+       "steps": 30,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 0.9133959333327463,
+        "min": 0.6831030000030296,
+        "p50": 0.8201060000064899,
+        "p95": 1.6371949999956996,
+        "p99": 1.8300789999993867,
+        "max": 1.8300789999993867
+       },
+       "perStepMs": 0.027336866666882998,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 12.495
+      },
+      {
+       "steps": 42,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 1.5361357666673332,
+        "min": 0.9573420000015176,
+        "p50": 1.372188000001188,
+        "p95": 2.4812349999992875,
+        "p99": 2.60676400000375,
+        "max": 2.60676400000375
+       },
+       "perStepMs": 0.03267114285717114,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 12.419246031746031
+      },
+      {
+       "steps": 270,
+       "runs": 30,
+       "ms": {
+        "n": 30,
+        "mean": 8.005373066666168,
+        "min": 6.189321000005293,
+        "p50": 7.976266999998188,
+        "p95": 9.439437000000908,
+        "p99": 11.36941300000035,
+        "max": 11.36941300000035
+       },
+       "perStepMs": 0.02954172962962292,
+       "limitMs": 50,
+       "overLimit": 0,
+       "within": true,
+       "contactsPerSubstep": 12.09891975308642
+      }
+     ],
+     "stopRule": {
+      "p95LimitMs": 4,
+      "tickP95": 1.5382959999988088,
+      "within": true
+     }
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,703 @@
+{
+ "codec": 1,
+ "checkpointEvery": 500,
+ "canary": "10272cf4a03fa75b",
+ "runs": [
+  {
+   "name": "kickoff 1",
+   "checkpoints": [
+    "3196338d1ff2a19a",
+    "3bafcdef27327dac",
+    "53624d8c75602523",
+    "cf3eca201a7ba4cb",
+    "56d7fa1eb346204a",
+    "510fce93b5e662d1"
+   ],
+   "final": "510fce93b5e662d1",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 21009,
+   "maxContacts": 5,
+   "slipOuts": 10
+  },
+  {
+   "name": "kickoff 2",
+   "checkpoints": [
+    "65c5c220b6c17f66",
+    "5d894ce9c4ada78a",
+    "871c79e05ef85686",
+    "df5cefaa890d02aa",
+    "45b02afefa1b412e",
+    "770ab5367ad10416"
+   ],
+   "final": "770ab5367ad10416",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 35855,
+   "maxContacts": 7,
+   "slipOuts": 18
+  },
+  {
+   "name": "kickoff 3",
+   "checkpoints": [
+    "3d00031114b5deda",
+    "66bee1a876ad0eae",
+    "5f31eae3121f0899",
+    "bf33b49f7e133d45",
+    "474cab3c092a00fb",
+    "1218dd51f5e8794d"
+   ],
+   "final": "1218dd51f5e8794d",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 48646,
+   "maxContacts": 9,
+   "slipOuts": 32
+  },
+  {
+   "name": "kickoff 4",
+   "checkpoints": [
+    "bae118c990a6422a",
+    "6d00f7ae3bce896f",
+    "6a14f8dcfb2133e3",
+    "84b8977c65f0a721",
+    "c53f469688724687",
+    "d173b07ac5dbaa0e"
+   ],
+   "final": "d173b07ac5dbaa0e",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 69129,
+   "maxContacts": 16,
+   "slipOuts": 86
+  },
+  {
+   "name": "kickoff 2, second shape",
+   "checkpoints": [
+    "76ce015a52945e64",
+    "d1fcfb8c7d9ad84b",
+    "b4ae22ccd20fe4a2",
+    "bc3ec373bb88562e",
+    "7226dad6f4142590",
+    "db696c884d8c7e35"
+   ],
+   "final": "db696c884d8c7e35",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 32837,
+   "maxContacts": 7,
+   "slipOuts": 26
+  },
+  {
+   "name": "kickoff 4, second shape",
+   "checkpoints": [
+    "aca09bdfdbc7380f",
+    "fb2fc12d5b57373e",
+    "7102de41767cb083",
+    "10c25ae0fe08f55c",
+    "b709582092450e4d",
+    "6845f8054cfa7dd9"
+   ],
+   "final": "6845f8054cfa7dd9",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 66283,
+   "maxContacts": 12,
+   "slipOuts": 44
+  },
+  {
+   "name": "resting ball",
+   "checkpoints": [
+    "9b57d5fc11fe96d4",
+    "c74bb2b183f47215",
+    "243e56a049ea8ae1",
+    "e80321caa1288232",
+    "342316770d0517be",
+    "2bff9360f86fa968"
+   ],
+   "final": "2bff9360f86fa968",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 36000,
+   "maxContacts": 3,
+   "slipOuts": 0
+  },
+  {
+   "name": "rolling ball",
+   "checkpoints": [
+    "77cc71bb7a75bb65",
+    "6dad36d8b28bee60",
+    "81351718402e7c62",
+    "125c4d8876279324",
+    "bf2ad358df855b5c",
+    "ec406a35630b6681"
+   ],
+   "final": "ec406a35630b6681",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 36000,
+   "maxContacts": 3,
+   "slipOuts": 0
+  },
+  {
+   "name": "push 1",
+   "checkpoints": [
+    "4b11262a0b349f7a"
+   ],
+   "final": "9a7d79d07ccec003",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 8545,
+   "maxContacts": 5,
+   "slipOuts": 3
+  },
+  {
+   "name": "train 2",
+   "checkpoints": [
+    "6cdf8f49e785f25f"
+   ],
+   "final": "09118ccb0fc7768e",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 14650,
+   "maxContacts": 8,
+   "slipOuts": 1
+  },
+  {
+   "name": "train 3",
+   "checkpoints": [
+    "bcfa390e8e304e97"
+   ],
+   "final": "3cec00b304f7a400",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 25978,
+   "maxContacts": 13,
+   "slipOuts": 0
+  },
+  {
+   "name": "train 4",
+   "checkpoints": [
+    "c5b8577f6343567a"
+   ],
+   "final": "00d362de44096c29",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 27449,
+   "maxContacts": 14,
+   "slipOuts": 15
+  },
+  {
+   "name": "abreast 2, pitch frame",
+   "checkpoints": [
+    "ddb2324686796784"
+   ],
+   "final": "bd6eb4a2762d95a6",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 14784,
+   "maxContacts": 8,
+   "slipOuts": 0
+  },
+  {
+   "name": "abreast 3, pitch frame",
+   "checkpoints": [
+    "a1760d04bc0c75ef"
+   ],
+   "final": "8277d600f8dc8320",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 25734,
+   "maxContacts": 14,
+   "slipOuts": 5
+  },
+  {
+   "name": "abreast 4, pitch frame",
+   "checkpoints": [
+    "ba25f5b14b401bdf"
+   ],
+   "final": "f7b17677c5c713f4",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 26004,
+   "maxContacts": 13,
+   "slipOuts": 0
+  },
+  {
+   "name": "abreast 2, ball frame",
+   "checkpoints": [
+    "fd5560719974b1e1"
+   ],
+   "final": "5120e29bd53f5c58",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 14581,
+   "maxContacts": 9,
+   "slipOuts": 8
+  },
+  {
+   "name": "abreast 3, ball frame",
+   "checkpoints": [
+    "1eec39e257087746"
+   ],
+   "final": "61d06e4808b7fc51",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 24220,
+   "maxContacts": 14,
+   "slipOuts": 13
+  },
+  {
+   "name": "abreast 4, ball frame",
+   "checkpoints": [
+    "44d032bac63e91f9"
+   ],
+   "final": "20c3ca9836cfc558",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 2,
+   "contacts": 26439,
+   "maxContacts": 16,
+   "slipOuts": 10
+  },
+  {
+   "name": "squeeze",
+   "checkpoints": [
+    "029022cc92457813",
+    "c4912fcd6c92a1d8"
+   ],
+   "final": "79e3bb0309253481",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 17682,
+   "maxContacts": 5,
+   "slipOuts": 20
+  },
+  {
+   "name": "pinch 1",
+   "checkpoints": [
+    "b49a51fefc11681d",
+    "29fca8ea12d98b86",
+    "3c3c16e6b6584ab2"
+   ],
+   "final": "3c3c16e6b6584ab2",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 20653,
+   "maxContacts": 5,
+   "slipOuts": 34
+  },
+  {
+   "name": "pinch 2",
+   "checkpoints": [
+    "68c152a399df93fc",
+    "db2813536188d8e5",
+    "e198f0e65e4347c9"
+   ],
+   "final": "e198f0e65e4347c9",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 27020,
+   "maxContacts": 12,
+   "slipOuts": 256
+  },
+  {
+   "name": "pinch 3",
+   "checkpoints": [
+    "ea6c5709b11cec26",
+    "40ef89d59380be51",
+    "3f0a1ad57f8110bc"
+   ],
+   "final": "3f0a1ad57f8110bc",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 52305,
+   "maxContacts": 16,
+   "slipOuts": 246
+  },
+  {
+   "name": "pinch 4",
+   "checkpoints": [
+    "4aae09ba64a9d53c",
+    "cb6974eefbee6d99",
+    "e7fdbb9bcbb0b5dd"
+   ],
+   "final": "e7fdbb9bcbb0b5dd",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 71177,
+   "maxContacts": 24,
+   "slipOuts": 320
+  },
+  {
+   "name": "pinch 4, zoomies",
+   "checkpoints": [
+    "657635d2c59ef2f3",
+    "0cb02d58e8325780",
+    "a59d30955ff624b0"
+   ],
+   "final": "a59d30955ff624b0",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 71535,
+   "maxContacts": 23,
+   "slipOuts": 314
+  },
+  {
+   "name": "pinch 2, flag42",
+   "checkpoints": [
+    "eeefa2fbc17fd904",
+    "2b9a860028bae0bd",
+    "25fd0336b486ca5f"
+   ],
+   "final": "25fd0336b486ca5f",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 27598,
+   "maxContacts": 11,
+   "slipOuts": 24
+  },
+  {
+   "name": "pinch 4, zoomies, flag42",
+   "checkpoints": [
+    "5a9cc9a37627e44d",
+    "5a7fff37d92ac343",
+    "1ce9a2def037a844"
+   ],
+   "final": "1ce9a2def037a844",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 58594,
+   "maxContacts": 23,
+   "slipOuts": 44
+  },
+  {
+   "name": "pinch 3, flag42E0",
+   "checkpoints": [
+    "94976667cf4fe56b",
+    "233aa064046873b0",
+    "5a12ed3e0419bcbd"
+   ],
+   "final": "5a12ed3e0419bcbd",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 45443,
+   "maxContacts": 17,
+   "slipOuts": 56
+  },
+  {
+   "name": "kickoff 4, flag42",
+   "checkpoints": [
+    "0b442ecb3ca1b117",
+    "9b633d43b684840a",
+    "a6b8f047903f4ac7",
+    "5ec3c06c540b8aa8",
+    "629e0a7bdd1c9686",
+    "f89a406c0f71e935"
+   ],
+   "final": "f89a406c0f71e935",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 62829,
+   "maxContacts": 11,
+   "slipOuts": 26
+  },
+  {
+   "name": "kickoff 3, second shape, flag42E0",
+   "checkpoints": [
+    "9fc7fa5cea31b5a5",
+    "3a598db066196196",
+    "eff02660c8679d00",
+    "12b96a49222b9763",
+    "d647948c09bb3b60",
+    "04342ecbed5cbf98"
+   ],
+   "final": "04342ecbed5cbf98",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 48723,
+   "maxContacts": 9,
+   "slipOuts": 56
+  },
+  {
+   "name": "scrum at the wall",
+   "checkpoints": [
+    "d41841604c514fd4",
+    "7475d38e2170101c",
+    "df4897f6ab758e65",
+    "f7abf98acd38ee35",
+    "ad2ed097884a72d2",
+    "26b0ca4ead76e7d9"
+   ],
+   "final": "26b0ca4ead76e7d9",
+   "score": [
+    1,
+    1
+   ],
+   "phase": 3,
+   "contacts": 138039,
+   "maxContacts": 22,
+   "slipOuts": 1045
+  },
+  {
+   "name": "scrum at the wall, flag42",
+   "checkpoints": [
+    "911968a420fe30e5",
+    "78a00e1aa8e3a844",
+    "ff47389c6b7f5059",
+    "0bb1378175953b05",
+    "c033bf6e7af5fb59",
+    "852b8945adc70120"
+   ],
+   "final": "852b8945adc70120",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 3,
+   "contacts": 137824,
+   "maxContacts": 19,
+   "slipOuts": 29
+  },
+  {
+   "name": "scrum at the wall, flag42E0",
+   "checkpoints": [
+    "85bce1e59db37dda",
+    "983438094d828519",
+    "76f66e1c73992b71",
+    "828c364d56f4a42c",
+    "738c7e9a7fd1b0d9",
+    "a5eef790d2e59d6c"
+   ],
+   "final": "a5eef790d2e59d6c",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 3,
+   "contacts": 131390,
+   "maxContacts": 19,
+   "slipOuts": 175
+  },
+  {
+   "name": "scrum in the corner",
+   "checkpoints": [
+    "21b5e77868c4fe02",
+    "7b76229b164c331b",
+    "2b65c45b95d489f5",
+    "bb07a1ee018e07ca",
+    "5e2f21fa06b11c59",
+    "accc7cfcee93faed"
+   ],
+   "final": "accc7cfcee93faed",
+   "score": [
+    0,
+    1
+   ],
+   "phase": 3,
+   "contacts": 142691,
+   "maxContacts": 22,
+   "slipOuts": 1495
+  },
+  {
+   "name": "scrum in the corner, flag42",
+   "checkpoints": [
+    "2807e58cc99f5291",
+    "ff6a8fa1dbed2ee1",
+    "be11b8d51ecb8a4a",
+    "f35125889d14674f",
+    "752ebb9f86df3b7c",
+    "a68a38cf3021f913"
+   ],
+   "final": "a68a38cf3021f913",
+   "score": [
+    0,
+    0
+   ],
+   "phase": 3,
+   "contacts": 140146,
+   "maxContacts": 18,
+   "slipOuts": 37
+  },
+  {
+   "name": "pounces",
+   "checkpoints": [
+    "a8446e99f2ef0197",
+    "dd6fda4759e23868",
+    "5f0100805ccc0daa",
+    "3515c762e2b1e063",
+    "80b22db685c7392e",
+    "edff1d79dadaf2bb"
+   ],
+   "final": "edff1d79dadaf2bb",
+   "score": [
+    1,
+    0
+   ],
+   "phase": 3,
+   "contacts": 57984,
+   "maxContacts": 9,
+   "slipOuts": 16
+  },
+  {
+   "name": "goals",
+   "checkpoints": [
+    "7fd91887f6113c8c",
+    "9fe9bb8846461bc9",
+    "b6d24d3f5570f91c",
+    "5e66e4d98b02f3d1",
+    "b62acf16208e5107",
+    "a5ebed6169e1fa38"
+   ],
+   "final": "a5ebed6169e1fa38",
+   "score": [
+    0,
+    1
+   ],
+   "phase": 3,
+   "contacts": 44665,
+   "maxContacts": 5,
+   "slipOuts": 25
+  },
+  {
+   "name": "long run",
+   "checkpoints": [
+    "4a9c74b314e8163f",
+    "0d463b6bef84d55d",
+    "20a00c2679dc2f23",
+    "9ce62022b36fad7d",
+    "b7d86bfe247df85a",
+    "fa82b621e5a5f049",
+    "85a5662146728d5c",
+    "98548d822f0b72e3",
+    "2b02335a6818d86c",
+    "61f68d097b7fb25f",
+    "895dee2a1bc8295b",
+    "7c80216b294ead07",
+    "1ff9b040b0a16947",
+    "1732dc3f2fec4aad",
+    "395277351efb1868",
+    "6a22af174298e8a3",
+    "0a2d15dd0b4c2a46",
+    "3061cc986e9c8c1e",
+    "5de25271a3d005c0",
+    "9a012196a127592f",
+    "80088a5fa8e6fe51",
+    "67ecba5cc48b3aa3",
+    "8b0eb047fb8d79cd",
+    "3dad821553619d01",
+    "cfdff8cd3d50c241",
+    "1ee61855be147f61",
+    "161835c3a6e994b9",
+    "dc041e9371b8b07d",
+    "88c7d6e98ed8ed40",
+    "93a4f4e63a3b1907",
+    "486c4a900a906e91",
+    "923ebe6dd8dfff24",
+    "ff41f10367e91e6c",
+    "f536dbeb0372718b",
+    "21dd8d2359bea36e",
+    "e1bf6a26978ffbfa",
+    "dae2d3e570452d55",
+    "c14c8df861651ce4",
+    "5c6eac1ae761c427",
+    "1adc6542c74ff335"
+   ],
+   "final": "1adc6542c74ff335",
+   "score": [
+    1,
+    6
+   ],
+   "phase": 3,
+   "contacts": 475815,
+   "maxContacts": 13,
+   "slipOuts": 58
+  }
+ ]
+}

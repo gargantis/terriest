@@ -1,0 +1,2484 @@
+{
+ "utc": "2026-11-16T05:03:43.786Z",
+ "node": "v22.23.4",
+ "about": "M0's stop rule (PLAN §17 M0), condition by condition, with the simulation's conditions measured by scripts/stop-rule.mjs and the rest read from the runs' result files",
+ "conditions": [
+  {
+   "condition": "any engine mismatching in run 1",
+   "verdict": "pass",
+   "numbers": [
+    "node: 37 of 37 runs and 178 checkpoints equal, 0 mismatches, canary 10272cf4a03fa75b",
+    "chromium: 37 of 37 runs and 178 checkpoints equal, 0 mismatches, canary 10272cf4a03fa75b",
+    "firefox: 37 of 37 runs and 178 checkpoints equal, 0 mismatches, canary 10272cf4a03fa75b",
+    "webkit: 37 of 37 runs and 178 checkpoints equal, 0 mismatches, canary 10272cf4a03fa75b"
+   ]
+  },
+  {
+   "condition": "a resting ball not bit-still",
+   "verdict": "pass",
+   "numbers": [
+    "a resting ball with two standing terriers, nothing held: 36000 ticks, 18 float64s plus headings and floor flags compared each tick, 0 ticks differing, largest deviation 0; 3 contacts a substep, the terrier on the ball in 0 and the ball on the wall in 0 of 144000 substeps",
+    "a ball against the side wall, a terrier resting against the ball, nothing held: 36000 ticks, 18 float64s plus headings and floor flags compared each tick, 0 ticks differing, largest deviation 0; 4 contacts a substep, the terrier on the ball in 144000 and the ball on the wall in 0 of 144000 substeps",
+    "a terrier holding at the ball, pressing it into the side wall: 36000 ticks, 18 float64s plus headings and floor flags compared each tick, 0 ticks differing, largest deviation 0; 4 contacts a substep, the terrier on the ball in 144000 and the ball on the wall in 72000 of 144000 substeps"
+   ]
+  },
+  {
+   "condition": "simultaneous hitters gaining energy",
+   "verdict": "pass",
+   "numbers": [
+    "32 hits (k = 1-4, from the floor and level, parallel and at the centre, floor in and out of the solve), 3840 substeps",
+    "largest kinetic energy above its start, over every substep: 0 J",
+    "level (no gravity): substeps where kinetic energy rose on the one before: 0",
+    "from the floor: largest kinetic plus potential energy above its start 0.00e+0 J; substeps where it rose by over 1e-9 J on the one before: 0",
+    "largest horizontal momentum change: 7.11e-15"
+   ]
+  },
+  {
+   "condition": "a mirrored kickoff not exactly mirrored",
+   "verdict": "pass",
+   "numbers": [
+    "37 mirrored runs, 345600 substeps, 36903600 values compared by value after every substep",
+    "substeps mismatched: 0; sizes 1-4 on both shapes; slip-outs fired in them: 1884"
+   ]
+  },
+  {
+   "condition": "no slip-out rule passing §16's cases",
+   "verdict": "pass",
+   "numbers": [
+    "passing all four: 42+flag (fine sweep: rest worst 1.383 s of 864 cases, none held; sitting 0.471 s; 336 dribbles, 0 slip-outs; pinches down in 8 of 8); 42+flag+e0 (fine sweep: rest worst 1.383 s of 864 cases, none held; sitting 0.463 s; 336 dribbles, 0 slip-outs; pinches down in 8 of 8)",
+    "failing: none [restingOnPushers, twoSitting]; drafted [restingOnPushers, dribbles]; wide [restingOnPushers, dribbles]; flag [dribbles]; e0 [restingOnPushers, dribbles]; flag+e0 [dribbles]; wide+flag [dribbles]; wide+e0 [restingOnPushers, dribbles]; wide+flag+e0 [dribbles]; 57+flag+e0 [dribbles]; 40+flag [twoSitting]; 40+flag+e0 [twoSitting]; 44+flag [dribbles]; 44+flag+e0 [dribbles]",
+    "marks: resting on pushers 1.5 s from the first landing (set at M0), two sitting 0.5 s"
+   ]
+  },
+  {
+   "condition": "the p95 of a 13-step tick over 4 ms in Chromium at 4x throttle",
+   "verdict": "fail",
+   "byReading": {
+    "drawn, paced at 60 Hz (as a match runs, and as roslambo measured tick cost in its proxy)": "fail",
+    "back to back (nothing drawn, no pacing)": "pass"
+   },
+   "numbers": [
+    "scrum at the wall, flag42, 2 repetitions; drawn at 60 Hz, p95 ms: desktop 3.915, Pixel 8a 4.135, desktop 3.86, Pixel 8a 4.1",
+    "back to back, p95 ms: desktop 3.045, Pixel 8a 3.215, desktop 2.945, Pixel 8a 2.895",
+    "configurations over 4 ms: 2 of 8"
+   ]
+  }
+ ],
+ "worstSingleTicks": {
+  "note": "a worst single tick over L286's 50 ms doesn't stop M0: D-11 then spreads its steps over several ticks (M3)",
+  "over50ms": true,
+  "numbers": [
+   {
+    "steps": 30,
+    "configurations": 16,
+    "medianMsRange": [
+     3.61,
+     4.52
+    ],
+    "maxMsRange": [
+     5.52,
+     15.45
+    ],
+    "configurationsWithAnyOver50": 0,
+    "burstsOver50": 0,
+    "burstsTimed": 480
+   },
+   {
+    "steps": 42,
+    "configurations": 16,
+    "medianMsRange": [
+     5.03,
+     6.96
+    ],
+    "maxMsRange": [
+     7.52,
+     22.04
+    ],
+    "configurationsWithAnyOver50": 0,
+    "burstsOver50": 0,
+    "burstsTimed": 480
+   },
+   {
+    "steps": 270,
+    "configurations": 16,
+    "medianMsRange": [
+     30.29,
+     37.15
+    ],
+    "maxMsRange": [
+     47.69,
+     96.22
+    ],
+    "configurationsWithAnyOver50": 13,
+    "burstsOver50": 19,
+    "burstsTimed": 480
+   }
+  ]
+ },
+ "measured": {
+  "bitStill": [
+   {
+    "scene": "a resting ball with two standing terriers, nothing held",
+    "ticks": 36000,
+    "settleTicks": 0,
+    "bodies": 3,
+    "float64sComparedPerTick": 18,
+    "alsoCompared": "each terrier heading (u32) and every body floor flag",
+    "ticksDiffering": 0,
+    "firstDifferingTick": -1,
+    "maxAbsDeviation": 0,
+    "ballZ": 0.8,
+    "ballOnFloor": true,
+    "contacts": {
+     "perSubstep": 3,
+     "terrierBallSubsteps": 0,
+     "ballWallSubsteps": 0,
+     "substeps": 144000
+    }
+   },
+   {
+    "scene": "a ball against the side wall, a terrier resting against the ball, nothing held",
+    "ticks": 36000,
+    "settleTicks": 10,
+    "bodies": 3,
+    "float64sComparedPerTick": 18,
+    "alsoCompared": "each terrier heading (u32) and every body floor flag",
+    "ticksDiffering": 0,
+    "firstDifferingTick": -1,
+    "maxAbsDeviation": 0,
+    "ballZ": 0.8000000000000003,
+    "ballOnFloor": true,
+    "contacts": {
+     "perSubstep": 4,
+     "terrierBallSubsteps": 144000,
+     "ballWallSubsteps": 0,
+     "substeps": 144000
+    }
+   },
+   {
+    "scene": "a terrier holding at the ball, pressing it into the side wall",
+    "ticks": 36000,
+    "settleTicks": 60,
+    "bodies": 3,
+    "float64sComparedPerTick": 18,
+    "alsoCompared": "each terrier heading (u32) and every body floor flag",
+    "ticksDiffering": 0,
+    "firstDifferingTick": -1,
+    "maxAbsDeviation": 0,
+    "ballZ": 0.8001329920824566,
+    "ballOnFloor": false,
+    "contacts": {
+     "perSubstep": 4,
+     "terrierBallSubsteps": 144000,
+     "ballWallSubsteps": 72000,
+     "substeps": 144000
+    }
+   }
+  ],
+  "hits": [
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "parallel",
+    "k": 1,
+    "substeps": 120,
+    "kineticStartJ": 18,
+    "kineticEndJ": 7.467047087274839,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 39,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 0,
+    "ballSpeed": 2.655712848527777
+   },
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "parallel",
+    "k": 2,
+    "substeps": 120,
+    "kineticStartJ": 36,
+    "kineticEndJ": 22.800213255561303,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 42,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 2.220446049250313e-16,
+    "ballSpeed": 3.5708291354984913
+   },
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "parallel",
+    "k": 3,
+    "substeps": 120,
+    "kineticStartJ": 54,
+    "kineticEndJ": 37.28880281898587,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 34,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 0,
+    "ballSpeed": 3.81049398896595
+   },
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "parallel",
+    "k": 4,
+    "substeps": 120,
+    "kineticStartJ": 72,
+    "kineticEndJ": 55.65368085151763,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 33,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.554447978966673e-15,
+    "ballSpeed": 3.6848811636712577
+   },
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "centre",
+    "k": 1,
+    "substeps": 120,
+    "kineticStartJ": 18,
+    "kineticEndJ": 7.467047087274839,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 39,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 0,
+    "ballSpeed": 2.655712848527777
+   },
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "centre",
+    "k": 2,
+    "substeps": 120,
+    "kineticStartJ": 36,
+    "kineticEndJ": 18.991609862987758,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 37,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 1.7817696036042146e-15,
+    "ballSpeed": 3.690319358694897
+   },
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "centre",
+    "k": 3,
+    "substeps": 120,
+    "kineticStartJ": 54,
+    "kineticEndJ": 28.34643881279155,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 24,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.885780586188048e-16,
+    "ballSpeed": 4.300399995869479
+   },
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "centre",
+    "k": 4,
+    "substeps": 120,
+    "kineticStartJ": 72,
+    "kineticEndJ": 30.70854358820349,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 3,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.66205343881779e-15,
+    "ballSpeed": 4.477166789209259
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "parallel",
+    "k": 1,
+    "substeps": 120,
+    "kineticStartJ": 18,
+    "kineticEndJ": 9,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 0,
+    "ballSpeed": 3
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "parallel",
+    "k": 2,
+    "substeps": 120,
+    "kineticStartJ": 36,
+    "kineticEndJ": 22.937310323417105,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 7.108895957933346e-15,
+    "ballSpeed": 4.35422987961957
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "parallel",
+    "k": 3,
+    "substeps": 120,
+    "kineticStartJ": 54,
+    "kineticEndJ": 39.002159131516635,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.552713678800501e-15,
+    "ballSpeed": 4.999280111879984
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "parallel",
+    "k": 4,
+    "substeps": 120,
+    "kineticStartJ": 72,
+    "kineticEndJ": 56.36099787961544,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.552713678800501e-15,
+    "ballSpeed": 5.213000587345626
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "centre",
+    "k": 1,
+    "substeps": 120,
+    "kineticStartJ": 18,
+    "kineticEndJ": 9,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 0,
+    "ballSpeed": 3
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "centre",
+    "k": 2,
+    "substeps": 120,
+    "kineticStartJ": 36,
+    "kineticEndJ": 21.176187640471667,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.553147333202946e-15,
+    "ballSpeed": 4.478312192414686
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "centre",
+    "k": 3,
+    "substeps": 120,
+    "kineticStartJ": 54,
+    "kineticEndJ": 34.35019469509797,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.553147333202946e-15,
+    "ballSpeed": 5.468592031901143
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "centre",
+    "k": 4,
+    "substeps": 120,
+    "kineticStartJ": 72,
+    "kineticEndJ": 45.09073741843469,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 4.996003610813204e-16,
+    "ballSpeed": 6.157028355595812
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "parallel",
+    "k": 1,
+    "substeps": 120,
+    "kineticStartJ": 18,
+    "kineticEndJ": 6.239900630649827,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 42,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 0,
+    "ballSpeed": 2.1599521232777197
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "parallel",
+    "k": 2,
+    "substeps": 120,
+    "kineticStartJ": 36,
+    "kineticEndJ": 20.573242119218605,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 47,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 1.1102230246251565e-16,
+    "ballSpeed": 3.0552208854315563
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "parallel",
+    "k": 3,
+    "substeps": 120,
+    "kineticStartJ": 54,
+    "kineticEndJ": 37.6379628422017,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 42,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 2.220446049250313e-16,
+    "ballSpeed": 3.334902036085548
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "parallel",
+    "k": 4,
+    "substeps": 120,
+    "kineticStartJ": 72,
+    "kineticEndJ": 55.76542245769697,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 41,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.554447978966673e-15,
+    "ballSpeed": 3.221949936339059
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "centre",
+    "k": 1,
+    "substeps": 120,
+    "kineticStartJ": 18,
+    "kineticEndJ": 6.239900630649827,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 42,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 0,
+    "ballSpeed": 2.1599521232777197
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "centre",
+    "k": 2,
+    "substeps": 120,
+    "kineticStartJ": 36,
+    "kineticEndJ": 18.786262583967208,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 46,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 1.1102230246251565e-16,
+    "ballSpeed": 3.1381448298399013
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "centre",
+    "k": 3,
+    "substeps": 120,
+    "kineticStartJ": 54,
+    "kineticEndJ": 27.825374855176083,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 33,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 1.1102230246251565e-16,
+    "ballSpeed": 3.7715340794031307
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "centre",
+    "k": 4,
+    "substeps": 120,
+    "kineticStartJ": 72,
+    "kineticEndJ": 29.595545872997512,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 15,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.6489874298927905e-15,
+    "ballSpeed": 3.9865943292448436
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "parallel",
+    "k": 1,
+    "substeps": 120,
+    "kineticStartJ": 18,
+    "kineticEndJ": 9,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 0,
+    "ballSpeed": 3
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "parallel",
+    "k": 2,
+    "substeps": 120,
+    "kineticStartJ": 36,
+    "kineticEndJ": 22.937310323417105,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 7.108895957933346e-15,
+    "ballSpeed": 4.35422987961957
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "parallel",
+    "k": 3,
+    "substeps": 120,
+    "kineticStartJ": 54,
+    "kineticEndJ": 39.002159131516635,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.552713678800501e-15,
+    "ballSpeed": 4.999280111879984
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "parallel",
+    "k": 4,
+    "substeps": 120,
+    "kineticStartJ": 72,
+    "kineticEndJ": 56.36099787961544,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.552713678800501e-15,
+    "ballSpeed": 5.213000587345626
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "centre",
+    "k": 1,
+    "substeps": 120,
+    "kineticStartJ": 18,
+    "kineticEndJ": 9,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 0,
+    "ballSpeed": 3
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "centre",
+    "k": 2,
+    "substeps": 120,
+    "kineticStartJ": 36,
+    "kineticEndJ": 21.176187640471667,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.553147333202946e-15,
+    "ballSpeed": 4.478312192414686
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "centre",
+    "k": 3,
+    "substeps": 120,
+    "kineticStartJ": 54,
+    "kineticEndJ": 34.35019469509797,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 3.553147333202946e-15,
+    "ballSpeed": 5.468592031901143
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "centre",
+    "k": 4,
+    "substeps": 120,
+    "kineticStartJ": 72,
+    "kineticEndJ": 45.09073741843469,
+    "kineticWorstOverStartJ": 0,
+    "substepsKineticRose": 0,
+    "mechanicalWorstOverStartJ": 0,
+    "substepsMechanicalRoseOver1e9J": 0,
+    "momentumChange": 4.996003610813204e-16,
+    "ballSpeed": 6.157028355595812
+   }
+  ],
+  "mirror": {
+   "runs": 37,
+   "substeps": 345600,
+   "substepsMismatched": 0,
+   "perRun": [
+    {
+     "set": "mirror.test.ts kickoffs",
+     "script": "mirrored kickoff 1, main, drafted, chasey all",
+     "packSize": 1,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 2400,
+     "substeps": 9600,
+     "valuesComparedPerSubstep": 43,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 19445,
+     "slipOuts": 0
+    },
+    {
+     "set": "mirror.test.ts kickoffs",
+     "script": "mirrored kickoff 2, main, drafted, chasey all",
+     "packSize": 2,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 2400,
+     "substeps": 9600,
+     "valuesComparedPerSubstep": 82,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 29852,
+     "slipOuts": 8
+    },
+    {
+     "set": "mirror.test.ts kickoffs",
+     "script": "mirrored kickoff 3, main, drafted, chasey all",
+     "packSize": 3,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 2400,
+     "substeps": 9600,
+     "valuesComparedPerSubstep": 121,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 37968,
+     "slipOuts": 12
+    },
+    {
+     "set": "mirror.test.ts kickoffs",
+     "script": "mirrored kickoff 4, main, drafted, chasey all",
+     "packSize": 4,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 2400,
+     "substeps": 9600,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 50695,
+     "slipOuts": 4
+    },
+    {
+     "set": "mirror.test.ts kickoffs",
+     "script": "mirrored kickoff 1, second, drafted, chasey all",
+     "packSize": 1,
+     "pitch": "second",
+     "slipOut": "drafted",
+     "ticks": 2400,
+     "substeps": 9600,
+     "valuesComparedPerSubstep": 43,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 18952,
+     "slipOuts": 0
+    },
+    {
+     "set": "mirror.test.ts kickoffs",
+     "script": "mirrored kickoff 2, second, drafted, chasey all",
+     "packSize": 2,
+     "pitch": "second",
+     "slipOut": "drafted",
+     "ticks": 2400,
+     "substeps": 9600,
+     "valuesComparedPerSubstep": 82,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 29583,
+     "slipOuts": 4
+    },
+    {
+     "set": "mirror.test.ts kickoffs",
+     "script": "mirrored kickoff 3, second, drafted, chasey all",
+     "packSize": 3,
+     "pitch": "second",
+     "slipOut": "drafted",
+     "ticks": 2400,
+     "substeps": 9600,
+     "valuesComparedPerSubstep": 121,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 39592,
+     "slipOuts": 10
+    },
+    {
+     "set": "mirror.test.ts kickoffs",
+     "script": "mirrored kickoff 4, second, drafted, chasey all",
+     "packSize": 4,
+     "pitch": "second",
+     "slipOut": "drafted",
+     "ticks": 2400,
+     "substeps": 9600,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 50963,
+     "slipOuts": 4
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "kickoff 1",
+     "packSize": 1,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 43,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 21009,
+     "slipOuts": 10
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "kickoff 2",
+     "packSize": 2,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 82,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 35855,
+     "slipOuts": 18
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "kickoff 3",
+     "packSize": 3,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 121,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 48646,
+     "slipOuts": 32
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "kickoff 4",
+     "packSize": 4,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 69129,
+     "slipOuts": 86
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "kickoff 2, second shape",
+     "packSize": 2,
+     "pitch": "second",
+     "slipOut": "drafted",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 82,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 32837,
+     "slipOuts": 26
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "kickoff 4, second shape",
+     "packSize": 4,
+     "pitch": "second",
+     "slipOut": "drafted",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 66283,
+     "slipOuts": 44
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "squeeze",
+     "packSize": 1,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 1200,
+     "substeps": 4800,
+     "valuesComparedPerSubstep": 43,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 17682,
+     "slipOuts": 20
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "pinch 1",
+     "packSize": 1,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 43,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 20653,
+     "slipOuts": 34
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "pinch 2",
+     "packSize": 2,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 82,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 27020,
+     "slipOuts": 256
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "pinch 3",
+     "packSize": 3,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 121,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 52305,
+     "slipOuts": 246
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "pinch 4",
+     "packSize": 4,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 71177,
+     "slipOuts": 320
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "pinch 4, zoomies",
+     "packSize": 4,
+     "pitch": "main",
+     "slipOut": "drafted",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 71535,
+     "slipOuts": 314
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "pinch 2, flag42",
+     "packSize": 2,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 82,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 27598,
+     "slipOuts": 24
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "pinch 4, zoomies, flag42",
+     "packSize": 4,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 58594,
+     "slipOuts": 44
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "pinch 3, flag42E0",
+     "packSize": 3,
+     "pitch": "main",
+     "slipOut": "flag42E0",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 121,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 45443,
+     "slipOuts": 56
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "kickoff 4, flag42",
+     "packSize": 4,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 62829,
+     "slipOuts": 26
+    },
+    {
+     "set": "mirrored golden scripts",
+     "script": "kickoff 3, second shape, flag42E0",
+     "packSize": 3,
+     "pitch": "second",
+     "slipOut": "flag42E0",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 121,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 48723,
+     "slipOuts": 56
+    },
+    {
+     "set": "under 42+flag",
+     "script": "mirrored kickoff 1, main, flag42, chasey contact",
+     "packSize": 1,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 43,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 20413,
+     "slipOuts": 6
+    },
+    {
+     "set": "under 42+flag",
+     "script": "mirrored kickoff 2, main, flag42, chasey contact",
+     "packSize": 2,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 82,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 31627,
+     "slipOuts": 14
+    },
+    {
+     "set": "under 42+flag",
+     "script": "mirrored kickoff 3, main, flag42, chasey contact",
+     "packSize": 3,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 121,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 47263,
+     "slipOuts": 16
+    },
+    {
+     "set": "under 42+flag",
+     "script": "mirrored kickoff 4, main, flag42, chasey contact",
+     "packSize": 4,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 64520,
+     "slipOuts": 24
+    },
+    {
+     "set": "under 42+flag",
+     "script": "mirrored kickoff 1, second, flag42, chasey contact",
+     "packSize": 1,
+     "pitch": "second",
+     "slipOut": "flag42",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 43,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 20916,
+     "slipOuts": 2
+    },
+    {
+     "set": "under 42+flag",
+     "script": "mirrored kickoff 2, second, flag42, chasey contact",
+     "packSize": 2,
+     "pitch": "second",
+     "slipOut": "flag42",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 82,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 31665,
+     "slipOuts": 16
+    },
+    {
+     "set": "under 42+flag",
+     "script": "mirrored kickoff 3, second, flag42, chasey contact",
+     "packSize": 3,
+     "pitch": "second",
+     "slipOut": "flag42",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 121,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 47661,
+     "slipOuts": 18
+    },
+    {
+     "set": "under 42+flag",
+     "script": "mirrored kickoff 4, second, flag42, chasey contact",
+     "packSize": 4,
+     "pitch": "second",
+     "slipOut": "flag42",
+     "ticks": 3000,
+     "substeps": 12000,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 66546,
+     "slipOuts": 22
+    },
+    {
+     "set": "under 42+flag",
+     "script": "pinch 1, flag42",
+     "packSize": 1,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 43,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 14627,
+     "slipOuts": 12
+    },
+    {
+     "set": "under 42+flag",
+     "script": "pinch 2, zoomies, flag42",
+     "packSize": 2,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 82,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 27979,
+     "slipOuts": 24
+    },
+    {
+     "set": "under 42+flag",
+     "script": "pinch 3, flag42",
+     "packSize": 3,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 121,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 41216,
+     "slipOuts": 32
+    },
+    {
+     "set": "under 42+flag",
+     "script": "pinch 4, zoomies, flag42",
+     "packSize": 4,
+     "pitch": "main",
+     "slipOut": "flag42",
+     "ticks": 1500,
+     "substeps": 6000,
+     "valuesComparedPerSubstep": 160,
+     "substepsMismatched": 0,
+     "firstMismatch": null,
+     "contacts": 58594,
+     "slipOuts": 44
+    }
+   ]
+  }
+ },
+ "fromFiles": {
+  "run1": [
+   {
+    "engine": "node",
+    "file": "results/determinism-node.json",
+    "measured": true,
+    "version": "v22.23.4",
+    "pass": true,
+    "runs": 37,
+    "checkpoints": 178,
+    "checkpointEvery": 500,
+    "mismatches": 0,
+    "runsMatching": 37,
+    "canary": "10272cf4a03fa75b",
+    "suiteMs": 2834.3
+   },
+   {
+    "engine": "chromium",
+    "file": "results/determinism-chromium.json",
+    "measured": true,
+    "version": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "pass": true,
+    "runs": 37,
+    "checkpoints": 178,
+    "checkpointEvery": 500,
+    "mismatches": 0,
+    "runsMatching": 37,
+    "canary": "10272cf4a03fa75b",
+    "suiteMs": 2751.3
+   },
+   {
+    "engine": "firefox",
+    "file": "results/determinism-firefox.json",
+    "measured": true,
+    "version": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0",
+    "pass": true,
+    "runs": 37,
+    "checkpoints": 178,
+    "checkpointEvery": 500,
+    "mismatches": 0,
+    "runsMatching": 37,
+    "canary": "10272cf4a03fa75b",
+    "suiteMs": 2230
+   },
+   {
+    "engine": "webkit",
+    "file": "results/determinism-webkit.json",
+    "measured": true,
+    "version": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15",
+    "pass": true,
+    "runs": 37,
+    "checkpoints": 178,
+    "checkpointEvery": 500,
+    "mismatches": 0,
+    "runsMatching": 37,
+    "canary": "10272cf4a03fa75b",
+    "suiteMs": 1720
+   }
+  ],
+  "slipOut": {
+   "source": "results/sim.json (measure.test.ts)",
+   "restMarkS": 1.5,
+   "sittingMarkS": 0.5,
+   "rules": [
+    {
+     "rule": "none",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": false,
+      "twoSitting": false,
+      "dribbles": true,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 81,
+      "restWorstS": 7.542,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": "held",
+      "sittingWorstAtDeg": 4,
+      "dribbles": 112,
+      "dribbleSlipOuts": 0,
+      "pinchDownS": {
+       "1": null,
+       "2": null,
+       "3": null,
+       "4": null,
+       "1 zoomies": null,
+       "2 zoomies": null,
+       "3 zoomies": null,
+       "4 zoomies": null
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "drafted",
+     "sweep": "fine",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": false,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 864,
+      "restHeldUp": 248,
+      "restWorstS": 7.967,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.471,
+      "sittingWorstAtDeg": 4,
+      "dribbles": 336,
+      "dribbleSlipOuts": 20,
+      "pinchDownS": {
+       "1": 3.625,
+       "2": null,
+       "3": null,
+       "4": null,
+       "1 zoomies": 2.467,
+       "2 zoomies": null,
+       "3 zoomies": null,
+       "4 zoomies": null
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "wide",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": false,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 40,
+      "restWorstS": 7.921,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.471,
+      "sittingWorstAtDeg": 4,
+      "dribbles": 112,
+      "dribbleSlipOuts": 258,
+      "pinchDownS": {
+       "1": 3.35,
+       "2": null,
+       "3": null,
+       "4": null,
+       "1 zoomies": 2.296,
+       "2 zoomies": null,
+       "3 zoomies": null,
+       "4 zoomies": null
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "flag",
+     "sweep": "fine",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 864,
+      "restHeldUp": 0,
+      "restWorstS": 1.358,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.471,
+      "sittingWorstAtDeg": 4,
+      "dribbles": 336,
+      "dribbleSlipOuts": 20,
+      "pinchDownS": {
+       "1": 0.433,
+       "2": 0.871,
+       "3": 0.854,
+       "4": 1.346,
+       "1 zoomies": 0.6,
+       "2 zoomies": 1.229,
+       "3 zoomies": 1.413,
+       "4 zoomies": 1.65
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "e0",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": false,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 53,
+      "restWorstS": 3.462,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.367,
+      "sittingWorstAtDeg": 12,
+      "dribbles": 112,
+      "dribbleSlipOuts": 8,
+      "pinchDownS": {
+       "1": 0.392,
+       "2": null,
+       "3": null,
+       "4": null,
+       "1 zoomies": 0.358,
+       "2 zoomies": null,
+       "3 zoomies": null,
+       "4 zoomies": null
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "flag+e0",
+     "sweep": "fine",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 864,
+      "restHeldUp": 0,
+      "restWorstS": 1.288,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.371,
+      "sittingWorstAtDeg": 13.5,
+      "dribbles": 336,
+      "dribbleSlipOuts": 20,
+      "pinchDownS": {
+       "1": 0.313,
+       "2": 0.392,
+       "3": 0.537,
+       "4": 1.021,
+       "1 zoomies": 0.304,
+       "2 zoomies": 0.383,
+       "3 zoomies": 0.558,
+       "4 zoomies": 0.688
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "wide+flag",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 0,
+      "restWorstS": 1.117,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.471,
+      "sittingWorstAtDeg": 4,
+      "dribbles": 112,
+      "dribbleSlipOuts": 212,
+      "pinchDownS": {
+       "1": 0.433,
+       "2": 0.871,
+       "3": 0.938,
+       "4": 1.346,
+       "1 zoomies": 0.6,
+       "2 zoomies": 1.229,
+       "3 zoomies": 1.421,
+       "4 zoomies": 1.592
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "wide+e0",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": false,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 34,
+      "restWorstS": 2.846,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.362,
+      "sittingWorstAtDeg": 12,
+      "dribbles": 112,
+      "dribbleSlipOuts": 286,
+      "pinchDownS": {
+       "1": 0.379,
+       "2": 0.621,
+       "3": null,
+       "4": null,
+       "1 zoomies": 0.4,
+       "2 zoomies": 0.629,
+       "3 zoomies": null,
+       "4 zoomies": null
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "wide+flag+e0",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 0,
+      "restWorstS": 0.942,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.362,
+      "sittingWorstAtDeg": 12,
+      "dribbles": 112,
+      "dribbleSlipOuts": 240,
+      "pinchDownS": {
+       "1": 0.313,
+       "2": 0.392,
+       "3": 0.392,
+       "4": 0.754,
+       "1 zoomies": 0.313,
+       "2 zoomies": 0.392,
+       "3 zoomies": 0.563,
+       "4 zoomies": 0.629
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "57+flag+e0",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 0,
+      "restWorstS": 0.942,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.362,
+      "sittingWorstAtDeg": 12,
+      "dribbles": 112,
+      "dribbleSlipOuts": 138,
+      "pinchDownS": {
+       "1": 0.313,
+       "2": 0.392,
+       "3": 0.537,
+       "4": 0.754,
+       "1 zoomies": 0.304,
+       "2 zoomies": 0.383,
+       "3 zoomies": 0.558,
+       "4 zoomies": 0.688
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "42+flag",
+     "sweep": "fine",
+     "passesAll": true,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": true,
+      "dribbles": true,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 864,
+      "restHeldUp": 0,
+      "restWorstS": 1.383,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.471,
+      "sittingWorstAtDeg": 4,
+      "dribbles": 336,
+      "dribbleSlipOuts": 0,
+      "pinchDownS": {
+       "1": 0.433,
+       "2": 0.871,
+       "3": 0.854,
+       "4": 1.346,
+       "1 zoomies": 0.6,
+       "2 zoomies": 1.229,
+       "3 zoomies": 1.413,
+       "4 zoomies": 1.65
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "40+flag",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": false,
+      "dribbles": true,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 0,
+      "restWorstS": 1.363,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.558,
+      "sittingWorstAtDeg": 40,
+      "dribbles": 112,
+      "dribbleSlipOuts": 0,
+      "pinchDownS": {
+       "1": 0.433,
+       "2": 0.871,
+       "3": 0.854,
+       "4": 1.346,
+       "1 zoomies": 0.6,
+       "2 zoomies": 1.229,
+       "3 zoomies": 1.413,
+       "4 zoomies": 1.65
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "42+flag+e0",
+     "sweep": "fine",
+     "passesAll": true,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": true,
+      "dribbles": true,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 864,
+      "restHeldUp": 0,
+      "restWorstS": 1.383,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.463,
+      "sittingWorstAtDeg": 42,
+      "dribbles": 336,
+      "dribbleSlipOuts": 0,
+      "pinchDownS": {
+       "1": 0.313,
+       "2": 0.392,
+       "3": 0.537,
+       "4": 1.087,
+       "1 zoomies": 0.304,
+       "2 zoomies": 0.383,
+       "3 zoomies": 0.558,
+       "4 zoomies": 0.688
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "40+flag+e0",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": false,
+      "dribbles": true,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 0,
+      "restWorstS": 1.075,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.558,
+      "sittingWorstAtDeg": 40,
+      "dribbles": 112,
+      "dribbleSlipOuts": 0,
+      "pinchDownS": {
+       "1": 0.313,
+       "2": 0.392,
+       "3": 0.537,
+       "4": 1.087,
+       "1 zoomies": 0.304,
+       "2 zoomies": 0.383,
+       "3 zoomies": 0.558,
+       "4 zoomies": 0.688
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "44+flag",
+     "sweep": "coarse",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 176,
+      "restHeldUp": 0,
+      "restWorstS": 1.358,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.471,
+      "sittingWorstAtDeg": 4,
+      "dribbles": 112,
+      "dribbleSlipOuts": 4,
+      "pinchDownS": {
+       "1": 0.433,
+       "2": 0.871,
+       "3": 0.854,
+       "4": 1.346,
+       "1 zoomies": 0.6,
+       "2 zoomies": 1.229,
+       "3 zoomies": 1.413,
+       "4 zoomies": 1.65
+      },
+      "pinchMirrorMismatches": 0
+     }
+    },
+    {
+     "rule": "44+flag+e0",
+     "sweep": "fine",
+     "passesAll": false,
+     "cases": {
+      "restingOnPushers": true,
+      "twoSitting": true,
+      "dribbles": false,
+      "kickoffPinchMirrored": true
+     },
+     "numbers": {
+      "restCases": 864,
+      "restHeldUp": 0,
+      "restWorstS": 1.321,
+      "restMirrorMismatches": 0,
+      "sittingWorstS": 0.388,
+      "sittingWorstAtDeg": 44,
+      "dribbles": 336,
+      "dribbleSlipOuts": 6,
+      "pinchDownS": {
+       "1": 0.313,
+       "2": 0.392,
+       "3": 0.537,
+       "4": 1.021,
+       "1 zoomies": 0.304,
+       "2 zoomies": 0.383,
+       "3 zoomies": 0.558,
+       "4 zoomies": 0.688
+      },
+      "pinchMirrorMismatches": 0
+     }
+    }
+   ],
+   "onlyPassingAll": [
+    "42+flag",
+    "42+flag+e0"
+   ]
+  },
+  "run3": {
+   "planScript": "scrum at the wall, flag42",
+   "repetitions": [
+    {
+     "file": "results/cost-1.json",
+     "utc": "2026-11-16T03:50:21.529Z",
+     "chromium": "156.0.8078.4",
+     "load": {
+      "before1m": 3.62,
+      "uptime": "19:45:19 up 3 days,  5:51,  1 user,  load average: 3.62, 3.86, 3.88",
+      "max1mDuring": 9.44,
+      "cpuCores": null
+     },
+     "at4x": [
+      {
+       "script": "scrum at the wall, flag42",
+       "device": "desktop",
+       "mode": "drawn, paced at 60 Hz",
+       "tickMs": {
+        "mean": 2.425,
+        "p50": 2.355,
+        "p95": 3.915,
+        "p99": 5.58,
+        "max": 11.88,
+        "n": 1200
+       },
+       "stepUsMean": 186.6,
+       "contactsPerSubstep": 11.65,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 19,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.5,
+         "maxMs": 8.8,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 6.55,
+         "maxMs": 21.88,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 32.35,
+         "maxMs": 54.23,
+         "over50": 1
+        }
+       ]
+      },
+      {
+       "script": "scrum at the wall, flag42",
+       "device": "desktop",
+       "mode": "back to back",
+       "tickMs": {
+        "mean": 1.751,
+        "p50": 1.625,
+        "p95": 3.045,
+        "p99": 4.975,
+        "max": 10.11,
+        "n": 1200
+       },
+       "stepUsMean": 134.7,
+       "contactsPerSubstep": 11.65,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 19,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.23,
+         "maxMs": 10.48,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 6.29,
+         "maxMs": 13.52,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 35.34,
+         "maxMs": 54.2,
+         "over50": 1
+        }
+       ]
+      },
+      {
+       "script": "scrum at the wall, flag42",
+       "device": "Pixel 8a",
+       "mode": "drawn, paced at 60 Hz",
+       "tickMs": {
+        "mean": 2.54,
+        "p50": 2.435,
+        "p95": 4.135,
+        "p99": 6.315,
+        "max": 18.48,
+        "n": 1200
+       },
+       "stepUsMean": 195.4,
+       "contactsPerSubstep": 11.65,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 19,
+       "over4ms": true,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.51,
+         "maxMs": 6.71,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 6.96,
+         "maxMs": 12.69,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 34.64,
+         "maxMs": 54.97,
+         "over50": 2
+        }
+       ]
+      },
+      {
+       "script": "scrum at the wall, flag42",
+       "device": "Pixel 8a",
+       "mode": "back to back",
+       "tickMs": {
+        "mean": 1.919,
+        "p50": 1.775,
+        "p95": 3.215,
+        "p99": 5,
+        "max": 27.865,
+        "n": 1200
+       },
+       "stepUsMean": 147.6,
+       "contactsPerSubstep": 11.65,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 19,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.31,
+         "maxMs": 8.29,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 6.31,
+         "maxMs": 9.2,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 34.43,
+         "maxMs": 75.72,
+         "over50": 3
+        }
+       ]
+      },
+      {
+       "script": "scrum in the corner, flag42",
+       "device": "desktop",
+       "mode": "drawn, paced at 60 Hz",
+       "tickMs": {
+        "mean": 2.443,
+        "p50": 2.3,
+        "p95": 4.035,
+        "p99": 5.51,
+        "max": 12.95,
+        "n": 1200
+       },
+       "stepUsMean": 187.9,
+       "contactsPerSubstep": 11.58,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 17,
+       "over4ms": true,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 3.97,
+         "maxMs": 15.45,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 5.58,
+         "maxMs": 10.37,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 36.11,
+         "maxMs": 49.4,
+         "over50": 0
+        }
+       ]
+      },
+      {
+       "script": "scrum in the corner, flag42",
+       "device": "desktop",
+       "mode": "back to back",
+       "tickMs": {
+        "mean": 1.784,
+        "p50": 1.67,
+        "p95": 2.91,
+        "p99": 4.46,
+        "max": 14.04,
+        "n": 1200
+       },
+       "stepUsMean": 137.2,
+       "contactsPerSubstep": 11.58,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 17,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.52,
+         "maxMs": 6.79,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 5.73,
+         "maxMs": 12.15,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 35.88,
+         "maxMs": 59.79,
+         "over50": 1
+        }
+       ]
+      },
+      {
+       "script": "scrum in the corner, flag42",
+       "device": "Pixel 8a",
+       "mode": "drawn, paced at 60 Hz",
+       "tickMs": {
+        "mean": 2.519,
+        "p50": 2.425,
+        "p95": 3.84,
+        "p99": 5.035,
+        "max": 6.89,
+        "n": 1200
+       },
+       "stepUsMean": 193.7,
+       "contactsPerSubstep": 11.58,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 17,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 3.94,
+         "maxMs": 8.06,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 5.44,
+         "maxMs": 9.3,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 34.07,
+         "maxMs": 47.69,
+         "over50": 0
+        }
+       ]
+      },
+      {
+       "script": "scrum in the corner, flag42",
+       "device": "Pixel 8a",
+       "mode": "back to back",
+       "tickMs": {
+        "mean": 1.731,
+        "p50": 1.595,
+        "p95": 2.845,
+        "p99": 4.29,
+        "max": 10.175,
+        "n": 1200
+       },
+       "stepUsMean": 133.2,
+       "contactsPerSubstep": 11.58,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 17,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 3.61,
+         "maxMs": 8.17,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 5.03,
+         "maxMs": 9.06,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 33.55,
+         "maxMs": 51.78,
+         "over50": 1
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "file": "results/cost.json",
+     "utc": "2026-11-16T03:57:56.551Z",
+     "chromium": "156.0.8078.4",
+     "load": {
+      "before1m": 0.92,
+      "uptime": "19:52:56 up 3 days,  5:58,  1 user,  load average: 0.92, 3.56, 4.07",
+      "max1mDuring": 10.09,
+      "cpuCores": {
+       "busyMean": 5.49,
+       "runMean": 5.31,
+       "otherMean": 0.16,
+       "otherMax": 0.46,
+       "busiestOthers": [
+        {
+         "comm": "MainThread",
+         "meanCores": 0.14
+        },
+        {
+         "comm": "other",
+         "meanCores": 0.02
+        },
+        {
+         "comm": "systemd-udevd",
+         "meanCores": 0
+        },
+        {
+         "comm": "copilot-runtime",
+         "meanCores": 0
+        },
+        {
+         "comm": "systemd",
+         "meanCores": 0
+        }
+       ]
+      }
+     },
+     "at4x": [
+      {
+       "script": "scrum at the wall, flag42",
+       "device": "desktop",
+       "mode": "drawn, paced at 60 Hz",
+       "tickMs": {
+        "mean": 2.427,
+        "p50": 2.355,
+        "p95": 3.86,
+        "p99": 5.91,
+        "max": 11.98,
+        "n": 1200
+       },
+       "stepUsMean": 186.7,
+       "contactsPerSubstep": 11.65,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 19,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.2,
+         "maxMs": 7.48,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 5.88,
+         "maxMs": 9.55,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 32.23,
+         "maxMs": 96.22,
+         "over50": 3
+        }
+       ]
+      },
+      {
+       "script": "scrum at the wall, flag42",
+       "device": "desktop",
+       "mode": "back to back",
+       "tickMs": {
+        "mean": 1.739,
+        "p50": 1.665,
+        "p95": 2.945,
+        "p99": 4.105,
+        "max": 9.62,
+        "n": 1200
+       },
+       "stepUsMean": 133.8,
+       "contactsPerSubstep": 11.65,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 19,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4,
+         "maxMs": 6,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 5.74,
+         "maxMs": 22.04,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 30.29,
+         "maxMs": 61.35,
+         "over50": 1
+        }
+       ]
+      },
+      {
+       "script": "scrum at the wall, flag42",
+       "device": "Pixel 8a",
+       "mode": "drawn, paced at 60 Hz",
+       "tickMs": {
+        "mean": 2.5,
+        "p50": 2.435,
+        "p95": 4.1,
+        "p99": 5.375,
+        "max": 9.015,
+        "n": 1200
+       },
+       "stepUsMean": 192.3,
+       "contactsPerSubstep": 11.65,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 19,
+       "over4ms": true,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.12,
+         "maxMs": 7.79,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 6.29,
+         "maxMs": 14,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 32.52,
+         "maxMs": 59.09,
+         "over50": 1
+        }
+       ]
+      },
+      {
+       "script": "scrum at the wall, flag42",
+       "device": "Pixel 8a",
+       "mode": "back to back",
+       "tickMs": {
+        "mean": 1.676,
+        "p50": 1.56,
+        "p95": 2.895,
+        "p99": 4.255,
+        "max": 9.565,
+        "n": 1200
+       },
+       "stepUsMean": 128.9,
+       "contactsPerSubstep": 11.65,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 19,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.45,
+         "maxMs": 8.2,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 6.31,
+         "maxMs": 9.87,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 33.67,
+         "maxMs": 59.61,
+         "over50": 1
+        }
+       ]
+      },
+      {
+       "script": "scrum in the corner, flag42",
+       "device": "desktop",
+       "mode": "drawn, paced at 60 Hz",
+       "tickMs": {
+        "mean": 2.408,
+        "p50": 2.27,
+        "p95": 3.925,
+        "p99": 5.7,
+        "max": 10.06,
+        "n": 1200
+       },
+       "stepUsMean": 185.2,
+       "contactsPerSubstep": 11.58,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 17,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 3.81,
+         "maxMs": 7.17,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 5.56,
+         "maxMs": 12.42,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 35.6,
+         "maxMs": 49.7,
+         "over50": 0
+        }
+       ]
+      },
+      {
+       "script": "scrum in the corner, flag42",
+       "device": "desktop",
+       "mode": "back to back",
+       "tickMs": {
+        "mean": 1.888,
+        "p50": 1.755,
+        "p95": 3.18,
+        "p99": 4.995,
+        "max": 9.865,
+        "n": 1200
+       },
+       "stepUsMean": 145.2,
+       "contactsPerSubstep": 11.58,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 17,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.15,
+         "maxMs": 5.74,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 5.81,
+         "maxMs": 7.52,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 37.15,
+         "maxMs": 71.2,
+         "over50": 1
+        }
+       ]
+      },
+      {
+       "script": "scrum in the corner, flag42",
+       "device": "Pixel 8a",
+       "mode": "drawn, paced at 60 Hz",
+       "tickMs": {
+        "mean": 2.48,
+        "p50": 2.36,
+        "p95": 4.105,
+        "p99": 5.275,
+        "max": 9.66,
+        "n": 1200
+       },
+       "stepUsMean": 190.7,
+       "contactsPerSubstep": 11.58,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 17,
+       "over4ms": true,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.1,
+         "maxMs": 6.63,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 5.3,
+         "maxMs": 8.3,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 34.78,
+         "maxMs": 80.49,
+         "over50": 2
+        }
+       ]
+      },
+      {
+       "script": "scrum in the corner, flag42",
+       "device": "Pixel 8a",
+       "mode": "back to back",
+       "tickMs": {
+        "mean": 1.798,
+        "p50": 1.67,
+        "p95": 2.95,
+        "p99": 4.515,
+        "max": 7.945,
+        "n": 1200
+       },
+       "stepUsMean": 138.3,
+       "contactsPerSubstep": 11.58,
+       "floorPerSubstep": 8.53,
+       "maxInSubstep": 17,
+       "over4ms": false,
+       "bursts": [
+        {
+         "steps": 30,
+         "runs": 30,
+         "medianMs": 4.07,
+         "maxMs": 5.52,
+         "over50": 0
+        },
+        {
+         "steps": 42,
+         "runs": 30,
+         "medianMs": 6.01,
+         "maxMs": 8.21,
+         "over50": 0
+        },
+        {
+         "steps": 270,
+         "runs": 30,
+         "medianMs": 35.36,
+         "maxMs": 74.94,
+         "over50": 1
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "seconds": 5.5
+}

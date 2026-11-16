@@ -1,0 +1,1114 @@
+{
+ "utc": "2026-11-16T04:06:47.593Z",
+ "about": "M0 run 2's checks: lint (with hermet's exact-ops rule on src/sim), typecheck and the vitest suite",
+ "lint": {
+  "exitCode": 0,
+  "utcStart": "2026-11-16T04:06:44.892Z",
+  "wallSeconds": 2.2,
+  "load1mBefore": 0.83,
+  "command": "npx eslint . --max-warnings 0 -f json -o results/tmp/eslint.json",
+  "files": 77,
+  "errors": 0,
+  "warnings": 0,
+  "messages": [],
+  "exactOpsOn": [
+   "src/sim/angle.ts",
+   "src/sim/cases.ts",
+   "src/sim/codec.ts",
+   "src/sim/config.ts",
+   "src/sim/golden.ts",
+   "src/sim/hash.ts",
+   "src/sim/input.ts",
+   "src/sim/physics.ts",
+   "src/sim/pitch.ts",
+   "src/sim/scripts.ts",
+   "src/sim/source.ts",
+   "src/sim/state.ts",
+   "src/sim/step.ts",
+   "src/sim/testing.ts"
+  ],
+  "exactOpsOff": [
+   "src/sim/angle.test.ts",
+   "src/sim/contacts.test.ts",
+   "src/sim/golden.test.ts",
+   "src/sim/hits.test.ts",
+   "src/sim/measure.test.ts",
+   "src/sim/mirror.test.ts",
+   "src/sim/movement.test.ts",
+   "src/sim/pitch.test.ts",
+   "src/sim/push.test.ts",
+   "src/sim/slipout.test.ts",
+   "src/sim/source.test.ts",
+   "src/sim/tunnel.test.ts"
+  ]
+ },
+ "typecheck": {
+  "exitCode": 0,
+  "utcStart": "2026-11-16T04:05:05.885Z",
+  "wallSeconds": 3.2,
+  "load1mBefore": 1.99,
+  "command": "npx tsc --noEmit"
+ },
+ "vitest": {
+  "exitCode": 0,
+  "utcStart": "2026-11-16T04:04:24.730Z",
+  "wallSeconds": 21.1,
+  "load1mBefore": 0.74,
+  "command": "npx vitest run --reporter=default --reporter=json --outputFile.json=results/tmp/vitest.json",
+  "success": true,
+  "files": 24,
+  "tests": {
+   "total": 168,
+   "passed": 162,
+   "failed": 0,
+   "skipped": 6
+  },
+  "byFile": [
+   {
+    "file": "scripts/make-standin.test.mjs",
+    "status": "passed",
+    "ms": 309,
+    "tests": [
+     {
+      "name": "the stand-in skinned terrier (scripts/make-standin.mjs) is a glTF 2.0 binary whose chunks, views and accessors fit, aligned",
+      "status": "passed",
+      "ms": 22
+     },
+     {
+      "name": "the stand-in skinned terrier (scripts/make-standin.mjs) has one skinned mesh with a fur and a bandana primitive, rigidly weighted to a few bones",
+      "status": "passed",
+      "ms": 190
+     },
+     {
+      "name": "the stand-in skinned terrier (scripts/make-standin.mjs) fits the 0.6 x 0.5 x 0.5 m box, feet on the floor (glTF's +y up, +z forward)",
+      "status": "passed",
+      "ms": 1
+     },
+     {
+      "name": "the stand-in skinned terrier (scripts/make-standin.mjs) stays inside §12's starting guesses for a model: 8,000 triangles, 32 bones, a 512 x 512 texture",
+      "status": "passed",
+      "ms": 0
+     },
+     {
+      "name": "the stand-in skinned terrier (scripts/make-standin.mjs) embeds one PNG texture, used by the fur, with valid chunks",
+      "status": "passed",
+      "ms": 3
+     },
+     {
+      "name": "the stand-in skinned terrier (scripts/make-standin.mjs) has one clip per animation phase, each moving bones only",
+      "status": "passed",
+      "ms": 9
+     },
+     {
+      "name": "the stand-in skinned terrier (scripts/make-standin.mjs) computes CRC-32 as PNG specifies",
+      "status": "passed",
+      "ms": 3
+     },
+     {
+      "name": "the stand-in skinned terrier (scripts/make-standin.mjs) is the same bytes every time",
+      "status": "passed",
+      "ms": 80
+     }
+    ]
+   },
+   {
+    "file": "scripts/tokenizer-check.test.mjs",
+    "status": "passed",
+    "ms": 31,
+    "tests": [
+     {
+      "name": "the cross-check of hermet's tokenizer against TypeScript's parser agrees on ordinary minified code, templates and regular expressions",
+      "status": "passed",
+      "ms": 28
+     },
+     {
+      "name": "the cross-check of hermet's tokenizer against TypeScript's parser sees C-9's edge case: a regular expression after ')' that holds a quote",
+      "status": "passed",
+      "ms": 3
+     }
+    ]
+   },
+   {
+    "file": "src/contract.test.ts",
+    "status": "passed",
+    "ms": 4,
+    "tests": [
+     {
+      "name": "the sim/scene contract runs 60 ticks a second in 4 substeps (PLAN D-3)",
+      "status": "passed",
+      "ms": 4
+     }
+    ]
+   },
+   {
+    "file": "src/cost.test.ts",
+    "status": "passed",
+    "ms": 477,
+    "tests": [
+     {
+      "name": "the tick-cost harness takes quantiles as roslambo does",
+      "status": "passed",
+      "ms": 14
+     },
+     {
+      "name": "the tick-cost harness settles, warms up, times each 13-step tick, then each burst, one unit of work per step()",
+      "status": "passed",
+      "ms": 346
+     },
+     {
+      "name": "the tick-cost harness flags a burst over the 50 ms frame, and a p95 over the stop rule",
+      "status": "passed",
+      "ms": 115
+     },
+     {
+      "name": "the tick-cost harness reads the clock’s step",
+      "status": "passed",
+      "ms": 1
+     }
+    ]
+   },
+   {
+    "file": "src/source-choice.test.ts",
+    "status": "passed",
+    "ms": 504,
+    "tests": [
+     {
+      "name": "the page's choice of simulation defaults to the showcase at 4 a side under 42+flag, which kicks off and plays on",
+      "status": "passed",
+      "ms": 491
+     },
+     {
+      "name": "the page's choice of simulation takes a golden script by name, a showcase pack size, and a slip-out rule",
+      "status": "passed",
+      "ms": 3
+     },
+     {
+      "name": "the page's choice of simulation refuses what it cannot draw or does not know",
+      "status": "passed",
+      "ms": 8
+     }
+    ]
+   },
+   {
+    "file": "test/eslint-config.test.ts",
+    "status": "passed",
+    "ms": 2201,
+    "tests": [
+     {
+      "name": "the planted fixture under src/sim fails on Math.sin, a destructured Math and an aliased Math, and nothing else",
+      "status": "passed",
+      "ms": 1778
+     },
+     {
+      "name": "the planted fixture under src/sim is skipped by `eslint .`, and nothing else in src/sim is",
+      "status": "passed",
+      "ms": 29
+     },
+     {
+      "name": "src/sim, tests excluded allows only exact operations (hermet/exact-ops)",
+      "status": "passed",
+      "ms": 59
+     },
+     {
+      "name": "src/sim, tests excluded uses Math only as Math.<name>: never destructured, aliased or passed on",
+      "status": "passed",
+      "ms": 85
+     },
+     {
+      "name": "src/sim, tests excluded reaches no DOM, timer, storage or network global, nor the global object",
+      "status": "passed",
+      "ms": 29
+     },
+     {
+      "name": "src/sim, tests excluded allows exact operations, the contract, and Math in types and property names",
+      "status": "passed",
+      "ms": 13
+     },
+     {
+      "name": "src/sim, tests included imports neither three nor src/scene, statically or dynamically",
+      "status": "passed",
+      "ms": 148
+     },
+     {
+      "name": "src/sim, tests included may import its own modules whose names only start with \"scene\"",
+      "status": "passed",
+      "ms": 8
+     },
+     {
+      "name": "outside the simulation leaves the simulation tests, the scene and the page free to use any maths and three",
+      "status": "passed",
+      "ms": 49
+     }
+    ]
+   },
+   {
+    "file": "test/headers.test.ts",
+    "status": "passed",
+    "ms": 18,
+    "tests": [
+     {
+      "name": "public/_headers is amorfus's: the hashed assets immutable, its security headers everywhere",
+      "status": "passed",
+      "ms": 12
+     },
+     {
+      "name": "public/_headers keeps amorfus's policy unchanged, without blob: in connect-src (M0 measures the need)",
+      "status": "passed",
+      "ms": 4
+     },
+     {
+      "name": "public/_headers skips comments",
+      "status": "passed",
+      "ms": 1
+     }
+    ]
+   },
+   {
+    "file": "test/serve.test.ts",
+    "status": "passed",
+    "ms": 179,
+    "tests": [
+     {
+      "name": "the _headers rules reads patterns, headers and detached names, skipping comments",
+      "status": "passed",
+      "ms": 4
+     },
+     {
+      "name": "the _headers rules applies every matching rule, joins a header named twice, and detaches",
+      "status": "passed",
+      "ms": 3
+     },
+     {
+      "name": "the _headers rules matches a placeholder within one path segment, and an absolute pattern only on its host",
+      "status": "passed",
+      "ms": 2
+     },
+     {
+      "name": "the _headers rules adds sources to one directive of a policy",
+      "status": "passed",
+      "ms": 1
+     },
+     {
+      "name": "the server serves / as index.html with the policy, and redirects /index.html there",
+      "status": "passed",
+      "ms": 62
+     },
+     {
+      "name": "the server marks hashed assets immutable, and compresses text as the browser accepts",
+      "status": "passed",
+      "ms": 61
+     },
+     {
+      "name": "the server answers a plain 404 for a missing file and for _headers, and refuses other methods",
+      "status": "passed",
+      "ms": 44
+     }
+    ]
+   },
+   {
+    "file": "src/scene/drawers.test.ts",
+    "status": "passed",
+    "ms": 296,
+    "tests": [
+     {
+      "name": "the code-built terrier (PLAN D-27) fits L310's 0.6 x 0.5 x 0.5 m box around its collider while standing",
+      "status": "passed",
+      "ms": 43
+     },
+     {
+      "name": "the code-built terrier (PLAN D-27) keeps out of a touching ball at 31.6 degrees while pushing (D-27's fit)",
+      "status": "passed",
+      "ms": 93
+     },
+     {
+      "name": "the code-built terrier (PLAN D-27) keeps out of a touching ball at 45 degrees while pushing (D-27's fit)",
+      "status": "passed",
+      "ms": 31
+     },
+     {
+      "name": "the code-built terrier (PLAN D-27) keeps out of a touching ball at 60 degrees while pushing (D-27's fit)",
+      "status": "passed",
+      "ms": 33
+     },
+     {
+      "name": "the code-built terrier (PLAN D-27) keeps out of a touching ball at 75 degrees while pushing (D-27's fit)",
+      "status": "passed",
+      "ms": 30
+     },
+     {
+      "name": "the code-built terrier (PLAN D-27) keeps out of a touching ball at 90 degrees while pushing (D-27's fit)",
+      "status": "passed",
+      "ms": 27
+     },
+     {
+      "name": "the code-built terrier (PLAN D-27) would put its head in the ball without the pushing pose, which is why it has one",
+      "status": "passed",
+      "ms": 7
+     },
+     {
+      "name": "the code-built terrier (PLAN D-27) stays inside §12's starting guesses: 2,000 triangles a terrier, 40 draw calls for 8",
+      "status": "passed",
+      "ms": 18
+     },
+     {
+      "name": "the ball (PLAN §12) squashes along the hit and keeps its volume",
+      "status": "passed",
+      "ms": 2
+     },
+     {
+      "name": "the ball (PLAN §12) squashes harder for harder hits, up to a cap, and settles within 0.45 s",
+      "status": "passed",
+      "ms": 1
+     },
+     {
+      "name": "the model drawer (PLAN D-27) turns glTF's axes into the scene's: forward to +x, up to +z, left to +y",
+      "status": "passed",
+      "ms": 3
+     }
+    ]
+   },
+   {
+    "file": "src/scene/frames.test.ts",
+    "status": "passed",
+    "ms": 16,
+    "tests": [
+     {
+      "name": "the frame-time verdict (roslambo's src/frames.ts) takes quantiles as roslambo's: the element at floor(n * q)",
+      "status": "passed",
+      "ms": 8
+     },
+     {
+      "name": "the frame-time verdict (roslambo's src/frames.ts) passes at p95 <= 18 ms and max <= 50 ms, and fails just past either",
+      "status": "passed",
+      "ms": 6
+     },
+     {
+      "name": "the frame-time verdict (roslambo's src/frames.ts) summarises work as mean, p95 and max",
+      "status": "passed",
+      "ms": 1
+     }
+    ]
+   },
+   {
+    "file": "src/scene/interpolate.test.ts",
+    "status": "passed",
+    "ms": 14,
+    "tests": [
+     {
+      "name": "interpolation between two ticks (PLAN §12) takes binary angles the short way round, across the wrap",
+      "status": "passed",
+      "ms": 6
+     },
+     {
+      "name": "interpolation between two ticks (PLAN §12) interpolates positions linearly and the time by the fraction",
+      "status": "passed",
+      "ms": 1
+     },
+     {
+      "name": "interpolation between two ticks (PLAN §12) wraps the gait into a fraction of a cycle",
+      "status": "passed",
+      "ms": 1
+     },
+     {
+      "name": "interpolation between two ticks (PLAN §12) takes discrete fields from the nearer view",
+      "status": "passed",
+      "ms": 1
+     },
+     {
+      "name": "interpolation between two ticks (PLAN §12) clamps the fraction and copies the last goal only when there is one",
+      "status": "passed",
+      "ms": 3
+     },
+     {
+      "name": "interpolation between two ticks (PLAN §12) snapshots a view, so a source that reuses its object cannot change it",
+      "status": "passed",
+      "ms": 1
+     }
+    ]
+   },
+   {
+    "file": "src/scene/stub-source.test.ts",
+    "status": "passed",
+    "ms": 609,
+    "tests": [
+     {
+      "name": "the stub source (until integration) lists 2 x packSize terriers in (spot, pack) order",
+      "status": "passed",
+      "ms": 11
+     },
+     {
+      "name": "the stub source (until integration) is deterministic however its ticks are batched",
+      "status": "passed",
+      "ms": 129
+     },
+     {
+      "name": "the stub source (until integration) keeps headings and gaits as u32 binary angles",
+      "status": "passed",
+      "ms": 89
+     },
+     {
+      "name": "the stub source (until integration) runs every terrier through every animation phase, hits the ball and scores",
+      "status": "passed",
+      "ms": 147
+     },
+     {
+      "name": "the stub source (until integration) leaves lastGoal out until there is one (exactOptionalPropertyTypes)",
+      "status": "passed",
+      "ms": 1
+     },
+     {
+      "name": "the stub source (until integration) keeps every body inside the walls and on or above the floor",
+      "status": "passed",
+      "ms": 229
+     }
+    ]
+   },
+   {
+    "file": "src/sim/angle.test.ts",
+    "status": "passed",
+    "ms": 983,
+    "tests": [
+     {
+      "name": "binary angles (D-2) dir() is within 1e-15 of Math.cos and Math.sin everywhere",
+      "status": "passed",
+      "ms": 30
+     },
+     {
+      "name": "binary angles (D-2) is exact on the axes and continuous across octant boundaries",
+      "status": "passed",
+      "ms": 1
+     },
+     {
+      "name": "binary angles (D-2) splits a turn into n equal binary angles",
+      "status": "passed",
+      "ms": 0
+     },
+     {
+      "name": "binary angles (D-2) dir() of a half turn more is the exact negation (mirrored headings, P8)",
+      "status": "passed",
+      "ms": 12
+     },
+     {
+      "name": "datan2 (D-2) matches Math.atan2 to within half a unit plus 1e-3, about 1.2e-10 of a turn",
+      "status": "passed",
+      "ms": 249
+     },
+     {
+      "name": "datan2 (D-2) is within half a unit of Math.atan2 on a dense sweep of one octant",
+      "status": "passed",
+      "ms": 447
+     },
+     {
+      "name": "datan2 (D-2) gives exact quarter turns on the axes, with Math.atan2 signed zeros",
+      "status": "passed",
+      "ms": 2
+     },
+     {
+      "name": "datan2 (D-2) gives exact eighth turns on the diagonals",
+      "status": "passed",
+      "ms": 8
+     },
+     {
+      "name": "datan2 (D-2) is point-symmetric exactly: datan2(−y, −x) === datan2(y, x) + 2^31",
+      "status": "passed",
+      "ms": 190
+     },
+     {
+      "name": "datan2 (D-2) points dir() back along the vector",
+      "status": "passed",
+      "ms": 40
+     },
+     {
+      "name": "datan2 (D-2) angleDiff is the signed shortest difference",
+      "status": "passed",
+      "ms": 1
+     }
+    ]
+   },
+   {
+    "file": "src/sim/contacts.test.ts",
+    "status": "passed",
+    "ms": 4123,
+    "tests": [
+     {
+      "name": "resting contact (D-5 step 4) holds a resting ball and standing terriers bit-still for 10 minutes of ticks",
+      "status": "passed",
+      "ms": 2186
+     },
+     {
+      "name": "resting contact (D-5 step 4) holds a ball resting against a wall and a terrier against the ball bit-still too",
+      "status": "passed",
+      "ms": 1757
+     },
+     {
+      "name": "bounces keep their fraction above 0.3 m/s (D-5, L308, L311) the ball off the floor keeps 70% of its impact speed, within 1%, at every drop height",
+      "status": "passed",
+      "ms": 58
+     },
+     {
+      "name": "bounces keep their fraction above 0.3 m/s (D-5, L308, L311) the ball off a wall, the overhead net, a post and a crossbar keeps 70% of its normal speed; the goal netting 30%",
+      "status": "passed",
+      "ms": 42
+     },
+     {
+      "name": "bounces keep their fraction above 0.3 m/s (D-5, L308, L311) a terrier hitting a resting ball level keeps 50% of the closing speed, sending it at half its speed",
+      "status": "passed",
+      "ms": 14
+     },
+     {
+      "name": "bounces keep their fraction above 0.3 m/s (D-5, L308, L311) terriers off each other and off a wall keep 30%",
+      "status": "passed",
+      "ms": 20
+     },
+     {
+      "name": "bounces keep their fraction above 0.3 m/s (D-5, L308, L311) settles without a bounce at or below 0.3 m/s",
+      "status": "passed",
+      "ms": 7
+     },
+     {
+      "name": "bounces keep their fraction above 0.3 m/s (D-5, L308, L311) a terrier landing from any height stays on the floor, with no bounce",
+      "status": "passed",
+      "ms": 20
+     },
+     {
+      "name": "rolling (A.5) slows the ball by the configured rate within 1e-12 m/s a substep and stops it exactly",
+      "status": "passed",
+      "ms": 16
+     },
+     {
+      "name": "rolling (A.5) keeps the kinetic energy of a ball in flight between bounces (no air drag)",
+      "status": "passed",
+      "ms": 3
+     }
+    ]
+   },
+   {
+    "file": "src/sim/golden.test.ts",
+    "status": "passed",
+    "ms": 6854,
+    "tests": [
+     {
+      "name": "goldens covers every script, with a checkpoint every 500 ticks",
+      "status": "passed",
+      "ms": 3
+     },
+     {
+      "name": "goldens replays the same, run twice in one process",
+      "status": "passed",
+      "ms": 4504
+     },
+     {
+      "name": "goldens matches goldens.json, checkpoint by checkpoint",
+      "status": "passed",
+      "ms": 3
+     }
+    ]
+   },
+   {
+    "file": "src/sim/hits.test.ts",
+    "status": "passed",
+    "ms": 225,
+    "tests": [
+     {
+      "name": "simultaneous hits (D-5, §16) k = 1–4 parallel hitters from the floor: momentum within 1e-9, no energy gained, the ball faster as k grows",
+      "status": "passed",
+      "ms": 125
+     },
+     {
+      "name": "simultaneous hits (D-5, §16) k = 1–4 hitters aimed at the centre from the floor: measured and reported",
+      "status": "passed",
+      "ms": 45
+     },
+     {
+      "name": "simultaneous hits (D-5, §16) k = 1–4 parallel hitters level: momentum within 1e-9, no energy gained, the ball faster as k grows",
+      "status": "passed",
+      "ms": 24
+     },
+     {
+      "name": "simultaneous hits (D-5, §16) k = 1–4 hitters aimed at the centre level: measured and reported",
+      "status": "passed",
+      "ms": 31
+     }
+    ]
+   },
+   {
+    "file": "src/sim/measure.test.ts",
+    "status": "passed",
+    "ms": 0,
+    "tests": [
+     {
+      "name": "M0 measurements (simulation) push times, under both readings of the floor",
+      "status": "skipped",
+      "ms": null
+     },
+     {
+      "name": "M0 measurements (simulation) simultaneous hits, under both readings of the floor",
+      "status": "skipped",
+      "ms": null
+     },
+     {
+      "name": "M0 measurements (simulation) slip-out candidates: the coarse survey for all, the fine sweep for the leaders",
+      "status": "skipped",
+      "ms": null
+     },
+     {
+      "name": "M0 measurements (simulation) the dribble hop angles, the cone bound they set",
+      "status": "skipped",
+      "ms": null
+     },
+     {
+      "name": "M0 measurements (simulation) tick cost in Node: a 13-step replay every tick on the 4-a-side scrums, and the worst single ticks",
+      "status": "skipped",
+      "ms": null
+     },
+     {
+      "name": "M0 measurements (simulation) the golden suite, timed in Node",
+      "status": "skipped",
+      "ms": null
+     }
+    ]
+   },
+   {
+    "file": "src/sim/mirror.test.ts",
+    "status": "passed",
+    "ms": 8114,
+    "tests": [
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value pack size 1, main pitch, seeded inputs in all three frames",
+      "status": "passed",
+      "ms": 767
+     },
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value pack size 2, main pitch, seeded inputs in all three frames",
+      "status": "passed",
+      "ms": 736
+     },
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value pack size 3, main pitch, seeded inputs in all three frames",
+      "status": "passed",
+      "ms": 391
+     },
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value pack size 4, main pitch, seeded inputs in all three frames",
+      "status": "passed",
+      "ms": 511
+     },
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value pack size 1, second pitch, seeded inputs in all three frames",
+      "status": "passed",
+      "ms": 228
+     },
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value pack size 2, second pitch, seeded inputs in all three frames",
+      "status": "passed",
+      "ms": 299
+     },
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value pack size 3, second pitch, seeded inputs in all three frames",
+      "status": "passed",
+      "ms": 282
+     },
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value pack size 4, second pitch, seeded inputs in all three frames",
+      "status": "passed",
+      "ms": 395
+     },
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value under the slip-out rules M0 compares, through pinches and slip-outs",
+      "status": "passed",
+      "ms": 4497
+     },
+     {
+      "name": "P8: mirrored kickoffs stay exactly mirrored, by value notices a mirror broken by one bit",
+      "status": "passed",
+      "ms": 2
+     }
+    ]
+   },
+   {
+    "file": "src/sim/movement.test.ts",
+    "status": "passed",
+    "ms": 1843,
+    "tests": [
+     {
+      "name": "running (D-6) reaches run speed from rest in 0.4 s at 15 m/s², and holds it",
+      "status": "passed",
+      "ms": 27
+     },
+     {
+      "name": "running (D-6) turns at 2 turns/s and snaps onto the direction within a tick",
+      "status": "passed",
+      "ms": 6
+     },
+     {
+      "name": "running (D-6) idle friction stops a terrier at 8 m/s², exactly",
+      "status": "passed",
+      "ms": 9
+     },
+     {
+      "name": "running (D-6) an idle terrier can be pushed, at 3.5 m/s²",
+      "status": "passed",
+      "ms": 13
+     },
+     {
+      "name": "zoomies (D-6, C-20) runs at 9 m/s, drains the meter in 3 s, locks out until released, and refills in 6 s",
+      "status": "passed",
+      "ms": 279
+     },
+     {
+      "name": "jump (D-6) rises 1 m and is in the air about 0.9 s, from the floor only",
+      "status": "passed",
+      "ms": 28
+     },
+     {
+      "name": "pounce (D-6) holds 10 m/s for 0.3 s, 3 m, then waits 1.5 s; a press during the lunge or wait is dropped",
+      "status": "passed",
+      "ms": 11
+     },
+     {
+      "name": "pounce (D-6) ends on the ball and sends it at 5 m/s when level; a jump and a pounce together: the jump first",
+      "status": "passed",
+      "ms": 10
+     },
+     {
+      "name": "pounce (D-6) tumbles the rival it hits, both when two pounce into each other, never a packmate",
+      "status": "passed",
+      "ms": 67
+     },
+     {
+      "name": "tumbles (D-6, Q-8) last 1.5 s with a 0.5 s get-up, then a 1.5 s guard; a tumbled terrier can't act",
+      "status": "passed",
+      "ms": 58
+     },
+     {
+      "name": "tumbles (D-6, Q-8) a ball coming at 4 m/s or more bowls a terrier, except a lunging one or the last to touch it",
+      "status": "passed",
+      "ms": 80
+     },
+     {
+      "name": "steering frames (D-7) the ball frame runs at the ball, and sideways circles it",
+      "status": "passed",
+      "ms": 4
+     },
+     {
+      "name": "steering frames (D-7) under an overhead ball, holds the reference: sideways turns once, to the reference plus the step",
+      "status": "passed",
+      "ms": 3
+     },
+     {
+      "name": "steering frames (D-7) the nose frame throttles along the heading and turns by the side part",
+      "status": "passed",
+      "ms": 18
+     },
+     {
+      "name": "presses and inputs (D-10, A.2) a press acts once, a held counter never repeats it, and absent ticks don't make one",
+      "status": "passed",
+      "ms": 101
+     },
+     {
+      "name": "presses and inputs (D-10, A.2) every u16 is a valid input, and the bark bits never reach the hash",
+      "status": "passed",
+      "ms": 996
+     },
+     {
+      "name": "the ball against terriers (L57) a terrier running into a resting ball at run speed hops it",
+      "status": "passed",
+      "ms": 2
+     },
+     {
+      "name": "the ball against terriers (L57) two running in from opposite sides lift it off the floor",
+      "status": "passed",
+      "ms": 3
+     },
+     {
+      "name": "the ball against terriers (L57) a steady push from contact keeps the ball's on-floor flag set throughout",
+      "status": "passed",
+      "ms": 5
+     },
+     {
+      "name": "kickoffs and goals (D-8) places every pack size on A.5's spots, pack B the point mirror, all facing the ball",
+      "status": "passed",
+      "ms": 2
+     },
+     {
+      "name": "kickoffs and goals (D-8) holds terriers on their spots through the countdown, turning only, then plays",
+      "status": "passed",
+      "ms": 6
+     },
+     {
+      "name": "kickoffs and goals (D-8) counts a goal through the mouth for the attacking pack, credits the last toucher, then celebrates and kicks off",
+      "status": "passed",
+      "ms": 48
+     },
+     {
+      "name": "kickoffs and goals (D-8) an own goal counts for the other pack and credits nobody",
+      "status": "passed",
+      "ms": 44
+     },
+     {
+      "name": "kickoffs and goals (D-8) counts one touch per contact episode, re-armed at 0.6 m",
+      "status": "passed",
+      "ms": 17
+     }
+    ]
+   },
+   {
+    "file": "src/sim/pitch.test.ts",
+    "status": "passed",
+    "ms": 93,
+    "tests": [
+     {
+      "name": "the pitch pieces (D-4) main: every piece's point mirror is in the list, reflected exactly",
+      "status": "passed",
+      "ms": 40
+     },
+     {
+      "name": "the pitch pieces (D-4) second: every piece's point mirror is in the list, reflected exactly",
+      "status": "passed",
+      "ms": 34
+     },
+     {
+      "name": "the pitch pieces (D-4) the second shape is point-symmetric but not mirror-symmetric",
+      "status": "passed",
+      "ms": 2
+     },
+     {
+      "name": "the pitch pieces (D-4) leaves the mouth clear: 8 m between the posts, 3 m under the crossbar, the ball 1.4 m to spare",
+      "status": "passed",
+      "ms": 6
+     },
+     {
+      "name": "the pitch pieces (D-4) finds closest points on faces, edges and capsules, with normals toward the body",
+      "status": "passed",
+      "ms": 10
+     }
+    ]
+   },
+   {
+    "file": "src/sim/push.test.ts",
+    "status": "passed",
+    "ms": 572,
+    "tests": [
+     {
+      "name": "push times to 95% of run speed (§16, C-18) one pusher takes 1.2 s ± 10%",
+      "status": "passed",
+      "ms": 101
+     },
+     {
+      "name": "push times to 95% of run speed (§16, C-18) four in a train take 0.6 s ± 10%",
+      "status": "passed",
+      "ms": 77
+     },
+     {
+      "name": "push times to 95% of run speed (§16, C-18) two and four side by side, in the pitch and the ball frame, are measured (marks set at M2)",
+      "status": "passed",
+      "ms": 394
+     }
+    ]
+   },
+   {
+    "file": "src/sim/slipout.test.ts",
+    "status": "passed",
+    "ms": 19864,
+    "tests": [
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) none",
+      "status": "passed",
+      "ms": 5002
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) drafted",
+      "status": "passed",
+      "ms": 2034
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) wide",
+      "status": "passed",
+      "ms": 1504
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) flag",
+      "status": "passed",
+      "ms": 861
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) e0",
+      "status": "passed",
+      "ms": 1457
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) flag+e0",
+      "status": "passed",
+      "ms": 783
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) wide+flag",
+      "status": "passed",
+      "ms": 759
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) wide+e0",
+      "status": "passed",
+      "ms": 979
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) wide+flag+e0",
+      "status": "passed",
+      "ms": 483
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) 57+flag+e0",
+      "status": "passed",
+      "ms": 553
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) 42+flag",
+      "status": "passed",
+      "ms": 502
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) 40+flag",
+      "status": "passed",
+      "ms": 530
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) 42+flag+e0",
+      "status": "passed",
+      "ms": 542
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) 40+flag+e0",
+      "status": "passed",
+      "ms": 525
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) 44+flag",
+      "status": "passed",
+      "ms": 515
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) 44+flag+e0",
+      "status": "passed",
+      "ms": 488
+     },
+     {
+      "name": "slip-out candidates on §16's cases (D-5 step 7) at least one candidate passes all four cases (M0 stop rule)",
+      "status": "passed",
+      "ms": 0
+     }
+    ]
+   },
+   {
+    "file": "src/sim/source.test.ts",
+    "status": "passed",
+    "ms": 1545,
+    "tests": [
+     {
+      "name": "createSimSource plays the showcase at every pack size, advanced by the clock",
+      "status": "passed",
+      "ms": 1243
+     },
+     {
+      "name": "createSimSource is deterministic: two sources with the same options agree, however they are advanced",
+      "status": "passed",
+      "ms": 124
+     },
+     {
+      "name": "createSimSource plays a named golden script and its rule, and refuses a pack size that differs",
+      "status": "passed",
+      "ms": 38
+     },
+     {
+      "name": "createSimSource ignores fractional and negative advances",
+      "status": "passed",
+      "ms": 13
+     },
+     {
+      "name": "createReplayBench re-steps the window from the base each tick, and leaves the base one tick on",
+      "status": "passed",
+      "ms": 125
+     }
+    ]
+   },
+   {
+    "file": "src/sim/tunnel.test.ts",
+    "status": "passed",
+    "ms": 13166,
+    "tests": [
+     {
+      "name": "the configuration (D-3, §7.4) no body moves its radius in a substep at 25 m/s, and no pair closes its radius sum",
+      "status": "passed",
+      "ms": 4
+     },
+     {
+      "name": "no tunnelling at 25 m/s the ball shot at every piece of the main pitch from many angles stays inside",
+      "status": "passed",
+      "ms": 4470
+     },
+     {
+      "name": "no tunnelling at 25 m/s the ball shot at every piece of the second pitch from many angles stays inside",
+      "status": "passed",
+      "ms": 2120
+     },
+     {
+      "name": "no tunnelling at 25 m/s the ball dropped and thrown at 25 m/s into the floor and the overhead net stays inside",
+      "status": "passed",
+      "ms": 18
+     },
+     {
+      "name": "no tunnelling at 25 m/s terriers at 25 m/s never pass through each other, the ball, posts or walls",
+      "status": "passed",
+      "ms": 67
+     },
+     {
+      "name": "the ball never leaves the pitch (fuzzed, D-8) main pitch: 60 seeded scrambles of 600 ticks, ball shot at up to 25 m/s",
+      "status": "passed",
+      "ms": 3603
+     },
+     {
+      "name": "the ball never leaves the pitch (fuzzed, D-8) second pitch: 60 seeded scrambles of 600 ticks, ball shot at up to 25 m/s",
+      "status": "passed",
+      "ms": 2881
+     }
+    ]
+   }
+  ],
+  "printed": [
+   "[push] one pusher, pitch frame: 1.225 s, ball off the floor 0% of substeps, 0 slip-outs",
+   "[push] one pusher, ball frame: 1.225 s, ball off the floor 0% of substeps, 0 slip-outs",
+   "[datan2] worst error 0.500082 units = 1.164e-10 of a turn over 400,000 vectors",
+   "[push] four in a train, pitch frame: 0.575 s, ball off the floor 66% of substeps, 0 slip-outs",
+   "[push]",
+   "[floor bounce] 0.25 m: e 0.6973, by apex 0.6880; 0.5 m: e 0.7031, by apex 0.6965; 1 m: e 0.6973, by apex 0.6927; 2 m: e 0.6985, by apex 0.6952; 4 m: e 0.7005, by apex 0.6982",
+   "[tunnel] main: 624 shots at 25 m/s; deepest overlap left after a substep 0.00 mm",
+   "[slip-out] none          rest FAIL (worst 5.35 s, held up 63); sitting FAIL (worst held s); dribbles pass (0 slip-outs); pinch mirrored (down within 0.00 s, 8 of 8 held up)",
+   "[tunnel] second: 624 shots at 25 m/s; deepest overlap left after a substep 0.00 mm",
+   "[slip-out] drafted       rest FAIL (worst 4.84 s, held up 38); sitting pass (worst 0.47 s); dribbles FAIL (7 slip-outs); pinch mirrored (down within 3.63 s, 6 of 8 held up)",
+   "[P8]",
+   "[slip-out] wide          rest FAIL (worst 4.84 s, held up 30); sitting pass (worst 0.47 s); dribbles FAIL (48 slip-outs); pinch mirrored (down within 3.35 s, 6 of 8 held up)",
+   "[slip-out] flag          rest pass (worst 1.06 s, held up 0); sitting pass (worst 0.47 s); dribbles FAIL (7 slip-outs); pinch mirrored (down within 1.65 s, 0 of 8 held up)",
+   "[fuzz] main: deepest overlap of the ball with any piece after a substep 0.00 mm; substeps with the ball wholly behind a goal line (all inside a goal) 1101",
+   "[slip-out] e0            rest FAIL (worst 4.48 s, held up 40); sitting pass (worst 0.37 s); dribbles FAIL (7 slip-outs); pinch mirrored (down within 0.39 s, 6 of 8 held up)",
+   "[slip-out] flag+e0       rest pass (worst 0.94 s, held up 0); sitting pass (worst 0.37 s); dribbles FAIL (7 slip-outs); pinch mirrored (down within 1.02 s, 0 of 8 held up)",
+   "[slip-out] wide+flag     rest pass (worst 1.06 s, held up 0); sitting pass (worst 0.47 s); dribbles FAIL (43 slip-outs); pinch mirrored (down within 1.59 s, 0 of 8 held up)",
+   "[fuzz] second: deepest overlap of the ball with any piece after a substep 0.00 mm; substeps with the ball wholly behind a goal line (all inside a goal) 1449",
+   "[slip-out] wide+e0       rest FAIL (worst 2.85 s, held up 21); sitting pass (worst 0.36 s); dribbles FAIL (57 slip-outs); pinch mirrored (down within 0.63 s, 4 of 8 held up)",
+   "[slip-out] wide+flag+e0  rest pass (worst 0.94 s, held up 0); sitting pass (worst 0.36 s); dribbles FAIL (51 slip-outs); pinch mirrored (down within 0.75 s, 0 of 8 held up)",
+   "[slip-out] 57+flag+e0    rest pass (worst 0.94 s, held up 0); sitting pass (worst 0.36 s); dribbles FAIL (27 slip-outs); pinch mirrored (down within 0.75 s, 0 of 8 held up)",
+   "[slip-out] 42+flag       rest pass (worst 1.06 s, held up 0); sitting pass (worst 0.47 s); dribbles pass (0 slip-outs); pinch mirrored (down within 1.65 s, 0 of 8 held up)",
+   "[slip-out] 40+flag       rest pass (worst 1.07 s, held up 0); sitting FAIL (worst 0.56 s); dribbles pass (0 slip-outs); pinch mirrored (down within 1.65 s, 0 of 8 held up)",
+   "[slip-out] 42+flag+e0    rest pass (worst 1.02 s, held up 0); sitting pass (worst 0.46 s); dribbles pass (0 slip-outs); pinch mirrored (down within 1.09 s, 0 of 8 held up)",
+   "[slip-out] 40+flag+e0    rest pass (worst 1.07 s, held up 0); sitting FAIL (worst 0.56 s); dribbles pass (0 slip-outs); pinch mirrored (down within 1.09 s, 0 of 8 held up)",
+   "[slip-out] 44+flag       rest pass (worst 1.06 s, held up 0); sitting pass (worst 0.47 s); dribbles FAIL (3 slip-outs); pinch mirrored (down within 1.65 s, 0 of 8 held up)",
+   "[slip-out] 44+flag+e0    rest pass (worst 0.97 s, held up 0); sitting pass (worst 0.39 s); dribbles FAIL (3 slip-outs); pinch mirrored (down within 1.02 s, 0 of 8 held up)"
+  ]
+ },
+ "measurements": {
+  "exitCode": 0,
+  "utcStart": "2026-11-16T03:40:37.578Z",
+  "wallSeconds": 56.5,
+  "load1mBefore": 2.96,
+  "command": "env TERRIEST_SPIKE_MEASURE=1 npx vitest run src/sim/measure.test.ts --reporter=verbose",
+  "file": "results/sim.json"
+ }
+}

@@ -1,0 +1,8 @@
+node_modules/
+/dist/
+/test-results/
+/playwright-report/
+/results/tmp/
+# Vite leaves these beside its config if loading it is interrupted.
+vite.config.*.timestamp-*
+vitest.config.*.timestamp-*

@@ -1,0 +1,2712 @@
+{
+ "utc": "2026-11-16T03:43:59.062Z",
+ "seconds": 5,
+ "warmup": 1,
+ "wallSeconds": 55.429,
+ "versions": {
+  "chromium": "156.0.8078.4",
+  "firefox": "157.0",
+  "webkit": "27.2"
+ },
+ "budget": {
+  "codeTriangles": 2000,
+  "modelTriangles": 8000,
+  "modelBones": 32,
+  "modelTexture": 512,
+  "drawCalls": 40
+ },
+ "answers": {
+  "frameRateIndependence": {
+   "loads": 18,
+   "fps": {
+    "min": 6.6,
+    "max": 38.2
+   },
+   "everyTickOnTheClock": true,
+   "worstTickError": 0
+  },
+  "textureUnderShippedPolicy": {
+   "chromium": {
+    "loaded": false,
+    "refusals": [
+     {
+      "directive": "connect-src",
+      "blocked": "blob"
+     }
+    ]
+   },
+   "firefox": {
+    "loaded": false,
+    "refusals": [
+     {
+      "directive": "connect-src",
+      "blocked": "blob"
+     }
+    ]
+   },
+   "webkit": {
+    "loaded": false,
+    "refusals": [
+     {
+      "directive": "connect-src",
+      "blocked": "blob"
+     }
+    ]
+   }
+  },
+  "textureUnderPlannedPolicy": {
+   "chromium": {
+    "loaded": true,
+    "refusals": 0
+   },
+   "firefox": {
+    "loaded": true,
+    "refusals": 0
+   },
+   "webkit": {
+    "loaded": true,
+    "refusals": 0
+   }
+  },
+  "bytes": {
+   "chromium": {
+    "encoding": "br",
+    "codePath": {
+     "document": 282,
+     "entryChunk": 141718,
+     "bodies": 142000,
+     "withHeaders": 142815
+    },
+    "modelPathAdds": {
+     "modelChunk": 13320,
+     "standinFile": 121296,
+     "bodies": 134616
+    },
+    "entryChunkDecoded": 667584
+   },
+   "firefox": {
+    "encoding": "br",
+    "codePath": {
+     "document": 282,
+     "entryChunk": 141718,
+     "bodies": 142000,
+     "withHeaders": 142815
+    },
+    "modelPathAdds": {
+     "modelChunk": 13320,
+     "standinFile": 121296,
+     "bodies": 134616
+    },
+    "entryChunkDecoded": 667584
+   },
+   "webkit": {
+    "encoding": "gzip",
+    "codePath": {
+     "document": 431,
+     "entryChunk": 171817,
+     "bodies": 172248,
+     "withHeaders": 173067
+    },
+    "modelPathAdds": {
+     "modelChunk": 14809,
+     "standinFile": 121296,
+     "bodies": 136105
+    },
+    "entryChunkDecoded": 667584
+   }
+  },
+  "policyMustAllow": "blob: in connect-src"
+ },
+ "loads": [
+  {
+   "engine": "chromium",
+   "load": "code, low",
+   "drawer": "code",
+   "quality": "low",
+   "policy": "shipped",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 97,
+   "fps": 19.4,
+   "interval": {
+    "p50": 50,
+    "p95": 83.29999999999927,
+    "p99": 100,
+    "max": 100
+   },
+   "work": {
+    "mean": 2.0525773192189405,
+    "p95": 7.199999988079071,
+    "max": 18.100000023841858
+   },
+   "advance": {
+    "mean": 0.8078431370211583,
+    "p95": 3.5,
+    "max": 13.800000011920929
+   },
+   "ticks": 364,
+   "clockTicks": 364,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 31,
+   "clock": {
+    "pageMs": 3561,
+    "nodeLowMs": 3505.0322959999994,
+    "nodeHighMs": 3630.9607060000003
+   },
+   "draw": {
+    "frame": {
+     "triangles": 16610,
+     "drawCalls": 18,
+     "lines": 106,
+     "bones": 0,
+     "textures": 2,
+     "textureBytes": 371368,
+     "geometries": 18
+    },
+    "terriers": {
+     "triangles": 12128,
+     "drawCalls": 9,
+     "bones": 0,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 9
+    },
+    "terrierPass": {
+     "drawCalls": 9,
+     "triangles": 12128
+    },
+    "perTerrier": {
+     "triangles": 1516,
+     "bones": 0,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 10,
+     "atEnd": 10
+    },
+    "memoryAtStart": {
+     "geometries": 18,
+     "textures": 2
+    },
+    "memoryAtEnd": {
+     "geometries": 18,
+     "textures": 2
+    }
+   },
+   "model": null,
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 142018,
+     "encoded": 141718,
+     "decoded": 667584
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 377
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 438
+     }
+    ],
+    "wireTotal": 142815,
+    "wireBodies": 142000,
+    "document": 659
+   },
+   "errors": []
+  },
+  {
+   "engine": "chromium",
+   "load": "code, high",
+   "drawer": "code",
+   "quality": "high",
+   "policy": "shipped",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+   "pixelRatio": 1,
+   "samples": 4,
+   "frames": 33,
+   "fps": 6.6,
+   "interval": {
+    "p50": 150,
+    "p95": 200,
+    "p99": 216.69999999999982,
+    "max": 216.69999999999982
+   },
+   "work": {
+    "mean": 3.384848480874842,
+    "p95": 7.699999988079071,
+    "max": 10.699999988079071
+   },
+   "advance": {
+    "mean": 1.8125,
+    "p95": 7.899999976158142,
+    "max": 8.700000047683716
+   },
+   "ticks": 371,
+   "clockTicks": 371,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 37,
+   "clock": {
+    "pageMs": 3559.600000023842,
+    "nodeLowMs": 3503.436194,
+    "nodeHighMs": 3725.9233280000008
+   },
+   "draw": {
+    "frame": {
+     "triangles": 16610,
+     "drawCalls": 18,
+     "lines": 204,
+     "bones": 0,
+     "textures": 2,
+     "textureBytes": 371368,
+     "geometries": 18
+    },
+    "terriers": {
+     "triangles": 12128,
+     "drawCalls": 9,
+     "bones": 0,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 9
+    },
+    "terrierPass": {
+     "drawCalls": 9,
+     "triangles": 12128
+    },
+    "perTerrier": {
+     "triangles": 1516,
+     "bones": 0,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 10,
+     "atEnd": 10
+    },
+    "memoryAtStart": {
+     "geometries": 18,
+     "textures": 2
+    },
+    "memoryAtEnd": {
+     "geometries": 18,
+     "textures": 2
+    }
+   },
+   "model": null,
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 142018,
+     "encoded": 141718,
+     "decoded": 667584
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 377
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 438
+     }
+    ],
+    "wireTotal": 142815,
+    "wireBodies": 142000,
+    "document": 659
+   },
+   "errors": []
+  },
+  {
+   "engine": "chromium",
+   "load": "code, low, frames held to 60 ms",
+   "drawer": "code",
+   "quality": "low",
+   "policy": "shipped",
+   "frameWork": 60,
+   "script": "showcase 4",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 50,
+   "fps": 10,
+   "interval": {
+    "p50": 100,
+    "p95": 116.80000000000018,
+    "p99": 133.39999999999964,
+    "max": 133.39999999999964
+   },
+   "work": {
+    "mean": 1.6219999980926514,
+    "p95": 3.600000023841858,
+    "max": 4.100000023841858
+   },
+   "advance": {
+    "mean": 0.541463414343392,
+    "p95": 1.600000023841858,
+    "max": 6.199999988079071
+   },
+   "ticks": 364,
+   "clockTicks": 364,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 29,
+   "clock": {
+    "pageMs": 3593.599999964237,
+    "nodeLowMs": 3502.706962,
+    "nodeHighMs": 3709.2015140000003
+   },
+   "draw": {
+    "frame": {
+     "triangles": 16610,
+     "drawCalls": 18,
+     "lines": 106,
+     "bones": 0,
+     "textures": 2,
+     "textureBytes": 371368,
+     "geometries": 18
+    },
+    "terriers": {
+     "triangles": 12128,
+     "drawCalls": 9,
+     "bones": 0,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 9
+    },
+    "terrierPass": {
+     "drawCalls": 9,
+     "triangles": 12128
+    },
+    "perTerrier": {
+     "triangles": 1516,
+     "bones": 0,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 10,
+     "atEnd": 10
+    },
+    "memoryAtStart": {
+     "geometries": 18,
+     "textures": 2
+    },
+    "memoryAtEnd": {
+     "geometries": 18,
+     "textures": 2
+    }
+   },
+   "model": null,
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 142018,
+     "encoded": 141718,
+     "decoded": 667584
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 377
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 438
+     }
+    ],
+    "wireTotal": 142815,
+    "wireBodies": 142000,
+    "document": 659
+   },
+   "errors": []
+  },
+  {
+   "engine": "chromium",
+   "load": "model, low, shipped policy",
+   "drawer": "model",
+   "quality": "low",
+   "policy": "shipped",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 95,
+   "fps": 19,
+   "interval": {
+    "p50": 50,
+    "p95": 83.29999999999927,
+    "p99": 83.40000000000055,
+    "max": 83.40000000000055
+   },
+   "work": {
+    "mean": 1.9810526320808812,
+    "p95": 5.5,
+    "max": 8.800000011920929
+   },
+   "advance": {
+    "mean": 0.5783505138662672,
+    "p95": 2.5,
+    "max": 6
+   },
+   "ticks": 421,
+   "clockTicks": 421,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 30,
+   "clock": {
+    "pageMs": 3568,
+    "nodeLowMs": 3505.8101050000005,
+    "nodeHighMs": 3601.7978509999994
+   },
+   "draw": {
+    "frame": {
+     "triangles": 22242,
+     "drawCalls": 25,
+     "lines": 106,
+     "bones": 64,
+     "textures": 19,
+     "textureBytes": 371368,
+     "geometries": 11
+    },
+    "terriers": {
+     "triangles": 17760,
+     "drawCalls": 16,
+     "bones": 64,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 2
+    },
+    "terrierPass": {
+     "drawCalls": 16,
+     "triangles": 17760
+    },
+    "perTerrier": {
+     "triangles": 2220,
+     "bones": 8,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 8,
+     "atEnd": 8
+    },
+    "memoryAtStart": {
+     "geometries": 11,
+     "textures": 19
+    },
+    "memoryAtEnd": {
+     "geometries": 11,
+     "textures": 19
+    }
+   },
+   "model": {
+    "state": "ready",
+    "error": "",
+    "texture": {
+     "present": false,
+     "width": 0,
+     "height": 0,
+     "kind": "none"
+    },
+    "missingClips": [],
+    "importMs": 642.8999999761581,
+    "loadMs": 183.4000000357628,
+    "compileMs": 119.89999997615814
+   },
+   "csp": [
+    {
+     "directive": "connect-src",
+     "blocked": "blob"
+    }
+   ],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "transfer": 13620,
+      "encoded": 13320,
+      "decoded": 49773
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "transfer": 121596,
+      "encoded": 121296,
+      "decoded": 121296
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 277234,
+     "encoded": 276334,
+     "decoded": 838653
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 377
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 438
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 13320,
+      "headers": 437
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "status": 200,
+      "encoding": "",
+      "body": 121290,
+      "headers": 76
+     }
+    ],
+    "wireTotal": 277938,
+    "wireBodies": 276610,
+    "document": 659
+   },
+   "errors": [
+    "Connecting to 'blob:http://127.0.0.1:42843/6b65a60a-a3a0-4b39-8e28-2578c877f3e2' violates the following Content Security Policy directive: \"connect-src 'self' wss:\". The action has been blocked.",
+    "Fetch API cannot load blob:http://127.0.0.1:42843/6b65a60a-a3a0-4b39-8e28-2578c877f3e2. Refused to connect because it violates the document's Content Security Policy.",
+    "THREE.GLTFLoader: Couldn't load texture blob:http://127.0.0.1:42843/6b65a60a-a3a0-4b39-8e28-2578c877f3e2"
+   ]
+  },
+  {
+   "engine": "chromium",
+   "load": "model, low, blob: allowed",
+   "drawer": "model",
+   "quality": "low",
+   "policy": "planned",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 96,
+   "fps": 19.2,
+   "interval": {
+    "p50": 50,
+    "p95": 66.70000000000073,
+    "p99": 83.40000000000055,
+    "max": 83.40000000000055
+   },
+   "work": {
+    "mean": 2.1093750031044087,
+    "p95": 6.5,
+    "max": 9.600000023841858
+   },
+   "advance": {
+    "mean": 0.644444445166925,
+    "p95": 2.400000035762787,
+    "max": 6.100000023841858
+   },
+   "ticks": 432,
+   "clockTicks": 432,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 29,
+   "clock": {
+    "pageMs": 3558.100000023842,
+    "nodeLowMs": 3505.4530719999966,
+    "nodeHighMs": 3611.022210999996
+   },
+   "draw": {
+    "frame": {
+     "triangles": 22242,
+     "drawCalls": 25,
+     "lines": 106,
+     "bones": 64,
+     "textures": 20,
+     "textureBytes": 720892,
+     "geometries": 11
+    },
+    "terriers": {
+     "triangles": 17760,
+     "drawCalls": 16,
+     "bones": 64,
+     "textures": 1,
+     "textureBytes": 349524,
+     "geometries": 2
+    },
+    "terrierPass": {
+     "drawCalls": 16,
+     "triangles": 17760
+    },
+    "perTerrier": {
+     "triangles": 2220,
+     "bones": 8,
+     "textureBytes": 349524,
+     "textureSize": "256 x 256"
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 9,
+     "atEnd": 9
+    },
+    "memoryAtStart": {
+     "geometries": 11,
+     "textures": 20
+    },
+    "memoryAtEnd": {
+     "geometries": 11,
+     "textures": 20
+    }
+   },
+   "model": {
+    "state": "ready",
+    "error": "",
+    "texture": {
+     "present": true,
+     "width": 256,
+     "height": 256,
+     "kind": "ImageBitmap"
+    },
+    "missingClips": [],
+    "importMs": 646.8000000119209,
+    "loadMs": 404.89999997615814,
+    "compileMs": 81.40000003576279
+   },
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "transfer": 13620,
+      "encoded": 13320,
+      "decoded": 49773
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "transfer": 121596,
+      "encoded": 121296,
+      "decoded": 121296
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 277234,
+     "encoded": 276334,
+     "decoded": 838653
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 383
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 444
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 13320,
+      "headers": 443
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "status": 200,
+      "encoding": "",
+      "body": 121290,
+      "headers": 76
+     }
+    ],
+    "wireTotal": 277956,
+    "wireBodies": 276610,
+    "document": 665
+   },
+   "errors": []
+  },
+  {
+   "engine": "chromium",
+   "load": "model, high, blob: allowed",
+   "drawer": "model",
+   "quality": "high",
+   "policy": "planned",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+   "pixelRatio": 1,
+   "samples": 4,
+   "frames": 55,
+   "fps": 11,
+   "interval": {
+    "p50": 83.29999999999927,
+    "p95": 183.39999999999964,
+    "p99": 216.69999999999982,
+    "max": 216.69999999999982
+   },
+   "work": {
+    "mean": 2.349090907790444,
+    "p95": 8.800000011920929,
+    "max": 15.800000011920929
+   },
+   "advance": {
+    "mean": 0.7254545482722196,
+    "p95": 1.800000011920929,
+    "max": 8.199999988079071
+   },
+   "ticks": 534,
+   "clockTicks": 534,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 39,
+   "clock": {
+    "pageMs": 3571,
+    "nodeLowMs": 3502.4851009999984,
+    "nodeHighMs": 3714.731310000003
+   },
+   "draw": {
+    "frame": {
+     "triangles": 22242,
+     "drawCalls": 25,
+     "lines": 204,
+     "bones": 64,
+     "textures": 20,
+     "textureBytes": 720892,
+     "geometries": 11
+    },
+    "terriers": {
+     "triangles": 17760,
+     "drawCalls": 16,
+     "bones": 64,
+     "textures": 1,
+     "textureBytes": 349524,
+     "geometries": 2
+    },
+    "terrierPass": {
+     "drawCalls": 16,
+     "triangles": 17760
+    },
+    "perTerrier": {
+     "triangles": 2220,
+     "bones": 8,
+     "textureBytes": 349524,
+     "textureSize": "256 x 256"
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 9,
+     "atEnd": 9
+    },
+    "memoryAtStart": {
+     "geometries": 11,
+     "textures": 20
+    },
+    "memoryAtEnd": {
+     "geometries": 11,
+     "textures": 20
+    }
+   },
+   "model": {
+    "state": "ready",
+    "error": "",
+    "texture": {
+     "present": true,
+     "width": 256,
+     "height": 256,
+     "kind": "ImageBitmap"
+    },
+    "missingClips": [],
+    "importMs": 989.8999999761581,
+    "loadMs": 1416.4000000357628,
+    "compileMs": 294.60000002384186
+   },
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "transfer": 13620,
+      "encoded": 13320,
+      "decoded": 49773
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "transfer": 121596,
+      "encoded": 121296,
+      "decoded": 121296
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 277234,
+     "encoded": 276334,
+     "decoded": 838653
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 383
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 444
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 13320,
+      "headers": 443
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "status": 200,
+      "encoding": "",
+      "body": 121290,
+      "headers": 76
+     }
+    ],
+    "wireTotal": 277956,
+    "wireBodies": 276610,
+    "document": 665
+   },
+   "errors": []
+  },
+  {
+   "engine": "firefox",
+   "load": "code, low",
+   "drawer": "code",
+   "quality": "low",
+   "policy": "shipped",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "llvmpipe, or similar",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 191,
+   "fps": 38.2,
+   "interval": {
+    "p50": 17.59999999999991,
+    "p95": 50,
+    "p99": 66.67999999999984,
+    "max": 67.24000000000024
+   },
+   "work": {
+    "mean": 1.4973821989528795,
+    "p95": 3,
+    "max": 13
+   },
+   "advance": {
+    "mean": 0.28040540540540543,
+    "p95": 1,
+    "max": 7
+   },
+   "ticks": 362,
+   "clockTicks": 362,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 6,
+   "clock": {
+    "pageMs": 3507,
+    "nodeLowMs": 3501.77631,
+    "nodeHighMs": 3527.385031
+   },
+   "draw": {
+    "frame": {
+     "triangles": 16610,
+     "drawCalls": 18,
+     "lines": 106,
+     "bones": 0,
+     "textures": 2,
+     "textureBytes": 371368,
+     "geometries": 18
+    },
+    "terriers": {
+     "triangles": 12128,
+     "drawCalls": 9,
+     "bones": 0,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 9
+    },
+    "terrierPass": {
+     "drawCalls": 9,
+     "triangles": 12128
+    },
+    "perTerrier": {
+     "triangles": 1516,
+     "bones": 0,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 10,
+     "atEnd": 10
+    },
+    "memoryAtStart": {
+     "geometries": 18,
+     "textures": 2
+    },
+    "memoryAtEnd": {
+     "geometries": 18,
+     "textures": 2
+    }
+   },
+   "model": null,
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 142018,
+     "encoded": 141718,
+     "decoded": 667584
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 377
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 438
+     }
+    ],
+    "wireTotal": 142815,
+    "wireBodies": 142000,
+    "document": 659
+   },
+   "errors": []
+  },
+  {
+   "engine": "firefox",
+   "load": "code, high",
+   "drawer": "code",
+   "quality": "high",
+   "policy": "shipped",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "llvmpipe, or similar",
+   "pixelRatio": 1,
+   "samples": 4,
+   "frames": 74,
+   "fps": 14.8,
+   "interval": {
+    "p50": 66.79999999999927,
+    "p95": 99.73999999999978,
+    "p99": 116.65999999999985,
+    "max": 116.65999999999985
+   },
+   "work": {
+    "mean": 2.189189189189189,
+    "p95": 5,
+    "max": 24
+   },
+   "advance": {
+    "mean": 0.23728813559322035,
+    "p95": 1,
+    "max": 17
+   },
+   "ticks": 364,
+   "clockTicks": 364,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 10,
+   "clock": {
+    "pageMs": 3517,
+    "nodeLowMs": 3501.9904590000006,
+    "nodeHighMs": 3523.3424680000007
+   },
+   "draw": {
+    "frame": {
+     "triangles": 16610,
+     "drawCalls": 18,
+     "lines": 204,
+     "bones": 0,
+     "textures": 2,
+     "textureBytes": 371368,
+     "geometries": 18
+    },
+    "terriers": {
+     "triangles": 12128,
+     "drawCalls": 9,
+     "bones": 0,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 9
+    },
+    "terrierPass": {
+     "drawCalls": 9,
+     "triangles": 12128
+    },
+    "perTerrier": {
+     "triangles": 1516,
+     "bones": 0,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 10,
+     "atEnd": 10
+    },
+    "memoryAtStart": {
+     "geometries": 18,
+     "textures": 2
+    },
+    "memoryAtEnd": {
+     "geometries": 18,
+     "textures": 2
+    }
+   },
+   "model": null,
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 142018,
+     "encoded": 141718,
+     "decoded": 667584
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 377
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 438
+     }
+    ],
+    "wireTotal": 142815,
+    "wireBodies": 142000,
+    "document": 659
+   },
+   "errors": []
+  },
+  {
+   "engine": "firefox",
+   "load": "code, low, frames held to 60 ms",
+   "drawer": "code",
+   "quality": "low",
+   "policy": "shipped",
+   "frameWork": 60,
+   "script": "showcase 4",
+   "renderer": "llvmpipe, or similar",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 81,
+   "fps": 16.2,
+   "interval": {
+    "p50": 66.38000000000011,
+    "p95": 67.51999999999953,
+    "p99": 83.5,
+    "max": 83.5
+   },
+   "work": {
+    "mean": 1.4814814814814814,
+    "p95": 4,
+    "max": 6
+   },
+   "advance": {
+    "mean": 0.13333333333333333,
+    "p95": 1,
+    "max": 5
+   },
+   "ticks": 363,
+   "clockTicks": 363,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 6,
+   "clock": {
+    "pageMs": 3556,
+    "nodeLowMs": 3508.6483469999985,
+    "nodeHighMs": 3620.3018109999975
+   },
+   "draw": {
+    "frame": {
+     "triangles": 16610,
+     "drawCalls": 18,
+     "lines": 106,
+     "bones": 0,
+     "textures": 2,
+     "textureBytes": 371368,
+     "geometries": 18
+    },
+    "terriers": {
+     "triangles": 12128,
+     "drawCalls": 9,
+     "bones": 0,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 9
+    },
+    "terrierPass": {
+     "drawCalls": 9,
+     "triangles": 12128
+    },
+    "perTerrier": {
+     "triangles": 1516,
+     "bones": 0,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 10,
+     "atEnd": 10
+    },
+    "memoryAtStart": {
+     "geometries": 18,
+     "textures": 2
+    },
+    "memoryAtEnd": {
+     "geometries": 18,
+     "textures": 2
+    }
+   },
+   "model": null,
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 142018,
+     "encoded": 141718,
+     "decoded": 667584
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 377
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 438
+     }
+    ],
+    "wireTotal": 142815,
+    "wireBodies": 142000,
+    "document": 659
+   },
+   "errors": []
+  },
+  {
+   "engine": "firefox",
+   "load": "model, low, shipped policy",
+   "drawer": "model",
+   "quality": "low",
+   "policy": "shipped",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "llvmpipe, or similar",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 170,
+   "fps": 34,
+   "interval": {
+    "p50": 33.179999999999836,
+    "p95": 50.460000000000036,
+    "p99": 50.88000000000011,
+    "max": 66.67999999999938
+   },
+   "work": {
+    "mean": 2.4352941176470586,
+    "p95": 5,
+    "max": 23
+   },
+   "advance": {
+    "mean": 0.19933554817275748,
+    "p95": 1,
+    "max": 2
+   },
+   "ticks": 379,
+   "clockTicks": 379,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 5,
+   "clock": {
+    "pageMs": 3514,
+    "nodeLowMs": 3502.4427270000015,
+    "nodeHighMs": 3523.707087999999
+   },
+   "draw": {
+    "frame": {
+     "triangles": 22242,
+     "drawCalls": 25,
+     "lines": 106,
+     "bones": 64,
+     "textures": 19,
+     "textureBytes": 371368,
+     "geometries": 11
+    },
+    "terriers": {
+     "triangles": 17760,
+     "drawCalls": 16,
+     "bones": 64,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 2
+    },
+    "terrierPass": {
+     "drawCalls": 16,
+     "triangles": 17760
+    },
+    "perTerrier": {
+     "triangles": 2220,
+     "bones": 8,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 8,
+     "atEnd": 8
+    },
+    "memoryAtStart": {
+     "geometries": 11,
+     "textures": 19
+    },
+    "memoryAtEnd": {
+     "geometries": 11,
+     "textures": 19
+    }
+   },
+   "model": {
+    "state": "ready",
+    "error": "",
+    "texture": {
+     "present": false,
+     "width": 0,
+     "height": 0,
+     "kind": "none"
+    },
+    "missingClips": [],
+    "importMs": 116,
+    "loadMs": 85,
+    "compileMs": 22
+   },
+   "csp": [
+    {
+     "directive": "connect-src",
+     "blocked": "blob"
+    }
+   ],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "transfer": 13620,
+      "encoded": 13320,
+      "decoded": 49773
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "transfer": 0,
+      "encoded": 0,
+      "decoded": 0
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 155638,
+     "encoded": 155038,
+     "decoded": 717357
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 377
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 438
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 13320,
+      "headers": 437
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "status": 200,
+      "encoding": "",
+      "body": 0,
+      "headers": 76
+     }
+    ],
+    "wireTotal": 156648,
+    "wireBodies": 155320,
+    "document": 659
+   },
+   "errors": [
+    "THREE.GLTFLoader: Couldn't load texture blob:http://127.0.0.1:42843/829a8862-87a2-469d-a026-5300e2eb92de",
+    "[JavaScript Error: \"Content-Security-Policy: The page’s settings blocked the loading of a resource (connect-src) at blob:http://127.0.0.1:42843/829a8862-87a2-469d-a026-5300e2eb92de because it violates the following directive: “connect-src 'self' wss:”\" {file: \"http://127.0.0.1:42843/assets/index-Crq46aGJ.js\" line: 5}]"
+   ]
+  },
+  {
+   "engine": "firefox",
+   "load": "model, low, blob: allowed",
+   "drawer": "model",
+   "quality": "low",
+   "policy": "planned",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "llvmpipe, or similar",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 158,
+   "fps": 31.6,
+   "interval": {
+    "p50": 33.320000000000164,
+    "p95": 50,
+    "p99": 65.98000000000002,
+    "max": 66.9399999999996
+   },
+   "work": {
+    "mean": 2.550632911392405,
+    "p95": 6,
+    "max": 9
+   },
+   "advance": {
+    "mean": 0.3177257525083612,
+    "p95": 1,
+    "max": 9
+   },
+   "ticks": 377,
+   "clockTicks": 377,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 5,
+   "clock": {
+    "pageMs": 3513,
+    "nodeLowMs": 3501.9641439999978,
+    "nodeHighMs": 3519.6758220000047
+   },
+   "draw": {
+    "frame": {
+     "triangles": 22242,
+     "drawCalls": 25,
+     "lines": 106,
+     "bones": 64,
+     "textures": 20,
+     "textureBytes": 720892,
+     "geometries": 11
+    },
+    "terriers": {
+     "triangles": 17760,
+     "drawCalls": 16,
+     "bones": 64,
+     "textures": 1,
+     "textureBytes": 349524,
+     "geometries": 2
+    },
+    "terrierPass": {
+     "drawCalls": 16,
+     "triangles": 17760
+    },
+    "perTerrier": {
+     "triangles": 2220,
+     "bones": 8,
+     "textureBytes": 349524,
+     "textureSize": "256 x 256"
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 9,
+     "atEnd": 9
+    },
+    "memoryAtStart": {
+     "geometries": 11,
+     "textures": 20
+    },
+    "memoryAtEnd": {
+     "geometries": 11,
+     "textures": 20
+    }
+   },
+   "model": {
+    "state": "ready",
+    "error": "",
+    "texture": {
+     "present": true,
+     "width": 256,
+     "height": 256,
+     "kind": "ImageBitmap"
+    },
+    "missingClips": [],
+    "importMs": 133,
+    "loadMs": 86,
+    "compileMs": 18
+   },
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "transfer": 13620,
+      "encoded": 13320,
+      "decoded": 49773
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "transfer": 0,
+      "encoded": 0,
+      "decoded": 0
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 155638,
+     "encoded": 155038,
+     "decoded": 717357
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 383
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 444
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 13320,
+      "headers": 443
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "status": 200,
+      "encoding": "",
+      "body": 0,
+      "headers": 76
+     }
+    ],
+    "wireTotal": 156666,
+    "wireBodies": 155320,
+    "document": 665
+   },
+   "errors": []
+  },
+  {
+   "engine": "firefox",
+   "load": "model, high, blob: allowed",
+   "drawer": "model",
+   "quality": "high",
+   "policy": "planned",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "llvmpipe, or similar",
+   "pixelRatio": 1,
+   "samples": 4,
+   "frames": 58,
+   "fps": 11.6,
+   "interval": {
+    "p50": 83.34000000000015,
+    "p95": 133.69999999999982,
+    "p99": 166.96000000000004,
+    "max": 166.96000000000004
+   },
+   "work": {
+    "mean": 3.413793103448276,
+    "p95": 8,
+    "max": 9
+   },
+   "advance": {
+    "mean": 0.22972972972972974,
+    "p95": 1,
+    "max": 5
+   },
+   "ticks": 387,
+   "clockTicks": 387,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 10,
+   "clock": {
+    "pageMs": 3527,
+    "nodeLowMs": 3503.1927140000043,
+    "nodeHighMs": 3537.3249159999978
+   },
+   "draw": {
+    "frame": {
+     "triangles": 22242,
+     "drawCalls": 25,
+     "lines": 204,
+     "bones": 64,
+     "textures": 20,
+     "textureBytes": 720892,
+     "geometries": 11
+    },
+    "terriers": {
+     "triangles": 17760,
+     "drawCalls": 16,
+     "bones": 64,
+     "textures": 1,
+     "textureBytes": 349524,
+     "geometries": 2
+    },
+    "terrierPass": {
+     "drawCalls": 16,
+     "triangles": 17760
+    },
+    "perTerrier": {
+     "triangles": 2220,
+     "bones": 8,
+     "textureBytes": 349524,
+     "textureSize": "256 x 256"
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 9,
+     "atEnd": 9
+    },
+    "memoryAtStart": {
+     "geometries": 11,
+     "textures": 20
+    },
+    "memoryAtEnd": {
+     "geometries": 11,
+     "textures": 20
+    }
+   },
+   "model": {
+    "state": "ready",
+    "error": "",
+    "texture": {
+     "present": true,
+     "width": 256,
+     "height": 256,
+     "kind": "ImageBitmap"
+    },
+    "missingClips": [],
+    "importMs": 172,
+    "loadMs": 183,
+    "compileMs": 18
+   },
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 142018,
+      "encoded": 141718,
+      "decoded": 667584
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "transfer": 13620,
+      "encoded": 13320,
+      "decoded": 49773
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "transfer": 0,
+      "encoded": 0,
+      "decoded": 0
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 155638,
+     "encoded": 155038,
+     "decoded": 717357
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "br",
+      "body": 282,
+      "headers": 383
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 141718,
+      "headers": 444
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "status": 200,
+      "encoding": "br",
+      "body": 13320,
+      "headers": 443
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "status": 200,
+      "encoding": "",
+      "body": 0,
+      "headers": 76
+     }
+    ],
+    "wireTotal": 156666,
+    "wireBodies": 155320,
+    "document": 665
+   },
+   "errors": []
+  },
+  {
+   "engine": "webkit",
+   "load": "code, low",
+   "drawer": "code",
+   "quality": "low",
+   "policy": "shipped",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "Apple GPU",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 146,
+   "fps": 29.2,
+   "interval": {
+    "p50": 34,
+    "p95": 45,
+    "p99": 60,
+    "max": 63
+   },
+   "work": {
+    "mean": 6.486301369863014,
+    "p95": 11,
+    "max": 15
+   },
+   "advance": {
+    "mean": 0.22483221476510068,
+    "p95": 1,
+    "max": 10
+   },
+   "ticks": 361,
+   "clockTicks": 361,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 4,
+   "clock": {
+    "pageMs": 3539,
+    "nodeLowMs": 3515.487128,
+    "nodeHighMs": 3551.2777830000005
+   },
+   "draw": {
+    "frame": {
+     "triangles": 16610,
+     "drawCalls": 18,
+     "lines": 106,
+     "bones": 0,
+     "textures": 2,
+     "textureBytes": 371368,
+     "geometries": 18
+    },
+    "terriers": {
+     "triangles": 12128,
+     "drawCalls": 9,
+     "bones": 0,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 9
+    },
+    "terrierPass": {
+     "drawCalls": 9,
+     "triangles": 12128
+    },
+    "perTerrier": {
+     "triangles": 1516,
+     "bones": 0,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 10,
+     "atEnd": 10
+    },
+    "memoryAtStart": {
+     "geometries": 18,
+     "textures": 2
+    },
+    "memoryAtEnd": {
+     "geometries": 18,
+     "textures": 2
+    }
+   },
+   "model": null,
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 172117,
+      "encoded": 171817,
+      "decoded": 667584
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 172117,
+     "encoded": 171817,
+     "decoded": 667584
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 431,
+      "headers": 379
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 171817,
+      "headers": 440
+     }
+    ],
+    "wireTotal": 173067,
+    "wireBodies": 172248,
+    "document": 810
+   },
+   "errors": []
+  },
+  {
+   "engine": "webkit",
+   "load": "code, high",
+   "drawer": "code",
+   "quality": "high",
+   "policy": "shipped",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "Apple GPU",
+   "pixelRatio": 1,
+   "samples": 4,
+   "frames": 59,
+   "fps": 11.8,
+   "interval": {
+    "p50": 84,
+    "p95": 117,
+    "p99": 128,
+    "max": 128
+   },
+   "work": {
+    "mean": 9.559322033898304,
+    "p95": 19,
+    "max": 25
+   },
+   "advance": {
+    "mean": 0.5,
+    "p95": 2,
+    "max": 4
+   },
+   "ticks": 365,
+   "clockTicks": 365,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 6,
+   "clock": {
+    "pageMs": 3524,
+    "nodeLowMs": 3505.7544689999995,
+    "nodeHighMs": 3532.54371
+   },
+   "draw": {
+    "frame": {
+     "triangles": 16610,
+     "drawCalls": 18,
+     "lines": 204,
+     "bones": 0,
+     "textures": 2,
+     "textureBytes": 371368,
+     "geometries": 18
+    },
+    "terriers": {
+     "triangles": 12128,
+     "drawCalls": 9,
+     "bones": 0,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 9
+    },
+    "terrierPass": {
+     "drawCalls": 9,
+     "triangles": 12128
+    },
+    "perTerrier": {
+     "triangles": 1516,
+     "bones": 0,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 10,
+     "atEnd": 10
+    },
+    "memoryAtStart": {
+     "geometries": 18,
+     "textures": 2
+    },
+    "memoryAtEnd": {
+     "geometries": 18,
+     "textures": 2
+    }
+   },
+   "model": null,
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 172117,
+      "encoded": 171817,
+      "decoded": 667584
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 172117,
+     "encoded": 171817,
+     "decoded": 667584
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 431,
+      "headers": 379
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 171817,
+      "headers": 440
+     }
+    ],
+    "wireTotal": 173067,
+    "wireBodies": 172248,
+    "document": 810
+   },
+   "errors": []
+  },
+  {
+   "engine": "webkit",
+   "load": "code, low, frames held to 60 ms",
+   "drawer": "code",
+   "quality": "low",
+   "policy": "shipped",
+   "frameWork": 60,
+   "script": "showcase 4",
+   "renderer": "Apple GPU",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 59,
+   "fps": 11.8,
+   "interval": {
+    "p50": 84,
+    "p95": 98,
+    "p99": 106,
+    "max": 106
+   },
+   "work": {
+    "mean": 4.779661016949152,
+    "p95": 11,
+    "max": 14
+   },
+   "advance": {
+    "mean": 0.36923076923076925,
+    "p95": 1,
+    "max": 4
+   },
+   "ticks": 365,
+   "clockTicks": 365,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 5,
+   "clock": {
+    "pageMs": 3579,
+    "nodeLowMs": 3509.064271000003,
+    "nodeHighMs": 3583.883242
+   },
+   "draw": {
+    "frame": {
+     "triangles": 16610,
+     "drawCalls": 18,
+     "lines": 106,
+     "bones": 0,
+     "textures": 2,
+     "textureBytes": 371368,
+     "geometries": 18
+    },
+    "terriers": {
+     "triangles": 12128,
+     "drawCalls": 9,
+     "bones": 0,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 9
+    },
+    "terrierPass": {
+     "drawCalls": 9,
+     "triangles": 12128
+    },
+    "perTerrier": {
+     "triangles": 1516,
+     "bones": 0,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 10,
+     "atEnd": 10
+    },
+    "memoryAtStart": {
+     "geometries": 18,
+     "textures": 2
+    },
+    "memoryAtEnd": {
+     "geometries": 18,
+     "textures": 2
+    }
+   },
+   "model": null,
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 172117,
+      "encoded": 171817,
+      "decoded": 667584
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 172117,
+     "encoded": 171817,
+     "decoded": 667584
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 431,
+      "headers": 379
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 171817,
+      "headers": 440
+     }
+    ],
+    "wireTotal": 173067,
+    "wireBodies": 172248,
+    "document": 810
+   },
+   "errors": []
+  },
+  {
+   "engine": "webkit",
+   "load": "model, low, shipped policy",
+   "drawer": "model",
+   "quality": "low",
+   "policy": "shipped",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "Apple GPU",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 116,
+   "fps": 23.2,
+   "interval": {
+    "p50": 42,
+    "p95": 59,
+    "p99": 67,
+    "max": 74
+   },
+   "work": {
+    "mean": 10.78448275862069,
+    "p95": 19,
+    "max": 30
+   },
+   "advance": {
+    "mean": 0.4576271186440678,
+    "p95": 1,
+    "max": 13
+   },
+   "ticks": 384,
+   "clockTicks": 384,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 4,
+   "clock": {
+    "pageMs": 3507,
+    "nodeLowMs": 3502.5860960000027,
+    "nodeHighMs": 3511.7945980000004
+   },
+   "draw": {
+    "frame": {
+     "triangles": 22242,
+     "drawCalls": 25,
+     "lines": 106,
+     "bones": 64,
+     "textures": 19,
+     "textureBytes": 371368,
+     "geometries": 11
+    },
+    "terriers": {
+     "triangles": 17760,
+     "drawCalls": 16,
+     "bones": 64,
+     "textures": 0,
+     "textureBytes": 0,
+     "geometries": 2
+    },
+    "terrierPass": {
+     "drawCalls": 16,
+     "triangles": 17760
+    },
+    "perTerrier": {
+     "triangles": 2220,
+     "bones": 8,
+     "textureBytes": 0,
+     "textureSize": ""
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 8,
+     "atEnd": 8
+    },
+    "memoryAtStart": {
+     "geometries": 11,
+     "textures": 19
+    },
+    "memoryAtEnd": {
+     "geometries": 11,
+     "textures": 19
+    }
+   },
+   "model": {
+    "state": "ready",
+    "error": "",
+    "texture": {
+     "present": false,
+     "width": 0,
+     "height": 0,
+     "kind": "none"
+    },
+    "missingClips": [],
+    "importMs": 182,
+    "loadMs": 101,
+    "compileMs": 16
+   },
+   "csp": [
+    {
+     "directive": "connect-src",
+     "blocked": "blob"
+    }
+   ],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 172117,
+      "encoded": 171817,
+      "decoded": 667584
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "transfer": 15109,
+      "encoded": 14809,
+      "decoded": 49773
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "transfer": 0,
+      "encoded": 0,
+      "decoded": 0
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 187226,
+     "encoded": 186626,
+     "decoded": 717357
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 431,
+      "headers": 379
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 171817,
+      "headers": 440
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 14809,
+      "headers": 439
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "status": 200,
+      "encoding": "",
+      "body": 121296,
+      "headers": 76
+     }
+    ],
+    "wireTotal": 309687,
+    "wireBodies": 308353,
+    "document": 810
+   },
+   "errors": [
+    "Refused to connect to blob:http://127.0.0.1:42843/1983ed94-b623-440b-a9a6-d99b577f5439 because it does not appear in the connect-src directive of the Content Security Policy.",
+    "THREE.GLTFLoader: Couldn't load texture blob:http://127.0.0.1:42843/1983ed94-b623-440b-a9a6-d99b577f5439"
+   ]
+  },
+  {
+   "engine": "webkit",
+   "load": "model, low, blob: allowed",
+   "drawer": "model",
+   "quality": "low",
+   "policy": "planned",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "Apple GPU",
+   "pixelRatio": 1,
+   "samples": 0,
+   "frames": 115,
+   "fps": 23,
+   "interval": {
+    "p50": 43,
+    "p95": 62,
+    "p99": 71,
+    "max": 80
+   },
+   "work": {
+    "mean": 10.652173913043478,
+    "p95": 20,
+    "max": 28
+   },
+   "advance": {
+    "mean": 0.2620689655172414,
+    "p95": 1,
+    "max": 15
+   },
+   "ticks": 482,
+   "clockTicks": 482,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 5,
+   "clock": {
+    "pageMs": 3525,
+    "nodeLowMs": 3505.266144000001,
+    "nodeHighMs": 3533.493822999997
+   },
+   "draw": {
+    "frame": {
+     "triangles": 22242,
+     "drawCalls": 25,
+     "lines": 106,
+     "bones": 64,
+     "textures": 20,
+     "textureBytes": 720892,
+     "geometries": 11
+    },
+    "terriers": {
+     "triangles": 17760,
+     "drawCalls": 16,
+     "bones": 64,
+     "textures": 1,
+     "textureBytes": 349524,
+     "geometries": 2
+    },
+    "terrierPass": {
+     "drawCalls": 16,
+     "triangles": 17760
+    },
+    "perTerrier": {
+     "triangles": 2220,
+     "bones": 8,
+     "textureBytes": 349524,
+     "textureSize": "256 x 256"
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 9,
+     "atEnd": 9
+    },
+    "memoryAtStart": {
+     "geometries": 11,
+     "textures": 20
+    },
+    "memoryAtEnd": {
+     "geometries": 11,
+     "textures": 20
+    }
+   },
+   "model": {
+    "state": "ready",
+    "error": "",
+    "texture": {
+     "present": true,
+     "width": 256,
+     "height": 256,
+     "kind": "ImageBitmap"
+    },
+    "missingClips": [],
+    "importMs": 1797,
+    "loadMs": 142,
+    "compileMs": 35
+   },
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 172117,
+      "encoded": 171817,
+      "decoded": 667584
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "transfer": 15109,
+      "encoded": 14809,
+      "decoded": 49773
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "transfer": 0,
+      "encoded": 0,
+      "decoded": 0
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 187226,
+     "encoded": 186626,
+     "decoded": 717357
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 431,
+      "headers": 385
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 171817,
+      "headers": 446
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 14809,
+      "headers": 445
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "status": 200,
+      "encoding": "",
+      "body": 121296,
+      "headers": 76
+     }
+    ],
+    "wireTotal": 309705,
+    "wireBodies": 308353,
+    "document": 816
+   },
+   "errors": []
+  },
+  {
+   "engine": "webkit",
+   "load": "model, high, blob: allowed",
+   "drawer": "model",
+   "quality": "high",
+   "policy": "planned",
+   "frameWork": 0,
+   "script": "showcase 4",
+   "renderer": "Apple GPU",
+   "pixelRatio": 1,
+   "samples": 4,
+   "frames": 54,
+   "fps": 10.8,
+   "interval": {
+    "p50": 94,
+    "p95": 123,
+    "p99": 136,
+    "max": 136
+   },
+   "work": {
+    "mean": 14.88888888888889,
+    "p95": 31,
+    "max": 38
+   },
+   "advance": {
+    "mean": 0.5333333333333333,
+    "p95": 1,
+    "max": 4
+   },
+   "ticks": 403,
+   "clockTicks": 403,
+   "droppedTicks": 0,
+   "maxTicksPerCall": 9,
+   "clock": {
+    "pageMs": 3537,
+    "nodeLowMs": 3512.398159999997,
+    "nodeHighMs": 3595.2574930000046
+   },
+   "draw": {
+    "frame": {
+     "triangles": 22242,
+     "drawCalls": 25,
+     "lines": 204,
+     "bones": 64,
+     "textures": 20,
+     "textureBytes": 720892,
+     "geometries": 11
+    },
+    "terriers": {
+     "triangles": 17760,
+     "drawCalls": 16,
+     "bones": 64,
+     "textures": 1,
+     "textureBytes": 349524,
+     "geometries": 2
+    },
+    "terrierPass": {
+     "drawCalls": 16,
+     "triangles": 17760
+    },
+    "perTerrier": {
+     "triangles": 2220,
+     "bones": 8,
+     "textureBytes": 349524,
+     "textureSize": "256 x 256"
+    },
+    "programs": {
+     "compiled": 10,
+     "atStart": 9,
+     "atEnd": 9
+    },
+    "memoryAtStart": {
+     "geometries": 11,
+     "textures": 20
+    },
+    "memoryAtEnd": {
+     "geometries": 11,
+     "textures": 20
+    }
+   },
+   "model": {
+    "state": "ready",
+    "error": "",
+    "texture": {
+     "present": true,
+     "width": 256,
+     "height": 256,
+     "kind": "ImageBitmap"
+    },
+    "missingClips": [],
+    "importMs": 165,
+    "loadMs": 375,
+    "compileMs": 31
+   },
+   "csp": [],
+   "bytes": {
+    "resources": [
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "transfer": 172117,
+      "encoded": 171817,
+      "decoded": 667584
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "transfer": 15109,
+      "encoded": 14809,
+      "decoded": 49773
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "transfer": 0,
+      "encoded": 0,
+      "decoded": 0
+     }
+    ],
+    "resourceTotals": {
+     "transfer": 187226,
+     "encoded": 186626,
+     "decoded": 717357
+    },
+    "wire": [
+     {
+      "name": "index.html",
+      "kind": "html",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 431,
+      "headers": 385
+     },
+     {
+      "name": "index-Crq46aGJ.js",
+      "kind": "entry chunk",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 171817,
+      "headers": 446
+     },
+     {
+      "name": "model-drawer-xFNV9VSg.js",
+      "kind": "model chunk",
+      "status": 200,
+      "encoding": "gzip",
+      "body": 14809,
+      "headers": 445
+     },
+     {
+      "name": "standin.glb",
+      "kind": "model",
+      "status": 200,
+      "encoding": "",
+      "body": 121296,
+      "headers": 76
+     }
+    ],
+    "wireTotal": 309705,
+    "wireBodies": 308353,
+    "document": 816
+   },
+   "errors": []
+  }
+ ]
+}

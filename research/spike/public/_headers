@@ -1,0 +1,10 @@
+# amorfus's public/_headers, with its content security policy unchanged:
+# M0 measures whether GLTFLoader's embedded textures need blob: in
+# connect-src, as PLAN D-35 expects, before terriest's file adds it.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  Content-Security-Policy: script-src 'self'; connect-src 'self' wss:; object-src 'none'; base-uri 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer

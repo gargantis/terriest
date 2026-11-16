@@ -1,0 +1,78 @@
+{
+  "files": {
+    "_headers": {
+      "raw": 447,
+      "gzip": 313,
+      "brotli": 266
+    },
+    "index.html": {
+      "raw": 662,
+      "gzip": 431,
+      "brotli": 282
+    },
+    "assets/cost-page-BIQMxnVF.js": {
+      "raw": 5895,
+      "gzip": 2594,
+      "brotli": 2343
+    },
+    "assets/determinism-BpqO8ssO.js": {
+      "raw": 10047,
+      "gzip": 4040,
+      "brotli": 3384
+    },
+    "assets/index-Crq46aGJ.js": {
+      "raw": 667584,
+      "gzip": 171817,
+      "brotli": 141718
+    },
+    "assets/model-drawer-xFNV9VSg.js": {
+      "raw": 49773,
+      "gzip": 14809,
+      "brotli": 13320
+    },
+    "standin.glb (served by the tests, never shipped)": {
+      "raw": 121296,
+      "gzip": 30052,
+      "brotli": 17252
+    }
+  },
+  "entry": "assets/index-Crq46aGJ.js",
+  "preloads": [],
+  "modelChunk": "assets/model-drawer-xFNV9VSg.js",
+  "codeBuiltPath": {
+    "raw": 668246,
+    "gzip": 172248,
+    "brotli": 142000
+  },
+  "modelPath": {
+    "raw": 839315,
+    "gzip": 217109,
+    "brotli": 172572
+  },
+  "modelPathAdds": {
+    "raw": 171069,
+    "gzip": 44861,
+    "brotli": 30572
+  },
+  "threeCoreChunk": {
+    "file": "assets/three-core-BAQYlx64.js",
+    "raw": 594863,
+    "gzip": 145170,
+    "brotli": 118806
+  },
+  "entryWithoutThreeCore": {
+    "raw": 72632,
+    "gzip": 26932,
+    "brotli": 23747
+  },
+  "entryWithoutModelDrawer": {
+    "raw": 617426,
+    "gzip": 159337,
+    "brotli": 131704
+  },
+  "modelShareOfEntry": {
+    "raw": 50158,
+    "gzip": 12480,
+    "brotli": 10014
+  }
+}

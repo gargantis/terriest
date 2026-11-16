@@ -1,0 +1,730 @@
+{
+ "about": "The spike's ?test=cost page (dist/), drawn, at 4x, on the plan's script, with software GL (SwiftShader) and the GPU (ANGLE on D3D12); CPU in cores by Chromium process type (scripts/verify/drawn-gl.mjs)",
+ "utc": [
+  "2026-11-16T04:39:50.554Z",
+  "2026-11-16T04:48:54.163Z",
+  "2026-11-16T05:01:48.441Z"
+ ],
+ "rows": [
+  {
+   "rep": 0,
+   "gl": "software",
+   "device": "desktop",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 0.44,
+   "error": "",
+   "tick": {
+    "mean": 2.418,
+    "p50": 2.33,
+    "p95": 3.93,
+    "p99": 6.2,
+    "max": 9.29,
+    "n": 1200
+   },
+   "fps": 24.6,
+   "frameP95": 50,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 4.88,
+    "utility": 0,
+    "renderer": 0.91
+   },
+   "seconds": 27.2,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 32.62,
+    "max": 43.32
+   },
+   "batch": 1
+  },
+  {
+   "rep": 0,
+   "gl": "software",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 4.22,
+   "error": "",
+   "tick": {
+    "mean": 2.512,
+    "p50": 2.405,
+    "p95": 4.135,
+    "p99": 5.71,
+    "max": 9.48,
+    "n": 1200
+   },
+   "fps": 37.7,
+   "frameP95": 33.3,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 4.87,
+    "utility": 0,
+    "renderer": 0.94
+   },
+   "seconds": 26.5,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 32.66,
+    "max": 58.57
+   },
+   "batch": 1
+  },
+  {
+   "rep": 0,
+   "gl": "gpu",
+   "device": "desktop",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 6.03,
+   "error": "",
+   "tick": {
+    "mean": 2.086,
+    "p50": 1.885,
+    "p95": 3.715,
+    "p99": 5.615,
+    "max": 28.475,
+    "n": 1200
+   },
+   "fps": 59.8,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.22,
+    "utility": 0,
+    "renderer": 1.03
+   },
+   "seconds": 26.8,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 35.53,
+    "max": 48.25
+   },
+   "batch": 1
+  },
+  {
+   "rep": 0,
+   "gl": "gpu",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 4.43,
+   "error": "",
+   "tick": {
+    "mean": 2.133,
+    "p50": 1.965,
+    "p95": 3.485,
+    "p99": 7.46,
+    "max": 18.225,
+    "n": 1200
+   },
+   "fps": 59.5,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.23,
+    "utility": 0,
+    "renderer": 1.15
+   },
+   "seconds": 23.8,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 40.98,
+    "max": 55.59
+   },
+   "batch": 1
+  },
+  {
+   "rep": 1,
+   "gl": "software",
+   "device": "desktop",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 3.75,
+   "error": "",
+   "tick": {
+    "mean": 2.469,
+    "p50": 2.345,
+    "p95": 4.225,
+    "p99": 5.5,
+    "max": 14.31,
+    "n": 1200
+   },
+   "fps": 23.9,
+   "frameP95": 66.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 5.02,
+    "utility": 0,
+    "renderer": 0.91
+   },
+   "seconds": 26.1,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 32.58,
+    "max": 50.55
+   },
+   "batch": 1
+  },
+  {
+   "rep": 1,
+   "gl": "software",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 5.64,
+   "error": "",
+   "tick": {
+    "mean": 2.765,
+    "p50": 2.535,
+    "p95": 4.6,
+    "p99": 11.395,
+    "max": 30.37,
+    "n": 1200
+   },
+   "fps": 35.8,
+   "frameP95": 50,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 4.64,
+    "utility": 0,
+    "renderer": 0.94
+   },
+   "seconds": 26.2,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 36.46,
+    "max": 80.11
+   },
+   "batch": 1
+  },
+  {
+   "rep": 1,
+   "gl": "gpu",
+   "device": "desktop",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 5.14,
+   "error": "",
+   "tick": {
+    "mean": 2.092,
+    "p50": 1.89,
+    "p95": 3.835,
+    "p99": 4.88,
+    "max": 12.365,
+    "n": 1200
+   },
+   "fps": 60,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.24,
+    "utility": 0,
+    "renderer": 1.15
+   },
+   "seconds": 23.6,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 43.47,
+    "max": 64.41
+   },
+   "batch": 1
+  },
+  {
+   "rep": 1,
+   "gl": "gpu",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 3.94,
+   "error": "",
+   "tick": {
+    "mean": 2.489,
+    "p50": 2.44,
+    "p95": 3.94,
+    "p99": 5.27,
+    "max": 8.04,
+    "n": 1200
+   },
+   "fps": 60,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.2,
+    "utility": 0,
+    "renderer": 1.03
+   },
+   "seconds": 26.9,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 39.33,
+    "max": 66.05
+   },
+   "batch": 1
+  },
+  {
+   "rep": 0,
+   "gl": "software",
+   "device": "desktop",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 0.81,
+   "error": "",
+   "tick": {
+    "mean": 2.515,
+    "p50": 2.385,
+    "p95": 4.325,
+    "p99": 6.64,
+    "max": 10.105,
+    "n": 1200
+   },
+   "fps": 23.7,
+   "frameP95": 66.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 4.87,
+    "utility": 0,
+    "renderer": 0.91
+   },
+   "seconds": 26.4,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 33.47,
+    "max": 45.31
+   },
+   "batch": 2
+  },
+  {
+   "rep": 0,
+   "gl": "software",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 3.46,
+   "error": "",
+   "tick": {
+    "mean": 2.518,
+    "p50": 2.45,
+    "p95": 3.88,
+    "p99": 5.505,
+    "max": 10.625,
+    "n": 1200
+   },
+   "fps": 37,
+   "frameP95": 33.3,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 5.33,
+    "utility": 0,
+    "renderer": 1.05
+   },
+   "seconds": 23.4,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 44.08,
+    "max": 67.18
+   },
+   "batch": 2
+  },
+  {
+   "rep": 0,
+   "gl": "gpu",
+   "device": "desktop",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 5.71,
+   "error": "",
+   "tick": {
+    "mean": 2.371,
+    "p50": 2.225,
+    "p95": 4.23,
+    "p99": 5.55,
+    "max": 12.485,
+    "n": 1200
+   },
+   "fps": 59.9,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.22,
+    "utility": 0,
+    "renderer": 1.04
+   },
+   "seconds": 26.7,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 34.15,
+    "max": 52.09
+   },
+   "batch": 2
+  },
+  {
+   "rep": 0,
+   "gl": "gpu",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 4.49,
+   "error": "",
+   "tick": {
+    "mean": 2.034,
+    "p50": 1.88,
+    "p95": 3.825,
+    "p99": 5.96,
+    "max": 11.42,
+    "n": 1200
+   },
+   "fps": 60,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.2,
+    "utility": 0,
+    "renderer": 1.02
+   },
+   "seconds": 26.2,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 35.13,
+    "max": 46
+   },
+   "batch": 2
+  },
+  {
+   "rep": 1,
+   "gl": "software",
+   "device": "desktop",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 3.54,
+   "error": "",
+   "tick": {
+    "mean": 2.491,
+    "p50": 2.38,
+    "p95": 4.08,
+    "p99": 5.785,
+    "max": 10.565,
+    "n": 1200
+   },
+   "fps": 23.4,
+   "frameP95": 66.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 5.04,
+    "utility": 0,
+    "renderer": 0.91
+   },
+   "seconds": 25.2,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 39.09,
+    "max": 45.7
+   },
+   "batch": 2
+  },
+  {
+   "rep": 1,
+   "gl": "software",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 3.99,
+   "error": "",
+   "tick": {
+    "mean": 2.514,
+    "p50": 2.41,
+    "p95": 3.97,
+    "p99": 5.865,
+    "max": 18.575,
+    "n": 1200
+   },
+   "fps": 37.7,
+   "frameP95": 33.3,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 5.35,
+    "utility": 0,
+    "renderer": 1.05
+   },
+   "seconds": 23.4,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 41.4,
+    "max": 63.89
+   },
+   "batch": 2
+  },
+  {
+   "rep": 1,
+   "gl": "gpu",
+   "device": "desktop",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 4.39,
+   "error": "",
+   "tick": {
+    "mean": 2.611,
+    "p50": 2.565,
+    "p95": 4.34,
+    "p99": 5.825,
+    "max": 15.17,
+    "n": 1200
+   },
+   "fps": 60,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.22,
+    "utility": 0,
+    "renderer": 1.04
+   },
+   "seconds": 26.3,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 34.5,
+    "max": 56.76
+   },
+   "batch": 2
+  },
+  {
+   "rep": 1,
+   "gl": "gpu",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 3.72,
+   "error": "",
+   "tick": {
+    "mean": 2.439,
+    "p50": 2.325,
+    "p95": 4.27,
+    "p99": 6.165,
+    "max": 11.905,
+    "n": 1200
+   },
+   "fps": 59.9,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.21,
+    "utility": 0,
+    "renderer": 1.03
+   },
+   "seconds": 26,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 33.31,
+    "max": 53.13
+   },
+   "batch": 2
+  },
+  {
+   "batch": 3,
+   "rep": 0,
+   "gl": "software",
+   "device": "desktop",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 1.23,
+   "error": "",
+   "tick": {
+    "mean": 2.398,
+    "p50": 2.3,
+    "p95": 3.965,
+    "p99": 5.35,
+    "max": 8.205,
+    "n": 1200
+   },
+   "fps": 24.4,
+   "frameP95": 66.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 4.83,
+    "utility": 0,
+    "renderer": 0.9
+   },
+   "seconds": 27.2,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 31.6,
+    "max": 51.14
+   }
+  },
+  {
+   "batch": 3,
+   "rep": 0,
+   "gl": "software",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftSh",
+   "load1mBefore": 2.61,
+   "error": "",
+   "tick": {
+    "mean": 2.498,
+    "p50": 2.41,
+    "p95": 3.945,
+    "p99": 5.36,
+    "max": 7.92,
+    "n": 1200
+   },
+   "fps": 38.4,
+   "frameP95": 33.3,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 4.95,
+    "utility": 0,
+    "renderer": 0.95
+   },
+   "seconds": 25.9,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 33.55,
+    "max": 56.13
+   }
+  },
+  {
+   "batch": 3,
+   "rep": 0,
+   "gl": "gpu",
+   "device": "desktop",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 2.33,
+   "error": "",
+   "tick": {
+    "mean": 2.082,
+    "p50": 1.975,
+    "p95": 3.515,
+    "p99": 4.87,
+    "max": 8.235,
+    "n": 1200
+   },
+   "fps": 60,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.22,
+    "utility": 0,
+    "renderer": 1.03
+   },
+   "seconds": 26.8,
+   "isolated": true,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "bursts270": {
+    "median": 44.4,
+    "max": 54.12
+   }
+  },
+  {
+   "batch": 3,
+   "rep": 0,
+   "gl": "gpu",
+   "device": "Pixel 8a",
+   "renderer": "ANGLE (Microsoft Corporation, D3D12 (Intel(R) Iris(R) Xe Graphics), OpenGL ES 3.",
+   "load1mBefore": 1.94,
+   "error": "",
+   "tick": {
+    "mean": 2.449,
+    "p50": 2.48,
+    "p95": 3.785,
+    "p99": 4.715,
+    "max": 8.17,
+    "n": 1200
+   },
+   "fps": 60,
+   "frameP95": 16.7,
+   "cpuCoresByProcessType": {
+    "browser": 0,
+    "zygote": 0,
+    "gpu-process": 0.22,
+    "utility": 0,
+    "renderer": 1.13
+   },
+   "seconds": 24.1,
+   "isolated": true,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "bursts270": {
+    "median": 37.57,
+    "max": 50.19
+   }
+  }
+ ]
+}

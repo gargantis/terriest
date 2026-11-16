@@ -1,0 +1,32 @@
+{
+  "options": {
+    "allowedHosts": [],
+    "expectedLicensePackages": [
+      "three"
+    ]
+  },
+  "findings": [
+    {
+      "file": "_headers",
+      "why": "extension not allowlisted"
+    },
+    {
+      "file": "assets/index-Crq46aGJ.js",
+      "why": "root-absolute URL",
+      "detail": "/"
+    }
+  ],
+  "appOptions": {
+    "allowedHosts": [],
+    "expectedLicensePackages": [
+      "three"
+    ],
+    "textFiles": [
+      "_headers"
+    ],
+    "ignoredPaths": [
+      "/"
+    ]
+  },
+  "withAppOptions": []
+}

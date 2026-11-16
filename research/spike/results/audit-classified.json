@@ -1,0 +1,108 @@
+{
+ "utc": "2026-11-16T04:04:09.217Z",
+ "about": "M0 run 5: the no-exceptions dist audit's findings, each classified (C-9), with the evidence",
+ "auditOptions": {
+  "allowedHosts": [],
+  "expectedLicensePackages": [
+   "three"
+  ]
+ },
+ "findings": 2,
+ "classified": [
+  {
+   "finding": {
+    "file": "_headers",
+    "why": "extension not allowlisted"
+   },
+   "class": "app option",
+   "option": {
+    "textFiles": [
+     "_headers"
+    ]
+   },
+   "evidence": {
+    "what": "the static host's header rules (D-35), which the host reads from the deployed folder; dist/_headers is public/_headers copied by the build",
+    "identicalToPublic": true,
+    "plannedBy": "D-37 (textFiles for _headers)"
+   }
+  },
+  {
+   "finding": {
+    "file": "assets/index-Crq46aGJ.js",
+    "why": "root-absolute URL",
+    "detail": "/"
+   },
+   "class": "app option",
+   "option": {
+    "ignoredPaths": [
+     "/"
+    ]
+   },
+   "alternative": "a hermet option treating a bare '/' as a separator rather than a path",
+   "evidence": {
+    "what": "three's LoaderUtils.extractUrlBase: url.lastIndexOf('/'), a separator, not a URL; never requested (run 4's request guard: every request stayed on the page's origin)",
+    "contexts": [
+     ".isAmbientLight=!0,this.type=`AmbientLight`}},Io=class{static extractUrlBase(e){let t=e.lastIndexOf(`/`);return t===-1?`./`:e.slice(0,t+1)}static resolveURL(e,t){r"
+    ],
+    "inTheSplitBuild": [
+     "three-core-BAQYlx64.js"
+    ],
+    "inTheBuildWithoutTheModelDrawer": [],
+    "so": "it is in three's core, kept only because GLTFLoader (the model path) imports LoaderUtils; tree-shaken from a build without the model drawer"
+   }
+  }
+ ],
+ "appOptionsThatClearThem": {
+  "textFiles": [
+   "_headers"
+  ],
+  "ignoredPaths": [
+   "/"
+  ]
+ },
+ "withAppOptions": {
+  "findings": 0,
+  "clean": true
+ },
+ "hermetOptionsNeeded": [],
+ "tokenizerFixNeeded": false,
+ "tokenizer": {
+  "assets/cost-page-BIQMxnVF.js": {
+   "parsed": 74,
+   "tokenized": 74,
+   "missed": 0,
+   "invented": 0,
+   "hosts": 0
+  },
+  "assets/determinism-BpqO8ssO.js": {
+   "parsed": 263,
+   "tokenized": 263,
+   "missed": 0,
+   "invented": 0,
+   "hosts": 0
+  },
+  "assets/index-Crq46aGJ.js": {
+   "parsed": 2034,
+   "tokenized": 2034,
+   "missed": 0,
+   "invented": 0,
+   "hosts": 0
+  },
+  "assets/model-drawer-xFNV9VSg.js": {
+   "parsed": 237,
+   "tokenized": 237,
+   "missed": 0,
+   "invented": 0,
+   "hosts": 0
+  }
+ },
+ "licenceNotice": {
+  "file": "dist/THIRD-PARTY-LICENSES.txt",
+  "present": true,
+  "packages": [
+   "three@0.187.0"
+  ],
+  "carriesMitText": true,
+  "lines": 29
+ }
+}

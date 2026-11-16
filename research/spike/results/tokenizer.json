@@ -1,0 +1,40 @@
+{
+ "utc": "2026-11-16T03:42:56.198Z",
+ "about": "hermet 11283ca jsStringLiterals against TypeScript parser strings, per built chunk (scripts/tokenizer-check.mjs)",
+ "files": {
+  "assets/cost-page-BIQMxnVF.js": {
+   "parsed": 74,
+   "tokenized": 74,
+   "missedByTokenizer": [],
+   "inventedByTokenizer": [],
+   "hostsInParsedStrings": [],
+   "rootAbsoluteInParsedStrings": []
+  },
+  "assets/determinism-BpqO8ssO.js": {
+   "parsed": 263,
+   "tokenized": 263,
+   "missedByTokenizer": [],
+   "inventedByTokenizer": [],
+   "hostsInParsedStrings": [],
+   "rootAbsoluteInParsedStrings": []
+  },
+  "assets/index-Crq46aGJ.js": {
+   "parsed": 2034,
+   "tokenized": 2034,
+   "missedByTokenizer": [],
+   "inventedByTokenizer": [],
+   "hostsInParsedStrings": [],
+   "rootAbsoluteInParsedStrings": [
+    "/"
+   ]
+  },
+  "assets/model-drawer-xFNV9VSg.js": {
+   "parsed": 237,
+   "tokenized": 237,
+   "missedByTokenizer": [],
+   "inventedByTokenizer": [],
+   "hostsInParsedStrings": [],
+   "rootAbsoluteInParsedStrings": []
+  }
+ }
+}
