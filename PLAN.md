@@ -1,17 +1,19 @@
 # terriest: Plan
 
-**Status:** draft for approval, 2026-11-14. Nothing here is decided until you approve it, except what you've settled:
+**Status:** approved by the owner on 2026-11-15, at its defaults.
+- *The owner, 2026-11-15:* "defaults". So Q-1, Q-2 and Q-20 are settled at their proposals, and every Group B proposal is confirmed. REQUIREMENTS.md is amended as §2 says, except the rows that wait for a later step.
 - *The owner, 2026-11-14:* desktop browsers are tested by hand for now, and no more devices are asked for yet (Q-4).
   - So your desktop browsers are the real-browser check from M0 on, and the headless gate still runs all three engines.
-  - *This plan proposes* that the phone, a third device and a gamepad come up again before M5. Say if you'd rather be asked sooner, at the start of M4, before you pick the look (Q-11) against a drawing budget the phone hasn't checked.
+  - The phone, a third device and a gamepad come up again before M5, as Q-4 proposed.
   - REQUIREMENTS L342 and L345 ask for the phone early, so until it runs, the drawing budget stays provisional (C-2).
-- *The owner, 2026-11-14:* the domain is terriest.com, on Cloudflare (Q-5). Deploys use wrangler's stored full login (Q-6). Make hermet's licence fix and push it (Q-3): done, pushed to hermet's main as 11283ca. Whether roslambo and amorfus take it now is still open (Q-20).
+- *The owner, 2026-11-14:* the domain is terriest.com, on Cloudflare (Q-5). Deploys use wrangler's stored full login (Q-6). Make hermet's licence fix and push it (Q-3): done, pushed to hermet's main as 11283ca. roslambo and amorfus take it, as Q-20 proposes.
 
+**Date:** 2026-11-14; approved 2026-11-15.
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
 
 How to read this:
 - **§0** summarises the plan.
-- **§1** is the questions for you (Q-n). Q-3 to Q-6 are settled; Q-1, Q-2 and Q-20 need your answer; approving the plan confirms every Group B proposal you don't override.
+- **§1** is the questions for you (Q-n). All are settled: Q-3 to Q-6 on 2026-11-14, and the rest at their proposals on 2026-11-15.
 - **§2** lists the requirement wording that your answers would change.
 - **§3** is the conflicts and realism register (C-n).
 - **§4** is the design decisions (D-n), each with the options rejected and the cost if it's wrong.
@@ -67,16 +69,18 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 
 **Biggest risks:**
 1. **Contacts.** Resting, rolling and simultaneous contacts under exact operations are new, and roslambo's integrator doesn't carry over (C-3). Pushers side by side barely beat one pusher, against L11's "together they get it moving sooner" (C-18), and a ball can come to rest on terriers (C-21). M0 tackles these first.
-2. **The phone is unmeasured**, CPU and GPU both. No more devices are asked for yet (Q-4), and this plan asks again before M5, so as planned its first run comes at acceptance; say if you want it sooner. roslambo's timeline also re-simulates its whole window every tick, which the requirements' cost note doesn't count, and a few single ticks, such as a late-vote repair, take up to about 270 steps (C-2).
+2. **The phone is unmeasured**, CPU and GPU both. No more devices are asked for yet (Q-4), and they're asked for again before M5, so its first run comes at acceptance. roslambo's timeline also re-simulates its whole window every tick, which the requirements' cost note doesn't count, and a few single ticks, such as a late-vote repair, take up to about 270 steps (C-2).
 3. **Without TURN**, some pairs of networks can't connect (C-1, from roslambo).
 4. **The gate draws WebGL 2 in software**, at 5–26 frames a second for a busy scene. So end-to-end tests must never depend on the frame rate, and frame time is judged only by hand (C-6).
 5. **hermet's licence notices shipped without their texts**, in roslambo's and amorfus's live builds too. The fix is pushed, as hermet 11283ca (Q-3), but each sibling still needs a bump and a redeploy (Q-20). And three.js has never been through hermet's dist audit (C-8, C-9).
 6. **Real Safari is untested** on Mac and iPhone, unless the device round before M5 names one (C-7, Q-12).
 
-**What approval authorises:** the decisions in §4 and every Group B proposal you don't override; M0, a throwaway spike that uses no network beyond installing packages; then M1–M5.
+**What approval authorises:** the decisions in §4 and every Group B proposal; M0, a throwaway spike that uses no network beyond installing packages; then M1–M5.
 - It does **not** authorise pushing terriest, any further push to hermet (such as its docs naming terriest at M1), any change to roslambo or amorfus (Q-14, Q-20), deploying, or the relay check that writes to public relays. Each waits for your go-ahead (§17), and the first deploy's go-ahead names the DNS records it will replace (Q-5). hermet's licence fix is already pushed, at your request (Q-3).
 - Steps that need you before M5 (M0's frame verdict, the tuning, your M3 and M4 desktop checks, the bots' level and the look) don't hold up the work. If you aren't free, Claude settles each provisionally, and you confirm or change it before the deploy (Q-13, §17).
-- REQUIREMENTS.md is yours. Approving the plan accepts it as amended by §2. The edits go in after you answer, in one commit that cites the Q- and C-numbers, with the status line updated.
+- REQUIREMENTS.md is yours. Approving the plan accepts it as amended by §2. The edits went in on 2026-11-15, in one commit that cites the Q- and C-numbers, with the status line updated; four rows wait for later steps (§2).
+
+**Approved** on 2026-11-15, at its defaults, with the settlements recorded at the top of §1.
 
 **What this rests on (§5):** your requirements; roslambo's, amorfus's and hermet's plans, code and reports; a two-round audit on 2026-11-14 that checked every claim the requirements make about them, probed WebGL 2 in the three headless engines here, and rebuilt both siblings to confirm the licence bug, then hermet's fix; and two reviews of this plan's drafts, which modelled the solver, the timeline and the cameras. Nothing in the physics or rendering has been measured yet. Every cost here is an estimate, labelled as one.
 
@@ -84,9 +88,9 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 
 ## 1. Questions for you
 
-Q-1, Q-2 and Q-20 need your answer. You settled Q-3 to Q-6 on 2026-11-14; their rows, kept apart below, record how. Each Group B question has a proposal, and approving the plan confirms every one you don't override.
+**Settled on 2026-11-15:** the owner answered "defaults". So Q-1, Q-2 and Q-20 are settled at their proposals, and every Group B proposal, Q-7 to Q-19, is confirmed. Q-3 to Q-6 were settled on 2026-11-14; their rows, kept apart below, record how.
 
-### Group A — needs your answer
+### Group A — settled on 2026-11-15 at these proposals
 
 | # | Question | Proposal | Needed by |
 |---|---|---|---|
@@ -99,11 +103,11 @@ Q-1, Q-2 and Q-20 need your answer. You settled Q-3 to Q-6 on 2026-11-14; their 
 | # | Question | Your answer, and what follows | Needed by |
 |---|---|---|---|
 | Q-3 | hermet's licence writer shipped no licence texts (C-8). May I fix it in hermet and push it? | **Settled 2026-11-14 by the owner: make the fix and push it.** Done: pushed to hermet's main as 11283ca, the same day.<br>• **In hermet:** its writer reads Vite 8's `identifier` and `text`, its test uses Vite's real output, and its audit fails a notice with no text. On both siblings' current builds, roslambo's 3 notices and amorfus's 5 then carried their texts, and the audit found nothing (§5).<br>• **terriest** pins 11283ca from M1, so it needs no shim. Naming terriest in hermet's docs waits until terriest mounts it, at M1, and that push waits for your go-ahead.<br>• **The siblings** haven't taken the fix yet: Q-20. | — |
-| Q-4 | Devices, people and networks | **Settled 2026-11-14 by the owner: desktop browsers by hand for now, and no more devices asked for yet.**<br>• Your desktop browsers are the real-browser check from M0 on, and the headless gate runs all three engines.<br>• Acceptance still needs three devices, one of them the Pixel 8a, and a standard gamepad (L280, L284, L286). *This plan proposes* asking for them again before M5, with real Safari (Q-12). Say if you'd rather be asked sooner, at the start of M4.<br>• With the phone's measurements, you then choose whether phones start at the low render quality (D-33).<br>• Until the phone runs, the drawing budget is provisional (C-2). | asked again before M5 (proposal) |
+| Q-4 | Devices, people and networks | **Settled 2026-11-14 by the owner: desktop browsers by hand for now, and no more devices asked for yet.**<br>• Your desktop browsers are the real-browser check from M0 on, and the headless gate runs all three engines.<br>• Acceptance still needs three devices, one of them the Pixel 8a, and a standard gamepad (L280, L284, L286). They're asked for again before M5, with real Safari (Q-12), as this row proposed.<br>• With the phone's measurements, you then choose whether phones start at the low render quality (D-33).<br>• Until the phone runs, the drawing budget is provisional (C-2). | asked again before M5 |
 | Q-5 | Domain | **Settled 2026-11-14 by the owner: terriest.com, hosted on Cloudflare.**<br>• `wrangler.jsonc` routes it as a custom domain (A.7), as the workspace's site does gargantis.com.<br>• The `workers.dev` address is turned off, because it would show the account's name (C-45).<br>• That the zone is on the account this machine deploys with is checked at the first deploy.<br>• **Before that deploy,** you list terriest.com's current A, AAAA and CNAME records, and any Workers custom domain on it, from your Cloudflare dashboard, and the go-ahead names what will be replaced. Run without a terminal, as Claude runs it, wrangler replaces them without asking. Alternatively, you run that first `npm run deploy` in your own terminal, where wrangler asks first. | — |
 | Q-6 | How deploys sign in | **Settled 2026-11-14 by the owner: wrangler's stored full login.**<br>• `npm run deploy` uses it, with no API token.<br>• The login refreshes itself. If it has lapsed, `wrangler login` renews it, which needs you at a browser.<br>• Each deploy still waits for your go-ahead. | — |
 
-### Group B — proposal ready; confirm or override
+### Group B — settled on 2026-11-15 at these proposals
 
 | # | Question | Proposal |
 |---|---|---|
@@ -125,7 +129,13 @@ Q-1, Q-2 and Q-20 need your answer. You settled Q-3 to Q-6 on 2026-11-14; their 
 
 ## 2. Requirement changes your answers would make
 
-REQUIREMENTS.md is yours. These edits go in after you answer, in one commit that cites the numbers. Notes for the plan are not requirements, but they are your text too, so their corrections are listed here as well.
+REQUIREMENTS.md is yours. These edits went in on 2026-11-15, in one commit that cites the numbers, at the defaults: Q-8's and Q-19's alternatives weren't chosen. Notes for the plan are not requirements, but they are your text too, so their corrections are listed here as well.
+
+Four rows wait for a later step:
+- the pack cue (Q-11, C-51), if you pick one at M4;
+- the note on resting contact (C-44), once M0 has measured it;
+- a relay swap (Q-14), if one fails the pre-deploy check;
+- the tuned values (Q-10), at M2 and M4.
 
 | Requirement (current) | Amended wording | From |
 |---|---|---|
