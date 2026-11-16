@@ -2,7 +2,7 @@
 
 Rocket League with terriers: two packs of small dogs corral a giant rubber ball into goals.
 
-Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the owner settled its open questions, accepting every default, choosing anchored steering and planning modeled terriers for after the MVP; the rest is still a proposal. "(as roslambo)" marks a rule carried over from roslambo's requirements or plan, which the owner approved there or left to Claude's judgment. **TBD** marks a value not yet chosen. After the requirements come the configuration, notes for the implementation plan, and the settled questions.
+Status: settled by the owner on 2026-11-14, and amended by PLAN.md, which the owner approved on 2026-11-15; Q- and C-numbers cite it. "(as roslambo)" marks a rule carried over from roslambo's requirements or plan, which the owner approved there or left to Claude's judgment. **TBD** marks a value not yet chosen. After the requirements come the configuration, notes for the implementation plan, and the settled questions.
 
 ## Concept
 
@@ -43,20 +43,20 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 - Each pack wears bandanas in its own color and pattern, such as plain for one pack and striped for the other, so color-blind players can tell the packs apart. No coat uses a pack's color
 - Coats are a fixed list, chosen with the look (see *Notes for the plan*). Each is a fur color and markings, defined apart from how terriers are drawn, and stored and sent by its place in the list, so code-built and modeled terriers paint the same coats, and a new way of drawing them changes nothing stored or sent
 - A terrier runs the way its player points it, in any direction, turning to face that way fast but not instantly (see *Configuration*)
-- **Zoomies**: a burst of speed. While its player holds zoomies and its **zoomies meter** isn't empty, a terrier runs at zoomies speed and the meter drains. The meter refills on its own while the terrier isn't zooming, and is full at every kickoff
+- **Zoomies**: a burst of speed. While its player holds zoomies and its **zoomies meter** isn't empty, a terrier runs at zoomies speed and the meter drains. Once the meter runs out, zoomies works again only after it is let go (on touch, the stick back inside its rim) and pressed again, so a held button doesn't flicker (C-20). The meter refills on its own while the terrier isn't zooming, and is full at every kickoff
 - **Jump**: one jump, from the floor only
 - **Pounce**: a short lunge the way the terrier faces, from the floor or in the air, then a wait before the next. It hits the ball harder than running into it does
-- **Tumble**: a pouncing terrier that hits a rival tumbles it. So does a ball that comes at a terrier at the **bowling speed** or faster, counting only the ball's own speed toward the terrier, so a terrier is never tumbled by a ball it's pushing or chasing. A tumbled terrier can't act until it gets up, but the ball still bounces off it. It can't be tumbled again while it's down, or until the tumble guard has passed since it got up (see *Configuration*)
+- **Tumble**: a pouncing terrier that hits a rival tumbles it. So does a ball that comes at a terrier at the **bowling speed** or faster, counting only the ball's own horizontal speed toward the terrier, except for a terrier in its lunge and the terrier that touched the ball last. So a terrier is never tumbled by a ball it's pushing or has just shot, even off a wall, but one chasing a ball that any other terrier touched last, a packmate included, can be (Q-8). A tumbled terrier can't act until it gets up, but the ball still bounces off it. It can't be tumbled again while it's down, or until the tumble guard has passed since it got up (see *Configuration*)
 - **Bark**: the terrier barks, and a mark over it shows the bark to anyone with the sound off. It has no effect on play
 - Terriers can't pass through each other, the ball or the walls. Running into another terrier pushes it
 - Your own terrier is marked so you can always find it. Other terriers show their player's name if you choose that in Settings
 
 ### The ball
 
-- One giant rubber ball, twice a terrier's mass (see *Configuration*). A lone terrier's hit sends it off at up to half the terrier's speed, and several hitting it at once send it faster. Pushing, one terrier gets it up to running speed in about 1.2 s, and four in about 0.6 s
+- One giant rubber ball, twice a terrier's mass (see *Configuration*). A lone terrier's hit sends it off at up to half the terrier's speed, and several hitting it at once send it faster. Pushing, one terrier gets it to 95% of running speed in about 1.2 s, and four pushing one behind another in about 0.6 s. Four side by side, meeting the ball at angles, are slower; their times are tuned at M2 (C-18)
 - A terrier on the floor meets the ball below its middle, so a push also lifts it into a hop. A jump meets it nearer the middle and hits it level. Two terriers squeezing it from opposite sides can lift it off the floor
 - It bounces off the floor, the walls, the overhead net, the goal frame and the goal's netting. Each bounce keeps part of its speed into the surface and all of its speed along it, and it slows as it rolls
-- The simulation gives it no spin, so it never curves in the air or kicks sideways off a bounce. On screen it turns as if rolling with its motion (MVP; may be revisited)
+- The simulation gives it no spin, so it never curves in the air or kicks sideways off a bounce. On screen it turns as if rolling with its motion (MVP; may be revisited). That turning is drawing only, and may differ between viewers (C-29)
 - It never leaves the pitch
 
 ### The pitch
@@ -66,12 +66,12 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 - A halfway line through the center spot splits the pitch into the packs' halves
 - A goal is set into the middle of each end wall: an opening with two posts and a crossbar, netted at the back, sides and top, that the ball fits through with room to spare. The **goal line** runs across its mouth
 - Each goal, and the floor of its half, carries the color and pattern of the pack that defends it, so a player can always see which way to attack
-- The same pitch for every pack size (MVP). The design should not depend on the pitch's shape, so the shape can change later
+- The same pitch for every pack size (MVP). The design should not depend on the pitch's shape beyond its point symmetry about the center spot, which keeps mirrored kickoffs exactly mirrored, so the shape can change later as long as it keeps that symmetry (C-22)
 
 ### Controls
 
 - Six controls: **run** (in a direction), **zoomies**, **jump**, **pounce**, **bark**, and **view**, which switches the camera (see *Cameras*)
-- Directions are anchored, on every device (the owner, 2026-11-14). In ball view they're relative to the line from your terrier to the ball: forward runs at the ball, back runs away from it, and sideways circles it. In chase view a direction is read from the screen when it's pressed, then kept on the pitch while the camera swings round, so holding sideways turns the terrier once and runs straight (see *Cameras*). Pressing a new direction, or moving the stick to one, reads it from the screen again
+- Directions are anchored, on every device (the owner, 2026-11-14). In ball view they're relative to the line from your terrier to the ball: forward runs at the ball, back runs away from it, and sideways circles it. In chase view a direction is read from the screen when it's pressed, then kept on the pitch while the camera swings round, so holding sideways turns the terrier once and runs straight (see *Cameras*). Pressing a direction from neutral, or changing the held direction by 45° or more from the one last read, by keys or stick, reads it from the screen again; a smaller stick move turns the kept direction by the same angle (Q-19)
 - When the ball is nearly straight above your terrier, so the line to it has no direction, ball view's directions are taken from the way the terrier faces
 - The steering scheme can change without much trouble (the owner, 2026-11-14). It's one setting (see *Configuration*), and the simulation takes the inputs of all three schemes in *Settled questions* from the start, so switching to screen-relative or vehicle-style steering, or offering a choice to each player later, changes only what the controls send
 - Keyboard, by physical key position, so other layouts play on the same keys (as roslambo): `W` `A` `S` `D` run; `Space` jump; `Shift` zoomies; `E` pounce; `Q` bark; `C` view. `Ctrl` is never used, because `Ctrl`+`W` closes the tab
@@ -99,15 +99,15 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 - Either kind fits the terrier's size in *Configuration*, shows every coat and both packs' bandanas, and fits the drawing budget in *Performance*
 - A model can take time to load, or fail to. Until it has loaded, or if it fails, terriers are drawn built in code, which stays in the build for that, and nothing in a match waits for a model
 - Every hit shows its strength: the ball squashes and thumps harder the harder it's hit, zoomies kick up dust, a tumbled terrier rolls over and shakes itself off, and a goal bulges the net
-- Sound: simple effects only, made in code: barks, the ball's bounces, pounces and tumbles, a whistle at each kickoff and at the end, and a chorus of barks for a goal. No music
+- Sound: simple effects only, made in code: barks, the ball's bounces, pounces and tumbles, a whistle at each kickoff and at the end, and a whistle and a chorus of barks for a goal (C-53). No music
 - Nothing in play is told by sound alone: kickoffs, goals and the end show on screen as well
 
 ### Scoring
 
 - A goal counts when the whole ball has crossed the goal line, between the posts and under the crossbar, while the ball is in play. Before overtime, a goal in the tick that brings the clock to 0 still counts
 - It counts for the pack attacking that goal, whoever touched the ball last: an own goal counts for the other pack
-- A goal is credited to the terrier whose touch was the latest before the ball crossed the line. Terriers touching it in that same tick share the credit if they attack that goal; if none of them does, it's an own goal and no terrier is credited
-- A goal is followed by a short celebration, in which the ball is out of play, the terriers can still run and bark, and the scorer's name shows over the pitch. Then comes a kickoff. The clock is stopped from the goal until the kickoff countdown ends
+- A goal is credited to the terrier whose contact with the ball was the latest before the ball crossed the line. Terriers touching it in that same tick share the credit if they attack that goal, and each attacker sharing it counts a goal (C-26); if none of them does, it's an own goal and no terrier is credited
+- A goal is followed by a short celebration, in which the ball is out of play, the terriers can still run and bark, and the scorer's name shows over the pitch. Then comes a kickoff, the overtime kickoff, or the results screen (C-20). The clock is stopped from the goal until the kickoff countdown ends
 - When the clock reaches 0, the pack with more goals wins. If the packs are level, **overtime** starts with a kickoff, and the next goal wins, however long that takes. Its celebration leads to the results screen
 - Each terrier's goals (own goals excluded) and touches are counted while the ball is in play. The Terriest is the terrier with the most goals, then the most touches. Terriers still level share the title
 
@@ -115,7 +115,7 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 
 - The ball rests on the center spot
 - Each terrier stands on a kickoff spot in its pack's half. The spots for each pack size are mirrored between the packs, so neither pack starts nearer the ball, and a fixed rule says which terrier takes which spot (see *Configuration*)
-- A kickoff begins with a countdown: the start countdown for the first, and the kickoff countdown for every later one, after a goal or at the start of overtime. During it, terriers can turn on their spots but not leave them
+- A kickoff begins with a countdown: the start countdown for the first, and the kickoff countdown for every later one, after a goal or at the start of overtime. During it, terriers can turn on their spots and bark, but not leave them. Held directions and zoomies act as soon as play starts; presses during the countdown are dropped (C-20)
 - Play starts when the countdown reaches 0
 
 ## Matches
@@ -138,24 +138,24 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 - A player who leaves or disconnects during the start countdown keeps their terrier, which sits on its kickoff spot, and the countdown goes on (as roslambo)
 - A new player's join is refused once both packs are full, or once the start countdown has begun (as roslambo). A returning player is not a new join (see *Disconnects*)
 - Spectators can join at any time, including during the match, up to 4 per match (as roslambo)
-- Players and spectators can add bots to either pack before the start countdown, one at a time, up to the pack size. A bot is always ready, so the people's Ready starts the match. Its host can remove it before then, and a host who leaves before then takes its bots out (as roslambo)
+- Players and spectators can add bots to either pack before the start countdown, one at a time, up to the pack size. A bot is always ready, so the people's Ready starts the match, and a match of bots alone starts when its packs are full (C-41). Its host can remove it before then, and a host who leaves before then takes its bots out (as roslambo)
 - A bot plays to win, at about a new player's level, with every ability: it chases the ball, drives it toward the other pack's goal, and falls back to defend when a rival is nearer the ball. One level for the MVP
 
 ### Ready and warm-up
 
 - Each player signals they are ready with a **Ready** button. Pressing it again cancels it, and a Ready expires after a minute, but neither happens once the start countdown has begun (as roslambo)
-- Until the start countdown, terriers can run, jump and pounce around the pitch to warm up. The ball stays on the center spot and can't be moved
+- Until the start countdown, terriers can use every control to warm up, and pounces tumble rivals (C-20). The ball stays on the center spot and can't be moved
 - The start countdown begins when both packs are full, with players or bots, and every player is ready. The terriers go to their kickoff spots, and play starts when it reaches 0
 
 ### End of match
 
 - The match ends when a pack wins (see *Scoring*)
 - Everyone, players and spectators alike, sees a **results screen** with the final score, each terrier's goals and touches, and the Terriest
-- The results screen has a **Play again** button. The first press proposes a new match with the same settings and a new match ID, and everyone still on the results screen can join it with one click. A host's bots join it too (as roslambo). Players and bots who join it this way keep their packs
+- The results screen has a **Play again** button. The first press proposes a new match with the same settings and a new match ID, and everyone still on the results screen can join it with one click. A host's bots join it too (as roslambo). Players and bots who join it this way keep their packs if there's room. Otherwise a player takes the other pack, or watches if both are full, and a bot takes the other pack, or stays out. A press after the new match's start countdown has begun watches it (C-42)
 
 ### Practice
 
-- **Practice** plays a match against bots in the player's own browser, contacting no one. The player picks the pack size and match length, and bots fill every other place. It runs through Pre-match, Match and Results like any match, and the match menu can pause it
+- **Practice** plays a match against bots in the player's own browser, contacting no one. The player picks the pack size and match length, and bots fill every other place. It runs through Pre-match, Match and Results like any match, and the match menu can pause it. Opening the menu pauses play, the clock, animations and sound, and so does losing the graphics, until they're back. Hiding the tab, or the page freezing for over 2 s, opens the menu, which has **Resume** in Practice only; Resume, or closing the menu, carries on. A reload goes Home. The player starts in the first pack, and **Switch pack** swaps them with the other pack's newest bot; Pre-match has no **Add a bot** or **Remove a bot**. **Play again** starts a new Practice with the same settings (Q-15)
 
 ## Screens
 
@@ -166,7 +166,7 @@ Status: first draft, written from the README on 2026-11-13. On 2026-11-14 the ow
 - **Pre-match**: the pitch, with the terriers warming up; each pack's list with name, coat and ready status; the **Ready** button; **Switch pack**; **Add a bot** and **Remove a bot** for each pack, for players and spectators; **Leave**; on a touch screen, the stick and buttons; the start countdown over the pitch
 - **Match**: the pitch; the score, each pack's in its color and pattern, with the viewer's own pack marked; the clock, which shows when overtime has begun; the countdown before each kickoff; and a mark on any terrier that sits because its player, or its bot's host, is away. Players also see their zoomies meter and pounce wait, and on a touch screen the stick and buttons. Spectators see no play controls, only a choice of what to follow: the ball or any terrier. A menu button opens **Settings** and **Leave**
 - **Results**: the final score, each terrier's goals and touches, and the Terriest, with **Play again** and **Home**
-- **Settings**: extra relays and the player's own TURN server (as roslambo); whether names show over the terriers; whether a match starts in ball view; a calmer camera that swings more gently, for players prone to motion sickness; a mirrored touch layout, with the stick on the right; sound on or off
+- **Settings**: extra relays and the player's own TURN server (as roslambo); whether names show over the terriers; whether a match starts in ball view; a calmer camera that swings more gently, for players prone to motion sickness; a mirrored touch layout, with the stick on the right; sound on or off; render quality, high or low, which a phone may start at low; and Show control hints again (D-29, D-33)
 - On a phone, Pre-match and Match are played held sideways, with the stick and buttons over the pitch. Held upright, the other screens work as usual, and Pre-match and Match ask the player to turn the phone. On a desktop, the pitch fills the window
 
 ## Multiplayer
@@ -184,22 +184,22 @@ The same approach as roslambo:
 
 The same format as roslambo's round ID:
 
-- 100 random bits; for Play again, 100 bits derived from the previous match ID, so presses at the same moment lead to the same match. Written as 20 Crockford base32 characters plus a check character: 21 characters in all
+- 100 random bits; for Play again, 100 bits derived from the previous match ID, so every press leads to the same match (C-42). Written as 20 Crockford base32 characters plus a check character: 21 characters in all
 - It is the Trystero room ID
 - Shared as a link carrying the ID in the URL fragment (`#join=<match ID>`), which never reaches a server, or typed as the 21-character code
-- Displayed in groups of four (`K7QM-2XDP-4TR8-WHZN-3VBC-7`). Typing accepts lowercase, dashes, spaces and Crockford look-alikes (O for 0, I and L for 1)
+- Displayed in groups of four (`K7QM-2XDP-4TR8-WHZN-3VBC-K`; C-15). Typing accepts lowercase, dashes, spaces and Crockford look-alikes (O for 0, I and L for 1)
 
 ### Simulation and consensus
 
 The same approach as roslambo:
 
 - Every peer, players and spectators alike, runs the same simulation
-- Each player broadcasts its control inputs, and a hash of its state for its newest final tick, to every other peer. A peer sends its full state only to a peer that asks for it
-- When states conflict, the state held by the **majority** wins
-- The majority is counted among the votes received for that tick
+- Each browser that controls a terrier broadcasts its control inputs, and a hash of its state for its newest final tick, to every other peer (C-16). A peer sends its full state only to a peer that asks for it
+- When states conflict, the state with the most votes wins (C-16)
+- The votes are counted among those received for that tick
 - On a tie, the state with the smallest hash wins: an arbitrary choice, but every peer makes the same one
-- Only browsers that control a terrier vote, one vote each however many terriers they control: a player's, or a spectator's that hosts bots and sends their inputs. Other spectators follow the majority state
-- Goals and the end of the match are taken from final ticks, so a correction never takes one back. A goal's score, whistle and celebration, including the terriers' celebrating animation, show once its tick is final, about 0.2 s after the ball crosses the line
+- Only browsers that control a terrier vote, one vote each however many terriers they control: a player's, or a spectator's that hosts bots and sends their inputs. Other spectators follow the state with the most votes
+- Goals and the end of the match are taken from ticks the vote has confirmed, so a late input never takes one back. A correction takes one back only on a browser whose state had diverged and that heard the deciding votes too late for its tally, which is rare (C-4). A goal's score, whistle and celebration, including the terriers' celebrating animation, show once its tick is confirmed, about 0.4 s after the ball crosses the line. The net bulges at once (Q-7)
 - Cheating is left to the honor system in the MVP
 
 Beyond roslambo's approach:
@@ -213,29 +213,29 @@ Beyond roslambo's approach:
 - A disconnected player's terrier sits where it is. It can still be pushed, and the ball still bounces off it
 - A bot's terrier sits while its host is away. A host that comes back takes its bots back (as roslambo)
 - A player who comes back while the match is still running, from the same browser with the same match ID, takes control of their terrier again. Peers recognize them by their player ID (as roslambo)
-- If every peer leaves, the match is over, and so it is if only spectators who host no bots are left, since every terrier would sit and an overtime would never end. Nothing is saved, paused or collected later, because a match changes nothing that lasts (unlike roslambo's balances)
-- Results live only on the peers that saw the match end. There is no central record (as roslambo)
+- If every peer leaves, the match is over. From the start countdown on, if no browser that controls a terrier is left, so every terrier would sit and an overtime would never end, the match runs on for 30 s, so a player who reloads can come back; then it is over, and the browsers still there say that the players have left, with the score so far and **Home**. Before the start countdown, a match whose browsers all watch waits for players (Q-16). Nothing is saved, paused or collected later, because a match changes nothing that lasts (unlike roslambo's balances)
+- Results live only on the browsers still in the match when it ends, and one that arrives while they're there, such as a player who reloads, gets them from a peer (C-50). There is no central record (as roslambo)
 
 ## Persistence
 
 - A player's ID is randomly generated, for example a GUID. No accounts, no login (as roslambo)
 - The ID, display name, coat and settings are stored in the player's browser and persist across visits
 - Clearing browser data, or playing from another browser or device, means a new identity (as roslambo)
-- Display names are up to 20 characters and always shown as plain text. They don't have to be unique (as roslambo)
+- Display names are up to 20 characters and 32 bytes, without control characters, and always shown as plain text (C-17). They don't have to be unique (as roslambo)
 - One game tab per browser (as roslambo)
 
 ## Platform
 
 - JavaScript (TypeScript allowed)
 - A fully static site: no backend, no server-side code
-- Hosted with Cloudflare Workers static assets for the MVP, like roslambo. Domain **TBD**
+- Hosted with Cloudflare Workers static assets for the MVP, like roslambo. Domain **terriest.com** (Q-5)
 - IPFS is not required. Every asset and module reference is still relative, so the site also works from a subpath (as amorfus)
 - 3D drawn with WebGL 2, where roslambo draws in Canvas 2D
 - No WebGPU until it's more widely supported (as roslambo)
 - If WebGL 2 is missing or lost, the page says so plainly instead of going blank
 - Desktop and mobile browsers: current Chrome, Edge, Firefox and Safari
 - Keyboard, touch and gamepad are all in scope
-- Nothing contacts a third party until a player proposes or joins a match. Practice contacts none
+- Nothing contacts a third party until a player proposes or joins a match; opening a `#join=` link or entering a code counts as joining (C-32). Practice contacts none
 
 ## Performance
 
@@ -249,7 +249,7 @@ Beyond roslambo's approach:
 - Automated tests for the non-rendering core: physics, scoring and the clock, kickoff spots, touches, steering in all three schemes, consensus, match IDs and bots
 - A cross-browser determinism test: the same inputs produce bit-identical states in Chromium, Firefox and WebKit
 - End-to-end tests that play matches through the real page and its controls, not only through test modes
-- End-to-end tests also play a match with a stand-in skinned model, kept out of the shipped build, in place of the code-built terriers, and lint keeps the simulation from importing the drawing code, so the swap is tested before any model exists
+- End-to-end tests also play a match with a stand-in skinned model, kept out of the shipped build and served to it by the tests (C-33), in place of the code-built terriers, and lint keeps the simulation from importing the drawing code, so the swap is tested before any model exists
 - The gate tooling shared with amorfus and roslambo, from hermet
 - No secrets, API keys or tracking
 
@@ -279,11 +279,12 @@ Beyond roslambo's approach:
 - `npm install && npm run build` produces a static folder that deploys to Cloudflare Workers static assets
 - Three browsers on different machines, at least one of them a phone, can join a match by link and by typed code, fill both packs (with bots where needed), mark themselves ready, play to the end, and all see the same results screen
 - A spectator who joins mid-match sees the same match
-- A player who reloads mid-match takes back their terrier
+- A player who reloads mid-match takes back their terrier, while another browser stays in the match (Q-16)
 - Practice plays a whole match against bots and contacts no third party
 - Every control works on a keyboard, a touch screen and a standard gamepad
 - The determinism test passes in Chromium, Firefox and WebKit
 - 60 fps on the reference phone, a Pixel 8a in Chrome, through a scripted match of 8 terriers, by roslambo's frame-time criteria: the interval between animation frames at p95 ≤ 18 ms and max ≤ 50 ms, with the display at 60 Hz. They're to be copied into this repo's own `docs/acceptance.md`
+- The devices, people and networks that meet these lines are named before M5 and recorded in `docs/acceptance.md`; each line's own conditions stand (Q-4)
 
 ## First deliverable
 
@@ -295,17 +296,17 @@ Every setting should be easy to change. These are starting values, to be tuned o
 
 | Setting | Value | Notes |
 |---|---|---|
-| Pack size | 1 to 4, default 2 | Set by the proposer. 4 a side is the mesh cap of 8 players |
+| Pack size | 1 to 4, default 2 | Set by the proposer. 4 a side is the mesh cap of 8 browsers that play; bots aren't peers (C-49) |
 | Match length | 3 minutes, from 1 to 10 | Set by the proposer |
 | Ready expiry | 60 seconds | As roslambo |
 | Start countdown | 5 seconds | From the moment both packs are full and every player is ready, to the first kickoff's start of play |
 | Kickoff countdown | 3 seconds | At every kickoff but the first |
-| Goal celebration | 3 seconds | Between a goal and the kickoff countdown, with the clock stopped |
+| Goal celebration | 3 seconds, as seen | Between a goal and the kickoff countdown, with the clock stopped. The simulation holds it for 3 s plus the confirmation delay (Q-7) |
 | Kickoff spots | **TBD**, for each pack size from 1 to 4 | Mirrored between the packs. A fixed rule, such as player ID order, says which terrier takes which spot |
 | Pitch | 40 × 28 m; walls and net 6 m high; corners cut 4 m along each wall | A terrier at run speed crosses its length in about 7 s |
 | Goal mouth | 8 m wide, 3 m high, 2 m deep | The ball fits under the crossbar with 1.4 m to spare |
 | Ball | 1.6 m across, twice a terrier's mass | About 5 times a terrier's height |
-| Ball bounce | Keeps 70% of its speed into the surface off the floor, walls, nets and goal frame, and all of its speed along it | Rubber: lively bounces. Unlike roslambo's walls, which scale the whole speed, this lets a rolling ball keep rolling |
+| Ball bounce | Keeps 70% of its speed into the surface off the floor, the walls, the overhead net and the goal frame, and all of its speed along it. The goal's netting keeps less, tuned at M2, so a goal bulges the net instead of springing back out (C-48) | Rubber: lively bounces. Unlike roslambo's walls, which scale the whole speed, this lets a rolling ball keep rolling |
 | Ball rolling slowdown | **TBD** | |
 | Terrier | 0.3 m at the shoulder, 0.6 m long | Code-built and modeled terriers both fit this size, so a model never changes play |
 | Terrier–ball bounce | Keeps 50% of their closing speed | Sets how hard hits are. Struck level through its middle, a resting ball goes off at half the hitter's speed: 3 m/s at a run, 4.5 m/s at zoomies speed, 5 m/s from a pounce. A push from the floor meets it low, so part of that speed goes into a hop |
@@ -321,7 +322,7 @@ Every setting should be easy to change. These are starting values, to be tuned o
 | Jump | 1 m high | About 0.9 s in the air |
 | Gravity | 9.8 m/s² | |
 | Pounce | 10 m/s for 0.3 s, then 1.5 s before the next | |
-| Bowling speed | 4 m/s | A ball coming at a terrier at least this fast, by its own speed toward it, tumbles it. A pounce, or a push at zoomies speed, sends a resting ball off fast enough; a push at a run doesn't |
+| Bowling speed | 4 m/s | A ball coming at a terrier at least this fast, by its own horizontal speed toward it, tumbles it, unless the terrier is lunging or touched the ball last. A pounce from the air sends a resting ball off fast enough. Pushes from the floor meet the ball low, so whether they bowl depends on the tuned values. A ball dribbled at a run does bowl (Q-8, C-5) |
 | Tumble | 1.5 s | |
 | Tumble guard | **TBD** | How long after getting up a terrier can't be tumbled again, so rivals taking turns can't keep it down |
 | Bark | At most one a second | |
@@ -331,7 +332,7 @@ Every setting should be easy to change. These are starting values, to be tuned o
 
 These aren't requirements. They're findings the implementation plan should account for.
 
-- **Reuse.** roslambo is the template for everything but the game itself: the match ID, the room config from hermet, the timeline and consensus, bot hosting, storage and the one-tab rule. hermet takes each app's policy as options, so its README and CLAUDE.md, which name only amorfus and roslambo, need only a docs update. Its dist audit, though, allows only .html, .css, .js, .txt, .ico, .png, .svg and .webmanifest files, which is enough while sounds and terriers are made in code (see *Terriers that will be modeled*). amorfus and roslambo each have their own ID codec; whether terriest's becomes a third copy or all three move to a shared module is the owner's call
+- **Reuse.** roslambo is the template for everything but the game itself: the match ID, the room config from hermet, the timeline and consensus, bot hosting, storage and the one-tab rule. hermet takes each app's policy as options, so a third app needs no hermet change for its own policy. Its docs name only amorfus and roslambo; its licence writer shipped no licence texts until the owner-requested fix of 2026-11-14 (C-8, Q-3), which terriest pins from the start and each sibling takes at its next pin bump; and the three.js build must be checked against its audit (C-9). Its dist audit, though, allows only .html, .css, .js, .txt, .ico, .png, .svg and .webmanifest files, which is enough while sounds and terriers are made in code (see *Terriers that will be modeled*). amorfus and roslambo each have their own ID codec; whether terriest's becomes a third copy or all three move to a shared module is the owner's call: a third copy (Q-2)
 - **Determinism without rotations.** Terriers stay upright and turn only about the vertical, so a heading is one angle, which roslambo's binary angles and its own sine and cosine already handle. A ball without spin needs no rotation at all. The simulation then works in 3D positions and velocities with spheres, capsules and planes, using only the exactly rounded operations roslambo allows (its PLAN D-1), which hermet's exact-ops lint enforces. No stock physics engine keeps to that, so contacts are hand-written, as roslambo's are. Goal mouths make the pitch non-convex, unlike roslambo's arena
 - **Steering that can change.** One input format can carry all three schemes: a direction and the frame it's measured in, which is the pitch, the line to the ball or the terrier's own nose, and the simulation resolves it into a heading. Anchored sends the line to the ball in ball view and the pitch in chase view. Screen-relative would send the pitch, read from the camera every tick, and vehicle-style steering would send the nose, which the simulation reads as turning. Each player's input carries its own frame, so players could even steer differently in one match. The golden hashes and the tests cover all three frames from the start, so a switch changes only the controls and, for vehicle-style steering, the turn rate
 - **Simultaneous contacts.** With mirrored kickoff spots, two terriers rushing the ball with mirrored inputs, as two copies of one bot do at every kickoff, reach it in the same substep. Contacts settled one at a time in a fixed order, as roslambo's are, would then favor the same pack every time. Settle contacts that begin in the same substep together, and test that a mirrored kickoff gives a mirrored result
@@ -339,12 +340,12 @@ These aren't requirements. They're findings the implementation plan should accou
 - **A ball on terriers.** With true sphere contacts, two terriers squeezing the ball from opposite sides lift it, and it can come to rest on top of them. Plan a rule for that, such as terriers slipping out from under it, and test that a squeezed ball doesn't stay up
 - **A shared, contested ball.** Everyone watches the ball, so a late input that changes a touch moves the ball on every screen. That's why corrections are smoothed on screen here (see *Simulation and consensus*), where roslambo draws them as they come. roslambo's 2-tick input delay and 12-tick window for late inputs, at 60 ticks a second, carry over, to be measured again with a contested ball
 - **A giant ball forgives some latency.** A pounce sends a resting ball off at 5 m/s, so an input 3 ticks (50 ms) late moves it 0.25 m, about a sixth of its size, and one 12 ticks late, at the end of the late window, 1 m. A pounce into a ball coming at 5 m/s changes its speed by 7.5 m/s, up to 1.5 m in 12 ticks, nearly its size. A small ball kicked hard would forgive less still
-- **Cost on the phone.** 8 terriers and a ball make 36 pairs, against roslambo's 28, and a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks, plus the pitch, inside a Pixel 8a frame. Each split of a substep at a contact re-predicts contacts, so the budget counts splits too. Anchored steering keeps a held direction's input the same from tick to tick, so roslambo's prediction, the last input received, holds. A thumb still wobbles on a stick, so send its direction in coarse steps, such as 32 to a turn, so that a wobble doesn't change the input. roslambo measured tick cost on desktops only, and a 3D scene with 8 animated terriers is GPU load that no sibling has measured on the phone, so measure both first
+- **Cost on the phone.** 8 terriers and a ball make 36 pairs, against roslambo's 28, and a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks, plus the pitch, inside a Pixel 8a frame. roslambo's timeline re-simulates the whole window on every tick, 13 steps, and its physics passes over all 36 pairs at least twice a substep, so in its scheme that's 13 × 4 × 36 × 2, at least 3,744 pair checks a tick (C-44). Each split of a substep at a contact re-predicts contacts, so the budget counts splits too. Anchored steering keeps a held direction's input the same from tick to tick, so roslambo's prediction, the last input received, holds. A thumb still wobbles on a stick, so send its direction in coarse steps, such as 32 to a turn, so that a wobble doesn't change the input. roslambo measured tick cost on desktops only, and a 3D scene with 8 animated terriers is GPU load that no sibling has measured on the phone, so measure both first
 - **Mesh and networks.** 4 a side fills the mesh cap exactly, and roslambo's load run was desktop-only. Nobody has measured phones on mobile data or behind strict NATs. A pair that can't connect hurts more around a contested ball, and forwarding adds a hop. On 2026-10-24 roslambo's relay check found relay.damus.io refusing connections, probably for a while only, after the test machine's traffic got it banned, and yabu.me/v2 answering 2 of 3 probes. Check again before the first deploy the way roslambo did: probe each relay by writing an event and reading it back, then decide with a round signaled through that relay alone, because one relay passed every probe and still refused every event Trystero sent
 - **Tests through the real page.** amorfus's two worst first-build defects, a player who couldn't move and installs that could never join each other, passed a green gate because the tests went through test modes. The gate should play a scripted match through the real page and controls, and check that terriers move, the ball moves, and a goal reaches every peer's scoreboard
 - **Terriers that will be modeled.** Pick a renderer that can already load glTF models and play their skeletal animations, such as three.js with its WebGL renderer, so the upgrade isn't a rewrite. Give the code-built terrier the interface a model will have: it takes the animation states, a coat and a bandana, and the simulation never reads anything back from it. Every animation but barking, and how far through it is, is read from the simulation's state, never kept by the drawing code, which keeps only its blends, so a rollback or a resync redraws it right. Whatever a model needs that play doesn't, such as when a terrier last landed, goes into the state from the start, because a field added at the upgrade would change the state's hash, its golden hashes and what peers send. hermet's dist audit allows no model format and scans only text files, so the upgrade starts with a new option there that allows .glb and reads each model's JSON, failing on any `uri` that names a host or a file that isn't shipped, since three.js fetches whatever a model names. Models ship as those files, not embedded in the code, where the scan can't read them, and a model compressed with Draco or KTX2 also needs its decoder's .wasm allowed. A bought model's license must let anyone download its file as shipped, from the site and from a public repo, as CC0 and CC BY do; one that forbids redistributing the asset rules the model out. Its notice, and any decoder's, goes into the shipped notices through hermet's license script, which takes extra entries, and into the expected list the dist audit checks them against. Measure the drawing budget on the Pixel 8a early, with a stand-in skinned model as well as the code-built terrier, so the models can be made to fit it
 - **The look.** The owner chose roslambo's look from samples. Plan the same step for the terriers and their coats, the packs' colors and patterns, and the ball, with every coat checked against both packs' colors for color blindness, as roslambo's palette test does. Drive the moving samples from recorded matches through the interface a model will have, as roslambo's look book replays recorded rounds, so the same step runs again for the models
-- **Trystero and the player ID.** As roslambo: Trystero 0.26.0, exact and unpatched, and a persistent player ID kept apart from Trystero's `selfId`, which changes on every page load. An upgrade of Trystero now moves three apps at once
+- **Trystero and the player ID.** As roslambo: Trystero 0.26.0, exact and unpatched, and a persistent player ID kept apart from Trystero's `selfId`, which changes on every page load. An upgrade of Trystero now couples three apps: hermet's room config is typed against the Trystero each app installs, so a change to that type is a hermet change every app takes at its next pin bump (C-43)
 
 ## Settled questions
 
