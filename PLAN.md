@@ -7,6 +7,9 @@
   - The phone, a third device and a gamepad come up again before M5, as Q-4 proposed.
   - REQUIREMENTS L342 and L345 ask for the phone early, so until it runs, the drawing budget stays provisional (C-2).
 - *The owner, 2026-11-14:* the domain is terriest.com, on Cloudflare (Q-5). Deploys use wrangler's stored full login (Q-6). Make hermet's licence fix and push it (Q-3): done, pushed to hermet's main as 11283ca. roslambo and amorfus take it, as Q-20 proposes.
+- M0 finished on 2026-11-16, except run 6, which waits for the owner under §17's rule for attended steps: see [research/spike/REPORT.md](research/spike/REPORT.md). Its amendments are marked "M0", in §0, §2–§5, §7, §8, §12, §16, §17 and Appendix A.
+  - The five correctness conditions of its stop rule passed. The cost condition fired narrowly, on the tick timed while the page draws (§17).
+  - The cost revisit that condition asks for kept D-3's and D-5's settings: 4 substeps, 8 iterations, 2 position passes and the floor in the solve. No cheaper setting kept §16's tests green with every drawn run under 4 ms, though two calls were close (D-3, D-5).
 
 **Date:** 2026-11-14; approved 2026-11-15.
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
@@ -65,24 +68,24 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 - Rules the text leaves open are stated: what terriers may do in each phase, zoomies after an empty meter, the celebration and overtime order, a shared goal's credit, Practice's rules, abandoned matches from the start countdown on (so L282's reload needs another browser in the match), results for a browser that arrives at the end, a match of bots alone, Play again (one match for every press, full packs, late presses), the mesh cap counting browsers, and what "joins" means for contacting third parties.
 - Smaller additions: the ball's turning on screen is drawing only; the tests serve the stand-in model; Settings gains render quality and "Show control hints again"; and the bandanas gain a pack cue, if you pick one (Q-11).
 - The domain becomes terriest.com (Q-5), the TBD values become the ones you sign off, at M2 and the chase-view swing at M4 (Q-10), Q-14 fills in any relay swap, and the acceptance devices are named before M5, with each line's own conditions kept (Q-4).
-- The notes for the plan on reuse, Trystero and the phone's cost are corrected, and the one on resting contact once M0 has measured it (C-43, C-44).
+- The notes for the plan on reuse, Trystero and the phone's cost are corrected, and the one on resting contact once M0 has measured it (C-43, C-44). **M0:** that one has gone in too (§2).
 
 **Biggest risks:**
-1. **Contacts.** Resting, rolling and simultaneous contacts under exact operations are new, and roslambo's integrator doesn't carry over (C-3). Pushers side by side barely beat one pusher, against L11's "together they get it moving sooner" (C-18), and a ball can come to rest on terriers (C-21). M0 tackles these first.
-2. **The phone is unmeasured**, CPU and GPU both. No more devices are asked for yet (Q-4), and they're asked for again before M5, so its first run comes at acceptance. roslambo's timeline also re-simulates its whole window every tick, which the requirements' cost note doesn't count, and a few single ticks, such as a late-vote repair, take up to about 270 steps (C-2).
+1. **Contacts.** Resting, rolling and simultaneous contacts under exact operations are new, and roslambo's integrator doesn't carry over (C-3). Pushers side by side barely beat one pusher, against L11's "together they get it moving sooner" (C-18), and a ball can come to rest on terriers (C-21). M0 tackles these first. **M0:** the solver passed all of M0's correctness conditions (C-3), and a 42° slip-out cone with a slipping flag brings a ball down off terriers, inside a window of only 42°–43.2° (C-21). Side by side, pushers beat one pusher in the pitch frame, but in ball view, the default, two abreast and four round the ball are slower than one (C-18).
+2. **The phone is unmeasured**, CPU and GPU both. No more devices are asked for yet (Q-4), and they're asked for again before M5, so its first run comes at acceptance. roslambo's timeline also re-simulates its whole window every tick, which the requirements' cost note doesn't count, and a few single ticks, such as a late-vote repair, take up to about 270 steps (C-2). **M0:** in Chromium at 4× CPU throttle, a crude stand-in for the phone, the tick has no margin. On the scrum at the wall, a 13-step tick's p95 was 3.49–4.60 ms while the page drew, against a 4 ms ceiling, and no cheaper solver setting kept §16's tests green with every drawn run under it (D-5). A late-vote repair took up to 96 ms, so M3 spreads such ticks over several (C-2, D-11).
 3. **Without TURN**, some pairs of networks can't connect (C-1, from roslambo).
 4. **The gate draws WebGL 2 in software**, at 5–26 frames a second for a busy scene. So end-to-end tests must never depend on the frame rate, and frame time is judged only by hand (C-6).
-5. **hermet's licence notices shipped without their texts**, in roslambo's and amorfus's live builds too. The fix is pushed, as hermet 11283ca (Q-3), but each sibling still needs a bump and a redeploy (Q-20). And three.js has never been through hermet's dist audit (C-8, C-9).
+5. **hermet's licence notices shipped without their texts**, in roslambo's and amorfus's live builds too. The fix is pushed, as hermet 11283ca (Q-3), but each sibling still needs a bump and a redeploy (Q-20). And three.js has never been through hermet's dist audit (C-8, C-9). **M0:** it has now, and its one finding is cleared by an app option, with no hermet change (C-9).
 6. **Real Safari is untested** on Mac and iPhone, unless the device round before M5 names one (C-7, Q-12).
 
 **What approval authorises:** the decisions in §4 and every Group B proposal; M0, a throwaway spike that uses no network beyond installing packages; then M1–M5.
 - It does **not** authorise pushing terriest, any further push to hermet (such as its docs naming terriest at M1), any change to roslambo or amorfus (Q-14, Q-20), deploying, or the relay check that writes to public relays. Each waits for your go-ahead (§17), and the first deploy's go-ahead names the DNS records it will replace (Q-5). hermet's licence fix is already pushed, at your request (Q-3).
 - Steps that need you before M5 (M0's frame verdict, the tuning, your M3 and M4 desktop checks, the bots' level and the look) don't hold up the work. If you aren't free, Claude settles each provisionally, and you confirm or change it before the deploy (Q-13, §17).
-- REQUIREMENTS.md is yours. Approving the plan accepts it as amended by §2. The edits went in on 2026-11-15, in one commit that cites the Q- and C-numbers, with the status line updated; four rows wait for later steps (§2).
+- REQUIREMENTS.md is yours. Approving the plan accepts it as amended by §2. The edits went in on 2026-11-15, in one commit that cites the Q- and C-numbers, with the status line updated; four rows waited for later steps, and three still do (§2).
 
 **Approved** on 2026-11-15, at its defaults, with the settlements recorded at the top of §1.
 
-**What this rests on (§5):** your requirements; roslambo's, amorfus's and hermet's plans, code and reports; a two-round audit on 2026-11-14 that checked every claim the requirements make about them, probed WebGL 2 in the three headless engines here, and rebuilt both siblings to confirm the licence bug, then hermet's fix; and two reviews of this plan's drafts, which modelled the solver, the timeline and the cameras. Nothing in the physics or rendering has been measured yet. Every cost here is an estimate, labelled as one.
+**What this rests on (§5):** your requirements; roslambo's, amorfus's and hermet's plans, code and reports; a two-round audit on 2026-11-14 that checked every claim the requirements make about them, probed WebGL 2 in the three headless engines here, and rebuilt both siblings to confirm the licence bug, then hermet's fix; and two reviews of this plan's drafts, which modelled the solver, the timeline and the cameras. Nothing in the physics or rendering has been measured yet. Every cost here is an estimate, labelled as one. **M0** has since measured both on this machine, all but run 6's frame verdict, though not the phone, and its numbers are marked M0 (§5).
 
 ---
 
@@ -131,9 +134,9 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 
 REQUIREMENTS.md is yours. These edits went in on 2026-11-15, in one commit that cites the numbers, at the defaults: Q-8's and Q-19's alternatives weren't chosen. Notes for the plan are not requirements, but they are your text too, so their corrections are listed here as well.
 
-Four rows wait for a later step:
+Four rows waited for a later step. One has gone in, and three still wait:
 - the pack cue (Q-11, C-51), if you pick one at M4;
-- the note on resting contact (C-44), once M0 has measured it;
+- the note on resting contact (C-44), once M0 had measured it: **applied after M0** (research/spike/REPORT.md §3);
 - a relay swap (Q-14), if one fails the pre-deploy check;
 - the tuned values (Q-10), at M2 and M4.
 
@@ -174,7 +177,7 @@ Four rows wait for a later step:
 | Notes, Reuse: "need only a docs update" | "hermet takes each app's policy as options, so a third app needs no hermet change for its own policy. Its docs name only amorfus and roslambo; its licence writer shipped no licence texts until the owner-requested fix of 2026-11-14 (C-8, Q-3), which terriest pins from the start and each sibling takes at its next pin bump; and the three.js build must be checked against its audit (C-9)." | C-43 |
 | Notes, Trystero: "An upgrade of Trystero now moves three apps at once" | "… now couples three apps: hermet's room config is typed against the Trystero each app installs, so a change to that type is a hermet change every app takes at its next pin bump" | C-43 |
 | Notes, Cost on the phone: "a 12-tick replay of 4 substeps each checks them 48 times: 1,728 pair checks" | Add: "roslambo's timeline re-simulates the whole window on every tick, 13 steps, and its physics passes over all 36 pairs at least twice a substep, so in its scheme that's 13 × 4 × 36 × 2, at least 3,744 pair checks a tick" (its `timeline.ts` and `physics.ts`; research/audit/REPORT.md §5) | C-44 |
-| Notes, Resting and rolling contact: "bodies resting together hit a per-substep event cap" | Only once M0 has measured it: in the audit's probe (research/audit/REPORT.md §5) roslambo's cap never bound, and its per-substep overlap pass settled resting bodies; and the 137–174 events a second came from roslambo's M0 integrator, which its M2 replaced | C-44 |
+| Notes, Resting and rolling contact: "bodies resting together hit a per-substep event cap" | Only once M0 has measured it: in the audit's probe (research/audit/REPORT.md §5) roslambo's cap never bound, and its per-substep overlap pass settled resting bodies; and the 137–174 events a second came from roslambo's M0 integrator, which its M2 replaced. **Applied after M0** (research/spike/REPORT.md §3), with M0's measurement added: "terriest's solver treats the floor as support, and its M0 spike held a resting ball bit-still for 10 minutes of ticks" | C-44 |
 | Platform: "Domain **TBD**" | "Domain **terriest.com**" | Q-5 |
 | Stack: the six relays | Any relay that fails the pre-deploy check, replaced as you choose | Q-14 |
 | Configuration: the TBD values | The values you sign off: at M2 on the tuning page, and the chase-view swing at M4 with the cameras. A starting value the tuning changes, such as the turn rate, is updated too | Q-10 |
@@ -197,14 +200,17 @@ Four rows wait for a later step:
 
 **C-2 — The phone's cost is unmeasured, and now comes last.**
 - **CPU:** roslambo re-simulates the whole 12-tick window from the final state on every tick, plus one finalising step: 13 steps a tick, not a 12-tick replay now and then. In roslambo's scheme, with 9 bodies, that's 13 steps × 4 substeps × 36 pairs × at least 2 all-pairs passes a substep: at least 3,744 pair checks a tick before any contact splits (research/audit/REPORT.md §5), against L342's 12 × 4 × 36 = 1,728 for one replay. D-5's cost also grows with contacts: 18 passes over the contact list per substep (8 iterations of a forward and a back sweep, then 2 position passes), so about 18,700 contact solves a tick in an 8-terrier scrum, at the 13-step replay the budget assumes (research/audit/REPORT.md §9). roslambo measured tick cost on desktops only.
+  - **M0, amended** (research/spike/REPORT.md §8): the 18,700 assumes about 20 contacts a substep, which is a peak. 4-a-side scrums average 10.9–12.1 contacts a substep, 8.0–8.5 of them the floor's, with 17–22 at most in one substep.
 - **Worst ticks:** some single ticks cost more, and D-11 can't shorten them, because their base state changes: a resync takes about 30 steps, a joiner's catch-up about 42, and a late-vote repair up to about 270 (research/audit/REPORT.md §9).
+  - **M0, amended** (research/spike/REPORT.md §5.3): in Chromium at 4× throttle, on two 4-a-side scrums, 30 steps took at most 15.5 ms and 42 steps at most 23.3 ms. 270 steps took 30.3–37.2 ms at the median and up to 96.2 ms, over 50 ms in 21 of 24 runs of 30 bursts (D-11). So M3 builds D-11's spread.
 - **GPU:** 8 animated terriers, a ball and a netted pitch in 3D, never measured on any phone. Every headless engine here draws in software (C-6), so nothing local stands in for the Pixel 8a.
 - **Timing:** no more devices are asked for yet (Q-4). This plan asks again before M5, so the first phone run is planned for M5, unless you ask for it sooner.
 - **Resolution:**
   - D-11 re-simulates only from the earliest tick whose base or inputs changed, usually 1–2 steps; the budget still assumes 13.
   - M0 measures tick cost on its most contact-heavy script, with the contacts counted, on the desktop and in throttled Chromium at the Pixel 8a's size, as roslambo's proxy does. It also times the worst single ticks on that script against L286's 50 ms maximum frame. Its stop rule sets a ceiling: the p95 of a 13-step tick on that script at most 4 ms in Chromium at 4× CPU throttle, a quarter of a 60 Hz frame (§17).
-  - If a worst tick exceeds 50 ms there, D-11 spreads its steps over several ticks, which M3 builds and tests (M0's stop rule).
-  - The drawing budget the gate enforces starts at §12's guesses, a ceiling until the phone runs. M0 records the spike's counts against them and may lower a figure, never raise one, since no desktop run stands in for the phone; the phone run sets them.
+    - **M0, amended** (research/spike/REPORT.md §4): the ceiling's reading is the tick timed while the page draws, its ticks on the 60 Hz clock, as roslambo's proxy timed it, with the nothing-drawn reading beside it. On it the tick went over narrowly: 3.49–4.60 ms, over 4 ms in 11 of 26 runs, against 2.86–3.39 ms with nothing drawn. At every setting the cost revisit timed, drawing added 0.61–1.47 ms to the p95. The revisit kept D-3's and D-5's settings. If the phone run needs cheaper ticks, 4 iterations is the cheapest setting the revisit timed that passes §16's tests (D-5).
+  - If a worst tick exceeds 50 ms there, D-11 spreads its steps over several ticks, which M3 builds and tests (M0's stop rule). **M0:** the late-vote repair does (D-11).
+  - The drawing budget the gate enforces starts at §12's guesses, a ceiling until the phone runs. M0 records the spike's counts against them and may lower a figure, never raise one, since no desktop run stands in for the phone; the phone run sets them. **M0:** it lowered none (§12).
   - A render-quality setting (D-33) gives a cheaper path.
 - **Residual:** a late surprise on the phone could force cuts at M5. For a long frame, the first fix is to compile ahead whatever compiled mid-match (§12); then come fewer triangles, a lower pixel ratio, simpler effects.
 
@@ -217,6 +223,7 @@ Four rows wait for a later step:
 - Settled all at once instead, in plain Jacobi iterations, several contacts on one body mis-solve. The review of this plan's first draft modelled three or four terriers hitting the ball together: they created energy, or sent the ball slower than one terrier did (research/audit/REPORT.md §6).
 - **Resolution:** a new solver (D-5): the floor as support, accumulated impulses by Gauss–Seidel over mirror pairs, restitution only above a closing speed. M0 proves it. Its stop rule sends it back to D-5 if a resting ball can't be held bit-still, simultaneous hitters gain energy, a mirrored kickoff isn't exactly mirrored, or no slip-out rule passes its tests.
 - **Residual:** the solver is unproven until M0. If M0's stop rule fires, D-5 is revisited before M1, and this plan is amended with M0's numbers (§17).
+- **M0, confirmed** (research/spike/REPORT.md §4): the solver passed all four conditions. Only the stop rule's cost clause fired, and the revisit it asks for kept D-5's settings (D-5).
 
 **C-4 — "A correction never takes one back" isn't true at final ticks.**
 - **Problem:** a final tick is safe from late inputs, but a peer whose hash loses the vote replaces its final state, about 0.4 s plus a round trip later. That's why roslambo acts on its end only at the vote-confirmed tick. Even a confirmed tick can rarely be re-tallied by a very late vote.
@@ -266,6 +273,7 @@ Four rows wait for a later step:
 - **Problem:** the audit reads every string in the bundle, library code included. A documentation URL in a warning, or in GLSL comment text, fails it. So might a tokenizer edge case, such as a regular expression after `)` that holds a quote. No copy of three.js is on this machine to check.
 - **Resolution:** M0 builds three's WebGL renderer, and GLTFLoader if it ships, then runs the audit with no exceptions. Each finding becomes an app option, a hermet option or a tokenizer fix, and the request guard confirms nothing is ever requested from it.
 - **Residual:** a finding that needs a hermet option or a tokenizer fix is a hermet change. It's pushed only with your go-ahead, and M1's pin waits for it (D-37, §17).
+- **Settled by M0** (research/spike/REPORT.md §5.4, §5.5): the audit found one string in three 0.187.0, the bare `'/'` in `LoaderUtils.extractUrlBase`, cleared by an app option (D-37). No host appears in any string, and hermet's tokenizer agrees with TypeScript's parser on every chunk. The tokenizer's edge case is real, but isn't in three's bundle, so no hermet change is needed. In run 4, every request stayed on the page's origin or used `blob:` or `data:`.
 
 **C-18 — Pushing together helps only when the pushers line up.**
 - **Problem:** L11's "together they get it moving sooner" and L56's "four in about 0.6 s" hold only for an aligned train, one behind another (D-6).
@@ -273,11 +281,17 @@ Four rows wait for a later step:
   - In models of D-5, four abreast took 0.92–1.15 s to 95% of run speed in the pitch frame and 1.0–2.1 s in ball view, against one pusher's 1.14 s (research/audit/REPORT.md §9). The audit's earlier 0.65–0.7 s side by side doesn't hold in 3D.
 - **Resolution:** §2 states the measure. M0 measures one, two and four pushers, side by side in both frames and in a train. The tuning page compares remedies with you (Q-10), such as terrier–ball friction (μ 0.5 gave 0.98–1.01 s in the pitch frame in a model, and was worse in ball view) or a ball-frame target whose component along the ball's travel is run speed. The marks for side by side are set with you at M2 (§16).
 - **Residual:** if none reaches the marks, §2 restates L11 and L56.
+- **M0, amended** (research/spike/REPORT.md §5.2; D-6): side by side helps in the pitch frame more than the models said, at 0.72–0.83 s against one pusher's 1.225 s. In ball view, the default, it's 0.92–2.03 s: two abreast, at 2.033 s, and four round the ball, at 1.313 s, are slower than one pusher. So a remedy matters most in ball view, and the marks are still set with you at M2.
 
 **C-21 — A ball can come to rest on terriers, and the drafted slip-out can't always bring it down.**
 - **Problem:** squeezes, and the kickoff pinch at every bot kickoff, can leave the ball resting on terriers. The drafted slip-out, for contacts within 45° of vertical, fails while terriers keep holding toward the ball (D-5 step 7).
 - **Resolution:** D-5's slip-out, chosen at M0, because the drafted rule fails when terriers keep pushing; §16's cases.
 - **Residual:** a mirrored kickoff pinch sends the ball 0.8–2 m straight up before anything slips (research/audit/REPORT.md §9).
+- **M0, amended** (research/spike/REPORT.md §5.2, §8):
+  - **The drafted rule failed as predicted:** it held the ball up for 8 s in 248 of 864 rest cases, and in 6 of 8 pinches.
+  - **The rule chosen** is a 42° cone from vertical with a slipping flag, at 2 m/s (D-5). It passes all four of §16's cases: a ball on pushers comes down within 1.383 s, and one between two sitting terriers within 0.471 s; no dribble slips out; and pinches come down 0.433–1.650 s after landing, mirrored.
+  - **The pinch's height:** at a run the ball goes 0.8–2.0 m up. At zoomies speed it reaches the overhead net, its centre 4.4 m above rest.
+  - **Its window is narrow,** 42° to 43.2°, so M2 rechecks it whenever it tunes the collider, the drive or friction (D-5).
 
 ### Minor
 
@@ -315,7 +329,7 @@ Four rows wait for a later step:
 | C-41 | Bots are always ready, so a match of bots alone starts when the last is added. | As roslambo; §2 |
 | C-42 | Play-again presses come at different times; a player's old pack may be full. | D-12; §2 |
 | C-43 | L334's "need only a docs update" and L347's "moves three apps at once" are inaccurate. | §2 |
-| C-44 | The notes describe roslambo's integrator and cost imprecisely. | §2: the cost now; the event cap only once M0 has measured it |
+| C-44 | The notes describe roslambo's integrator and cost imprecisely. | §2: the cost now; the event cap only once M0 has measured it, **applied after M0** |
 | C-45 | A `workers.dev` address shows the account's name. | Settled by Q-5: terriest.com, with `workers_dev` off |
 | C-46 | The earlier sibling deploys signed in with wrangler's full-account login, not the scoped token their docs describe. | Settled by Q-6: you chose the full login |
 | C-47 | Holding sideways in ball view spirals outward, about 0.3 m a lap from 3 m away, because each tick aims along the tangent. | Accepted, or an inward correction tuned at M2 (D-7) |
@@ -348,12 +362,21 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - It's needed because the ball frame (D-7) resolves a direction against the line from the terrier to the ball, inside the simulation.
 - **Rejected:** headings kept as unit vectors, renormalised with `Math.sqrt` every tick. That needs no `datan2`, but every turn and snap gets harder to keep exact, and the animations read turning as an angle. It's the fallback if `datan2` fails a golden.
 - **Cost if wrong:** a polynomial error is a tiny direction error, identical everywhere. Low.
+- **M0, confirmed, with one change** (research/spike/REPORT.md §8):
+  - **Measured:** `datan2` is within 0.500082 binary-angle units (1.16e-10 of a turn) of `Math.atan2` over 400,000 seeded vectors, and within 0.501 units on a 1,000,001-point sweep of one octant. It gives exact quarter turns on the axes, for every signed zero and for magnitudes from 5e-324 to 1e300, and exact eighth turns on the diagonals. datan2(−y, −x) = datan2(y, x) + 2³¹ held on 300,000 vectors, and run 1's goldens pin it in four engines.
+  - **The change:** its test's tolerance is within 0.51 units, 1.2e-10 of a turn, replacing "about 1e-9 of a turn" above.
+  - **The polynomial** is the degree-14 Chebyshev interpolant of atan(√s)/√s, used as t·P(t²) with 15 coefficients (`research/spike/src/sim/angle.ts`). M2 can copy it.
 
 **D-3 — 60 ticks a second, 4 physics substeps (roslambo D-3).**
 - **Choice:** one input per browser per tick; substeps of 1/240 s. No tunnelling, which a test checks:
   - **Against the pitch's pieces,** which may be thin: a body moves less than its radius in a substep. A terrier at 10 m/s moves 0.04 m against its 0.25 m.
   - **Between two bodies:** they close by less than their radius sum. The fastest, about 25 m/s, closes 0.1 m against at least 0.5 m between two terriers.
 - **Cost if wrong:** as roslambo.
+- **M0, confirmed** (research/spike/REPORT.md §4, §5.2):
+  - **No tunnelling at 25 m/s:** nothing passed through in 624 shots per pitch, plus the floor, the net and terriers, and the fuzzed ball never left either pitch.
+  - **Cost:** a step costs 26.5–29.9 µs at 1× in Chromium.
+  - **3 substeps,** tried in the cost revisit (§17), cut the back-to-back tick by 27% at 4×. That's the revisit's measure of cost: a 13-step tick's mean with nothing drawn, ticks run back to back, as the median over its runs. But a terrier pressing the ball into a wall then never rests: its state cycles every 2 ticks, by 0.28 mm. They also narrow the slip-out's window: in M0's sweep of 2,880 dribbles, the lowest hop onto the dribbler falls from 43.53° to 42.84° from vertical, nearer the 42° cone (D-5). So 4 substeps stay.
+  - **A close call:** the pressing scene is the only test that 3 substeps fails, alone or with 4 or 6 iterations, and it's M0's addition to §16. Without it, 4 iterations with 3 substeps would qualify: none of its 6 drawn runs went over 4 ms, and it took 42% off the back-to-back tick. Only the revisit timed it.
 
 **D-4 — Bodies and the pitch.**
 - **Choice:**
@@ -371,6 +394,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - A horizontal capsule along the heading, matching the 0.6 m length: turning sweeps its ends into neighbours, 3–6 cm a tick, creating overlaps that the solver must push out every tick. It's the alternative the tuning page can compare.
   - roslambo's half-plane arena: it can't model a goal mouth.
 - **Cost if wrong:** the collider is fixed in the goldens, which can be re-emitted until the first release.
+- **M0, confirmed** (research/spike/REPORT.md §5.2, §8): the sphere collider, the bounded pieces and the point symmetry held. Each of the 28 pieces' mirrors is exact, the mouth is 8 × 3 m clear, and P8 holds on both shapes. The drawn terrier's box stays out of the ball only with D-27's pushing pose (D-27).
 
 **D-5 — The contact solver.**
 - **Choice,** in each substep:
@@ -379,17 +403,17 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   3. **Detect:** every pair of bodies, and every body against the pitch's pieces behind a cheap bound test. Contacts go into one list in a fixed, mirror-symmetric order: bodies interleaved by spot across packs (A1, B1, A2, B2 …, then the ball), so a sum over mirrored partners pairs them. Coincident centres take +z as their normal.
   4. **Floor as support:** a body touching the floor and not moving up is set to z = radius exactly, with vertical speed 0, unless it's the ball closing faster than the threshold, when the ball bounces (0.7). A terrier never bounces off the floor: it lands with vertical speed 0 (L312). A resting ball is then bit-still: gravity and the support cancel exactly.
   5. **Impulses:** accumulated normal impulses, solved by Gauss–Seidel over mirror pairs.
-     - **Order:** contacts are taken in mirror pairs in the fixed order. The two contacts of a pair are computed from the same velocities and applied together, then the next pair is taken. Each sweep runs forward, then back, for a fixed number of iterations, 8 *provisional*.
+     - **Order:** contacts are taken in mirror pairs in the fixed order. The two contacts of a pair are computed from the same velocities and applied together, then the next pair is taken. Each sweep runs forward, then back, for a fixed number of iterations, 8, which M0 kept (below).
      - **Clamping:** each contact's total impulse is clamped so it never pulls; the step within an iteration may be negative. Impulses are weighted by mass, and static pieces are infinitely heavy.
      - **Restitution:** a contact's target separating speed is its restitution × its closing speed at the start of the substep, when that exceeds 0.3 m/s. Slower contacts settle with no bounce.
      - **No friction:** contacts leave tangential speed alone.
 
      Mirror pairs computed together keep a mirrored state exactly mirrored: each pair's impulses are exact mirror images, and a sum over mirror images cancels exactly. Steps 6 and 7 keep the same pairing; steps 1, 2 and 4 act on each body alone.
-  6. **Positions:** in the same mirror pairs as step 5. Both overlaps of a pair are computed from the same positions, then both moves are applied, by mass-weighted fractions; a contact that is its own mirror is taken alone. 2 passes *provisional*, without touching velocities.
-  7. **Slip-out** (*provisional*; M0 chooses the rule): a ball or terrier resting above a terrier doesn't stay up.
+  6. **Positions:** in the same mirror pairs as step 5. Both overlaps of a pair are computed from the same positions, then both moves are applied, by mass-weighted fractions; a contact that is its own mirror is taken alone. 2 passes, which M0 kept (below), without touching velocities.
+  7. **Slip-out** (M0 chose the rule, a 42° cone with a slipping flag: below): a ball or terrier resting above a terrier doesn't stay up.
      - **What it does:** the lower terrier moves out sideways, away from the combined horizontal offset of the bodies above it, or along its heading if exactly centred, and the upper body falls. Slip-outs are decided from the positions after step 6, all found before any is applied. A ball below a terrier is an ordinary contact.
      - **The drafted rule fails:** it slips a terrier out at 2 m/s when a contact is within 45° of vertical. But while terriers keep holding toward the ball, two of them hold it up by themselves with contacts between 45° and 56.8° from vertical: at θ from vertical, the ball pushes each out with 9.8·tan θ N, less than its 15 N drive. And inside the cone, the drive turns a 2 m/s slip round within 2²/(2 × 15) = 0.13 m, short of the 0.15 m from the cone's edge to where the ball reaches the floor.
-     - **M0 compares** a wider cone, up to just inside the contact of a ball on the floor against a standing terrier (acos((R − r)/(R + r)) = 58.4° from vertical at the provisional sizes), so it never fires on a ball that's down; a slipping flag that holds the drive off toward the body above until that body is down; and restitution 0 on those contacts, which would need a §2 row for L311. The review's models tried some of these (research/audit/REPORT.md §9); each is judged against §16's slip-out cases.
+     - **M0 compared** a wider cone, up to just inside the contact of a ball on the floor against a standing terrier (acos((R − r)/(R + r)) = 58.4° from vertical at the provisional sizes), so it never fires on a ball that's down; a slipping flag that holds the drive off toward the body above until that body is down; and restitution 0 on those contacts, which would need a §2 row for L311. The review's models tried some of these (research/audit/REPORT.md §9); each was judged against §16's slip-out cases. What passed was the flag with a narrower cone than the drafted 45° (below).
   8. **Touches and the goal test** (D-8).
 - **Restitution:** the ball keeps 70% of its normal speed off the floor, walls, overhead net and goal frame (L308); the goal netting is tuned from 0.3 *provisional*, so a goal bulges the net rather than springing out. Terrier against ball 0.5 (L311); terrier against terrier and walls 0.3 *provisional*; terrier against the floor 0 (L312).
 - **Rejected:**
@@ -398,6 +422,22 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - Plain simultaneous (Jacobi) impulses: with several contacts on one body, as when a pack hits the ball together, they create energy or under-solve (C-3). Jacobi with each body's share relaxed (1 ÷ its contact count) is the fallback, if mirror pairs prove awkward.
   - A stock physics engine: none keeps to exact operations (L335).
 - **Cost if wrong:** jitter, a creeping ball, pushes that bounce, hits that gain energy. The solver is one module, M0 proves it first, and its tests (§16) catch a regression.
+- **M0, confirmed** (research/spike/REPORT.md §4, §5.2): steps 1–6 hold. A resting ball is bit-still, and simultaneous hitters gain no energy. Bounces keep their fractions: off the floor within 1%, which is semi-implicit Euler's error, and off the walls, the net and the goal frame to within 1e-10. Mirrored kickoffs stay exactly mirrored.
+- **M0, amended: what the choice left open,** written in as the spike built and measured it (research/spike/REPORT.md §5.2, §8):
+  - **Step 3's bound test:** an axis-aligned box per piece, plus an exact broad phase: a body farther from every wall than its reach tests only the planes. In Node, while the spike was built, it cut a step from 52.3 to about 28 µs, with the goldens unchanged.
+  - **The floor in steps 5 and 6:** its contacts take part, as contacts that never pull and never bounce, after step 4's support. Every M0 number used this reading, except the comparisons with the floor out. Without it, push times move by at most 0.06 s, but floor hits are slower: one hitter sends the ball off at 2.160 m/s instead of 2.656.
+  - **Restitution** reads "its closing speed at the start of the substep" before step 1's forces.
+  - **Step 7, the slip-out:** a 42° cone from vertical, at 2 m/s, with a slipping flag. It passes all four of §16's cases (C-21). So does the same rule with restitution 0; none of the other 14 candidates does.
+    - **When it fires:** in every substep that a terrier on the floor has a body above it within 42° of vertical, found from step 3's contacts with the positions after step 6. The terrier's speed away from the bodies above is raised to at least 2 m/s, and the rest of its velocity is kept.
+    - **The slipping flag** stores the body the terrier slipped from, holds off the drive's component toward that body, and clears once that body is on the floor.
+    - **No restitution 0,** so L311 needs no §2 row. If M2 prefers the rule with restitution 0, whose pinches come down sooner (0.30–1.09 s against 0.43–1.65 s), that needs a §2 row first.
+    - **Its window is narrow: 42° to 43.2°.** Below 42°, two sitting terriers take over 0.5 s. From 43.23°, the ball of a zoomies dribble hops onto the dribbler inside the cone: that's the lowest hop found, in a case of `slipout.test.ts`, below the 43.53° of M0's sweep of 2,880 dribbles (D-3). M2 rechecks it whenever it tunes the collider, the drive or friction (C-21).
+    - **A.1 and A.4 follow:** A.1's flags keep slipping, plus a byte for the body slipped from, and A.4's slip-out row is this rule.
+- **M0, confirmed after the cost revisit: 8 iterations, 2 position passes, and the floor in steps 5 and 6** (research/spike/REPORT.md §4). Eight iterations are converged on the hit cases: 8, 16, 64 and 512 give the same speeds. M0's cost clause fired narrowly, so the revisit timed cheaper settings against §16's tests and the drawn reading (§17). The pieces' bound test, the clause's third setting, was already in M0's timings (above). No cheaper setting kept every test green with every drawn run under 4 ms:
+  - **6 and 4 iterations** pass every test, and 4 cut the back-to-back tick by 17% at 4×. But both have drawn runs over 4 ms: 4 iterations in 8 of 20 across the revisit and its verification, with a median p95 of 3.95 ms, against 19 of 20 and 4.28 ms for 8 iterations in the same rounds. That's a close call, which a rule on the median would have decided the other way. If the phone run at M5 needs cheaper ticks, 4 iterations is the cheapest setting that passes the tests (C-2).
+  - **1 position pass** leaves a terrier pressing the ball into a wall cycling every 5 ticks, by 0.2 mm.
+  - **The floor out of steps 5 and 6:** its contacts are 8.53 of a scrum's 11.65 a substep, and taking them out halves the back-to-back tick. But the pressing scene never rests, and 24 of 336 dribbles slip out: the ball hops onto the dribbler at down to 34.4° from vertical, inside the cone.
+  - **3 substeps:** D-3.
 
 **D-6 — Movement and actions.**
 - **Run:** target velocity = the input's direction × run speed, 6 m/s, or zoomies speed, 9 m/s. The drive moves the velocity toward the target by at most 15 m/s² × dt, so it acts as a force shared with whatever the terrier pushes. The heading turns toward the target direction at 2 turns/s and snaps onto it within a step; pounces follow the heading.
@@ -417,6 +457,11 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - **Tumble:** 1.5 s, including a 0.5 s get-up. A tumbled terrier can't act and slides under idle friction. Then the tumble guard, 1.5 s *provisional*, protects it. A pouncing terrier tumbles the rival it hits; two pouncing into each other both tumble. A sitting terrier can be tumbled like any other, and sits again once it's up. The ball tumbles by Q-8's rule; with no horizontal offset between the ball and the terrier, the ball's speed toward it counts as 0.
 - **Bark:** carried in the input, never in the state (D-10, D-16).
 - **Cost if wrong:** feel only; the tuning page shows it, and every constant is in `src/config.ts`.
+- **M0, amended: the push figures** (research/spike/REPORT.md §5.2, §8), replacing the models' above. Each is from rest and in contact, with the rolling slowdown, to 95% of run speed (5.7 m/s):
+  - **One pusher:** 1.225 s. **In a train:** four 0.575 s, and two 0.779 s.
+  - **Side by side:** 0.72–0.83 s in the pitch frame and 0.92–2.03 s in ball view, against one pusher's 1.225 s.
+  - **In ball view, two abreast are slower than one pusher,** at 2.033 s. Driving at the ball's centre from 16.5° off its travel, each pushes forward only while the ball is under 6·cos 16.5° = 5.75 m/s, just above the 5.7 m/s mark. Four round the ball, at 1.313 s, are slower than one pusher too; only four on a line, at 0.921 s, beat it.
+  - **C-18's marks are set with you at M2.** Ball view is the default view, so a remedy matters most there.
 
 **D-7 — Steering frames: one input format for all three schemes.**
 - **Choice:** an input carries a direction (32 steps, or none) and the frame it's measured in. The simulation resolves it:
@@ -497,6 +542,11 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - **The newest input:** prediction repeats each sender's input of the newest tick received: roslambo's `lastButtons` is updated only from a tick at or after the one it holds. As copied, it follows arrival order: a TICK records its own input before its history, so filling a lost tick from that history would leave it at the older input, and prediction would act the newer input's press again (D-10).
   - **Silent terriers:** a terrier whose newest received input is for a tick at or before the newest final tick is predicted absent, as finalisation will make it; only one with an input for a later tick is predicted from its last input. roslambo predicts every silent player from its last input forever, so a terrier whose browser is away would never be drawn sitting (D-16).
 - **Cost if wrong:** if the change ever disagrees with a full replay, a test catches it, and the full replay is one flag away.
+- **M0, amended: the worst ticks** (research/spike/REPORT.md §5.3, §8). In Chromium at 4×, on run 3's two 4-a-side scrums, the plan's at the wall and one in a corner, over 24 runs of 30 bursts (each scrum at the desktop's and the Pixel 8a's sizes, drawn and not, three times):
+  - the late-vote repair, 270 steps, takes 30.3–37.2 ms at the median and up to 96.2 ms. It went over 50 ms in 21 of the 24 runs, including all 12 on the plan's scrum;
+  - the resync (30 steps, at most 15.5 ms) and the joiner's catch-up (42 steps, at most 23.3 ms) stay under 50 ms in one tick.
+
+  So the spread is no longer conditional: M3 builds it and tests it against a full replay. Its starting cap is 42 steps a tick, the catch-up's size, so a 270-step repair finishes in 7 ticks. M3 checks the cap.
 
 **D-12 — Roster events with packs (roslambo D-8).**
 - **Choice:** JOIN carries a pack, a coat and the name; SWITCH a pack; READY, UNREADY and LEAVE as in roslambo. Events ride in a peer's input. JOIN, SWITCH, READY and UNREADY are re-sent until the state shows them (roslambo §8.3); LEAVE isn't, as in roslambo, since an absent player is removed before the start countdown anyway.
@@ -597,6 +647,8 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - Babylon.js: a larger download, for nothing terriest needs.
   - WebGPU: excluded (L234).
 - **Cost if wrong:** the renderer is a leaf behind the drawer interface, and C-9's audit check comes first, at M0.
+- **M0, confirmed** (research/spike/REPORT.md §3, §5.5, §8): three 0.187.0's WebGL 2 renderer, `compileAsync`, `InstancedMesh`, GLTFLoader, SkeletonUtils and `AnimationMixer` work in all three engines. three's core is 118,806 B brotli, and C-9's audit found one string in it, cleared by an app option (D-37).
+  - three's core is one module, so rolldown can't split it. 10,014 B brotli of it serve only GLTFLoader, but they ship on the code-built path too. §12's per-chunk Resource Timing check still passes.
 
 **D-27 — One replaceable terrier drawer (L97, L345).**
 - **Choice:** an interface that takes, per terrier and per frame, a pose (the interpolated, smoothed position and heading) and its animation state from D-9, the coat index and the pack, plus:
@@ -622,6 +674,14 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - served by Playwright's request interception to the real built page, named through the pre-load test hook (roslambo's `window.roslamboTest`, as `window.terriestTest`).
 - **Lint:** nothing in `src/core/**` imports three, `src/render/**`, `src/ui/**`, `src/input/**` or `src/audio/**` (D-38).
 - **Cost if wrong:** contained: the interface is one module, and the stand-in tests it, painting included, before any model exists.
+- **M0, confirmed, with these changes** (research/spike/REPORT.md §5.4, §8):
+  - **Code-built:** 9 instanced parts, because the bandana is split by pack pattern, and a snout and a face are added. That's 9 draw calls for 8 terriers, at 1,516 triangles a terrier.
+  - **The fit needs the pushing pose.** Without it, the drawn terrier enters a touching ball by up to 6.6 cm, running, at the 31.6° contact of a push from the floor. With the pose held for 8 ticks after a ball contact, every phase clears the ball by 0.1–8.2 cm at contacts from 31.6° to 90°.
+  - **The model drawer** works as planned. Its chunk is imported dynamically, and the terriers stay code-built until the model has loaded and compiled, then swap. In run 4, with all three engines running at once, the import took 116–1,797 ms, the load 85–1,416 ms and the compile 16–295 ms.
+  - **Painting:** `fur` and `bandana` take the coat's and the pack's colours through the material colour. The markings mask needs a shader hook, and the bandana's stripes need a texture or an attribute: both are M4's.
+  - **Bones:** `SkeletonUtils.clone` gives each skinned mesh its own skeleton, so 8 terriers of 2 primitives make 16 bone textures. That's inferred from three's source; the model path holds 19–20 textures in all. Binding each terrier's meshes to one skeleton halves them (M4).
+  - **Nothing compiles in play (§12):** `compileAsync` compiles programs but doesn't upload geometry, so one render with frustum culling off follows it, before play. With it, programs, geometries and textures stayed constant through every window of run 4.
+  - **The stand-in** can be generated in memory by the tests from `scripts/make-standin.mjs`, byte-identical each run, so `e2e/fixtures/` needs no binary.
 
 **D-28 — Cameras (L87–L92).**
 - **Chase view:** behind and above the terrier, its yaw easing toward the heading with a 0.3 s time constant, at most 1 turn/s. The calmer camera uses 0.6 s and 0.5 turn/s. A held, unmoved direction doesn't depend on either (L87); a direction read from the screen takes the camera's yaw at that moment, so a re-read during a swing depends on the setting (Q-19).
@@ -699,6 +759,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - **Types:** three ships no TypeScript types of its own, and hermet's strict tsconfig rejects an untyped import. So `@types/three` is pinned exactly at the 0.187 line, dev only. M0 checks that one exists for 0.187, or pins three to the newest revision that has one (D-26).
 - **axe:** `@axe-core/playwright` ^4.10, as amorfus pins it, for D-30's axe checks.
 - **Playwright** 1.64.1, whose browsers are already installed here.
+- **M0, confirmed** (research/spike/REPORT.md §8): `@types/three` 0.187.0 exists. It was published on 2026-10-30, the same day as three 0.187.0, with the dist-tag `ts6.0`. So three stays at 0.187.0 exact, with `@types/three` at 0.187.0 exact. Every three API the spike's scene uses typechecks under hermet's strict options.
 
 **D-35 — Hosting (roslambo D-25).** Workers static assets, assets only, observability off. A `public/_headers` file, as amorfus's, marks the hashed assets immutable and sets its security headers; everything else is revalidated. Served at terriest.com (Q-5). Deploys use wrangler's stored login (Q-6), and each waits for your go-ahead.
 - **The content security policy,** written out: `script-src 'self'; connect-src 'self' wss: blob:; object-src 'none'; base-uri 'none'`.
@@ -706,6 +767,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - `connect-src`: `'self'` for the site's own files, such as a model; `wss:` for the Nostr relays, including any a player adds; and `blob:`, which amorfus's policy lacks, because GLTFLoader fetches a `.glb`'s embedded images from `blob:` URLs (research/audit/REPORT.md §9; M0 confirms it with three itself, §17). STUN, TURN and the peers go over WebRTC, which connect-src doesn't govern.
   - `object-src 'none'` and `base-uri 'none'`: no plugins, and no `<base>` to redirect the relative paths.
   - The gate plays the stand-in under this file unchanged, and a unit test checks its rules (§16). §12 lists what a model's decoder would add.
+- **M0, confirmed as written** (research/spike/REPORT.md §3, §5.4, §8): `blob:` in connect-src is needed, and it's enough. Under amorfus's policy, each engine refused one fetch, connect-src blocking `blob:`, and the stand-in's embedded texture was missing. Under this policy exactly as written, it loaded at 256 × 256 in all three engines, and nothing was refused, by three or by the page. Vite's module-preload polyfill fetches same-origin URLs, which `'self'` covers, and `build.modulePreload.polyfill: false` drops it.
 
 **D-36 — The spike stays separate (roslambo D-26).** M0 lives in `research/spike/`, with its own `package.json`. Nothing in `src/` imports it; its findings go in `research/spike/REPORT.md`.
 
@@ -718,10 +780,11 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
       - `ignoredHosts: ['stun']`;
       - `textFiles: ['_headers']` (D-35);
       - `loopbackFiles: ['boot.js']`, because the boot messages say how to serve the folder on localhost, as amorfus's do;
-      - whatever C-9's check justifies;
+      - `ignoredPaths: ['/']`, for the bare `'/'` in three's `LoaderUtils.extractUrlBase`, a separator that's never requested: the one finding C-9's check made in three (M0);
     - the licence writer passes `product: 'terriest'`.
   - The gate runs hermet's tests under terriest's own ESLint, ws and vitest. Never edit `vendor/hermet` in place.
 - **Cost if wrong:** as roslambo.
+- **M0, amended** (research/spike/REPORT.md §5.5, §8): the dist audit gains `ignoredPaths: ['/']`, above. No hermet option or tokenizer fix is needed, so M1's pin at 11283ca stands.
 
 **D-38 — Lint boundaries.**
 - **Choice:**
@@ -735,6 +798,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - **One list per file group:** in a flat config, a later object's options for a rule replace an earlier one's for every file both match, so bans in separate objects silently cancel each other. So `eslint.config.mjs` builds each rule's options once per disjoint file group, with one helper: `src/core/sim` and `src/core/bot`; the rest of `src/core`; `src/render`; `src/net/trystero.ts`; `src/storage`; the rest of `src`.
 - **Testing the lint:** a config test with fixture files, as roslambo's `scripts/eslint/config.test.mjs` does. It lints every banned construct in each group (`src/core/sim`, `src/core/bot`, `src/core/timeline`, `src/render`, `src/ui`, `src/net`, `src/storage`), D-1's `const { sin } = Math` included, and expects it to fail or pass as that group's rules say, not one directory per rule.
 - **Cost if wrong:** none.
+- **M0, amended** (research/spike/REPORT.md §6, §8): the spike's verifier found three gaps in its lint, none of them present in its simulation. A `.tsx` or `.jsx` file isn't linted at all; a parameter typed `typeof Math` and called as `m.sin()` isn't caught; and nor is `toLocaleString`. So in `src/core/sim` and `src/core/bot`, every script extension is linted, a `typeof Math` parameter and `toLocaleString` are banned, and the config test covers all three.
 
 ### Bots
 
@@ -768,7 +832,9 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - The example match ID's check character (C-15).
 - npm, read only: three 0.187.0 (MIT), `@trystero-p2p/nostr` 0.26.0, and the hermet submodule fetchable at 18a37b2.
 
-**Not measured:** the contact solver, three.js's bundle and its audit, the phone, real networks, and every cost in this plan. M0 measures the first three on the desktop; the phone's first run is planned for M5 (Q-4).
+**Measured since approval:** M0, in [research/spike/REPORT.md](research/spike/REPORT.md), on this machine: the contact solver in four engines, the page's counts and downloads, three.js's audit, and the tick cost in throttled Chromium. Its frame verdict on your desktop GPU, run 6, waits for you.
+
+**Not measured** when the plan was written: the contact solver, three.js's bundle and its audit, the phone, real networks, and every cost in this plan. M0 has since measured the first three on the desktop (above); the phone's first run is planned for M5 (Q-4).
 
 ---
 
@@ -841,7 +907,7 @@ Everything below is in the canonical state (Appendix A.1), and so in the hash. S
 - **Per terrier**, in (spot, pack) order:
   - **identity:** player ID, name, pack, spot, coat;
   - **lifecycle:** join tick, Ready-until tick, last tick with an input, the previous present final input (D-10);
-  - **body:** heading and the overhead reference (D-7); position and velocity (six float64); flags (on the floor, sitting, lunging, zoomies locked out, ball overhead, and slipping if M0's slip-out rule uses one);
+  - **body:** heading and the overhead reference (D-7); position and velocity (six float64); flags (on the floor, sitting, lunging, zoomies locked out, ball overhead, and slipping, with the body slipped from: M0's slip-out uses both, D-5);
   - **timers:** zoomies meter (in half-ticks), pounce wait, lunge, tumble and guard;
   - **counts:** touching the ball, touches, goals;
   - **animation:** the fields of D-9.
@@ -904,7 +970,7 @@ roslambo's §8 applies, with these changes.
 
 | | Property |
 |---|---|
-| P8 | A mirrored kickoff gives a point-mirrored state at every pack size, compared by value (===, so +0 matches −0): positions and velocities negated in x and y and equal in z; headings, push directions and overhead references + 2³¹; every other field equal, except each terrier's identity (player ID, name, coat) and pack. The cross-engine goldens are what check bits. |
+| P8 | A mirrored kickoff gives a point-mirrored state at every pack size, compared by value (===, so +0 matches −0): positions and velocities negated in x and y and equal in z; headings, push directions and overhead references + 2³¹; a held pitch-frame direction in the stored previous input + 16 steps, and the body a terrier slipped from as that body's mirror (M0; research/spike/REPORT.md §6); every other field equal, except each terrier's identity (player ID, name, coat) and pack. The cross-engine goldens are what check bits. |
 | P9 | A goal shows on every peer's scoreboard, once, at its confirmed tick. |
 | P10 | Practice sends nothing over any network. |
 | P11 | Drawing never changes the state's hash. |
@@ -994,6 +1060,7 @@ roslambo's §9 applies: one Trystero action, `[u8 type][payload]`, little-endian
 
 **Nothing compiles in play:** three compiles a shader program the first time each material variant is drawn, which on a phone could cost a frame over L286's 50 ms.
 - At startup, behind Home, the renderer compiles every program a match can use with three's `renderer.compileAsync`, on a scene holding one of each: the code-built drawer's materials, the opaque and faded variants of the walls, net and ball, and every effect (dust, bark mark, net bulge, tumble), at the current render quality. Effect meshes and particle pools are made then too. A rebuild (D-30, D-33) does the same again.
+- `compileAsync` compiles programs but doesn't upload geometry, so one render with frustum culling off follows it, before play (M0; D-27).
 - A faded surface swaps to its precompiled faded material, so nothing toggles `transparent` in play.
 - A model that loads later is compiled the same way before it replaces the code-built terriers.
 - The gate checks this by counts (§16), and the frame bench prints the same counts beside its verdict.
@@ -1012,6 +1079,14 @@ roslambo's §9 applies: one Trystero action, `[u8 type][payload]`, little-endian
   - a model, 8,000 triangles, 32 bones and a 512 × 512 texture;
   - all 8 terriers, 40 draw calls;
   - each way of drawing them, 200 KB compressed, three not included.
+- **M0, confirmed** (research/spike/REPORT.md §3, §8): every figure stands, and none is lowered. The spike's counts are under every guess, and nothing measured on the desktop shows a guess too high for the phone, which sets the figures (C-2):
+  - a code-built terrier, 1,516 triangles, and 8 of them in 9 draw calls;
+  - the stand-in, 2,220 triangles, 8 bones and a 256 × 256 texture, and 8 of them in 16 draw calls. It tests the drawer, not the ceiling: a model at the guesses has 3.6 times its triangles, and 4 times its bones and texture pixels.
+- **M0, amended: the texture figure** counts the model's own textures per terrier (research/spike/REPORT.md §5.4, §8). three's bone textures and its standard material's lookup texture aren't the model's, so they're counted apart.
+- **M0, amended: the download lines** (research/spike/REPORT.md §5.5, §8):
+  - three's core, a line of its own: 118,806 B brotli;
+  - the code-built drawer's share: at most 23,747 B, the entry chunk without three, which also holds the simulation and the scene;
+  - the model drawer's share: its chunk and the model, 30,572 B with the stand-in. A real model at the guesses must fit the 200 KB.
 
 **Render-only maths** may use `Math.sin` and the rest; the exact-ops rule applies only to `src/core/sim` and the bot brain (D-38).
 
@@ -1118,19 +1193,22 @@ D-39, with roslambo's hosting:
 **The gate:** `npm run check`. It passes at the end of every milestone from M1, and before any deploy. It's never weakened to make a build pass. Its wall time is logged in `docs/acceptance.md` at each milestone's exit, from M1.
 
 **Simulation (vitest, fast-check):**
-- A resting ball's and a standing terrier's state stays bit-identical for 10 minutes of ticks.
+- A resting ball's and a standing terrier's state stays bit-identical for 10 minutes of ticks. So do the bodies of a terrier against the ball at a wall, and of one pressing the ball into it (M0): their positions, velocities, headings and floor flags.
+  - The two scenes at the wall start from 1 µm overlaps and settle before they're compared, for 10 ticks, or 60 while the terrier presses, as M0's tests do, and the test asserts that their contacts exist. Bodies placed exactly touching can end up apart by rounding, 6.7e-16 m in M0, and never touch (research/spike/REPORT.md §6).
+  - M0's cost revisit rests on the pressing scene: it's the only test 3 substeps fails (D-3).
 - A bounce above the threshold keeps 70% (ball against surfaces) or 50% (terrier against ball) of its normal speed, within 1%; below it, contacts settle.
-- **Simultaneous hits:** k = 1 to 4 terriers hit a resting ball at once, from the floor and level, approaching in parallel, with the drive, idle friction and the ball's rolling slowdown off. Horizontal momentum is conserved within 1e-9 and kinetic energy doesn't rise. The ball leaves faster than for one hitter at every k > 1, and faster as k grows for parallel approaches. Hitters aimed at the centre are measured and reported.
+- **Simultaneous hits:** k = 1 to 4 terriers hit a resting ball at once, from the floor and level, approaching in parallel, with the drive, idle friction and the ball's rolling slowdown off. Horizontal momentum is conserved within 1e-9 and kinetic energy doesn't rise. The ball leaves faster than for one hitter at every k > 1, and the speed at each k is pinned (M0). From the floor, four parallel hitters send it slower than three, 3.685 against 3.810 m/s, under D-5's frictionless contacts. L56's "several hitting it at once send it faster" still holds, since every k > 1 beats one hitter (research/spike/REPORT.md §5.2). Hitters aimed at the centre are measured and reported.
 - A rolling ball slows by the configured rate within 1e-12 m/s a substep and stops exactly.
 - **Pushes:** with the rolling slowdown, one pusher brings the ball to 95% of run speed in 1.2 s ± 10%, and four in a train in 0.6 s ± 10%. Two and four side by side, in the pitch and the ball frame, reach marks set with you at M2 (C-18).
 - **A ball on terriers** (D-5's slip-out):
-  - a ball resting on terriers that keep pushing toward it comes down within a mark set at M0, timed from its first landing on them: in the ball frame and with opposite directions in the pitch frame, mirrored at each pack size and with one pack 2 cm and 1 tick off mirror;
+  - a ball resting on terriers that keep pushing toward it comes down within 1.5 s, M0's mark, timed from its first landing on them: in the ball frame and with opposite directions in the pitch frame, mirrored at each pack size and with one pack 2 cm and 1 tick off mirror. Under 42° with the flag, the worst of M0's 864 cases took 1.383 s (research/spike/REPORT.md §5.2);
   - two sitting terriers let it reach the floor within 0.5 s;
   - a lone terrier dribbling at run and at zoomies speed never slips out;
-  - a kickoff pinch, its fall and the slip-out land mirrored, for each pack size.
+  - a kickoff pinch, its fall and the slip-out land mirrored, for each pack size;
+  - "comes down" and "reach the floor" mean the ball's centre within 1 cm of its resting height, or its floor contact found in detection (M0). Between two sitting terriers, 42° with the flag takes 0.471 s by the first and 0.475 s by the second. The ball's centre at or below its resting height isn't the reading: the ball stays a fraction of a millimetre up between them, and both 42° rules then fail (research/spike/REPORT.md §6).
 - **L57:** a terrier running into a resting ball at run speed hops it; one meeting it at the ball's centre height hits it level; two running in from opposite sides lift it off the floor; a steady push from contact keeps the ball's on-floor flag set throughout.
 - **P8:** a mirrored kickoff gives a point-mirrored state at every pack size, compared by value as P8 says, on the pitch and on D-4's second shape.
-- No tunnelling at 25 m/s; the ball never leaves the pitch or sits wholly behind a goal line outside the goal (fuzzed).
+- No tunnelling at 25 m/s; the ball never leaves the pitch or sits wholly behind a goal line outside the goal (fuzzed). The check that a terrier never passes through the ball tests height too (M0): without it, M0's check counted a terrier running under a ball popped to 3 m, with the floor out of the solve (research/spike/REPORT.md §4).
 - **Movement:**
   - run speed, acceleration and turn rate;
   - zoomies, the meter and its lockout;
@@ -1164,7 +1242,7 @@ D-39, with roslambo's hosting:
 - a returning player skipping Join, including into a match with 4 spectators;
 - a browser that arrives, or reloads, while the others are on Results takes the final state from one of them and shows the same results (D-17, C-50);
 - spectator counting (C-11): a burst of undecided peers stays within 8 + 4, a peer lingering on Join doesn't turn a watcher away, and two newcomers handshake without a state; a duplicate ID replacing a silent connection (C-12);
-- every loopback scenario (late inputs, absences, a join, a resync, a late-vote flip), with each tick's predicted chain checked against a full replay, including a worst tick spread over several if M0 calls for it (D-11);
+- every loopback scenario (late inputs, absences, a join, a resync, a late-vote flip), with each tick's predicted chain checked against a full replay, including a worst tick spread over several, which M0 calls for (D-11);
 - a TICK lost and then filled from the history leaves the predicted counters unchanged (D-11);
 - a silent player's terrier, and a bot whose host is away, sits in every peer's predicted state within D-16's sit threshold plus w ticks, and stands again when its inputs return;
 - a hidden page throttled to one timer a second never sits, in the final or the predicted state (adapted from roslambo's `network.test.ts`);
@@ -1263,7 +1341,7 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
   3. **Cost:** tick cost with a 13-step replay every tick, timed on run 1's most contact-heavy script (4 a side scrumming at the ball against a wall), with contacts per substep reported beside each cost. Then the worst single ticks on the same script, each against L286's 50 ms maximum frame: a resync (about 30 steps), a joiner's catch-up (about 42) and a late-vote repair (up to about 270) (C-2; research/audit/REPORT.md §9). Both on the desktop and in Chromium at the Pixel 8a's size, at 1× and 4× CPU throttle.
   4. **The page in all three headless engines at once,** served with D-35's `_headers` applied: frame-rate independence; draw counts and download sizes for both drawers; and the stand-in's embedded texture loading under the content security policy.
   5. **The audit:** every finding classified (C-9).
-  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and read off the frame verdict.
+  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and read off the frame verdict. *M0:* it waits for you, and research/spike/REPORT.md §7 says how. Until then, the rule for attended steps above applies.
 - *Questions answered,* each with a number in `research/spike/REPORT.md`:
   - determinism, pass or fail per engine;
   - whether resting contact is bit-still;
@@ -1278,8 +1356,9 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
   - what the audit found.
 - *Stop rule:*
   - if any engine mismatches in run 1, a resting ball can't be held bit-still, simultaneous hitters gain energy, a mirrored kickoff isn't exactly mirrored, or no slip-out rule passes §16's slip-out cases, stop and revisit D-1, D-2 or D-5 before M1;
-  - if the p95 of a 13-step tick on run 3's script exceeds 4 ms in Chromium at 4× CPU throttle, a quarter of a 60 Hz frame, revisit D-3 and D-5 (solver iterations, position passes, the pieces' bound test) before M1;
+  - if the p95 of a 13-step tick on run 3's script exceeds 4 ms in Chromium at 4× CPU throttle, a quarter of a 60 Hz frame, revisit D-3 and D-5 (solver iterations, position passes, the pieces' bound test) before M1. **M0, amended:** the tick is timed while the page draws, its ticks on the 60 Hz clock, as roslambo's proxy timed it, and the nothing-drawn reading is reported beside it (research/spike/REPORT.md §4);
   - a worst single tick over 50 ms there doesn't stop M0: D-11 then spreads such a tick's steps over several ticks, built and tested at M3 (C-2).
+  - **M0's verdict** (research/spike/REPORT.md §4): the five correctness conditions passed. The cost clause fired narrowly: drawn, 3.49–4.60 ms, over 4 ms in 11 of 26 runs; with nothing drawn, 2.86–3.39 ms. The revisit it asks for kept D-3's and D-5's settings, on two close calls (D-3, D-5). The late-vote repair went over 50 ms, so M3 builds D-11's spread (D-11).
 - *Exit:* the report is committed. D-2 to D-6, D-11's worst ticks, D-26, D-27, D-34, D-35 and the budget are confirmed or amended in this plan, each amendment citing the measurement behind it. An amendment that changes a requirement, such as restitution 0 on slip-out contacts against L311 (D-5), comes to you as a §2 row first.
 
 **M1 — Skeleton and gate**
@@ -1311,7 +1390,7 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
 
 **M3 — Timeline, networking, consensus and Practice**
 - *Build:*
-  - `src/core/timeline`, `protocol` and `session`, from roslambo (§8, §9), with packs, the widened inputs and D-21, and D-11's spread of worst ticks if M0 calls for it;
+  - `src/core/timeline`, `protocol` and `session`, from roslambo (§8, §9), with packs, the widened inputs and D-21, and D-11's spread of worst ticks, which M0 calls for, with its starting cap checked (D-11);
   - `src/net`: the loopback transport, the Trystero transport, forwarding, the local transport; the Trystero packages join `scripts/expected-licenses.json` (§15);
   - bot hosting;
   - the network simulator tests;
@@ -1491,7 +1570,8 @@ n × terrier, in (spot, pack) order:
      u32     heading (binary angle)
      u32     overhead reference (binary angle): the heading when the ball-overhead flag set
      f64     x, y, z, vx, vy, vz
-     u8      flags: on the floor, sitting, lunging, zoomies locked out, ball overhead; slipping, if M0's slip-out rule uses it
+     u8      flags: on the floor, sitting, lunging, zoomies locked out, ball overhead, slipping (M0, D-5)
+     u8      slipped from: 0 none; else 1 + the body's index, the terriers in this order, then the ball (M0, D-5)
      u16     zoomies meter in half-ticks: full 360, drains 2 a tick, refills 1
      u16     pounce wait, lunge, tumble, guard (ticks)
      u8      touching the ball
@@ -1531,16 +1611,17 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 
 `calmCamera` and `quality` are `null` until the player chooses. While null, they follow the default rule: `prefers-reduced-motion` for `calmCamera`, the device's default for `quality` (§11). So a later change to the system's preference still applies, though every change to a setting writes the whole object.
 
-### A.4 Implementation constants (*provisional*)
+### A.4 Implementation constants (*provisional*, but for the rows M0 kept or chose)
 
 | Constant | Value |
 |---|---|
-| Tick rate, substeps | 60 a second, 4 a tick |
+| Tick rate, substeps | 60 a second, 4 a tick (M0 kept 4, D-3) |
 | Input delay d, late window w, vote window v | 2, 12, 12 ticks (roslambo); d is chosen again from M3's correction measurement (D-16) |
 | State history, input history per TICK | 256 ticks, 16 ticks (roslambo's code) |
-| Solver iterations (forward and back sweeps over mirror pairs), position passes (also in mirror pairs) | 8, 2 |
+| Worst-tick spread | at most 42 steps a tick to start, so a 270-step repair takes 7 ticks; M3 checks the cap (D-11) |
+| Solver iterations (forward and back sweeps over mirror pairs), position passes (also in mirror pairs) | 8, 2, with the floor's contacts in both (M0 kept them, D-5) |
 | Restitution threshold | 0.3 m/s |
-| Slip-out | chosen at M0 (D-5); drafted as 45° from vertical, 2 m/s sideways |
+| Slip-out | 42° from vertical, 2 m/s sideways, with the slipping flag (M0 chose it, D-5) |
 | Ball overhead | enter under 0.3 m, leave above 0.4 m (horizontal centre distance) |
 | Stick | 32 steps, half-step hysteresis, 0.2 dead zone; chase view re-reads at 45° |
 | Smoothing | 100 ms; 50 ms for your own terrier; bodies in contact share one decay; chosen from M3's correction measurement (D-16) |
@@ -1583,7 +1664,7 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 
 ### A.6 Toolchain pins
 
-roslambo's (its PLAN A.6, checked 2026-10-24), re-checked at M1: Node ≥ 22.12 (`.nvmrc` 22), vite ^8.3, typescript ~6.0, eslint ^10 with typescript-eslint ^8.72, vitest ^4.1, fast-check ^4.10, `@playwright/test` 1.64.1 exact, wrangler ^4.152, `@trystero-p2p/nostr` 0.26.0 exact, ws ^8 (dev). Plus three 0.187.0 exact (checked on npm 2026-11-14); `@types/three` exact at the 0.187 line (dev), since three ships no types of its own, its existence checked at M0 (D-34); and `@axe-core/playwright` ^4.10 (dev), as amorfus pins it. These are re-checked at M1 with the rest.
+roslambo's (its PLAN A.6, checked 2026-10-24), re-checked at M1: Node ≥ 22.12 (`.nvmrc` 22), vite ^8.3, typescript ~6.0, eslint ^10 with typescript-eslint ^8.72, vitest ^4.1, fast-check ^4.10, `@playwright/test` 1.64.1 exact, wrangler ^4.152, `@trystero-p2p/nostr` 0.26.0 exact, ws ^8 (dev). Plus three 0.187.0 exact (checked on npm 2026-11-14); `@types/three` 0.187.0 exact (dev), since three ships no types of its own, which M0 found exists (D-34); and `@axe-core/playwright` ^4.10 (dev), as amorfus pins it. These are re-checked at M1 with the rest.
 
 ### A.7 `wrangler.jsonc`
 
