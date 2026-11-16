@@ -1,0 +1,12 @@
+// Verification only: the spike's vitest.config.ts, plus the probe that
+// records each test file's simulated solver settings. Run from the spike's
+// folder: npx vitest run --config <this>
+const ROOT = process.cwd();
+export default {
+  root: ROOT,
+  test: {
+    include: ['src/**/*.test.ts', 'test/**/*.test.ts', 'scripts/**/*.test.{ts,mjs}'],
+    environment: 'node',
+    setupFiles: ['test/solver-setup.ts', '<scratch>/probe-setup.ts'],
+  },
+};

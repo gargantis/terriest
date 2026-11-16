@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# The behaviour runs again, after chain.sh, with the probe in a config of its
+# own (vitest has no --setupFiles flag), then finish.sh again. From the
+# spike's folder: bash <this> <scratch dir>
+set -u
+S="$1"
+OUT=results/verify-revisit
+until [ -f "$S/chain.done" ]; do sleep 5; done
+log() { echo "[$(date -u +%H:%M:%S)] $*"; }
+log "uptime: $(uptime)"
+node "$S/vbehaviour.mjs" --spec '' --goldens --probe "$S/probe-setup.ts" --out "$OUT/vitest-defaults.json" --tmp "$S/tmp"
+for spec in m0 i4 i6 s3 i4+s3 p1; do
+  log "under $spec"
+  node "$S/vbehaviour.mjs" --spec "$spec" --probe "$S/probe-setup.ts" --out "$OUT/behaviour-$spec.json" --tmp "$S/tmp"
+done
+bash "$S/finish.sh" "$S" > "$S/finish2.log" 2>&1
+log "done; uptime: $(uptime)"
+echo done > "$S/rerun.done"

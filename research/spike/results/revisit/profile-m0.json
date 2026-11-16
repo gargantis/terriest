@@ -1,0 +1,197 @@
+{
+ "about": "M0's cost revisit: a step's time by D-5's parts, from V8's CPU profile in Node (scripts/revisit/profile.mjs)",
+ "utc": "2026-11-16T07:02:40.274Z",
+ "node": "v22.23.4",
+ "v8": "12.4.254.21-node.57",
+ "spec": "m0",
+ "name": "m0",
+ "label": "i8 p2 floor s4",
+ "method": {
+  "script": "scrum at the wall, flag42",
+  "harness": "src/cost.ts back to back, no bursts",
+  "ticks": 3000,
+  "samplingIntervalUs": 50
+ },
+ "timed": {
+  "meanTickMs": 0.4951291113333312,
+  "stepUs": 38.086854717948555,
+  "contactsPerSubstep": 11.757576923076924,
+  "label": "i8 p2 floor s4"
+ },
+ "profileMs": 1790.9,
+ "simMs": 1601.2,
+ "parts": [
+  {
+   "part": "5: impulses (solve, solveSlot, impulseStep, applyImpulse)",
+   "ms": 754.7,
+   "shareOfSim": 0.471
+  },
+  {
+   "part": "6: position passes (positions, overlap, move)",
+   "ms": 124.8,
+   "shareOfSim": 0.078
+  },
+  {
+   "part": "3: detection (detect, pair, piece, pieceContact, add)",
+   "ms": 317.4,
+   "shareOfSim": 0.198
+  },
+  {
+   "part": "4 and prepare: support, restitution targets",
+   "ms": 41.8,
+   "shareOfSim": 0.026
+  },
+  {
+   "part": "1-2: forces and integration (forcesAndIntegrate, drive, slow)",
+   "ms": 40.4,
+   "shareOfSim": 0.025
+  },
+  {
+   "part": "7: slip-out",
+   "ms": 32.8,
+   "shareOfSim": 0.02
+  },
+  {
+   "part": "the rest of a substep and tick (step.ts: substep, step, intents, touches, pushes, the goal test)",
+   "ms": 183.6,
+   "shareOfSim": 0.115
+  },
+  {
+   "part": "the window's state clone (state.ts)",
+   "ms": 6,
+   "shareOfSim": 0.004
+  },
+  {
+   "part": "the rest of src/sim (angle.ts, physics.ts's other methods, …)",
+   "ms": 99.7,
+   "shareOfSim": 0.062
+  }
+ ],
+ "top": [
+  {
+   "fn": "impulseStep src/sim/physics.ts",
+   "ms": 524.1,
+   "share": 0.293
+  },
+  {
+   "fn": "detect src/sim/physics.ts",
+   "ms": 234.5,
+   "share": 0.131
+  },
+  {
+   "fn": "solve src/sim/physics.ts",
+   "ms": 119.6,
+   "share": 0.067
+  },
+  {
+   "fn": "substep src/sim/step.ts",
+   "ms": 106.5,
+   "share": 0.059
+  },
+  {
+   "fn": "applyImpulse src/sim/physics.ts",
+   "ms": 94.5,
+   "share": 0.053
+  },
+  {
+   "fn": "positions src/sim/physics.ts",
+   "ms": 85.4,
+   "share": 0.048
+  },
+  {
+   "fn": "(garbage collector) (native)",
+   "ms": 65.6,
+   "share": 0.037
+  },
+  {
+   "fn": "pieceContact src/sim/pitch.ts",
+   "ms": 54.5,
+   "share": 0.03
+  },
+  {
+   "fn": "step src/sim/step.ts",
+   "ms": 45.9,
+   "share": 0.026
+  },
+  {
+   "fn": "pushDirection src/sim/physics.ts",
+   "ms": 45.1,
+   "share": 0.025
+  },
+  {
+   "fn": "prepare src/sim/physics.ts",
+   "ms": 39.6,
+   "share": 0.022
+  },
+  {
+   "fn": "forcesAndIntegrate src/sim/physics.ts",
+   "ms": 37.8,
+   "share": 0.021
+  },
+  {
+   "fn": "slipOut src/sim/physics.ts",
+   "ms": 32.8,
+   "share": 0.018
+  },
+  {
+   "fn": "overlap src/sim/physics.ts",
+   "ms": 30,
+   "share": 0.017
+  },
+  {
+   "fn": "intents src/sim/step.ts",
+   "ms": 23.8,
+   "share": 0.013
+  },
+  {
+   "fn": "datan2 src/sim/angle.ts",
+   "ms": 19.2,
+   "share": 0.011
+  },
+  {
+   "fn": "solveSlot src/sim/physics.ts",
+   "ms": 16.5,
+   "share": 0.009
+  },
+  {
+   "fn": "add src/sim/physics.ts",
+   "ms": 14.7,
+   "share": 0.008
+  },
+  {
+   "fn": "__require node:internal/deps/amaro/dist/index",
+   "ms": 11.3,
+   "share": 0.006
+  },
+  {
+   "fn": "piece src/sim/physics.ts",
+   "ms": 10.3,
+   "share": 0.006
+  },
+  {
+   "fn": "move src/sim/physics.ts",
+   "ms": 9.5,
+   "share": 0.005
+  },
+  {
+   "fn": "from src/sim/source.ts",
+   "ms": 9.4,
+   "share": 0.005
+  },
+  {
+   "fn": "(program) (native)",
+   "ms": 8.8,
+   "share": 0.005
+  },
+  {
+   "fn": "compileSourceTextModule node:internal/modules/esm/utils",
+   "ms": 6.8,
+   "share": 0.004
+  },
+  {
+   "fn": "pieceSurface src/sim/physics.ts",
+   "ms": 6.2,
+   "share": 0.003
+  }
+ ]
+}

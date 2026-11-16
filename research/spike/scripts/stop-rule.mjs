@@ -19,20 +19,35 @@
 // Writes results/stop-rule.json and prints a line per condition.
 //
 //   node scripts/stop-rule.mjs
+//
+// M0's cost revisit: with --measured-only, only the three conditions
+// measured here run, written to the file --out names; TERRIEST_SPIKE_SOLVER
+// runs them under a solver variant (src/solver-settings.ts), which is
+// refused without --measured-only, since the runs' files belong to M0's
+// settings.
+//
+//   TERRIEST_SPIKE_SOLVER=i4 node scripts/stop-rule.mjs --measured-only --out results/revisit/conditions-i4.json
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dir, fractionOfTurn, HALF_TURN } from '../src/sim/angle.ts';
-import { DT, SLIP_OUT_RULES } from '../src/sim/config.ts';
+import { makeConfig, SLIP_OUT_RULES, substepDt } from '../src/sim/config.ts';
 import { WALL } from '../src/sim/pitch.ts';
 import { ballDir, chasey, GOLDEN_SCRIPTS, park, pinch, place, placeBall, scriptConfig, scriptInputs, scriptStart } from '../src/sim/scripts.ts';
 import { makeSim, step } from '../src/sim/step.ts';
 import { kineticEnergy, mirrorMismatches, momentum, run, scenario } from '../src/sim/testing.ts';
+import { applySolverDefaults } from '../src/solver-settings.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const results = join(root, 'results');
 const readJson = (name) => JSON.parse(readFileSync(join(results, name), 'utf8'));
 const t0 = performance.now();
+const variant = process.env.TERRIEST_SPIKE_SOLVER ?? '';
+const MEASURED_ONLY = process.argv.includes('--measured-only');
+if (variant.trim() !== '' && !MEASURED_ONLY) throw new Error('a solver variant runs only the measured conditions: pass --measured-only and --out');
+const outArg = process.argv.includes('--out') ? process.argv[process.argv.indexOf('--out') + 1] : null;
+const outFile = outArg ? resolve(outArg) : join(results, MEASURED_ONLY ? 'stop-rule-measured.json' : 'stop-rule.json');
+const solver = applySolverDefaults(variant);
 
 // --- A resting ball, bit-still -----------------------------------------------
 
@@ -79,7 +94,7 @@ function bitStill(name, setup, settle, input = () => 0) {
     float64sComparedPerTick: want.values.length, alsoCompared: 'each terrier heading (u32) and every body floor flag',
     ticksDiffering: changedTicks, firstDifferingTick: first, maxAbsDeviation: maxDeviation,
     ballZ: sc.s.ball.z, ballOnFloor: sc.s.ball.onFloor,
-    contacts: { perSubstep: contacts.perSubstep / (TICKS * 4), terrierBallSubsteps: contacts.terrierBallSubsteps, ballWallSubsteps: contacts.ballWallSubsteps, substeps: TICKS * 4 },
+    contacts: { perSubstep: contacts.perSubstep / (TICKS * sc.sim.C.substeps), terrierBallSubsteps: contacts.terrierBallSubsteps, ballWallSubsteps: contacts.ballWallSubsteps, substeps: TICKS * sc.sim.C.substeps },
   };
 }
 
@@ -108,7 +123,7 @@ if (still[2].contacts.ballWallSubsteps === 0) throw new Error(`${still[2].scene}
 
 // --- Simultaneous hitters, no energy gained ----------------------------------
 
-const LEAD = 6 * DT * 20.5;
+const LEAD = 6 * substepDt(makeConfig()) * 20.5;
 const PARALLEL_Y = [[0], [-0.26, 0.26], [-0.52, 0, 0.52], [-0.78, -0.26, 0.26, 0.78]];
 const CENTRE_DEG = [[0], [-25, 25], [-35, 0, 35], [-55, -20, 20, 55]];
 const hits = [];
@@ -216,6 +231,51 @@ for (const spec of GOLDEN_SCRIPTS.filter((s) => s.mirrored)) p8.push({ set: 'mir
 for (const pitch of ['main', 'second']) for (let p = 1; p <= 4; p++) p8.push({ set: 'under 42+flag', ...mirrored(p8Kickoff(p, pitch, 70 + p, 'flag42', 'contact')) });
 for (let p = 1; p <= 4; p++) p8.push({ set: 'under 42+flag', ...mirrored(pinch(p, 'flag42', p % 2 === 0)) });
 
+// --- The conditions measured here ---------------------------------------------
+
+const bitStillCondition = {
+  condition: 'a resting ball not bit-still',
+  verdict: still.every((r) => r.ticksDiffering === 0) ? 'pass' : 'fail',
+  numbers: still.map((r) => `${r.scene}: ${r.ticks} ticks, ${r.float64sComparedPerTick} float64s plus headings and floor flags compared each tick, ${r.ticksDiffering} ticks differing, largest deviation ${r.maxAbsDeviation}; ${r.contacts.perSubstep} contacts a substep, the terrier on the ball in ${r.contacts.terrierBallSubsteps} and the ball on the wall in ${r.contacts.ballWallSubsteps} of ${r.contacts.substeps} substeps`),
+};
+const energyCondition = {
+  condition: 'simultaneous hitters gaining energy',
+  verdict: hits.every((h) => h.kineticWorstOverStartJ <= 0 && h.mechanicalWorstOverStartJ <= 1e-9) && hits.filter((h) => h.where === 'level').every((h) => h.substepsKineticRose === 0) ? 'pass' : 'fail',
+  numbers: [
+    `${hits.length} hits (k = 1-4, from the floor and level, parallel and at the centre, floor in and out of the solve), ${hits.reduce((a, h) => a + h.substeps, 0)} substeps`,
+    `largest kinetic energy above its start, over every substep: ${Math.max(...hits.map((h) => h.kineticWorstOverStartJ))} J`,
+    `level (no gravity): substeps where kinetic energy rose on the one before: ${hits.filter((h) => h.where === 'level').reduce((a, h) => a + h.substepsKineticRose, 0)}`,
+    `from the floor: largest kinetic plus potential energy above its start ${Math.max(...hits.filter((h) => h.where !== 'level').map((h) => h.mechanicalWorstOverStartJ)).toExponential(2)} J; substeps where it rose by over 1e-9 J on the one before: ${hits.filter((h) => h.where !== 'level').reduce((a, h) => a + h.substepsMechanicalRoseOver1e9J, 0)}`,
+    `largest horizontal momentum change: ${Math.max(...hits.map((h) => h.momentumChange)).toExponential(2)}`,
+  ],
+};
+const mirrorCondition = {
+  condition: 'a mirrored kickoff not exactly mirrored',
+  verdict: p8.every((r) => r.substepsMismatched === 0) ? 'pass' : 'fail',
+  numbers: [
+    `${p8.length} mirrored runs, ${p8.reduce((a, r) => a + r.substeps, 0)} substeps, ${p8.reduce((a, r) => a + r.substeps * r.valuesComparedPerSubstep, 0)} values compared by value after every substep`,
+    `substeps mismatched: ${p8.reduce((a, r) => a + r.substepsMismatched, 0)}; sizes 1-4 on both shapes; slip-outs fired in them: ${p8.reduce((a, r) => a + r.slipOuts, 0)}`,
+  ],
+};
+const measured = {
+  bitStill: still,
+  hits,
+  mirror: { runs: p8.length, substeps: p8.reduce((a, r) => a + r.substeps, 0), substepsMismatched: p8.reduce((a, r) => a + r.substepsMismatched, 0), perRun: p8 },
+};
+const printCondition = (c) => console.log(`${c.verdict.toUpperCase().padEnd(12)} ${c.condition}${c.byReading ? ` (${Object.entries(c.byReading).map(([k, v]) => `${k.split(' (')[0]}: ${v}`).join('; ')})` : ''}\n${c.numbers.map((n) => `             ${n}`).join('\n')}`);
+if (MEASURED_ONLY) {
+  const conditions = [bitStillCondition, energyCondition, mirrorCondition];
+  const seconds = +((performance.now() - t0) / 1000).toFixed(1);
+  writeFileSync(outFile, `${JSON.stringify({
+    utc: new Date().toISOString(), node: process.version, solver,
+    about: "M0's stop rule, the three conditions scripts/stop-rule.mjs measures itself (--measured-only), under the solver settings named",
+    conditions, measured, seconds,
+  }, null, 1)}\n`);
+  for (const c of conditions) printCondition(c);
+  console.log(`(${seconds} s; ${outFile.slice(root.length + 1)})`);
+  process.exit(0);
+}
+
 // --- From the runs' files ------------------------------------------------------
 
 const determinism = ['node', 'chromium', 'firefox', 'webkit'].map((engine) => {
@@ -287,30 +347,9 @@ const conditions = [
     verdict: determinism.every((d) => d.measured) ? (determinism.every((d) => d.pass) ? 'pass' : 'fail') : 'not-measured',
     numbers: determinism.map((d) => (d.measured ? `${d.engine}: ${d.runsMatching} of ${d.runs} runs and ${d.checkpoints} checkpoints equal, ${d.mismatches} mismatches, canary ${d.canary}` : `${d.engine}: not measured`)),
   },
-  {
-    condition: 'a resting ball not bit-still',
-    verdict: still.every((r) => r.ticksDiffering === 0) ? 'pass' : 'fail',
-    numbers: still.map((r) => `${r.scene}: ${r.ticks} ticks, ${r.float64sComparedPerTick} float64s plus headings and floor flags compared each tick, ${r.ticksDiffering} ticks differing, largest deviation ${r.maxAbsDeviation}; ${r.contacts.perSubstep} contacts a substep, the terrier on the ball in ${r.contacts.terrierBallSubsteps} and the ball on the wall in ${r.contacts.ballWallSubsteps} of ${r.contacts.substeps} substeps`),
-  },
-  {
-    condition: 'simultaneous hitters gaining energy',
-    verdict: hits.every((h) => h.kineticWorstOverStartJ <= 0 && h.mechanicalWorstOverStartJ <= 1e-9) && hits.filter((h) => h.where === 'level').every((h) => h.substepsKineticRose === 0) ? 'pass' : 'fail',
-    numbers: [
-      `${hits.length} hits (k = 1-4, from the floor and level, parallel and at the centre, floor in and out of the solve), ${hits.reduce((a, h) => a + h.substeps, 0)} substeps`,
-      `largest kinetic energy above its start, over every substep: ${Math.max(...hits.map((h) => h.kineticWorstOverStartJ))} J`,
-      `level (no gravity): substeps where kinetic energy rose on the one before: ${hits.filter((h) => h.where === 'level').reduce((a, h) => a + h.substepsKineticRose, 0)}`,
-      `from the floor: largest kinetic plus potential energy above its start ${Math.max(...hits.filter((h) => h.where !== 'level').map((h) => h.mechanicalWorstOverStartJ)).toExponential(2)} J; substeps where it rose by over 1e-9 J on the one before: ${hits.filter((h) => h.where !== 'level').reduce((a, h) => a + h.substepsMechanicalRoseOver1e9J, 0)}`,
-      `largest horizontal momentum change: ${Math.max(...hits.map((h) => h.momentumChange)).toExponential(2)}`,
-    ],
-  },
-  {
-    condition: 'a mirrored kickoff not exactly mirrored',
-    verdict: p8.every((r) => r.substepsMismatched === 0) ? 'pass' : 'fail',
-    numbers: [
-      `${p8.length} mirrored runs, ${p8.reduce((a, r) => a + r.substeps, 0)} substeps, ${p8.reduce((a, r) => a + r.substeps * r.valuesComparedPerSubstep, 0)} values compared by value after every substep`,
-      `substeps mismatched: ${p8.reduce((a, r) => a + r.substepsMismatched, 0)}; sizes 1-4 on both shapes; slip-outs fired in them: ${p8.reduce((a, r) => a + r.slipOuts, 0)}`,
-    ],
-  },
+  bitStillCondition,
+  energyCondition,
+  mirrorCondition,
   {
     condition: "no slip-out rule passing §16's cases",
     verdict: slipOut.some((r) => r.passesAll) ? 'pass' : 'fail',
@@ -352,13 +391,10 @@ const out = {
   utc: new Date().toISOString(),
   node: process.version,
   about: "M0's stop rule (PLAN §17 M0), condition by condition, with the simulation's conditions measured by scripts/stop-rule.mjs and the rest read from the runs' result files",
+  solver,
   conditions,
   worstSingleTicks: worstTicks,
-  measured: {
-    bitStill: still,
-    hits,
-    mirror: { runs: p8.length, substeps: p8.reduce((a, r) => a + r.substeps, 0), substepsMismatched: p8.reduce((a, r) => a + r.substepsMismatched, 0), perRun: p8 },
-  },
+  measured,
   fromFiles: {
     run1: determinism,
     slipOut: { source: 'results/sim.json (measure.test.ts)', restMarkS: REST_MARK, sittingMarkS: SIT_MARK, rules: slipOut, onlyPassingAll: slipOut.filter((r) => r.passesAll).map((r) => r.rule) },
@@ -366,9 +402,9 @@ const out = {
   },
   seconds: +((performance.now() - t0) / 1000).toFixed(1),
 };
-writeFileSync(join(results, 'stop-rule.json'), `${JSON.stringify(out, null, 1)}\n`);
-for (const c of conditions) console.log(`${c.verdict.toUpperCase().padEnd(12)} ${c.condition}${c.byReading ? ` (${Object.entries(c.byReading).map(([k, v]) => `${k.split(' (')[0]}: ${v}`).join('; ')})` : ''}\n${c.numbers.map((n) => `             ${n}`).join('\n')}`);
+writeFileSync(outFile, `${JSON.stringify(out, null, 1)}\n`);
+for (const c of conditions) printCondition(c);
 console.log(`worst single ticks over 50 ms: ${worstTicks.over50ms}; ${worstTicks.numbers.map((n) => `${n.steps} steps max ${n.maxMsRange.join('-')} ms, median ${n.medianMsRange.join('-')} ms, ${n.configurationsWithAnyOver50} of ${n.configurations} configurations over`).join('; ')}`);
-console.log(`(${out.seconds} s; results/stop-rule.json)`);
+console.log(`(${out.seconds} s; ${outFile.slice(root.length + 1)})`);
 // Reference the slip-out rules so a renamed rule fails loudly here.
 for (const r of slipOut) if (!Object.values(SLIP_OUT_RULES).some((x) => x.name === r.rule)) throw new Error(`results/sim.json names an unknown rule ${r.rule}`);

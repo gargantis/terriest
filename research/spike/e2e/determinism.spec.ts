@@ -6,13 +6,16 @@
 // in a process of its own with no bundler or transform (Node 22 strips the
 // types itself), so a stale goldens.json fails here rather than passing as
 // a browser mismatch. Each engine's figures go to
-// results/determinism-<engine>.json.
+// results/determinism-<engine>.json, or to the folder
+// TERRIEST_SPIKE_DETERMINISM_OUT names (M0's cost revisit keeps its own in
+// results/revisit/).
 //
 //   npx playwright test e2e/determinism.spec.ts [--project=chromium|firefox|webkit]
 
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { DeterminismReport } from '../src/determinism';
 import type { GoldenResult } from '../src/sim/golden';
@@ -42,9 +45,11 @@ function compare(runs: readonly GoldenResult[], canary: string): { mismatches: s
   return { mismatches, runs: rows };
 }
 
+const OUT_DIR = process.env.TERRIEST_SPIKE_DETERMINISM_OUT ? resolve(ROOT, process.env.TERRIEST_SPIKE_DETERMINISM_OUT) : join(ROOT, 'results');
+
 function save(engine: string, figures: Record<string, unknown>): void {
-  mkdirSync(new URL('../results/', import.meta.url), { recursive: true });
-  writeFileSync(new URL(`../results/determinism-${engine}.json`, import.meta.url), `${JSON.stringify({ engine, ...figures }, null, 1)}\n`);
+  mkdirSync(OUT_DIR, { recursive: true });
+  writeFileSync(join(OUT_DIR, `determinism-${engine}.json`), `${JSON.stringify({ engine, canaryWant: goldens.canary, ...figures }, null, 1)}\n`);
 }
 
 test('the production bundle reproduces every golden, checkpoint by checkpoint', async ({ page, browserName }) => {

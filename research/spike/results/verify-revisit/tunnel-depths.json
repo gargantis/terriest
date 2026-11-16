@@ -1,0 +1,150 @@
+{
+ "about": "Verification: tunnel.test.ts's two depth-bounded scenes, how deep each setting goes against the unscaled and the revisit's scaled bounds",
+ "utc": "2026-11-16T07:55:37.461Z",
+ "rows": [
+  {
+   "spec": "m0",
+   "substeps": 4,
+   "floorNet": {
+    "zMin": 0.8,
+    "zMax": 5.2,
+    "floorDepthM": 0,
+    "netDepthM": 0,
+    "unscaledBoundM": 0.105,
+    "scaledBoundM": 0.105
+   },
+   "terrierBall": {
+    "minCentreDistanceM": 1.0427,
+    "depthM": 0.0073,
+    "unscaledBoundM": 0.21,
+    "scaledBoundM": 0.21
+   }
+  },
+  {
+   "spec": "i4",
+   "substeps": 4,
+   "floorNet": {
+    "zMin": 0.8,
+    "zMax": 5.2,
+    "floorDepthM": 0,
+    "netDepthM": 0,
+    "unscaledBoundM": 0.105,
+    "scaledBoundM": 0.105
+   },
+   "terrierBall": {
+    "minCentreDistanceM": 1.0427,
+    "depthM": 0.0073,
+    "unscaledBoundM": 0.21,
+    "scaledBoundM": 0.21
+   }
+  },
+  {
+   "spec": "i6",
+   "substeps": 4,
+   "floorNet": {
+    "zMin": 0.8,
+    "zMax": 5.2,
+    "floorDepthM": 0,
+    "netDepthM": 0,
+    "unscaledBoundM": 0.105,
+    "scaledBoundM": 0.105
+   },
+   "terrierBall": {
+    "minCentreDistanceM": 1.0427,
+    "depthM": 0.0073,
+    "unscaledBoundM": 0.21,
+    "scaledBoundM": 0.21
+   }
+  },
+  {
+   "spec": "s3",
+   "substeps": 3,
+   "floorNet": {
+    "zMin": 0.8,
+    "zMax": 5.2,
+    "floorDepthM": 0,
+    "netDepthM": 0,
+    "unscaledBoundM": 0.105,
+    "scaledBoundM": 0.14
+   },
+   "terrierBall": {
+    "minCentreDistanceM": 1.0395,
+    "depthM": 0.0105,
+    "unscaledBoundM": 0.21,
+    "scaledBoundM": 0.28
+   }
+  },
+  {
+   "spec": "i4+s3",
+   "substeps": 3,
+   "floorNet": {
+    "zMin": 0.8,
+    "zMax": 5.2,
+    "floorDepthM": 0,
+    "netDepthM": 0,
+    "unscaledBoundM": 0.105,
+    "scaledBoundM": 0.14
+   },
+   "terrierBall": {
+    "minCentreDistanceM": 1.0395,
+    "depthM": 0.0105,
+    "unscaledBoundM": 0.21,
+    "scaledBoundM": 0.28
+   }
+  },
+  {
+   "spec": "i6+s3",
+   "substeps": 3,
+   "floorNet": {
+    "zMin": 0.8,
+    "zMax": 5.2,
+    "floorDepthM": 0,
+    "netDepthM": 0,
+    "unscaledBoundM": 0.105,
+    "scaledBoundM": 0.14
+   },
+   "terrierBall": {
+    "minCentreDistanceM": 1.0395,
+    "depthM": 0.0105,
+    "unscaledBoundM": 0.21,
+    "scaledBoundM": 0.28
+   }
+  },
+  {
+   "spec": "p1",
+   "substeps": 4,
+   "floorNet": {
+    "zMin": 0.8,
+    "zMax": 5.2,
+    "floorDepthM": 0,
+    "netDepthM": 0,
+    "unscaledBoundM": 0.105,
+    "scaledBoundM": 0.105
+   },
+   "terrierBall": {
+    "minCentreDistanceM": 1.0277,
+    "depthM": 0.0223,
+    "unscaledBoundM": 0.21,
+    "scaledBoundM": 0.21
+   }
+  },
+  {
+   "spec": "nofloor",
+   "substeps": 4,
+   "floorNet": {
+    "zMin": 0.8,
+    "zMax": 5.2,
+    "floorDepthM": 0,
+    "netDepthM": 0,
+    "unscaledBoundM": 0.105,
+    "scaledBoundM": 0.105
+   },
+   "terrierBall": {
+    "minCentreDistanceM": 1.0465,
+    "depthM": 0.0035,
+    "unscaledBoundM": 0.21,
+    "scaledBoundM": 0.21
+   }
+  }
+ ]
+}

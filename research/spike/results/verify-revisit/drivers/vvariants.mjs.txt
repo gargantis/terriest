@@ -1,0 +1,48 @@
+// Verification (not part of the spike): did each of the revisit's 120 timed
+// runs step the variant it names? The solver is bit-identical across
+// engines, so Node's harness with the same settings must count the same
+// contacts as the page did. Run from the spike's folder:
+//   node <this> --in results/revisit/cost-variants.json --out <json>
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const ROOT = process.cwd();
+const { CostRun } = await import(pathToFileURL(join(ROOT, 'src/cost.ts')).href);
+const { parseSolver } = await import(pathToFileURL(join(ROOT, 'src/solver-settings.ts')).href);
+const args = process.argv.slice(2);
+const val = (f) => args[args.indexOf(f) + 1];
+const batch = JSON.parse(readFileSync(resolve(val('--in')), 'utf8'));
+
+const ref = {};
+for (const v of batch.variants) {
+  const run = new CostRun({ script: batch.method.script, ticks: batch.method.ticks, config: parseSolver(v.spec) });
+  const now = () => performance.now();
+  while (run.step(now));
+  const r = run.report();
+  ref[v.spec] = {
+    label: r.solverLabel, perSubstep: +r.contacts.perSubstep.toFixed(2), floorPerSubstep: +r.contacts.floorPerSubstep.toFixed(2), otherPerSubstep: +r.contacts.otherPerSubstep.toFixed(2),
+    maxInSubstep: r.contacts.maxInSubstep, slipOutsPerSubstep: +r.contacts.slipOutsPerSubstep.toFixed(4), exactPerSubstep: r.contacts.perSubstep, substeps: r.contacts.substeps,
+  };
+}
+const rows = batch.runs.map((x) => {
+  const want = ref[x.spec];
+  const same = x.label === want.label && x.contacts.perSubstep === want.perSubstep && x.contacts.floorPerSubstep === want.floorPerSubstep && x.contacts.otherPerSubstep === want.otherPerSubstep && x.contacts.maxInSubstep === want.maxInSubstep && x.contacts.slipOutsPerSubstep === want.slipOutsPerSubstep;
+  return { rep: x.rep, slot: x.slot, spec: x.spec, device: x.device, mode: x.mode, matchesNode: same };
+});
+// Each variant's counts must also differ from every other's, or the check couldn't tell them apart.
+const specs = Object.keys(ref);
+const indistinct = [];
+for (let i = 0; i < specs.length; i++) for (let j = i + 1; j < specs.length; j++) {
+  const a = ref[specs[i]];
+  const b = ref[specs[j]];
+  if (a.exactPerSubstep === b.exactPerSubstep && a.maxInSubstep === b.maxInSubstep) indistinct.push([specs[i], specs[j]]);
+}
+const out = {
+  about: "Verification: each of the revisit's timed runs against Node's harness under the same settings (contact counts over the timed window)",
+  utc: new Date().toISOString(), node: process.version, source: 'results/revisit/cost-variants.json', runs: rows.length,
+  matching: rows.filter((r) => r.matchesNode).length, mismatching: rows.filter((r) => !r.matchesNode), indistinctPairs: indistinct, nodeReference: ref,
+};
+writeFileSync(resolve(val('--out')), `${JSON.stringify(out, null, 1)}\n`);
+console.log(`${out.matching} of ${out.runs} runs match Node's counts for their variant; indistinct pairs: ${JSON.stringify(indistinct)}`);
+for (const [k, v] of Object.entries(ref)) console.log(`  ${k.padEnd(8)} ${v.label.padEnd(18)} ${v.exactPerSubstep} contacts/substep, max ${v.maxInSubstep}`);

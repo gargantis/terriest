@@ -1,0 +1,16 @@
+{
+ "about": "Verification of M0's cost revisit: lint (npx eslint . --max-warnings 0) and typecheck (npx tsc --noEmit) on the tree as it stands",
+ "utc": "2026-11-16T07:59:28.533Z",
+ "node": "v22.23.4",
+ "lint": {
+  "exitCode": 0,
+  "files": 94,
+  "errors": 0,
+  "warnings": 0,
+  "withProblems": []
+ },
+ "typecheck": {
+  "exitCode": 0,
+  "output": ""
+ }
+}

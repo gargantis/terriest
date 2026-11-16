@@ -3,8 +3,11 @@
 // the Pixel 8a's size, at 1× and 4× CPU throttle. A chunk of its own, loaded
 // only in this mode.
 //
-//   ?test=cost&script=<a scrum>&ticks=1200&runs=30&draw=1|0&quality=low|high
+//   ?test=cost&script=<a scrum>&ticks=1200&runs=30&draw=1|0&quality=low|high&solver=<spec>
 //
+// - solver: a variant of the solver's settings from src/solver-settings.ts
+//   ('i4+p1', 'nofloor', 's3'; '+' reads as a space, which parses the
+//   same), over the simulation's defaults; the report names what it timed.
 // - draw=1 (the default) runs it as a match would: the scene's clock (D-31's
 //   timers, not animation frames) does one unit of work per 60 Hz tick, one
 //   13-step tick, or later one burst, while the scene draws the bench's base
@@ -20,6 +23,7 @@ import type { SimSource } from './contract';
 import { clockResolution, CostRun, DEFAULT_COST, stats, type CostReport, type Stats } from './cost.ts';
 import type { pageOptions, runPage } from './scene/page';
 import { viewOf } from './sim/source.ts';
+import { parseSolver } from './solver-settings.ts';
 
 /** The scene's page, handed in by main.ts: importing it here would make the
  *  bundler split three's core out of the entry chunk into one it shares
@@ -73,6 +77,7 @@ export async function run(root: HTMLElement, q: URLSearchParams, scene: Scene): 
       script: q.get('script') ?? DEFAULT_COST.script,
       ticks: positive(q, 'ticks', DEFAULT_COST.ticks),
       burstRuns: positive(q, 'runs', DEFAULT_COST.burstRuns),
+      config: parseSolver(q.get('solver') ?? ''),
     });
   } catch (e) {
     // An unknown script, say: fail where the spec is watching, not by its timeout.
@@ -87,7 +92,11 @@ export async function run(root: HTMLElement, q: URLSearchParams, scene: Scene): 
   const f = (x: number): string => x.toFixed(3);
   const show = (): void => {
     const p = cost.progress();
-    const lines = [`run 3: ${cost.bench.script.name}, ${draw ? 'drawn, on the clock' : 'not drawn, back to back'}`];
+    const c = cost.bench.config;
+    const lines = [
+      `run 3: ${cost.bench.script.name}, ${draw ? 'drawn, on the clock' : 'not drawn, back to back'}`,
+      `solver: ${c.iterations} iterations, ${c.positionPasses} position passes, floor ${c.floorInSolve ? 'in' : 'out of'} the solve, ${c.substeps} substeps`,
+    ];
     const r = result.report;
     if (r) {
       lines.push(

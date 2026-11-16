@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { DT, MAIN_PITCH, SECOND_PITCH, type PitchShape } from './config';
+import { MAIN_PITCH, makeConfig, SECOND_PITCH, type PitchShape, SUBSTEPS, substepDt } from './config';
 import { encodeInput, FRAME_BALL, FRAME_PITCH } from './input';
 import { buildPitch, deepestOverlap, insideRegion } from './pitch';
 import { mix, park, place, placeBall } from './scripts';
@@ -10,6 +10,13 @@ vi.setConfig({ testTimeout: 120_000 });
 
 // PLAN D-3, D-8, §16: no tunnelling at 25 m/s, and the ball never leaves the
 // pitch or sits wholly behind a goal line outside the goal (fuzzed).
+
+// The run's substep (D-3): 1/240 s at 4 substeps a tick. The depth bounds
+// below are about one substep's travel at 25 m/s (0.104 m at 4 substeps),
+// so they scale with the substep's length against 1/240 s: they are 0.11,
+// 0.105 and 0.21 m at 4 substeps.
+const DT = substepDt(makeConfig());
+const SUBSTEP_SCALE = SUBSTEPS / makeConfig().substeps;
 
 const rnd = (seed: number): (() => number) => {
   let i = 0;
@@ -59,7 +66,7 @@ describe('no tunnelling at 25 m/s', () => {
       }
       console.log(`[tunnel] ${shape.name}: ${shots} shots at 25 m/s; deepest overlap left after a substep ${(worst * 1000).toFixed(2)} mm`);
       expect(shots).toBeGreaterThan(300);
-      expect(worst).toBeLessThan(0.11); // under a substep's travel at 25 m/s
+      expect(worst).toBeLessThan(0.11 * SUBSTEP_SCALE); // about a substep's travel at 25 m/s
     });
   }
 
@@ -71,8 +78,8 @@ describe('no tunnelling at 25 m/s', () => {
         s.ball.onFloor = false;
       });
       sc.sim.probe = (s) => {
-        expect(s.ball.z).toBeGreaterThanOrEqual(0.8 - 0.105);
-        expect(s.ball.z).toBeLessThanOrEqual(6 - 0.8 + 0.105);
+        expect(s.ball.z).toBeGreaterThanOrEqual(0.8 - 0.105 * SUBSTEP_SCALE);
+        expect(s.ball.z).toBeLessThanOrEqual(6 - 0.8 + 0.105 * SUBSTEP_SCALE);
       };
       run(sc, 60);
     }
@@ -92,10 +99,17 @@ describe('no tunnelling at 25 m/s', () => {
       for (const t of s.terriers) {
         expect(insideRegion(MAIN_PITCH, t.x, t.y, t.z, 1e-9)).toBe(true);
         const d = Math.hypot(t.x - s.ball.x, t.y - s.ball.y, t.z - s.ball.z);
-        expect(d).toBeGreaterThan(1.05 - 0.21);
+        expect(d).toBeGreaterThan(1.05 - 0.21 * SUBSTEP_SCALE);
       }
+      // A crossing counts only inside the ball's footprint, deeper than the
+      // overlap tolerated above. Height counts too: a terrier on the floor
+      // crosses a resting ball's centre 0.55 m below it, but one running
+      // under a ball popped into the air passes nothing.
       const side = s.terriers.map((t) => Math.sign(t.x - s.ball.x));
-      side.forEach((v, k) => { if (k < 2 && v !== prevSide[k] && Math.abs(s.terriers[k]!.y - s.ball.y) < 0.5) crossed.add(`terrier ${k}`); });
+      side.forEach((v, k) => {
+        const t = s.terriers[k]!;
+        if (k < 2 && v !== prevSide[k] && Math.hypot(t.y - s.ball.y, t.z - s.ball.z) < 1.05 - 0.21 * SUBSTEP_SCALE) crossed.add(`terrier ${k}`);
+      });
       prevSide = side;
     };
     run(sc, 60);
@@ -146,7 +160,7 @@ describe('the ball never leaves the pitch (fuzzed, D-8)', () => {
     it(`${shape.name} pitch: 60 seeded scrambles of 600 ticks, ball shot at up to 25 m/s`, () => {
       const { worst, behind } = fuzz(shape, shape.width, 60, 600);
       console.log(`[fuzz] ${shape.name}: deepest overlap of the ball with any piece after a substep ${(worst * 1000).toFixed(2)} mm; substeps with the ball wholly behind a goal line (all inside a goal) ${behind}`);
-      expect(worst).toBeLessThan(0.11);
+      expect(worst).toBeLessThan(0.11 * SUBSTEP_SCALE);
     });
   }
 });

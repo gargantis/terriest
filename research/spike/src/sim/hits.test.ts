@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { dir, fractionOfTurn, HALF_TURN } from './angle';
-import { DT } from './config';
+import { makeConfig, substepDt } from './config';
 import { park, place, placeBall } from './scripts';
 import { kineticEnergy, momentum, run, scenario } from './testing';
 
@@ -14,8 +14,9 @@ vi.setConfig({ testTimeout: 120_000 });
 const SPEED = 6;
 const NO_FORCES = { drive: false, friction: false, rolling: false };
 // Every hitter starts 20.5 substeps of travel short of contact, so all
-// first overlap in substep 21, by half a substep's travel.
-const LEAD = SPEED * DT * 20.5;
+// first overlap in substep 21, by half a substep's travel (of the run's
+// substeps a tick).
+const LEAD = SPEED * substepDt(makeConfig()) * 20.5;
 
 interface HitResult { ballSpeed: number; dp: number; worstKeGain: number; ke0: number; ke1: number }
 
@@ -80,7 +81,7 @@ describe('simultaneous hits (D-5, §16)', () => {
         // iterations: 8 and 512 give the same speeds, a hand solution of the
         // contact problem agrees, and the floor's reading (floorInSolve) keeps
         // the order. Pinned so a change to D-5 shows up here.
-        expect(speeds[3]!).toBeLessThan(speeds[2]!);
+        expect(speeds[3]!, 'pinned M0 finding: from the floor, k = 4 parallel is slower than k = 3').toBeLessThan(speeds[2]!);
       }
     });
 

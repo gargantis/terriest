@@ -12,18 +12,30 @@
 //   (P8's ===), after every substep and every tick, over 57 mirrored runs.
 //
 //   node scripts/verify/sim-checks.mjs   -> results/verify/sim-checks.json
+//
+// M0's cost revisit: TERRIEST_SPIKE_SOLVER runs it under a solver variant
+// (src/solver-settings.ts), and --out names another file; a variant's run
+// must name one, so results/verify/ keeps M0's settings.
 import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { makeConfig, SLIP_OUT_RULES, DT, NEVER } from '../../src/sim/config.ts';
+import { makeConfig, SLIP_OUT_RULES, NEVER, substepDt } from '../../src/sim/config.ts';
 import { newMatch, IN_PLAY } from '../../src/sim/state.ts';
 import { makeSim, step } from '../../src/sim/step.ts';
 import { encodeInput, FRAME_BALL, FRAME_PITCH, mirrorInput } from '../../src/sim/input.ts';
 import { GOLDEN_SCRIPTS, chasey, pinch, scriptConfig, scriptInputs, scriptStart, park, place, placeBall } from '../../src/sim/scripts.ts';
 import { scenario } from '../../src/sim/testing.ts';
 import { pieceContact } from '../../src/sim/pitch.ts';
+import { applySolverDefaults } from '../../src/solver-settings.ts';
 
-const outFile = fileURLToPath(new URL('../../results/verify/sim-checks.json', import.meta.url));
-const out = {};
+const variant = process.env.TERRIEST_SPIKE_SOLVER ?? '';
+const outArg = process.argv.includes('--out') ? process.argv[process.argv.indexOf('--out') + 1] : null;
+if (variant.trim() !== '' && !outArg) throw new Error('a solver variant needs --out <file>, so results/verify/ keeps M0\'s settings');
+const solver = applySolverDefaults(variant);
+const outFile = outArg ? resolve(outArg) : fileURLToPath(new URL('../../results/verify/sim-checks.json', import.meta.url));
+// The default configuration's substep: 1/240 s at D-3's 4 substeps.
+const DT = substepDt(makeConfig());
+const out = { solver };
 const t0 = performance.now();
 
 // The scene contacts.test.ts and scripts/stop-rule.mjs used before this
@@ -130,7 +142,7 @@ function mom(s, C) {
 }
 const OFFSETS = [[0], [-0.26, 0.26], [-0.52, 0, 0.52], [-0.78, -0.26, 0.26, 0.78]];
 const CENTRE_DEG = [[0], [-25, 25], [-35, 0, 35], [-55, -20, 20, 55]];
-function hitRun({ k, level, layout, floorInSolve = true, iterations = 8, speed = 6 }) {
+function hitRun({ k, level, layout, floorInSolve = true, iterations = makeConfig().iterations, speed = 6 }) {
   const g = level ? 0 : 9.8;
   const C = makeConfig({ drive: false, friction: false, rolling: false, gravity: g, floorInSolve, iterations });
   const sim = makeSim(C, 4);

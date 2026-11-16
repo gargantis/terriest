@@ -16,11 +16,12 @@ Nothing in terriest's `src/` imports it, and the product code is written fresh f
 | `src/source-choice.ts` | which simulation the page draws, from its URL |
 | `src/determinism.ts` | the `?test=determinism` mode: the golden suite in the browser (run 1) |
 | `src/cost.ts`, `src/cost-page.ts` | run 3's tick-cost harness, and its `?test=cost` mode |
-| `scripts/` | the stand-in model's generator, the tick cost in Node, the audit, sizes and tokenizer checks |
+| `src/solver-settings.ts` | the solver's four switchable settings, named by a short spec (the cost revisit) |
+| `scripts/` | the stand-in model's generator, the tick cost in Node, the audit, sizes and tokenizer checks; `scripts/revisit/`, the cost revisit's drivers |
 | `test/` | tests of the toolchain itself: the lint config, `_headers` and the static server |
 | `e2e/serve.mjs` | the static server: `dist/` with `public/_headers` applied as Cloudflare would |
 | `e2e/` | Playwright specs, in Chromium, Firefox and WebKit |
-| `results/` | raw results behind the report; `results/tmp/` isn't tracked |
+| `results/` | raw results behind the report; `results/revisit/`, the cost revisit's; `results/tmp/` isn't tracked |
 
 ## Run
 
@@ -56,7 +57,7 @@ By default it draws the showcase: a 4-a-side kickoff that plays on, 8 terriers, 
 | `camera=spectator` | a high side view instead of the ball view behind terrier 0 |
 | `frameWork` | busy work in every frame, in ms, to hold the frame rate down |
 | `test=determinism` | the golden suite and the canary instead, with the verdict against `goldens.json` (also `#test=determinism`) |
-| `test=cost` | run 3's harness instead: `script`, `ticks`, `runs` and `draw=0` or `1` |
+| `test=cost` | run 3's harness instead: `script`, `ticks`, `runs`, `draw=0` or `1`, and `solver`, a solver spec (below) |
 
 The model drawer draws the terriers when `window.spikeTest.modelUrl` is set before the page loads; the specs serve the generated stand-in there by interception (`node scripts/make-standin.mjs` writes a copy to `results/tmp/`).
 
@@ -89,6 +90,34 @@ Each Playwright command builds `dist/` and serves it first. `e2e/scene.spec.ts` 
 | `npx vite build --config scripts/verify/vite.config.mjs && node scripts/verify/driver.mjs det` | `det-extra.json`: 22 scripted runs outside the goldens, hashed every 100 ticks in Node and the three engines |
 | the same build, then `node scripts/verify/driver.mjs cost` | `cost-series.json`: run 3's tick on the plan's script with every timed tick kept, a busy-loop check of the throttle, and a paced mode with nothing drawn |
 | `npm run build && node scripts/verify/drawn-gl.mjs [reps] [batch]` | `drawn-gl.json` (appended): the drawn reading on software GL and on the GPU (`GALLIUM_DRIVER=d3d12`), with each Chromium process type's CPU |
+
+### The cost revisit
+
+M0's stop rule asks for D-3's and D-5's settings to be revisited before M1 if run 3's cost condition fires (REPORT.md §4). Four settings switch, each in `SimConfig` (`src/sim/config.ts`): `iterations` (D-5 step 5), `positionPasses` (step 6), `floorInSolve` (the floor's contacts in steps 5 and 6) and `substeps` (D-3, a tick's substeps; a substep is 1/(60 × substeps) s). A solver spec names a variant (`src/solver-settings.ts`):
+
+| Token | What |
+|---|---|
+| `base` | no change: the simulation's defaults |
+| `m0` | M0's settings: 8 iterations, 2 position passes, the floor in, 4 substeps |
+| `i<N>`, `p<N>`, `s<N>` | N iterations, position passes or substeps a tick |
+| `floor`, `nofloor` | the floor's contacts in or out of steps 5 and 6 |
+
+Tokens join with `+`, `,` or spaces, later ones winning: `i4+p1+nofloor`. Results name a variant by all four settings, as `i8 p2 floor s4`, and their files by its changes from M0's, as `i4+p1`.
+
+- **Tests under a variant:** `TERRIEST_SPIKE_SOLVER=<spec>` makes every configuration a vitest run makes start from the variant (`test/solver-setup.ts`). The golden hashes change with any setting by design, so leave them out: `TERRIEST_SPIKE_SOLVER=i4 npx vitest run --exclude src/sim/golden.test.ts`. `TERRIEST_SPIKE_MEASURE_OUT=<file>` sends `measure.test.ts`'s results elsewhere than `results/sim.json`; under a variant it's required, and `measure.test.ts` refuses to run without it.
+- **The page:** `?test=cost&solver=<spec>` times the variant.
+
+| Command | Writes to `results/revisit/` |
+|---|---|
+| `node scripts/revisit/behaviour.mjs --solver <spec>` | `behaviour-<name>.json`: the vitest suite without the goldens under the variant, each failure marked a §16 behaviour or a pinned M0 record, and the slip-out cases judged on `measure.test.ts`'s full sweep; `sim-<name>.json`: that sweep's results |
+| `node scripts/revisit/cost.mjs --name <batch> --solvers m0,i4,… [--reps 3]` | `cost-<batch>.json`: run 3's method under each variant, in Chromium at 4×, drawn and back to back, at the desktop's size and the Pixel 8a's, with the load each run waited for and ran under; it builds `dist/` first |
+| `node scripts/revisit/settle.mjs --solver <spec>` | `settle-<name>.json`: when, if ever, `contacts.test.ts`'s bit-still scenes stop changing over 36,000 ticks, and how far a scene that never rests ranges |
+| `node scripts/revisit/profile.mjs --solver <spec>` | `profile-<name>.json`: a step's time by D-5's parts, from V8's CPU profile of the back-to-back bench in Node |
+| `node scripts/revisit/summary.mjs` | `summary.json`: every variant's behaviour and cost, and the adoption rule's pick |
+| `node scripts/revisit/checks.mjs` | `checks.json`: lint, typecheck and the whole vitest suite at the settings in force |
+| `TERRIEST_SPIKE_DETERMINISM_OUT=results/revisit npx playwright test e2e/determinism.spec.ts` | `determinism-<engine>.json`: run 1, kept apart from M0's `results/determinism-*.json` |
+
+Under a variant, `scripts/stop-rule.mjs --measured-only --out <file>` measures its own three conditions (bit-still, energy, P8) with their counts, as `results/revisit/conditions-<name>.json` holds for each variant timed: `TERRIEST_SPIKE_SOLVER=i4 node scripts/stop-rule.mjs --measured-only --out results/revisit/conditions-i4.json`. `scripts/verify/sim-checks.mjs --out <file>` runs the verifier's checks the same way. Without those options both refuse a variant, so `results/` and `results/verify/` keep M0's settings.
 
 ## The simulation's rules
 

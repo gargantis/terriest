@@ -1,0 +1,63 @@
+{
+ "about": "M0's cost revisit: when contacts.test.ts's bit-still scenes stop changing (scripts/revisit/settle.mjs)",
+ "utc": "2026-11-16T06:07:55.578Z",
+ "spec": "nofloor",
+ "name": "nofloor",
+ "label": "i8 p2 nofloor s4",
+ "settings": {
+  "iterations": 8,
+  "positionPasses": 2,
+  "floorInSolve": false,
+  "substeps": 4
+ },
+ "rows": [
+  {
+   "scene": "a resting ball with two standing terriers, nothing held",
+   "ticks": 36000,
+   "testSettleTicks": 0,
+   "lastTickThatChanged": 0,
+   "ticksThatChanged": 0,
+   "periodFromTick1000": 1,
+   "atRest": true,
+   "settledWithinTestSettle": true,
+   "last1000Ticks": {
+    "positionRangeM": 0,
+    "speedRangeMs": 0
+   },
+   "ballZ": 0.8,
+   "ballY": 0
+  },
+  {
+   "scene": "a terrier resting against the ball at the side wall, nothing held",
+   "ticks": 36000,
+   "testSettleTicks": 10,
+   "lastTickThatChanged": 10,
+   "ticksThatChanged": 10,
+   "periodFromTick1000": 1,
+   "atRest": true,
+   "settledWithinTestSettle": true,
+   "last1000Ticks": {
+    "positionRangeM": 0,
+    "speedRangeMs": 0
+   },
+   "ballZ": 0.8000000000000003,
+   "ballY": -13.2
+  },
+  {
+   "scene": "a terrier holding at the ball, pressing it into the side wall",
+   "ticks": 36000,
+   "testSettleTicks": 60,
+   "lastTickThatChanged": 36000,
+   "ticksThatChanged": 36000,
+   "periodFromTick1000": 9,
+   "atRest": false,
+   "settledWithinTestSettle": false,
+   "last1000Ticks": {
+    "positionRangeM": 0.00018639523899821597,
+    "speedRangeMs": 0.037963662297882755
+   },
+   "ballZ": 0.8001618469138037,
+   "ballY": -13.2
+  }
+ ]
+}

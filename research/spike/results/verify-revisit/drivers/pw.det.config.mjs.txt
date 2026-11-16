@@ -1,0 +1,20 @@
+// Verification only: run 1's spec against a build of the current tree in the
+// scratchpad, so the spike's dist/ and test-results/ aren't written. Run from
+// the spike's folder with TERRIEST_SPIKE_DETERMINISM_OUT set.
+const ROOT = process.cwd();
+export default {
+  testDir: `${ROOT}/e2e`,
+  testMatch: /determinism\.spec\.ts/,
+  timeout: 60_000,
+  workers: 1,
+  fullyParallel: false,
+  reporter: [['list']],
+  outputDir: '<scratch>/pw-out',
+  webServer: { command: 'node e2e/serve.mjs --port 4329 --dist <scratch>/dist-prod', cwd: ROOT, url: 'http://127.0.0.1:4329/', reuseExistingServer: false, timeout: 120_000 },
+  use: { baseURL: 'http://127.0.0.1:4329/', headless: true },
+  projects: [
+    { name: 'chromium', use: { browserName: 'chromium' } },
+    { name: 'firefox', use: { browserName: 'firefox' } },
+    { name: 'webkit', use: { browserName: 'webkit' } },
+  ],
+};

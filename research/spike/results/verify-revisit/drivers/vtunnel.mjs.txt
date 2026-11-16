@@ -1,0 +1,46 @@
+// Verification (not part of the spike): how close tunnel.test.ts's two
+// depth-bounded scenes come to their bounds under each setting, since the
+// revisit scaled those bounds with the substep's length. Same scenes as
+// the test. Run from the spike's folder:  node <this> --out <json>
+import { writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const ROOT = process.cwd();
+const imp = (p) => import(pathToFileURL(join(ROOT, p)).href);
+const { park, place, placeBall } = await imp('src/sim/scripts.ts');
+const { run, scenario } = await imp('src/sim/testing.ts');
+const { M0_SOLVER, parseSolver } = await imp('src/solver-settings.ts');
+const args = process.argv.slice(2);
+const out = resolve(args[args.indexOf('--out') + 1]);
+
+const rows = [];
+for (const spec of ['m0', 'i4', 'i6', 's3', 'i4+s3', 'i6+s3', 'p1', 'nofloor']) {
+  const over = { ...M0_SOLVER, ...parseSolver(spec) };
+  // The ball at ±25 m/s into the floor and the net: z must stay within 0.8 - 0.105 and 6 - 0.8 + 0.105 (unscaled).
+  let zMin = Infinity;
+  let zMax = -Infinity;
+  for (const vz of [-25, 25]) {
+    const sc = scenario(1, { ...over, rolling: false }, (s) => { park(s, 0); park(s, 1); placeBall(s, 2, 1, 3, 0, 0, vz); s.ball.onFloor = false; });
+    sc.sim.probe = (s) => { zMin = Math.min(zMin, s.ball.z); zMax = Math.max(zMax, s.ball.z); };
+    run(sc, 60);
+  }
+  // Terriers at 25 m/s: every terrier-ball centre distance must stay above 1.05 - 0.21 (unscaled).
+  let dMin = Infinity;
+  const sc = scenario(2, { ...over, drive: false, friction: false, gravity: 9.8 }, (s) => {
+    placeBall(s, 0, 0);
+    place(s, 0, -3, 0); s.terriers[0].vx = 25;
+    place(s, 1, 3, 0.1); s.terriers[1].vx = -25;
+    place(s, 2, -16, 4.1); s.terriers[2].vx = -25;
+    place(s, 3, 5, 10); s.terriers[3].vy = 25;
+  });
+  sc.sim.probe = (s) => { for (const t of s.terriers) dMin = Math.min(dMin, Math.hypot(t.x - s.ball.x, t.y - s.ball.y, t.z - s.ball.z)); };
+  run(sc, 60);
+  rows.push({
+    spec, substeps: over.substeps,
+    floorNet: { zMin: +zMin.toFixed(4), zMax: +zMax.toFixed(4), floorDepthM: +(0.8 - zMin).toFixed(4), netDepthM: +(zMax - 5.2).toFixed(4), unscaledBoundM: 0.105, scaledBoundM: +(0.105 * 4 / over.substeps).toFixed(4) },
+    terrierBall: { minCentreDistanceM: +dMin.toFixed(4), depthM: +(1.05 - dMin).toFixed(4), unscaledBoundM: 0.21, scaledBoundM: +(0.21 * 4 / over.substeps).toFixed(4) },
+  });
+}
+writeFileSync(out, `${JSON.stringify({ about: "Verification: tunnel.test.ts's two depth-bounded scenes, how deep each setting goes against the unscaled and the revisit's scaled bounds", utc: new Date().toISOString(), rows }, null, 1)}\n`);
+for (const r of rows) console.log(`${r.spec.padEnd(8)} floor/net depth ${r.floorNet.floorDepthM}/${r.floorNet.netDepthM} m (bound ${r.floorNet.unscaledBoundM}, scaled ${r.floorNet.scaledBoundM}); terrier into ball ${r.terrierBall.depthM} m (bound ${r.terrierBall.unscaledBoundM}, scaled ${r.terrierBall.scaledBoundM})`);

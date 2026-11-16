@@ -35,7 +35,7 @@ describe('the tick-cost harness', () => {
     // The base moved one tick per 13-step tick, timed or not, and per burst's untimed tick after it.
     expect(r.baseTicks).toEqual({ from: 12, to: 17 });
     expect(run.bench.base.tick).toBe(10 + 2 + 5 + 3 * 2);
-    expect(r.contacts.substeps).toBe(5 * 13 * 4);
+    expect(r.contacts.substeps).toBe(5 * 13 * run.bench.config.substeps);
     expect(r.contacts.perSubstep).toBeGreaterThan(0);
     expect(r.contacts.floorPerSubstep + r.contacts.otherPerSubstep).toBeCloseTo(r.contacts.perSubstep, 12);
     expect(r.contacts.maxInSubstep).toBeGreaterThan(0);

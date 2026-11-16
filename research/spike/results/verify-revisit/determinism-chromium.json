@@ -1,0 +1,201 @@
+{
+ "engine": "chromium",
+ "canaryWant": "10272cf4a03fa75b",
+ "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+ "suiteMs": 2975.8,
+ "runs": 37,
+ "checkpoints": 178,
+ "checkpointEvery": 500,
+ "canary": "10272cf4a03fa75b",
+ "pass": true,
+ "mismatches": [],
+ "pageVerdict": "PASS",
+ "pageFirstDifference": "",
+ "perRun": [
+  {
+   "name": "kickoff 1",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "kickoff 2",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "kickoff 3",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "kickoff 4",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "kickoff 2, second shape",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "kickoff 4, second shape",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "resting ball",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "rolling ball",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "push 1",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "train 2",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "train 3",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "train 4",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "abreast 2, pitch frame",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "abreast 3, pitch frame",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "abreast 4, pitch frame",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "abreast 2, ball frame",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "abreast 3, ball frame",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "abreast 4, ball frame",
+   "checkpoints": 1,
+   "match": true
+  },
+  {
+   "name": "squeeze",
+   "checkpoints": 2,
+   "match": true
+  },
+  {
+   "name": "pinch 1",
+   "checkpoints": 3,
+   "match": true
+  },
+  {
+   "name": "pinch 2",
+   "checkpoints": 3,
+   "match": true
+  },
+  {
+   "name": "pinch 3",
+   "checkpoints": 3,
+   "match": true
+  },
+  {
+   "name": "pinch 4",
+   "checkpoints": 3,
+   "match": true
+  },
+  {
+   "name": "pinch 4, zoomies",
+   "checkpoints": 3,
+   "match": true
+  },
+  {
+   "name": "pinch 2, flag42",
+   "checkpoints": 3,
+   "match": true
+  },
+  {
+   "name": "pinch 4, zoomies, flag42",
+   "checkpoints": 3,
+   "match": true
+  },
+  {
+   "name": "pinch 3, flag42E0",
+   "checkpoints": 3,
+   "match": true
+  },
+  {
+   "name": "kickoff 4, flag42",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "kickoff 3, second shape, flag42E0",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "scrum at the wall",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "scrum at the wall, flag42",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "scrum at the wall, flag42E0",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "scrum in the corner",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "scrum in the corner, flag42",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "pounces",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "goals",
+   "checkpoints": 6,
+   "match": true
+  },
+  {
+   "name": "long run",
+   "checkpoints": 40,
+   "match": true
+  }
+ ]
+}

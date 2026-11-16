@@ -1,0 +1,4 @@
+// Verification bundle: the spike's page unchanged, plus patch.ts, which
+// keeps every timed tick and allows a longer JIT warm-up (?verifyWarm=N).
+import './patch.ts';
+import '<spike>/src/main.ts';

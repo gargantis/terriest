@@ -1,0 +1,218 @@
+// Independent re-run of run 3's drawn reading for the cost revisit's check.
+// Written for the verification, not part of the spike. Run from the spike's
+// folder (it resolves everything from the working directory):
+//   node <this> --dist <built page> --out <json> --variants m0,i4,i6 --reps 3
+//     [--modes drawn,tight] [--devices desktop,pixel] [--extra verifyWarm=600]
+//     [--ticks 1200] [--series]
+// - Chromium as run 3 launches it (defaults, headless), a fresh browser per
+//   repetition; a fresh context per run; Emulation.setCPUThrottlingRate 4
+//   before the page loads; the page's ?test=cost mode, quality low, the
+//   plan's script; COOP and COEP from the spike's own server.
+// - Order: a Latin square over the variants (each variant once in each
+//   position across 3 repetitions); per variant desktop then Pixel 8a,
+//   drawn then back to back, as the revisit ordered them.
+// - Before each run: `uptime`, and a wait while the 1-minute load is over 4
+//   (rechecked every 15 s, up to 20 minutes). During it: the CPU in use,
+//   this driver's process tree against every other process.
+// - After each run, in the same page: a fixed busy loop timed 5 times at the
+//   run's throttle, then 5 times at rate 1 (the throttle check).
+// - Variant check: Node runs src/cost.ts's harness with the same settings;
+//   the solver is deterministic across engines, so the page's contact counts
+//   must equal Node's exactly.
+import { execFileSync } from 'node:child_process';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { cpus, loadavg } from 'node:os';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const ROOT = process.cwd();
+const require = createRequire(join(ROOT, 'package.json'));
+const { chromium, devices } = require('@playwright/test');
+const { startServer } = await import(pathToFileURL(join(ROOT, 'e2e/serve.mjs')).href);
+const { CostRun } = await import(pathToFileURL(join(ROOT, 'src/cost.ts')).href);
+const { parseSolver, solverLabel, M0_SOLVER } = await import(pathToFileURL(join(ROOT, 'src/solver-settings.ts')).href);
+
+const args = process.argv.slice(2);
+const val = (f, d) => (args.includes(f) ? args[args.indexOf(f) + 1] : d);
+const dist = resolve(val('--dist'));
+const out = resolve(val('--out'));
+const variants = val('--variants', 'm0').split(',');
+const reps = Number(val('--reps', '3'));
+const modes = val('--modes', 'drawn,tight').split(',');
+const deviceNames = val('--devices', 'desktop,pixel').split(',').map((d) => (d === 'pixel' ? 'Pixel 8a' : d));
+const extra = val('--extra', '');
+const TICKS = Number(val('--ticks', '1200'));
+const series = args.includes('--series');
+const SCRIPT = 'scrum at the wall, flag42';
+const RATE = 4;
+const DEVICES = { desktop: { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 }, 'Pixel 8a': devices['Pixel 8a'] };
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const uptime = () => execFileSync('uptime', { encoding: 'utf8' }).trim();
+const l1 = () => +loadavg()[0].toFixed(2);
+async function gate() {
+  const t0 = Date.now();
+  for (;;) {
+    const u = uptime();
+    if (l1() <= 4) return { ok: true, waitedS: Math.round((Date.now() - t0) / 1000), l1: l1(), uptime: u };
+    if (Date.now() - t0 > 20 * 60_000) return { ok: false, waitedS: Math.round((Date.now() - t0) / 1000), l1: l1(), uptime: u };
+    await sleep(15_000);
+  }
+}
+function procs() {
+  const m = new Map();
+  for (const d of readdirSync('/proc')) {
+    if (!/^\d+$/.test(d)) continue;
+    try {
+      const s = readFileSync(`/proc/${d}/stat`, 'utf8');
+      const c = s.lastIndexOf(')');
+      const f = s.slice(c + 2).split(' ');
+      m.set(+d, { ppid: +f[1], cpu: +f[11] + +f[12] });
+    } catch { /* gone */ }
+  }
+  return m;
+}
+function busy() {
+  const f = readFileSync('/proc/stat', 'utf8').split('\n')[0].trim().split(/\s+/).slice(1, 9).map(Number);
+  const total = f.reduce((a, b) => a + b, 0);
+  return { busy: total - f[3] - f[4], total };
+}
+function sampler() {
+  let lastB = busy();
+  let lastP = procs();
+  const xs = [];
+  const timer = setInterval(() => {
+    const b = busy();
+    const p = procs();
+    const span = (b.total - lastB.total) / cpus().length;
+    const kids = new Map();
+    for (const [pid, q] of p) { if (!kids.has(q.ppid)) kids.set(q.ppid, []); kids.get(q.ppid).push(pid); }
+    const tree = new Set([process.pid]);
+    const todo = [process.pid];
+    while (todo.length) for (const k of kids.get(todo.pop()) ?? []) if (!tree.has(k)) { tree.add(k); todo.push(k); }
+    let mine = 0;
+    for (const [pid, q] of p) {
+      if (!tree.has(pid)) continue;
+      const before = lastP.get(pid);
+      mine += before ? Math.max(0, q.cpu - before.cpu) : q.cpu;
+    }
+    if (span > 0) xs.push({ busy: (b.busy - lastB.busy) / span, mine: mine / span, l1: l1() });
+    lastB = b;
+    lastP = p;
+  }, 2000);
+  return () => {
+    clearInterval(timer);
+    const mean = (k) => (xs.length ? +(xs.reduce((a, x) => a + x[k], 0) / xs.length).toFixed(2) : null);
+    const other = xs.map((x) => Math.max(0, x.busy - x.mine));
+    return { samples: xs.length, busyCores: mean('busy'), runCores: mean('mine'), otherCoresMean: other.length ? +(other.reduce((a, b) => a + b, 0) / other.length).toFixed(2) : null, otherCoresMax: other.length ? +Math.max(...other).toFixed(2) : null, l1Max: xs.length ? Math.max(...xs.map((x) => x.l1)) : null };
+  };
+}
+
+// The variant check's reference: Node's harness, same settings, same counts.
+const nodeRef = {};
+for (const spec of variants) {
+  const run = new CostRun({ script: SCRIPT, ticks: TICKS, config: parseSolver(spec) });
+  const now = () => performance.now();
+  while (run.step(now));
+  const r = run.report();
+  nodeRef[spec] = { label: r.solverLabel, contacts: r.contacts, baseTicks: r.baseTicks, bursts: r.bursts.map((b) => ({ steps: b.steps, contactsPerSubstep: b.contactsPerSubstep })) };
+}
+
+const server = await startServer({ distDir: dist, extraHeaders: [['Cross-Origin-Opener-Policy', 'same-origin'], ['Cross-Origin-Embedder-Policy', 'require-corp']] });
+const rows = [];
+const started = { utc: new Date().toISOString(), uptime: uptime() };
+let version = '';
+const save = (done) => writeFileSync(out, `${JSON.stringify({
+  about: "Verification of M0's cost revisit: run 3's 13-step tick at 4x on the plan's script, re-run independently of scripts/revisit/cost.mjs",
+  started, utcEnd: new Date().toISOString(), complete: done, chromium: version, node: process.version, cpu: cpus()[0]?.model, cpus: cpus().length,
+  method: { page: series ? 'the spike page plus a report hook that keeps every timed tick (verification bundle)' : 'the production build of the current tree (byte-identical to dist/)', script: SCRIPT, ticks: TICKS, rate: RATE, quality: 'low', extraQuery: extra, variants, reps, modes, devices: deviceNames, order: 'Latin square over variants; per variant desktop then Pixel 8a, drawn then back to back' },
+  nodeRef, runs: rows,
+}, null, 1)}\n`);
+
+const probeFn = () => {
+  const t0 = performance.now();
+  let x = 1;
+  for (let i = 0; i < 4_000_000; i++) x = (Math.imul(x, 1664525) + 1013904223) | 0;
+  return { ms: performance.now() - t0, x };
+};
+const median = (xs) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
+
+for (let rep = 0; rep < reps; rep++) {
+  const browser = await chromium.launch();
+  version = browser.version();
+  const order = variants.map((_, i) => variants[(i + rep) % variants.length]);
+  for (const [slot, spec] of order.entries()) {
+    const want = solverLabel({ ...M0_SOLVER, ...parseSolver(spec) });
+    for (const device of deviceNames) {
+      for (const mode of modes) {
+        const g = await gate();
+        const context = await browser.newContext(DEVICES[device]);
+        try {
+          const page = await context.newPage();
+          const errors = [];
+          page.on('pageerror', (e) => errors.push(String(e)));
+          page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+          const cdp = await context.newCDPSession(page);
+          await cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
+          const q = new URLSearchParams({ test: 'cost', script: SCRIPT, ticks: String(TICKS), runs: '30', draw: mode === 'drawn' ? '1' : '0', quality: 'low', solver: spec });
+          const url = `${server.url}?${q.toString()}${extra ? `&${extra}` : ''}`;
+          const stop = sampler();
+          const utc = new Date().toISOString();
+          await page.goto(url);
+          await page.waitForFunction(() => window.spikeCost?.state === 'done' || window.spikeCost?.state === 'failed', null, { timeout: 300_000, polling: 500 });
+          const cpu = stop();
+          const got = await page.evaluate(() => window.spikeCost);
+          const ser = series ? await page.evaluate(() => window.verifySeries ?? null) : null;
+          const at4 = [];
+          for (let i = 0; i < 5; i++) at4.push((await page.evaluate(probeFn)).ms);
+          await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+          const at1 = [];
+          for (let i = 0; i < 5; i++) at1.push((await page.evaluate(probeFn)).ms);
+          if (got.state !== 'done' || !got.report) {
+            rows.push({ utc, rep, slot, spec, device, mode, gate: g, failed: got.error || got.state, errors });
+            console.log(JSON.stringify({ rep, slot, spec, device, mode, failed: got.error || got.state, errors }));
+            save(false);
+            continue;
+          }
+          const r = got.report;
+          const ref = nodeRef[spec];
+          const checks = {
+            labelMatches: r.solverLabel === want && r.solverLabel === ref.label,
+            contactsMatchNode: r.contacts.perSubstep === ref.contacts.perSubstep && r.contacts.floorPerSubstep === ref.contacts.floorPerSubstep && r.contacts.maxInSubstep === ref.contacts.maxInSubstep && r.contacts.substeps === ref.contacts.substeps && r.contacts.slipOutsPerSubstep === ref.contacts.slipOutsPerSubstep,
+            burstsMatchNode: r.bursts.every((b, i) => b.contactsPerSubstep === ref.bursts[i].contactsPerSubstep),
+            baseTicksMatchNode: r.baseTicks.from === ref.baseTicks.from && r.baseTicks.to === ref.baseTicks.to,
+            timedTicks: r.tick.n, warmupTicks: r.warmupTicks, settleTicks: r.settleTicks, stepsPerTick: r.stepsPerTick,
+            isolated: got.env.crossOriginIsolated, clockStepMs: got.env.clockResolutionMs,
+            throttleProbeMs: { at4: +median(at4).toFixed(2), at1: +median(at1).toFixed(2), ratio: +(median(at4) / median(at1)).toFixed(2) },
+            errors,
+          };
+          let warm = null;
+          if (ser) {
+            const p95 = (xs) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); return +s[Math.min(s.length - 1, Math.floor(s.length * 0.95))].toFixed(3); };
+            const mean = (xs) => (xs.length ? +(xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(3) : null);
+            const t = ser.tickMs;
+            warm = { warmupTicks: ser.warmupTicks, n: t.length, p95All: p95(t), p95From51: p95(t.slice(50)), p95From301: p95(t.slice(300)), quarters: [0, 1, 2, 3].map((k) => ({ mean: mean(t.slice(k * t.length / 4, (k + 1) * t.length / 4)), p95: p95(t.slice(k * t.length / 4, (k + 1) * t.length / 4)) })), first50Mean: mean(t.slice(0, 50)), seriesMatchesReport: p95(t) === +r.tick.p95.toFixed(3) };
+          }
+          const row = {
+            utc, rep, slot, spec, label: r.solverLabel, device, mode, gate: g, cpu, wallMs: Math.round(got.wallMs),
+            viewport: got.env.viewport, dpr: got.env.devicePixelRatio,
+            frames: got.frames ? { count: got.frames.count, fps: +(1000 / got.frames.interval.mean).toFixed(1), intervalP95Ms: +got.frames.interval.p95.toFixed(1) } : null,
+            tick: { mean: +r.tick.mean.toFixed(3), p50: +r.tick.p50.toFixed(3), p95: +r.tick.p95.toFixed(3), p99: +r.tick.p99.toFixed(3), max: +r.tick.max.toFixed(3), n: r.tick.n },
+            contacts: { perSubstep: +r.contacts.perSubstep.toFixed(4), floor: +r.contacts.floorPerSubstep.toFixed(4), maxInSubstep: r.contacts.maxInSubstep },
+            bursts: r.bursts.map((b) => ({ steps: b.steps, medianMs: +b.ms.p50.toFixed(2), maxMs: +b.ms.max.toFixed(2), over50: b.overLimit })),
+            checks, warm, ...(ser ? { tickMs: ser.tickMs.map((x) => +x.toFixed(3)) } : {}),
+          };
+          rows.push(row);
+          console.log(JSON.stringify({ rep, slot, spec, device, mode, l1: g.l1, waited: g.waitedS, other: cpu.otherCoresMean, p95: row.tick.p95, mean: row.tick.mean, fps: row.frames?.fps ?? null, ratio: checks.throttleProbeMs.ratio, contactsOk: checks.contactsMatchNode, labelOk: checks.labelMatches, warm: warm ? { p95All: warm.p95All, p95From301: warm.p95From301 } : null, errors: errors.length }));
+          save(false);
+        } finally {
+          await context.close();
+        }
+      }
+    }
+  }
+  await browser.close();
+}
+save(true);
+await server.close();

@@ -8,7 +8,7 @@
 //   node scripts/verify/sitting.mjs   -> results/verify/sitting.json
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { makeConfig, SLIP_OUT_RULES } from '../../src/sim/config.ts';
+import { makeConfig, SLIP_OUT_RULES, substepsPerSecond } from '../../src/sim/config.ts';
 import { newMatch, IN_PLAY } from '../../src/sim/state.ts';
 import { makeSim, step } from '../../src/sim/step.ts';
 import { dir, fractionOfTurn } from '../../src/sim/angle.ts';
@@ -39,7 +39,7 @@ function sit(rule, thetaDeg) {
     prevZ = b.z; prevVz = b.vz;
   };
   for (let t = 1; t <= 480 && floor < 0; t++) step(sim, s, [null, null]);
-  const sec = (x) => (x < 0 ? Infinity : (x - landed) / 240);
+  const sec = (x) => (x < 0 ? Infinity : (x - landed) / substepsPerSecond(C));
   return { landed, cm: sec(cm), um: sec(um), floor: sec(floor) };
 }
 const rows = [];

@@ -33,7 +33,7 @@
 // pressing a body into it.
 
 import { datan2, dir } from './angle.ts';
-import { DT, type SimConfig } from './config.ts';
+import { checkSolver, type SimConfig, substepDt } from './config.ts';
 import { FLOOR, GOAL_NET, type PieceHit, pieceContact, type Pitch } from './pitch.ts';
 import type { Body, Terrier } from './state.ts';
 
@@ -57,6 +57,8 @@ export class Physics {
   readonly n: number; // bodies: terriers, then the ball
   readonly ball: number; // the ball's index
   private readonly C: SimConfig;
+  /** One substep, from the configuration's substeps a tick (D-3). */
+  private readonly dt: number;
   private readonly pitch: Pitch;
   private readonly radius: Float64Array;
   private readonly invMass: Float64Array;
@@ -110,7 +112,9 @@ export class Physics {
   readonly stats: SolverStats = newStats();
 
   constructor(C: SimConfig, pitch: Pitch, terriers: number) {
+    checkSolver(C);
     this.C = C;
+    this.dt = substepDt(C);
     this.pitch = pitch;
     const n = terriers + 1;
     this.n = n;
@@ -203,30 +207,31 @@ export class Physics {
   forcesAndIntegrate(bodies: readonly Body[], terriers: readonly Terrier[]): void {
     const C = this.C;
     const n = this.n;
+    const dt = this.dt;
     for (let k = 0; k < n; k++) {
       const b = bodies[k]!;
       this.v0x[k] = b.vx; this.v0y[k] = b.vy; this.v0z[k] = b.vz;
     }
-    const g = C.gravity * DT;
+    const g = C.gravity * dt;
     for (let k = 0; k < n - 1; k++) {
       const t = terriers[k]!;
       if (t.onFloor && t.lunge === 0) {
         if (t.driveOn) {
           if (C.drive) this.drive(t, bodies);
         } else if (C.friction) {
-          slow(t, C.idleFriction * DT);
+          slow(t, C.idleFriction * dt);
         }
       }
       t.vz -= g;
     }
     const ball = bodies[n - 1]!;
-    if (ball.onFloor && C.rolling) slow(ball, C.rollingSlowdown * DT);
+    if (ball.onFloor && C.rolling) slow(ball, C.rollingSlowdown * dt);
     ball.vz -= g;
     for (let k = 0; k < n; k++) {
       const b = bodies[k]!;
-      b.x += b.vx * DT;
-      b.y += b.vy * DT;
-      b.z += b.vz * DT;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.z += b.vz * dt;
     }
   }
 
@@ -236,7 +241,7 @@ export class Physics {
   private drive(t: Terrier, bodies: readonly Body[]): void {
     let dx = t.targetVx - t.vx;
     let dy = t.targetVy - t.vy;
-    const cap = this.C.accel * DT;
+    const cap = this.C.accel * this.dt;
     const d2 = dx * dx + dy * dy;
     if (d2 > cap * cap) {
       const f = cap / Math.sqrt(d2);

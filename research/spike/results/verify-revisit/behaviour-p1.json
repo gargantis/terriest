@@ -1,0 +1,92 @@
+{
+ "about": "Verification of M0's cost revisit: the vitest suite under one solver setting, with each test file's simulated settings recorded",
+ "utc": "2026-11-16T07:57:50.754Z",
+ "node": "v22.23.4",
+ "cpus": 12,
+ "load1mBefore": 5.53,
+ "wallSeconds": 18.5,
+ "spec": "p1",
+ "goldensIncluded": false,
+ "command": "npx vitest run --config <scratch>/vitest.verify.config.mjs --configLoader runner --no-cache --reporter=default --reporter=json --outputFile.json=<tmp> --exclude src/sim/golden.test.ts",
+ "exitCode": 1,
+ "files": 24,
+ "tests": {
+  "total": 173,
+  "passed": 165,
+  "failed": 2,
+  "skipped": 6
+ },
+ "failed": [
+  {
+   "file": "src/sim/contacts.test.ts",
+   "title": "resting contact (D-5 step 4) holds a terrier resting against a ball at the wall bit-still too, nothing held",
+   "status": "failed",
+   "failure": "AssertionError: expected 1 to be -1 // Object.is equality"
+  },
+  {
+   "file": "src/sim/contacts.test.ts",
+   "title": "resting contact (D-5 step 4) holds a terrier pressing the ball into the wall bit-still, every contact under load",
+   "status": "failed",
+   "failure": "AssertionError: expected 1 to be -1 // Object.is equality"
+  }
+ ],
+ "skipped": [
+  "src/sim/measure.test.ts: M0 measurements (simulation) push times, under both readings of the floor",
+  "src/sim/measure.test.ts: M0 measurements (simulation) simultaneous hits, under both readings of the floor",
+  "src/sim/measure.test.ts: M0 measurements (simulation) slip-out candidates: the coarse survey for all, the fine sweep for the leaders",
+  "src/sim/measure.test.ts: M0 measurements (simulation) the dribble hop angles, the cone bound they set",
+  "src/sim/measure.test.ts: M0 measurements (simulation) tick cost in Node: a 13-step replay every tick on the 4-a-side scrums, and the worst single ticks",
+  "src/sim/measure.test.ts: M0 measurements (simulation) the golden suite, timed in Node"
+ ],
+ "settingsByFile": {
+  "test/serve.test.ts": {},
+  "src/sim/hits.test.ts": {
+   "i8 p1 floor s4": 1920
+  },
+  "scripts/make-standin.test.mjs": {},
+  "src/scene/drawers.test.ts": {},
+  "src/sim/pitch.test.ts": {},
+  "src/sim/angle.test.ts": {},
+  "src/scene/interpolate.test.ts": {},
+  "test/solver-settings.test.ts": {
+   "i8 p1 floor s3": 21,
+   "i8 p1 floor s4": 28,
+   "i8 p1 floor s5": 35,
+   "i3 p1 floor s2": 26
+  },
+  "src/sim/movement.test.ts": {
+   "i8 p1 floor s4": 51304
+  },
+  "src/cost.test.ts": {
+   "i8 p1 floor s4": 5132
+  },
+  "src/scene/stub-source.test.ts": {},
+  "src/sim/source.test.ts": {
+   "i8 p1 floor s4": 26072
+  },
+  "src/sim/push.test.ts": {
+   "i8 p1 floor s4": 3804
+  },
+  "src/source-choice.test.ts": {
+   "i8 p1 floor s4": 2400
+  },
+  "test/headers.test.ts": {},
+  "src/contract.test.ts": {},
+  "src/scene/frames.test.ts": {},
+  "src/sim/contacts.test.ts": {
+   "i8 p1 floor s4": 154368
+  },
+  "test/eslint-config.test.ts": {},
+  "scripts/tokenizer-check.test.mjs": {},
+  "src/sim/mirror.test.ts": {
+   "i8 p1 floor s4": 288000
+  },
+  "src/sim/tunnel.test.ts": {
+   "i8 p1 floor s4": 488400
+  },
+  "src/sim/slipout.test.ts": {
+   "i8 p1 floor s4": 1838504
+  }
+ },
+ "filesProbed": 23
+}

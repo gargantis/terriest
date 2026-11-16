@@ -1,0 +1,60 @@
+// Summarises the verification's timing runs beside the revisit's batch.
+//   node <this> <headline.json> <series.json> <warm600.json> <revisit cost-variants.json> [<extra.json>]
+import { existsSync, readFileSync } from 'node:fs';
+
+const [hFile, sFile, wFile, rFile, xFile] = process.argv.slice(2);
+const read = (f) => JSON.parse(readFileSync(f, 'utf8'));
+const h = read(hFile);
+const sr = read(sFile);
+const w = read(wFile);
+const rv = read(rFile);
+const x = xFile && existsSync(xFile) ? read(xFile) : null;
+const med = (xs) => { const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const rng = (xs) => (xs.length ? [Math.min(...xs), Math.max(...xs)] : null);
+const f3 = (v) => +v.toFixed(3);
+
+function table(runs, nameOf) {
+  const names = [...new Set(runs.map(nameOf))];
+  const tightOf = (n) => runs.filter((r) => nameOf(r) === n && r.mode === 'tight').map((r) => r.tick.mean);
+  const m0Tight = tightOf('m0').length ? med(tightOf('m0')) : null;
+  return names.map((n) => {
+    const mine = runs.filter((r) => nameOf(r) === n);
+    const d = mine.filter((r) => r.mode === 'drawn');
+    const t = mine.filter((r) => r.mode === 'tight');
+    const added = d.map((a) => { const b = t.find((z) => z.rep === a.rep && z.device === a.device); return b ? f3(a.tick.p95 - b.tick.p95) : null; }).filter((v) => v !== null);
+    return {
+      name: n, drawnRuns: d.length, drawnP95: rng(d.map((r) => r.tick.p95)), drawnP95Median: d.length ? f3(med(d.map((r) => r.tick.p95))) : null,
+      drawnOver4: d.filter((r) => r.tick.p95 > 4).length,
+      drawnP95ByDevice: Object.fromEntries(['desktop', 'Pixel 8a'].map((dev) => [dev, d.filter((r) => r.device === dev).map((r) => r.tick.p95)])),
+      tightRuns: t.length, tightP95: rng(t.map((r) => r.tick.p95)), tightMeanMedian: t.length ? f3(med(t.map((r) => r.tick.mean))) : null,
+      tightVsM0: t.length && m0Tight ? `${(100 * (med(t.map((r) => r.tick.mean)) / m0Tight - 1)).toFixed(1)}%` : null,
+      drawnMean: rng(d.map((r) => r.tick.mean)), drawingAddsToP95: { range: rng(added), median: added.length ? f3(med(added)) : null, pairs: added.length },
+      fps: { desktop: rng(d.filter((r) => r.device === 'desktop').map((r) => r.frames?.fps ?? r.fps)), pixel: rng(d.filter((r) => r.device === 'Pixel 8a').map((r) => r.frames?.fps ?? r.fps)) },
+      contactsPerSubstep: rng(mine.map((r) => r.contacts.perSubstep)),
+    };
+  });
+}
+const ok = (runs) => runs.filter((r) => !r.failed);
+const verRuns = [...ok(h.runs), ...(x ? ok(x.runs).map((r) => ({ ...r, rep: `x${r.rep}` })) : [])];
+const allMine = [...verRuns, ...ok(sr.runs).map((r) => ({ ...r, rep: `s${r.rep}` })), ...ok(w.runs).map((r) => ({ ...r, rep: `w${r.rep}` }))];
+const checks = allMine.map((r) => r.checks);
+const out = {
+  verification: {
+    batches: { headline: h.runs.length, extraDrawn: x ? x.runs.length : 0, series: sr.runs.length, warm600: w.runs.length },
+    failedRuns: [h, sr, w, x].filter(Boolean).reduce((a, b) => a + b.runs.filter((r) => r.failed).length, 0),
+    utc: { headline: [h.started.utc, h.utcEnd], extra: x ? [x.started.utc, x.utcEnd] : null, series: [sr.started.utc, sr.utcEnd], warm600: [w.started.utc, w.utcEnd] },
+    uptimeAtStart: h.started.uptime, chromium: h.chromium,
+    loadBefore1m: rng(allMine.map((r) => r.gate.l1)), waitedRuns: allMine.filter((r) => r.gate.waitedS > 0).length, maxWaitS: Math.max(...allMine.map((r) => r.gate.waitedS)), gateFailures: allMine.filter((r) => !r.gate.ok).length,
+    otherCoresMean: rng(allMine.map((r) => r.cpu?.otherCoresMean ?? 0)),
+    allLabelsMatch: checks.every((c) => c.labelMatches), allContactsMatchNode: checks.every((c) => c.contactsMatchNode && c.burstsMatchNode && c.baseTicksMatchNode),
+    timedTicks: [...new Set(checks.map((c) => c.timedTicks))], warmupTicks: [...new Set(checks.map((c) => c.warmupTicks))], settleTicks: [...new Set(checks.map((c) => c.settleTicks))],
+    throttleProbe: { at4Ms: rng(checks.map((c) => c.throttleProbeMs.at4)), at1Ms: rng(checks.map((c) => c.throttleProbeMs.at1)), ratio: rng(checks.map((c) => c.throttleProbeMs.ratio)), ratioMedian: f3(med(checks.map((c) => c.throttleProbeMs.ratio))), runs: checks.length },
+    isolated: checks.every((c) => c.isolated && c.clockStepMs <= 0.01), consoleErrors: checks.reduce((a, c) => a + c.errors.length, 0),
+    headlineTable: table(ok(h.runs), (r) => r.spec),
+    headlinePlusExtraDrawn: table(verRuns, (r) => r.spec),
+  },
+  revisitSameVariants: table(rv.runs.filter((r) => ['m0', 'i4', 'i6'].includes(r.name)), (r) => r.name),
+  pooledDrawn: table([...verRuns, ...ok(sr.runs).map((r) => ({ ...r, rep: `s${r.rep}` })), ...rv.runs.filter((r) => ['m0', 'i4', 'i6'].includes(r.name)).map((r) => ({ ...r, spec: r.name, rep: `r${r.rep}` }))], (r) => r.spec),
+  warmup: [...sr.runs, ...w.runs].filter((r) => r.warm).map((r) => ({ spec: r.spec, device: r.device, mode: r.mode, warmupTicks: r.warm.warmupTicks, p95: r.tick.p95, mean: r.tick.mean, p95All: r.warm.p95All, p95From51: r.warm.p95From51, p95From301: r.warm.p95From301, first50Mean: r.warm.first50Mean, quarters: r.warm.quarters, seriesMatchesReport: r.warm.seriesMatchesReport, throttleRatio: r.checks.throttleProbeMs.ratio, contactsOk: r.checks.contactsMatchNode })),
+};
+console.log(JSON.stringify(out, null, 1));

@@ -84,7 +84,7 @@ function line(r: Pick<Row, 'script' | 'device' | 'rate' | 'draw' | 'report'> & P
   const p = r.report;
   const f = (x: number): number => +x.toFixed(4);
   return JSON.stringify({
-    engine, script: r.script, device: r.device, rate: r.rate, draw: r.draw,
+    engine, script: r.script, solver: p.solverLabel, device: r.device, rate: r.rate, draw: r.draw,
     tickMs: { mean: f(p.tick.mean), p50: f(p.tick.p50), p95: f(p.tick.p95), max: f(p.tick.max), n: p.tick.n },
     stepMs: { mean: f(p.step.mean), p95: f(p.step.p95), max: f(p.step.max) },
     contactsPerSubstep: f(p.contacts.perSubstep), floor: f(p.contacts.floorPerSubstep), maxInSubstep: p.contacts.maxInSubstep,
@@ -124,7 +124,7 @@ for (const script of SCRIPTS) {
             expect(report.stepsPerTick).toBe(13);
             expect(report.tick.n).toBe(TICKS);
             expect(report.tick.n).toBeGreaterThanOrEqual(600);
-            expect(report.contacts.substeps).toBe(TICKS * 13 * 4);
+            expect(report.contacts.substeps).toBe(TICKS * 13 * report.solver.substeps);
             expect(report.contacts.perSubstep).toBeGreaterThan(0);
             expect(report.bursts.map((b) => [b.steps, b.runs])).toEqual(BURSTS.map((s) => [s, BURST_RUNS]));
             expect(got.env.crossOriginIsolated).toBe(true);

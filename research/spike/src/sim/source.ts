@@ -6,7 +6,7 @@
 // match with no goal yet leaves lastGoal out.
 
 import type { BallView, MatchView, SimSource, TerrierView } from '../contract.ts';
-import { NEVER, SLIP_OUT_RULES, type SlipOutName } from './config.ts';
+import { NEVER, SLIP_OUT_RULES, type SimConfig, type SlipOutName } from './config.ts';
 import { hashState } from './codec.ts';
 import type { SolverStats } from './physics.ts';
 import { findScript, type ScriptSpec, scriptConfig, scriptInputs, scriptStart, showcase } from './scripts.ts';
@@ -20,6 +20,10 @@ export interface SimSourceOptions {
   script?: string | ScriptSpec;
   /** The slip-out rule; by default the script's (the showcase's is M0's pick). */
   slipOut?: SlipOutName;
+  /** Settings over the script's configuration, such as the solver's
+   *  iterations, position passes, floor reading and substeps (M0's cost
+   *  revisit). */
+  config?: Partial<SimConfig>;
 }
 
 export interface SpikeSimSource extends SimSource {
@@ -68,9 +72,12 @@ export function viewOf(s: MatchState): MatchView {
   return view;
 }
 
+/** The configuration a source or bench runs: the script's, then the overrides. */
+const configOf = (spec: ScriptSpec, opts: SimSourceOptions): SimConfig => ({ ...scriptConfig(spec), ...opts.config });
+
 export function createSimSource(opts: SimSourceOptions = {}): SpikeSimSource {
   const spec = resolve(opts);
-  const C = scriptConfig(spec);
+  const C = configOf(spec, opts);
   if (!(spec.slipOut in SLIP_OUT_RULES)) throw new Error(`no slip-out rule ${spec.slipOut}`);
   const sim: Sim = makeSim(C, spec.packSize);
   const s = scriptStart(spec, C);
@@ -96,6 +103,8 @@ export function createSimSource(opts: SimSourceOptions = {}): SpikeSimSource {
  *  about 42, a late-vote repair up to about 270). The caller times them. */
 export interface ReplayBench {
   readonly script: ScriptSpec;
+  /** The configuration it steps, overrides included. */
+  readonly config: Readonly<SimConfig>;
   tick(): void;
   burst(steps: number): void;
   /** Solver counters, cumulative: contacts per substep is contacts / substeps. */
@@ -105,7 +114,7 @@ export interface ReplayBench {
 
 export function createReplayBench(opts: SimSourceOptions & { window?: number; warmTicks?: number } = {}): ReplayBench {
   const spec = resolve({ ...opts, script: opts.script ?? 'scrum in the corner, flag42' });
-  const C = scriptConfig(spec);
+  const C = configOf(spec, opts);
   const sim = makeSim(C, spec.packSize);
   const window = opts.window ?? 12;
   const base = scriptStart(spec, C);
@@ -118,6 +127,7 @@ export function createReplayBench(opts: SimSourceOptions & { window?: number; wa
   };
   return {
     script: spec,
+    config: C,
     base,
     tick() {
       from(base, 1); // finalise

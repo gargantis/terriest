@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Copies the verification's timing results and its drivers into
+# results/verify-revisit/, with the machine's own paths replaced, and checks
+# that nothing there names a home path or the account. Run from the spike's
+# folder: bash <this> <scratch dir>
+set -u
+S="$1"
+SP="$(pwd)"
+OUT=results/verify-revisit
+mkdir -p "$OUT/drivers"
+clean() { sed -e "s#file://$SP/#<spike>/#g" -e "s#$SP#<spike>#g" -e "s#$S#<scratch>#g" "$1"; }
+clean "$S/vcost-headline.json" > "$OUT/cost-drawn.json"
+[ -f "$S/vcost-extra.json" ] && clean "$S/vcost-extra.json" > "$OUT/cost-drawn-extra.json"
+clean "$S/vcost-series.json" > "$OUT/cost-series.json"
+clean "$S/vcost-warm600.json" > "$OUT/cost-warm600.json"
+node "$S/vsummary.mjs" "$S/vcost-headline.json" "$S/vcost-series.json" "$S/vcost-warm600.json" results/revisit/cost-variants.json "$S/vcost-extra.json" > "$S/cost-summary.json" && clean "$S/cost-summary.json" > "$OUT/cost-summary.json"
+node "$S/vchecks.mjs" "$S/tmp" "$S/checks.json" > /dev/null && clean "$S/checks.json" > "$OUT/checks.json"
+for f in vcost.mjs vsettle.mjs vvariants.mjs vtunnel.mjs vcross.mjs vsummary.mjs vbehaviour.mjs vchecks.mjs probe-setup.ts vitest.verify.config.mjs post-timing.sh finish.sh chain.sh rerun.sh pw.det.config.mjs; do [ -f "$S/$f" ] && clean "$S/$f" > "$OUT/drivers/$f.txt"; done
+for f in entry.ts patch.ts vite.series.mjs index.html; do clean "$S/series/$f" > "$OUT/drivers/series-$f.txt"; done
+echo "files with a home path or the account name:"
+grep -rIl -i -e "$HOME" -e "$(whoami)" "$OUT" || echo "  none"
+cd "$SP/../.." && git status --short research/spike | grep -v '^ M\|^??' ; echo "git status checked"

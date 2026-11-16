@@ -16,12 +16,16 @@
 //   from the base and timed alone against L286's 50 ms frame; the base moves
 //   on one 13-step tick, untimed, after each, so the bursts start from
 //   different moments of the scrum.
+// - The solver's settings are the simulation's defaults unless `config`
+//   overrides them (M0's cost revisit; src/solver-settings.ts), and the
+//   report records the settings it timed.
 //
 // Imports keep their .ts extensions, so Node runs this file as it is.
 
-import type { SlipOutName } from './sim/config.ts';
+import type { SimConfig, SlipOutName } from './sim/config.ts';
 import type { SolverStats } from './sim/physics.ts';
 import { createReplayBench, type ReplayBench } from './sim/source.ts';
+import { solverLabel, solverOf, type SolverSettings } from './solver-settings.ts';
 
 /** The 12-tick window plus the finalising step (C-2). */
 export const WINDOW = 12;
@@ -38,6 +42,8 @@ export const COST_SCRIPTS: readonly string[] = ['scrum at the wall, flag42', 'sc
 export interface CostOptions {
   script: string;
   slipOut?: SlipOutName;
+  /** Settings over the script's configuration, such as a solver variant. */
+  config?: Partial<SimConfig>;
   settleTicks: number;
   warmupTicks: number;
   ticks: number;
@@ -101,6 +107,9 @@ export interface BurstReport {
 export interface CostReport {
   script: string;
   slipOut: string;
+  /** The solver settings timed, and their label ('i8 p2 floor s4'). */
+  solver: SolverSettings;
+  solverLabel: string;
   packSize: number;
   window: number;
   stepsPerTick: number;
@@ -150,7 +159,10 @@ export class CostRun {
   constructor(options: Partial<CostOptions> = {}) {
     this.options = { ...DEFAULT_COST, ...options };
     const o = this.options;
-    this.bench = createReplayBench({ script: o.script, window: WINDOW, warmTicks: o.settleTicks, ...(o.slipOut ? { slipOut: o.slipOut } : {}) });
+    this.bench = createReplayBench({
+      script: o.script, window: WINDOW, warmTicks: o.settleTicks,
+      ...(o.slipOut ? { slipOut: o.slipOut } : {}), ...(o.config ? { config: o.config } : {}),
+    });
     this.burstMs = o.bursts.map(() => []);
     this.burstStats = o.bursts.map(() => ({ substeps: 0, contacts: 0 }));
   }
@@ -222,9 +234,12 @@ export class CostRun {
     const o = this.options;
     const tick = stats(this.tickMs);
     const zero = { substeps: 0, contacts: 0, floorContacts: 0, maxContacts: 0, slipOuts: 0 };
+    const solver = solverOf(this.bench.config);
     return {
       script: this.bench.script.name,
       slipOut: this.bench.script.slipOut,
+      solver,
+      solverLabel: solverLabel(solver),
       packSize: this.bench.script.packSize,
       window: WINDOW,
       stepsPerTick: STEPS_PER_TICK,

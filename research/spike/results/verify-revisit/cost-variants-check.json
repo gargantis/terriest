@@ -1,0 +1,112 @@
+{
+ "about": "Verification: each of the revisit's timed runs against Node's harness under the same settings (contact counts over the timed window)",
+ "utc": "2026-11-16T07:53:45.695Z",
+ "node": "v22.23.4",
+ "source": "results/revisit/cost-variants.json",
+ "runs": 120,
+ "matching": 120,
+ "mismatching": [],
+ "indistinctPairs": [],
+ "nodeReference": {
+  "m0": {
+   "label": "i8 p2 floor s4",
+   "perSubstep": 11.65,
+   "floorPerSubstep": 8.53,
+   "otherPerSubstep": 3.13,
+   "maxInSubstep": 19,
+   "slipOutsPerSubstep": 0.0008,
+   "exactPerSubstep": 11.65363782051282,
+   "substeps": 62400
+  },
+  "i6": {
+   "label": "i6 p2 floor s4",
+   "perSubstep": 11.98,
+   "floorPerSubstep": 8.49,
+   "otherPerSubstep": 3.49,
+   "maxInSubstep": 18,
+   "slipOutsPerSubstep": 0.0006,
+   "exactPerSubstep": 11.977564102564102,
+   "substeps": 62400
+  },
+  "i4": {
+   "label": "i4 p2 floor s4",
+   "perSubstep": 11.18,
+   "floorPerSubstep": 8.56,
+   "otherPerSubstep": 2.62,
+   "maxInSubstep": 18,
+   "slipOutsPerSubstep": 0.0044,
+   "exactPerSubstep": 11.180801282051283,
+   "substeps": 62400
+  },
+  "p1": {
+   "label": "i8 p1 floor s4",
+   "perSubstep": 10.06,
+   "floorPerSubstep": 8.52,
+   "otherPerSubstep": 1.54,
+   "maxInSubstep": 14,
+   "slipOutsPerSubstep": 0.0063,
+   "exactPerSubstep": 10.062083333333334,
+   "substeps": 62400
+  },
+  "nofloor": {
+   "label": "i8 p2 nofloor s4",
+   "perSubstep": 2.62,
+   "floorPerSubstep": 0,
+   "otherPerSubstep": 2.62,
+   "maxInSubstep": 8,
+   "slipOutsPerSubstep": 0.0025,
+   "exactPerSubstep": 2.616698717948718,
+   "substeps": 62400
+  },
+  "s3": {
+   "label": "i8 p2 floor s3",
+   "perSubstep": 10.35,
+   "floorPerSubstep": 8.48,
+   "otherPerSubstep": 1.87,
+   "maxInSubstep": 18,
+   "slipOutsPerSubstep": 0.0056,
+   "exactPerSubstep": 10.349102564102564,
+   "substeps": 46800
+  },
+  "i4+s3": {
+   "label": "i4 p2 floor s3",
+   "perSubstep": 10.08,
+   "floorPerSubstep": 8.34,
+   "otherPerSubstep": 1.74,
+   "maxInSubstep": 19,
+   "slipOutsPerSubstep": 0.0119,
+   "exactPerSubstep": 10.075213675213675,
+   "substeps": 46800
+  },
+  "i6+s3": {
+   "label": "i6 p2 floor s3",
+   "perSubstep": 11.59,
+   "floorPerSubstep": 8.57,
+   "otherPerSubstep": 3.01,
+   "maxInSubstep": 18,
+   "slipOutsPerSubstep": 0.0019,
+   "exactPerSubstep": 11.585940170940171,
+   "substeps": 46800
+  },
+  "i4+p1": {
+   "label": "i4 p1 floor s4",
+   "perSubstep": 10.36,
+   "floorPerSubstep": 8.56,
+   "otherPerSubstep": 1.8,
+   "maxInSubstep": 19,
+   "slipOutsPerSubstep": 0.0046,
+   "exactPerSubstep": 10.36451923076923,
+   "substeps": 62400
+  },
+  "i6+p1": {
+   "label": "i6 p1 floor s4",
+   "perSubstep": 10.17,
+   "floorPerSubstep": 8.49,
+   "otherPerSubstep": 1.68,
+   "maxInSubstep": 16,
+   "slipOutsPerSubstep": 0.0096,
+   "exactPerSubstep": 10.17147435897436,
+   "substeps": 62400
+  }
+ }
+}

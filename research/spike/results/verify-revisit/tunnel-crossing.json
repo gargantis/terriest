@@ -1,0 +1,36 @@
+{
+ "about": "Verification: how tunnel.test.ts's terrier 0 reaches the ball's far side with the floor out of the solve",
+ "utc": "2026-11-16T07:59:09.657Z",
+ "rows": [
+  {
+   "spec": "m0",
+   "minCentreDistanceM": 1.0427,
+   "contactDistanceM": 1.05,
+   "terrier0MaxZ": 0.25,
+   "crossings": []
+  },
+  {
+   "spec": "nofloor",
+   "minCentreDistanceM": 1.0465,
+   "contactDistanceM": 1.05,
+   "terrier0MaxZ": 0.25,
+   "crossings": [
+    {
+     "substep": 63,
+     "terrier": {
+      "x": 0.031,
+      "y": -0.105,
+      "z": 0.25,
+      "vz": 0
+     },
+     "ball": {
+      "x": 0.017,
+      "y": -0.211,
+      "z": 2.979
+     },
+     "heightAboveBallCentreM": -2.729
+    }
+   ]
+  }
+ ]
+}

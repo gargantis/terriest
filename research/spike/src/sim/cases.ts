@@ -5,7 +5,7 @@
 // simulation imports it. Exact operations, like the rest of src/sim.
 
 import { datan2, dir, fractionOfTurn, HALF_TURN } from './angle.ts';
-import { makeConfig, SLIP_OUT_RULES, type SimConfig, type SlipOutName, type SlipOutRule } from './config.ts';
+import { makeConfig, SLIP_OUT_RULES, type SimConfig, type SlipOutName, type SlipOutRule, substepsPerSecond } from './config.ts';
 import { ballDir, NOTHING, park, pinch, pitchDir, place, placeBall, type ScriptSpec, scriptConfig, scriptInputs, scriptStart } from './scripts.ts';
 import { IN_PLAY, type MatchState, newMatch } from './state.ts';
 import { makeSim, step } from './step.ts';
@@ -42,8 +42,11 @@ class Watch {
   private prevZ = Infinity;
   private prevVz = 0;
   private readonly checkMirror: boolean;
-  constructor(checkMirror: boolean) {
+  /** Substeps a second: 240 at D-3's 4 substeps. */
+  readonly perSecond: number;
+  constructor(checkMirror: boolean, perSecond: number) {
     this.checkMirror = checkMirror;
+    this.perSecond = perSecond;
   }
   /** A landing is a contact from above while the ball, off the floor in the
    *  previous substep, was coming down: not a pinch's push from the floor. */
@@ -70,8 +73,8 @@ class Watch {
   }
   result(slipOuts: number): SlipResult {
     return {
-      landed: this.landedSub < 0 ? null : this.landedSub / 240,
-      down: this.landedSub < 0 || this.downSub < 0 ? null : (this.downSub - this.landedSub) / 240,
+      landed: this.landedSub < 0 ? null : this.landedSub / this.perSecond,
+      down: this.landedSub < 0 || this.downSub < 0 ? null : (this.downSub - this.landedSub) / this.perSecond,
       slipOuts, mirror: this.mirror, apex: this.apex,
     };
   }
@@ -109,7 +112,7 @@ export function ballOnTerriers(rule: SlipOutName | SlipOutRule, c: RestCase, sec
   }
   placeBall(s, 0, 0, r + REACH * cosT + 0.01);
   if (c.holding === 'sitting') for (const t of s.terriers) t.sitting = true;
-  const watch = new Watch(!c.offMirror);
+  const watch = new Watch(!c.offMirror, substepsPerSecond(C));
   sim.probe = (st) => watch.see(st);
   const inputs: (number | null)[] = new Array(c.packSize * 2).fill(0);
   const ticks = Math.round(seconds * 60);
@@ -122,7 +125,7 @@ export function ballOnTerriers(rule: SlipOutName | SlipOutRule, c: RestCase, sec
       else inputs[k] = (k & 1) === 0 ? pitchDir(0) : pitchDir(16);
     }
     step(sim, s, inputs);
-    if (watch.downSub >= 0 && watch.sub > watch.downSub + 240) break;
+    if (watch.downSub >= 0 && watch.sub > watch.downSub + watch.perSecond) break;
   }
   return watch.result(sim.physics.stats.slipOuts);
 }
@@ -134,13 +137,13 @@ export function kickoffPinch(rule: SlipOutName | SlipOutRule, packSize: number, 
   const C = typeof rule === 'string' ? scriptConfig(spec) : { ...scriptConfig(spec), slipOut: rule };
   const sim = makeSim(C, packSize);
   const s = scriptStart(spec, C);
-  const watch = new Watch(true);
+  const watch = new Watch(true, substepsPerSecond(C));
   sim.probe = (st) => watch.see(st);
   const inputs: (number | null)[] = [];
   const ticks = C.kickoffCountdownTicks + Math.round(seconds * 60);
   for (let t = 1; t <= ticks; t++) {
     step(sim, s, scriptInputs(spec, t, inputs));
-    if (watch.downSub >= 0 && watch.sub > watch.downSub + 240) break;
+    if (watch.downSub >= 0 && watch.sub > watch.downSub + watch.perSecond) break;
   }
   return watch.result(sim.physics.stats.slipOuts);
 }
@@ -205,6 +208,7 @@ export function pushTime(spec: ScriptSpec, over: Partial<SimConfig> = {}, limitT
   let subs = 0;
   let sub = 0;
   const target = 0.95 * C.runSpeed;
+  const perSecond = substepsPerSecond(C);
   sim.probe = (st) => {
     sub++;
     if (reached !== null) return;
@@ -212,7 +216,7 @@ export function pushTime(spec: ScriptSpec, over: Partial<SimConfig> = {}, limitT
     if (!st.ball.onFloor) air++;
     const v = Math.sqrt(st.ball.vx * st.ball.vx + st.ball.vy * st.ball.vy);
     if (v > top) top = v;
-    if (v >= target) reached = sub / 240;
+    if (v >= target) reached = sub / perSecond;
   };
   for (let t = 1; t <= limitTicks && reached === null; t++) step(sim, s, scriptInputs(spec, t, inputs));
   return { name: spec.name, seconds: reached, top, slipOuts: sim.physics.stats.slipOuts, airborneShare: air / (subs > 0 ? subs : 1) };

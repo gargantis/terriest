@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# The rest of the verification, in order, from the spike's folder:
+#   bash <this> <scratch dir>
+# 1. wait for the timing batch (headline, series, long warm-up) to end;
+# 2. 12 more drawn runs, M0's settings and 4 iterations alternating;
+# 3. the CPU-heavy checks (post-timing.sh);
+# 4. copy and clean the results into results/verify-revisit/ (finish.sh).
+set -u
+S="$1"
+until [ -f "$S/timing-end-uptime.txt" ]; do sleep 5; done
+node "$S/vcost.mjs" --dist "$S/dist-prod" --out "$S/vcost-extra.json" --variants m0,i4 --reps 3 --modes drawn > "$S/vcost-extra.log" 2>&1
+uptime > "$S/extra-end-uptime.txt"
+bash "$S/post-timing.sh" "$S" > "$S/post-timing.log" 2>&1
+bash "$S/finish.sh" "$S" > "$S/finish.log" 2>&1
+echo done > "$S/chain.done"

@@ -1,0 +1,882 @@
+{
+ "utc": "2026-11-16T06:10:05.127Z",
+ "node": "v22.23.4",
+ "solver": {
+  "iterations": 4,
+  "positionPasses": 1,
+  "floorInSolve": true,
+  "substeps": 4
+ },
+ "pushes": [
+  {
+   "name": "one pusher, pitch frame",
+   "floorInSolve": true,
+   "seconds": 1.225,
+   "top": 5.7153334712082415,
+   "ballOffFloorShare": 0,
+   "slipOuts": 0
+  },
+  {
+   "name": "one pusher, ball frame",
+   "floorInSolve": true,
+   "seconds": 1.225,
+   "top": 5.7153334712082415,
+   "ballOffFloorShare": 0,
+   "slipOuts": 0
+  },
+  {
+   "name": "two in a train",
+   "floorInSolve": true,
+   "seconds": 0.7791666666666667,
+   "top": 5.707150822669279,
+   "ballOffFloorShare": 0.32620320855614976,
+   "slipOuts": 0
+  },
+  {
+   "name": "four in a train",
+   "floorInSolve": true,
+   "seconds": 0.575,
+   "top": 5.713936363743617,
+   "ballOffFloorShare": 0.6884057971014492,
+   "slipOuts": 0
+  },
+  {
+   "name": "two round the ball, pitch frame",
+   "floorInSolve": true,
+   "seconds": 0.8291666666666667,
+   "top": 5.703635569055389,
+   "ballOffFloorShare": 0.3969849246231156,
+   "slipOuts": 0
+  },
+  {
+   "name": "two round the ball, ball frame",
+   "floorInSolve": true,
+   "seconds": 2.033333333333333,
+   "top": 5.7000592612021235,
+   "ballOffFloorShare": 0.04918032786885246,
+   "slipOuts": 0
+  },
+  {
+   "name": "two on a line, pitch frame",
+   "floorInSolve": true,
+   "seconds": 0.8333333333333334,
+   "top": 5.705578778844425,
+   "ballOffFloorShare": 0.4,
+   "slipOuts": 0
+  },
+  {
+   "name": "two on a line, ball frame",
+   "floorInSolve": true,
+   "seconds": 2.033333333333333,
+   "top": 5.70006174498588,
+   "ballOffFloorShare": 0.04918032786885246,
+   "slipOuts": 0
+  },
+  {
+   "name": "four round the ball, pitch frame",
+   "floorInSolve": true,
+   "seconds": 0.7208333333333333,
+   "top": 5.709218717001251,
+   "ballOffFloorShare": 0.7283236994219653,
+   "slipOuts": 0
+  },
+  {
+   "name": "four round the ball, ball frame",
+   "floorInSolve": true,
+   "seconds": 1.3083333333333333,
+   "top": 5.701578542239772,
+   "ballOffFloorShare": 0.21656050955414013,
+   "slipOuts": 0
+  },
+  {
+   "name": "four on a line, pitch frame",
+   "floorInSolve": true,
+   "seconds": 0.7625,
+   "top": 5.7204991730278865,
+   "ballOffFloorShare": 0.7103825136612022,
+   "slipOuts": 0
+  },
+  {
+   "name": "four on a line, ball frame",
+   "floorInSolve": true,
+   "seconds": 0.9166666666666666,
+   "top": 5.703631063202098,
+   "ballOffFloorShare": 0.5045454545454545,
+   "slipOuts": 0
+  },
+  {
+   "name": "one pusher, pitch frame",
+   "floorInSolve": false,
+   "seconds": 1.225,
+   "top": 5.709894364356567,
+   "ballOffFloorShare": 0,
+   "slipOuts": 0
+  },
+  {
+   "name": "one pusher, ball frame",
+   "floorInSolve": false,
+   "seconds": 1.225,
+   "top": 5.709894364356567,
+   "ballOffFloorShare": 0,
+   "slipOuts": 0
+  },
+  {
+   "name": "two in a train",
+   "floorInSolve": false,
+   "seconds": 0.775,
+   "top": 5.701475368770728,
+   "ballOffFloorShare": 0.4946236559139785,
+   "slipOuts": 0
+  },
+  {
+   "name": "four in a train",
+   "floorInSolve": false,
+   "seconds": 0.5791666666666667,
+   "top": 5.741992331640919,
+   "ballOffFloorShare": 0.762589928057554,
+   "slipOuts": 0
+  },
+  {
+   "name": "two round the ball, pitch frame",
+   "floorInSolve": false,
+   "seconds": 0.825,
+   "top": 5.7021600498396605,
+   "ballOffFloorShare": 0.5252525252525253,
+   "slipOuts": 0
+  },
+  {
+   "name": "two round the ball, ball frame",
+   "floorInSolve": false,
+   "seconds": 2.0875,
+   "top": 5.700023576731185,
+   "ballOffFloorShare": 0.08582834331337326,
+   "slipOuts": 0
+  },
+  {
+   "name": "two on a line, pitch frame",
+   "floorInSolve": false,
+   "seconds": 0.8291666666666667,
+   "top": 5.704838383940283,
+   "ballOffFloorShare": 0.5276381909547738,
+   "slipOuts": 0
+  },
+  {
+   "name": "two on a line, ball frame",
+   "floorInSolve": false,
+   "seconds": 2.0875,
+   "top": 5.700027921092367,
+   "ballOffFloorShare": 0.08782435129740519,
+   "slipOuts": 0
+  },
+  {
+   "name": "four round the ball, pitch frame",
+   "floorInSolve": false,
+   "seconds": 0.7208333333333333,
+   "top": 5.704653625747271,
+   "ballOffFloorShare": 0.7514450867052023,
+   "slipOuts": 0
+  },
+  {
+   "name": "four round the ball, ball frame",
+   "floorInSolve": false,
+   "seconds": 1.3083333333333333,
+   "top": 5.702415277552332,
+   "ballOffFloorShare": 0.2515923566878981,
+   "slipOuts": 0
+  },
+  {
+   "name": "four on a line, pitch frame",
+   "floorInSolve": false,
+   "seconds": 0.7625,
+   "top": 5.724293118555766,
+   "ballOffFloorShare": 0.7814207650273224,
+   "slipOuts": 0
+  },
+  {
+   "name": "four on a line, ball frame",
+   "floorInSolve": false,
+   "seconds": 0.925,
+   "top": 5.71909146291161,
+   "ballOffFloorShare": 0.5495495495495496,
+   "slipOuts": 0
+  }
+ ],
+ "hits": [
+  {
+   "floorInSolve": true,
+   "where": "from the floor",
+   "layout": "parallel",
+   "speeds": [
+    2.6551,
+    3.5698,
+    3.8083,
+    3.6813
+   ],
+   "worstMomentumChange": 3.568292035180542e-15,
+   "worstEnergyGain": 0
+  },
+  {
+   "floorInSolve": true,
+   "where": "from the floor",
+   "layout": "centre",
+   "speeds": [
+    2.6551,
+    3.6897,
+    4.2983,
+    4.477
+   ],
+   "worstMomentumChange": 3.573900864766138e-15,
+   "worstEnergyGain": 0
+  },
+  {
+   "floorInSolve": true,
+   "where": "level",
+   "layout": "parallel",
+   "speeds": [
+    3,
+    4.3541,
+    4.9989,
+    5.2126
+   ],
+   "worstMomentumChange": 5.3475422218306674e-15,
+   "worstEnergyGain": 0
+  },
+  {
+   "floorInSolve": true,
+   "where": "level",
+   "layout": "centre",
+   "speeds": [
+    3,
+    4.4783,
+    5.4684,
+    6.157
+   ],
+   "worstMomentumChange": 3.58766985720938e-15,
+   "worstEnergyGain": 0
+  },
+  {
+   "floorInSolve": false,
+   "where": "from the floor",
+   "layout": "parallel",
+   "speeds": [
+    2.16,
+    3.0552,
+    3.3346,
+    3.2217
+   ],
+   "worstMomentumChange": 2.220446049250313e-16,
+   "worstEnergyGain": 0
+  },
+  {
+   "floorInSolve": false,
+   "where": "from the floor",
+   "layout": "centre",
+   "speeds": [
+    2.16,
+    3.1381,
+    3.7712,
+    3.9863
+   ],
+   "worstMomentumChange": 3.0531133177191805e-16,
+   "worstEnergyGain": 0
+  },
+  {
+   "floorInSolve": false,
+   "where": "level",
+   "layout": "parallel",
+   "speeds": [
+    3,
+    4.3541,
+    4.9989,
+    5.2126
+   ],
+   "worstMomentumChange": 5.3475422218306674e-15,
+   "worstEnergyGain": 0
+  },
+  {
+   "floorInSolve": false,
+   "where": "level",
+   "layout": "centre",
+   "speeds": [
+    3,
+    4.4783,
+    5.4684,
+    6.157
+   ],
+   "worstMomentumChange": 3.58766985720938e-15,
+   "worstEnergyGain": 0
+  }
+ ],
+ "slipOut": [
+  {
+   "rule": "none",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 82,
+   "restWorst": 7.529,
+   "restHeldCases": [
+    "ball frame θ5 ×1",
+    "ball frame θ5 ×2",
+    "ball frame θ5 ×2 off-mirror",
+    "ball frame θ5 ×3",
+    "ball frame θ5 ×3 off-mirror",
+    "ball frame θ5 ×4",
+    "ball frame θ5 ×4 off-mirror",
+    "pitch frame, opposite θ5 ×1"
+   ],
+   "mirroredMismatches": 0,
+   "sittingWorst": "held",
+   "sittingWorstAt": 4,
+   "dribbles": 112,
+   "dribbleSlips": 0,
+   "pinchDown": {
+    "1": null,
+    "2": null,
+    "3": null,
+    "4": null,
+    "1 zoomies": null,
+    "2 zoomies": null,
+    "3 zoomies": null,
+    "4 zoomies": null
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "drafted",
+   "sweep": "fine",
+   "restCases": 864,
+   "restHeld": 255,
+   "restWorst": 7.862,
+   "restHeldCases": [
+    "ball frame θ5 ×2",
+    "ball frame θ5 ×3",
+    "ball frame θ5 ×3 off-mirror",
+    "ball frame θ5 ×4",
+    "ball frame θ5 ×4 off-mirror",
+    "ball frame θ6 ×2",
+    "ball frame θ6 ×3",
+    "ball frame θ6 ×4"
+   ],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.467,
+   "sittingWorstAt": 4,
+   "dribbles": 336,
+   "dribbleSlips": 20,
+   "pinchDown": {
+    "1": 2.317,
+    "2": null,
+    "3": null,
+    "4": null,
+    "1 zoomies": 1.904,
+    "2 zoomies": null,
+    "3 zoomies": null,
+    "4 zoomies": null
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "wide",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 44,
+   "restWorst": 5.767,
+   "restHeldCases": [
+    "ball frame θ5 ×2",
+    "ball frame θ5 ×3",
+    "ball frame θ5 ×3 off-mirror",
+    "ball frame θ5 ×4",
+    "ball frame θ5 ×4 off-mirror",
+    "ball frame θ10 ×2",
+    "ball frame θ10 ×3",
+    "ball frame θ10 ×3 off-mirror"
+   ],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.467,
+   "sittingWorstAt": 4,
+   "dribbles": 112,
+   "dribbleSlips": 228,
+   "pinchDown": {
+    "1": 2.117,
+    "2": null,
+    "3": null,
+    "4": null,
+    "1 zoomies": 1.758,
+    "2 zoomies": null,
+    "3 zoomies": null,
+    "4 zoomies": null
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "flag",
+   "sweep": "fine",
+   "restCases": 864,
+   "restHeld": 0,
+   "restWorst": 1.288,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.467,
+   "sittingWorstAt": 4,
+   "dribbles": 336,
+   "dribbleSlips": 20,
+   "pinchDown": {
+    "1": 0.425,
+    "2": 0.833,
+    "3": 1.217,
+    "4": 1.404,
+    "1 zoomies": 0.579,
+    "2 zoomies": 1.175,
+    "3 zoomies": 1.433,
+    "4 zoomies": 1.554
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "e0",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 52,
+   "restWorst": 3.813,
+   "restHeldCases": [
+    "ball frame θ5 ×2",
+    "ball frame θ5 ×3",
+    "ball frame θ5 ×3 off-mirror",
+    "ball frame θ5 ×4",
+    "ball frame θ5 ×4 off-mirror",
+    "ball frame θ10 ×2",
+    "ball frame θ10 ×3",
+    "ball frame θ10 ×3 off-mirror"
+   ],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.362,
+   "sittingWorstAt": 14,
+   "dribbles": 112,
+   "dribbleSlips": 8,
+   "pinchDown": {
+    "1": 0.371,
+    "2": null,
+    "3": null,
+    "4": null,
+    "1 zoomies": 0.346,
+    "2 zoomies": null,
+    "3 zoomies": null,
+    "4 zoomies": null
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "flag+e0",
+   "sweep": "fine",
+   "restCases": 864,
+   "restHeld": 0,
+   "restWorst": 1.367,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.362,
+   "sittingWorstAt": 13.5,
+   "dribbles": 336,
+   "dribbleSlips": 20,
+   "pinchDown": {
+    "1": 0.308,
+    "2": 0.388,
+    "3": 0.938,
+    "4": 0.729,
+    "1 zoomies": 0.304,
+    "2 zoomies": 0.388,
+    "3 zoomies": 0.546,
+    "4 zoomies": 0.683
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "wide+flag",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 0,
+   "restWorst": 1.2,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.467,
+   "sittingWorstAt": 4,
+   "dribbles": 112,
+   "dribbleSlips": 210,
+   "pinchDown": {
+    "1": 0.425,
+    "2": 0.833,
+    "3": 0.842,
+    "4": 1.404,
+    "1 zoomies": 0.579,
+    "2 zoomies": 1.175,
+    "3 zoomies": 1.375,
+    "4 zoomies": 1.533
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "wide+e0",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 33,
+   "restWorst": 5.425,
+   "restHeldCases": [
+    "ball frame θ5 ×3",
+    "ball frame θ5 ×3 off-mirror",
+    "ball frame θ5 ×4",
+    "ball frame θ5 ×4 off-mirror",
+    "ball frame θ10 ×3 off-mirror",
+    "ball frame θ10 ×4",
+    "ball frame θ10 ×4 off-mirror",
+    "ball frame θ15 ×3"
+   ],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.358,
+   "sittingWorstAt": 12,
+   "dribbles": 112,
+   "dribbleSlips": 292,
+   "pinchDown": {
+    "1": 0.362,
+    "2": 0.588,
+    "3": null,
+    "4": null,
+    "1 zoomies": 0.358,
+    "2 zoomies": 0.588,
+    "3 zoomies": null,
+    "4 zoomies": null
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "wide+flag+e0",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 0,
+   "restWorst": 0.904,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.358,
+   "sittingWorstAt": 12,
+   "dribbles": 112,
+   "dribbleSlips": 234,
+   "pinchDown": {
+    "1": 0.308,
+    "2": 0.388,
+    "3": 0.458,
+    "4": 0.729,
+    "1 zoomies": 0.308,
+    "2 zoomies": 0.388,
+    "3 zoomies": 0.55,
+    "4 zoomies": 0.629
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "57+flag+e0",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 0,
+   "restWorst": 0.904,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.358,
+   "sittingWorstAt": 12,
+   "dribbles": 112,
+   "dribbleSlips": 132,
+   "pinchDown": {
+    "1": 0.308,
+    "2": 0.388,
+    "3": 0.458,
+    "4": 0.729,
+    "1 zoomies": 0.304,
+    "2 zoomies": 0.388,
+    "3 zoomies": 0.546,
+    "4 zoomies": 0.683
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "42+flag",
+   "sweep": "fine",
+   "restCases": 864,
+   "restHeld": 0,
+   "restWorst": 1.383,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.467,
+   "sittingWorstAt": 4,
+   "dribbles": 336,
+   "dribbleSlips": 0,
+   "pinchDown": {
+    "1": 0.425,
+    "2": 0.833,
+    "3": 1.217,
+    "4": 1.404,
+    "1 zoomies": 0.579,
+    "2 zoomies": 1.175,
+    "3 zoomies": 1.433,
+    "4 zoomies": 1.554
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "40+flag",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 0,
+   "restWorst": 1.2,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.558,
+   "sittingWorstAt": 40,
+   "dribbles": 112,
+   "dribbleSlips": 0,
+   "pinchDown": {
+    "1": 0.425,
+    "2": 0.833,
+    "3": 1.217,
+    "4": 1.404,
+    "1 zoomies": 0.579,
+    "2 zoomies": 1.175,
+    "3 zoomies": 1.433,
+    "4 zoomies": 1.554
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "42+flag+e0",
+   "sweep": "fine",
+   "restCases": 864,
+   "restHeld": 0,
+   "restWorst": 1.462,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.463,
+   "sittingWorstAt": 42,
+   "dribbles": 336,
+   "dribbleSlips": 0,
+   "pinchDown": {
+    "1": 0.308,
+    "2": 0.388,
+    "3": 1.042,
+    "4": 0.729,
+    "1 zoomies": 0.304,
+    "2 zoomies": 0.388,
+    "3 zoomies": 0.546,
+    "4 zoomies": 0.683
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "40+flag+e0",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 0,
+   "restWorst": 1.517,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.558,
+   "sittingWorstAt": 40,
+   "dribbles": 112,
+   "dribbleSlips": 0,
+   "pinchDown": {
+    "1": 0.308,
+    "2": 0.388,
+    "3": 1.096,
+    "4": 0.729,
+    "1 zoomies": 0.304,
+    "2 zoomies": 0.388,
+    "3 zoomies": 0.546,
+    "4 zoomies": 0.683
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "44+flag",
+   "sweep": "coarse",
+   "restCases": 176,
+   "restHeld": 0,
+   "restWorst": 1.2,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.467,
+   "sittingWorstAt": 4,
+   "dribbles": 112,
+   "dribbleSlips": 4,
+   "pinchDown": {
+    "1": 0.425,
+    "2": 0.833,
+    "3": 1.217,
+    "4": 1.404,
+    "1 zoomies": 0.579,
+    "2 zoomies": 1.175,
+    "3 zoomies": 1.433,
+    "4 zoomies": 1.554
+   },
+   "pinchMismatches": 0
+  },
+  {
+   "rule": "44+flag+e0",
+   "sweep": "fine",
+   "restCases": 864,
+   "restHeld": 0,
+   "restWorst": 1.4,
+   "restHeldCases": [],
+   "mirroredMismatches": 0,
+   "sittingWorst": 0.388,
+   "sittingWorstAt": 44,
+   "dribbles": 336,
+   "dribbleSlips": 6,
+   "pinchDown": {
+    "1": 0.308,
+    "2": 0.388,
+    "3": 0.975,
+    "4": 0.729,
+    "1 zoomies": 0.304,
+    "2 zoomies": 0.388,
+    "3 zoomies": 0.546,
+    "4 zoomies": 0.683
+   },
+   "pinchMismatches": 0
+  }
+ ],
+ "dribbleHop": {
+  "runs": 2880,
+  "smallestDegFromVertical": 43.459,
+  "at": "ball frame step 3, zoomies, from 9 m/s, run-up 0.3012 m",
+  "sittingFrictionBoundDeg": 39.23
+ },
+ "tickCost": [
+  {
+   "script": "scrum in the corner, flag42",
+   "ticksTimed": 1200,
+   "tickMs": {
+    "p50": 0.224,
+    "p95": 0.453,
+    "max": 1.53,
+    "mean": 0.253
+   },
+   "stepUs": 19.4,
+   "contactsPerSubstep": 10.65,
+   "ofWhichFloor": 8.72,
+   "maxContacts": 17,
+   "bursts": {
+    "13 steps": {
+     "median": 0.23,
+     "max": 0.298
+    },
+    "30 steps": {
+     "median": 0.548,
+     "max": 0.972
+    },
+    "42 steps": {
+     "median": 0.811,
+     "max": 1.411
+    },
+    "270 steps": {
+     "median": 6.225,
+     "max": 7.979
+    }
+   }
+  },
+  {
+   "script": "scrum in the corner",
+   "ticksTimed": 1200,
+   "tickMs": {
+    "p50": 0.286,
+    "p95": 0.643,
+    "max": 2.362,
+    "mean": 0.333
+   },
+   "stepUs": 25.6,
+   "contactsPerSubstep": 11.86,
+   "ofWhichFloor": 8,
+   "maxContacts": 19,
+   "bursts": {
+    "13 steps": {
+     "median": 0.207,
+     "max": 0.287
+    },
+    "30 steps": {
+     "median": 0.513,
+     "max": 0.714
+    },
+    "42 steps": {
+     "median": 0.792,
+     "max": 1.64
+    },
+    "270 steps": {
+     "median": 5.949,
+     "max": 7.802
+    }
+   }
+  },
+  {
+   "script": "scrum at the wall, flag42",
+   "ticksTimed": 1200,
+   "tickMs": {
+    "p50": 0.261,
+    "p95": 0.548,
+    "max": 5.479,
+    "mean": 0.32
+   },
+   "stepUs": 24.6,
+   "contactsPerSubstep": 10.45,
+   "ofWhichFloor": 8.61,
+   "maxContacts": 19,
+   "bursts": {
+    "13 steps": {
+     "median": 0.298,
+     "max": 0.668
+    },
+    "30 steps": {
+     "median": 0.6,
+     "max": 1.132
+    },
+    "42 steps": {
+     "median": 0.812,
+     "max": 1.299
+    },
+    "270 steps": {
+     "median": 5.91,
+     "max": 7.156
+    }
+   }
+  },
+  {
+   "script": "scrum at the wall",
+   "ticksTimed": 1200,
+   "tickMs": {
+    "p50": 0.256,
+    "p95": 0.491,
+    "max": 1.536,
+    "mean": 0.291
+   },
+   "stepUs": 22.4,
+   "contactsPerSubstep": 11.82,
+   "ofWhichFloor": 8,
+   "maxContacts": 20,
+   "bursts": {
+    "13 steps": {
+     "median": 0.271,
+     "max": 0.851
+    },
+    "30 steps": {
+     "median": 0.595,
+     "max": 1.393
+    },
+    "42 steps": {
+     "median": 1.116,
+     "max": 2.025
+    },
+    "270 steps": {
+     "median": 5.789,
+     "max": 7.277
+    }
+   }
+  }
+ ],
+ "goldens": {
+  "runs": 37,
+  "ms": 1427,
+  "ticksAtCheckpoints": 89000
+ }
+}

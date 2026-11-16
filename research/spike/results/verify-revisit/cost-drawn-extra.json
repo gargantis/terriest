@@ -1,0 +1,1128 @@
+{
+ "about": "Verification of M0's cost revisit: run 3's 13-step tick at 4x on the plan's script, re-run independently of scripts/revisit/cost.mjs",
+ "started": {
+  "utc": "2026-11-16T07:43:51.256Z",
+  "uptime": "23:43:51 up 3 days,  9:41,  1 user,  load average: 3.53, 4.05, 3.46"
+ },
+ "utcEnd": "2026-11-16T07:53:39.240Z",
+ "complete": true,
+ "chromium": "156.0.8078.4",
+ "node": "v22.23.4",
+ "cpu": "12th Gen Intel(R) Core(TM) i7-1255U",
+ "cpus": 12,
+ "method": {
+  "page": "the production build of the current tree (byte-identical to dist/)",
+  "script": "scrum at the wall, flag42",
+  "ticks": 1200,
+  "rate": 4,
+  "quality": "low",
+  "extraQuery": "",
+  "variants": [
+   "m0",
+   "i4"
+  ],
+  "reps": 3,
+  "modes": [
+   "drawn"
+  ],
+  "devices": [
+   "desktop",
+   "Pixel 8a"
+  ],
+  "order": "Latin square over variants; per variant desktop then Pixel 8a, drawn then back to back"
+ },
+ "nodeRef": {
+  "m0": {
+   "label": "i8 p2 floor s4",
+   "contacts": {
+    "substeps": 62400,
+    "perSubstep": 11.65363782051282,
+    "floorPerSubstep": 8.528333333333334,
+    "otherPerSubstep": 3.1253044871794873,
+    "maxInSubstep": 19,
+    "slipOutsPerSubstep": 0.0008333333333333334
+   },
+   "baseTicks": {
+    "from": 240,
+    "to": 1440
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "contactsPerSubstep": 10.876388888888888
+    },
+    {
+     "steps": 42,
+     "contactsPerSubstep": 10.69265873015873
+    },
+    {
+     "steps": 270,
+     "contactsPerSubstep": 9.949845679012345
+    }
+   ]
+  },
+  "i4": {
+   "label": "i4 p2 floor s4",
+   "contacts": {
+    "substeps": 62400,
+    "perSubstep": 11.180801282051283,
+    "floorPerSubstep": 8.564583333333333,
+    "otherPerSubstep": 2.616217948717949,
+    "maxInSubstep": 18,
+    "slipOutsPerSubstep": 0.004375
+   },
+   "baseTicks": {
+    "from": 240,
+    "to": 1440
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "contactsPerSubstep": 9
+    },
+    {
+     "steps": 42,
+     "contactsPerSubstep": 9
+    },
+    {
+     "steps": 270,
+     "contactsPerSubstep": 9.359444444444444
+    }
+   ]
+  }
+ },
+ "runs": [
+  {
+   "utc": "2026-11-16T07:43:51.374Z",
+   "rep": 0,
+   "slot": 0,
+   "spec": "m0",
+   "label": "i8 p2 floor s4",
+   "device": "desktop",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 0,
+    "l1": 3.53,
+    "uptime": "23:43:51 up 3 days,  9:41,  1 user,  load average: 3.53, 4.05, 3.46"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.4,
+    "runCores": 5.85,
+    "otherCoresMean": 0.55,
+    "otherCoresMax": 0.71,
+    "l1Max": 5.99
+   },
+   "wallMs": 23552,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "dpr": 1,
+   "frames": {
+    "count": 440,
+    "fps": 22,
+    "intervalP95Ms": 66.7
+   },
+   "tick": {
+    "mean": 2.619,
+    "p50": 2.505,
+    "p95": 4.37,
+    "p99": 6.165,
+    "max": 8.165,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.6536,
+    "floor": 8.5283,
+    "maxInSubstep": 19
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 4.94,
+     "maxMs": 12.88,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 6.44,
+     "maxMs": 11.89,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 35.12,
+     "maxMs": 62.37,
+     "over50": 1
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 20.88,
+     "at1": 6.34,
+     "ratio": 3.3
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:44:47.897Z",
+   "rep": 0,
+   "slot": 0,
+   "spec": "m0",
+   "label": "i8 p2 floor s4",
+   "device": "Pixel 8a",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 30,
+    "l1": 3.63,
+    "uptime": "23:44:47 up 3 days,  9:42,  1 user,  load average: 3.63, 4.15, 3.54"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.19,
+    "runCores": 5.66,
+    "otherCoresMean": 0.53,
+    "otherCoresMax": 0.73,
+    "l1Max": 7.27
+   },
+   "wallMs": 23401,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "dpr": 2.625,
+   "frames": {
+    "count": 687,
+    "fps": 34.3,
+    "intervalP95Ms": 50
+   },
+   "tick": {
+    "mean": 2.652,
+    "p50": 2.56,
+    "p95": 4.425,
+    "p99": 6.44,
+    "max": 12.045,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.6536,
+    "floor": 8.5283,
+    "maxInSubstep": 19
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 4.57,
+     "maxMs": 9.05,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 6.74,
+     "maxMs": 13.68,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 33.98,
+     "maxMs": 60.19,
+     "over50": 2
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 18.66,
+     "at1": 5.25,
+     "ratio": 3.56
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:45:57.865Z",
+   "rep": 0,
+   "slot": 1,
+   "spec": "i4",
+   "label": "i4 p2 floor s4",
+   "device": "desktop",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 45,
+    "l1": 3.66,
+    "uptime": "23:45:57 up 3 days,  9:43,  1 user,  load average: 3.66, 4.33, 3.66"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.57,
+    "runCores": 6,
+    "otherCoresMean": 0.57,
+    "otherCoresMax": 0.75,
+    "l1Max": 6.85
+   },
+   "wallMs": 23198,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "dpr": 1,
+   "frames": {
+    "count": 470,
+    "fps": 23.5,
+    "intervalP95Ms": 66.7
+   },
+   "tick": {
+    "mean": 2.173,
+    "p50": 1.965,
+    "p95": 4.11,
+    "p99": 5.215,
+    "max": 6.145,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.1808,
+    "floor": 8.5646,
+    "maxInSubstep": 18
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 2.1,
+     "maxMs": 3.54,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 3.27,
+     "maxMs": 8.27,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 21.43,
+     "maxMs": 48.75,
+     "over50": 0
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 23.33,
+     "at1": 6.06,
+     "ratio": 3.85
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:46:53.017Z",
+   "rep": 0,
+   "slot": 1,
+   "spec": "i4",
+   "label": "i4 p2 floor s4",
+   "device": "Pixel 8a",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 30,
+    "l1": 3.87,
+    "uptime": "23:46:52 up 3 days,  9:44,  1 user,  load average: 3.87, 4.48, 3.77"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.42,
+    "runCores": 5.78,
+    "otherCoresMean": 0.64,
+    "otherCoresMax": 0.8,
+    "l1Max": 6.16
+   },
+   "wallMs": 23253,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "dpr": 2.625,
+   "frames": {
+    "count": 729,
+    "fps": 36.5,
+    "intervalP95Ms": 50
+   },
+   "tick": {
+    "mean": 2.225,
+    "p50": 2.055,
+    "p95": 4.025,
+    "p99": 5.305,
+    "max": 9.25,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.1808,
+    "floor": 8.5646,
+    "maxInSubstep": 18
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 2.3,
+     "maxMs": 3.27,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 3.05,
+     "maxMs": 8.14,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 18.98,
+     "maxMs": 28.84,
+     "over50": 0
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 19.08,
+     "at1": 4.78,
+     "ratio": 4
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:47:48.211Z",
+   "rep": 1,
+   "slot": 0,
+   "spec": "i4",
+   "label": "i4 p2 floor s4",
+   "device": "desktop",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 30,
+    "l1": 3.68,
+    "uptime": "23:47:48 up 3 days,  9:45,  1 user,  load average: 3.68, 4.47, 3.81"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.6,
+    "runCores": 6.02,
+    "otherCoresMean": 0.58,
+    "otherCoresMax": 0.77,
+    "l1Max": 5.9
+   },
+   "wallMs": 23184,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "dpr": 1,
+   "frames": {
+    "count": 473,
+    "fps": 23.7,
+    "intervalP95Ms": 66.7
+   },
+   "tick": {
+    "mean": 2.145,
+    "p50": 1.94,
+    "p95": 3.88,
+    "p99": 5.745,
+    "max": 12.635,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.1808,
+    "floor": 8.5646,
+    "maxInSubstep": 18
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 1.99,
+     "maxMs": 3.6,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 2.91,
+     "maxMs": 5.71,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 18.38,
+     "maxMs": 28.72,
+     "over50": 0
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 22.61,
+     "at1": 5.58,
+     "ratio": 4.05
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:48:43.511Z",
+   "rep": 1,
+   "slot": 0,
+   "spec": "i4",
+   "label": "i4 p2 floor s4",
+   "device": "Pixel 8a",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 30,
+    "l1": 3.58,
+    "uptime": "23:48:43 up 3 days,  9:46,  1 user,  load average: 3.58, 4.47, 3.86"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.31,
+    "runCores": 5.67,
+    "otherCoresMean": 0.65,
+    "otherCoresMax": 0.89,
+    "l1Max": 4.95
+   },
+   "wallMs": 23189,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "dpr": 2.625,
+   "frames": {
+    "count": 707,
+    "fps": 35.4,
+    "intervalP95Ms": 50
+   },
+   "tick": {
+    "mean": 2.311,
+    "p50": 2.045,
+    "p95": 4.315,
+    "p99": 7.16,
+    "max": 33.48,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.1808,
+    "floor": 8.5646,
+    "maxInSubstep": 18
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 2.29,
+     "maxMs": 6.23,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 3.6,
+     "maxMs": 8.36,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 23.05,
+     "maxMs": 40.47,
+     "over50": 0
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 21.27,
+     "at1": 4.53,
+     "ratio": 4.69
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:49:23.077Z",
+   "rep": 1,
+   "slot": 1,
+   "spec": "m0",
+   "label": "i8 p2 floor s4",
+   "device": "desktop",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 15,
+    "l1": 3.68,
+    "uptime": "23:49:23 up 3 days,  9:47,  1 user,  load average: 3.68, 4.44, 3.88"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.35,
+    "runCores": 5.79,
+    "otherCoresMean": 0.55,
+    "otherCoresMax": 0.82,
+    "l1Max": 6.47
+   },
+   "wallMs": 23540,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "dpr": 1,
+   "frames": {
+    "count": 430,
+    "fps": 21.5,
+    "intervalP95Ms": 66.7
+   },
+   "tick": {
+    "mean": 2.677,
+    "p50": 2.52,
+    "p95": 4.36,
+    "p99": 8.025,
+    "max": 21.03,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.6536,
+    "floor": 8.5283,
+    "maxInSubstep": 19
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 4.57,
+     "maxMs": 8.95,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 6.86,
+     "maxMs": 9.84,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 35.03,
+     "maxMs": 61.62,
+     "over50": 3
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 26.82,
+     "at1": 5.03,
+     "ratio": 5.33
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:50:18.409Z",
+   "rep": 1,
+   "slot": 1,
+   "spec": "m0",
+   "label": "i8 p2 floor s4",
+   "device": "Pixel 8a",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 30,
+    "l1": 3.92,
+    "uptime": "23:50:18 up 3 days,  9:48,  1 user,  load average: 3.92, 4.54, 3.95"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.26,
+    "runCores": 5.62,
+    "otherCoresMean": 0.64,
+    "otherCoresMax": 0.93,
+    "l1Max": 5.73
+   },
+   "wallMs": 23523,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "dpr": 2.625,
+   "frames": {
+    "count": 676,
+    "fps": 33.8,
+    "intervalP95Ms": 50
+   },
+   "tick": {
+    "mean": 2.687,
+    "p50": 2.55,
+    "p95": 4.49,
+    "p99": 6.06,
+    "max": 12.235,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.6536,
+    "floor": 8.5283,
+    "maxInSubstep": 19
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 4.26,
+     "maxMs": 8.77,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 7.19,
+     "maxMs": 16.28,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 35.79,
+     "maxMs": 57.19,
+     "over50": 3
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 22.3,
+     "at1": 5.27,
+     "ratio": 4.23
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:51:13.595Z",
+   "rep": 2,
+   "slot": 0,
+   "spec": "m0",
+   "label": "i8 p2 floor s4",
+   "device": "desktop",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 30,
+    "l1": 3.54,
+    "uptime": "23:51:13 up 3 days,  9:48,  1 user,  load average: 3.54, 4.42, 3.95"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.42,
+    "runCores": 5.84,
+    "otherCoresMean": 0.58,
+    "otherCoresMax": 0.76,
+    "l1Max": 4.33
+   },
+   "wallMs": 23491,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "dpr": 1,
+   "frames": {
+    "count": 436,
+    "fps": 21.8,
+    "intervalP95Ms": 66.7
+   },
+   "tick": {
+    "mean": 2.624,
+    "p50": 2.55,
+    "p95": 4.055,
+    "p99": 5.6,
+    "max": 10.355,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.6536,
+    "floor": 8.5283,
+    "maxInSubstep": 19
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 4.77,
+     "maxMs": 7.25,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 6.77,
+     "maxMs": 14.32,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 36.31,
+     "maxMs": 64.13,
+     "over50": 1
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 28.02,
+     "at1": 5.34,
+     "ratio": 5.25
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:51:53.957Z",
+   "rep": 2,
+   "slot": 0,
+   "spec": "m0",
+   "label": "i8 p2 floor s4",
+   "device": "Pixel 8a",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 15,
+    "l1": 3.53,
+    "uptime": "23:51:53 up 3 days,  9:49,  1 user,  load average: 3.53, 4.33, 3.94"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.22,
+    "runCores": 5.62,
+    "otherCoresMean": 0.59,
+    "otherCoresMax": 0.75,
+    "l1Max": 4.52
+   },
+   "wallMs": 23520,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "dpr": 2.625,
+   "frames": {
+    "count": 679,
+    "fps": 33.9,
+    "intervalP95Ms": 50
+   },
+   "tick": {
+    "mean": 2.652,
+    "p50": 2.525,
+    "p95": 4.2,
+    "p99": 5.595,
+    "max": 9.295,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.6536,
+    "floor": 8.5283,
+    "maxInSubstep": 19
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 4.75,
+     "maxMs": 9.19,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 6.83,
+     "maxMs": 9.57,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 37.01,
+     "maxMs": 49.7,
+     "over50": 0
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 23.2,
+     "at1": 4.88,
+     "ratio": 4.76
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:52:33.969Z",
+   "rep": 2,
+   "slot": 1,
+   "spec": "i4",
+   "label": "i4 p2 floor s4",
+   "device": "desktop",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 15,
+    "l1": 3.67,
+    "uptime": "23:52:33 up 3 days,  9:50,  1 user,  load average: 3.67, 4.30, 3.95"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.58,
+    "runCores": 5.99,
+    "otherCoresMean": 0.59,
+    "otherCoresMax": 0.67,
+    "l1Max": 4.82
+   },
+   "wallMs": 23182,
+   "viewport": {
+    "width": 1280,
+    "height": 720
+   },
+   "dpr": 1,
+   "frames": {
+    "count": 473,
+    "fps": 23.6,
+    "intervalP95Ms": 66.7
+   },
+   "tick": {
+    "mean": 2.156,
+    "p50": 1.975,
+    "p95": 3.77,
+    "p99": 5.675,
+    "max": 10.225,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.1808,
+    "floor": 8.5646,
+    "maxInSubstep": 18
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 2,
+     "maxMs": 4.23,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 3.22,
+     "maxMs": 4.55,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 19.31,
+     "maxMs": 34.67,
+     "over50": 0
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 21.26,
+     "at1": 5.34,
+     "ratio": 3.98
+    },
+    "errors": []
+   },
+   "warm": null
+  },
+  {
+   "utc": "2026-11-16T07:53:14.385Z",
+   "rep": 2,
+   "slot": 1,
+   "spec": "i4",
+   "label": "i4 p2 floor s4",
+   "device": "Pixel 8a",
+   "mode": "drawn",
+   "gate": {
+    "ok": true,
+    "waitedS": 15,
+    "l1": 3.35,
+    "uptime": "23:53:14 up 3 days,  9:50,  1 user,  load average: 3.35, 4.20, 3.93"
+   },
+   "cpu": {
+    "samples": 12,
+    "busyCores": 6.41,
+    "runCores": 5.77,
+    "otherCoresMean": 0.64,
+    "otherCoresMax": 0.78,
+    "l1Max": 5.99
+   },
+   "wallMs": 23259,
+   "viewport": {
+    "width": 412,
+    "height": 839
+   },
+   "dpr": 2.625,
+   "frames": {
+    "count": 726,
+    "fps": 36.3,
+    "intervalP95Ms": 33.3
+   },
+   "tick": {
+    "mean": 2.226,
+    "p50": 2.055,
+    "p95": 3.995,
+    "p99": 5.295,
+    "max": 9.655,
+    "n": 1200
+   },
+   "contacts": {
+    "perSubstep": 11.1808,
+    "floor": 8.5646,
+    "maxInSubstep": 18
+   },
+   "bursts": [
+    {
+     "steps": 30,
+     "medianMs": 2.28,
+     "maxMs": 7.65,
+     "over50": 0
+    },
+    {
+     "steps": 42,
+     "medianMs": 3.08,
+     "maxMs": 6.54,
+     "over50": 0
+    },
+    {
+     "steps": 270,
+     "medianMs": 20.32,
+     "maxMs": 45.96,
+     "over50": 0
+    }
+   ],
+   "checks": {
+    "labelMatches": true,
+    "contactsMatchNode": true,
+    "burstsMatchNode": true,
+    "baseTicksMatchNode": true,
+    "timedTicks": 1200,
+    "warmupTicks": 120,
+    "settleTicks": 120,
+    "stepsPerTick": 13,
+    "isolated": true,
+    "clockStepMs": 0.004999995231628418,
+    "throttleProbeMs": {
+     "at4": 20.32,
+     "at1": 5.08,
+     "ratio": 4
+    },
+    "errors": []
+   },
+   "warm": null
+  }
+ ]
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { datan2, HALF_TURN, QUARTER_TURN } from './angle';
 import { hashState } from './codec';
-import { KICKOFF_SPOTS, makeConfig } from './config';
+import { KICKOFF_SPOTS, makeConfig, substepsPerSecond } from './config';
 import { encodeInput, FRAME_BALL, FRAME_NOSE, FRAME_PITCH, STEP_UNITS } from './input';
 import { park, place, placeBall, TOUCH_REACH } from './scripts';
 import { CELEBRATION, IN_PLAY, KICKOFF_COUNTDOWN, newMatch } from './state';
@@ -95,7 +95,7 @@ describe('jump (D-6)', () => {
     run(sc, 20, (k) => (k === 0 ? encodeInput({ jump: 2 }) : 0)); // a second press in the air is dropped
     run(sc, 60, (k) => (k === 0 ? encodeInput({ jump: 2 }) : 0));
     expect(apex - 0.25).toBeCloseTo(1, 1);
-    expect(airborne / 240).toBeCloseTo(0.9, 1);
+    expect(airborne / substepsPerSecond(sc.sim.C)).toBeCloseTo(0.9, 1);
     expect(sc.s.terriers[0]!.landingTick).toBeGreaterThan(sc.s.terriers[0]!.takeOffTick);
   });
 });

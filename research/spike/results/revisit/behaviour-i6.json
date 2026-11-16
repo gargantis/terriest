@@ -1,0 +1,1053 @@
+{
+ "about": "M0's cost revisit: §16's behaviour tests and run 2's measurements under one solver variant (scripts/revisit/behaviour.mjs)",
+ "utc": "2026-11-16T05:56:40.578Z",
+ "spec": "i6",
+ "name": "i6",
+ "label": "i6 p2 floor s4",
+ "settings": {
+  "iterations": 6,
+  "positionPasses": 2,
+  "floorInSolve": true,
+  "substeps": 4
+ },
+ "node": "v22.23.4",
+ "loadBefore": {
+  "utc": "2026-11-16T05:56:40.578Z",
+  "l1": 1.5,
+  "l5": 1.03,
+  "l15": 0.75,
+  "uptime": "21:56:40 up 3 days,  7:54,  1 user,  load average: 1.50, 1.03, 0.75"
+ },
+ "vitest": {
+  "command": "npx vitest run --exclude src/sim/golden.test.ts, with TERRIEST_SPIKE_SOLVER set",
+  "exitCode": 0,
+  "wallSeconds": 17,
+  "files": {
+   "passed": 69,
+   "failed": 0,
+   "total": 69
+  },
+  "tests": {
+   "passed": 167,
+   "failed": 0,
+   "skipped": 6,
+   "total": 173
+  },
+  "failed": []
+ },
+ "printed": [
+  "[push] one pusher, pitch frame: 1.225 s, ball off the floor 0% of substeps, 0 slip-outs",
+  "[push] one pusher, ball frame: 1.225 s, ball off the floor 0% of substeps, 0 slip-outs",
+  "[push] four in a train, pitch frame: 0.575 s, ball off the floor 66% of substeps, 0 slip-outs",
+  "[push] 2 abreast round the ball, pitch frame: 0.829 s, ball off the floor 40% of substeps, 0 slip-outs",
+  "[push] 2 abreast round the ball, ball frame: 2.033 s, ball off the floor 5% of substeps, 0 slip-outs",
+  "[push] 2 abreast on a line, pitch frame: 0.833 s, ball off the floor 40% of substeps, 0 slip-outs",
+  "[push] 2 abreast on a line, ball frame: 2.033 s, ball off the floor 5% of substeps, 0 slip-outs",
+  "[push] 4 abreast round the ball, pitch frame: 0.721 s, ball off the floor 73% of substeps, 0 slip-outs",
+  "[push] 4 abreast round the ball, ball frame: 1.308 s, ball off the floor 22% of substeps, 0 slip-outs",
+  "[push] 4 abreast on a line, pitch frame: 0.758 s, ball off the floor 71% of substeps, 0 slip-outs",
+  "[push] 4 abreast on a line, ball frame: 0.921 s, ball off the floor 50% of substeps, 0 slip-outs",
+  "[push] two in a train, pitch frame: 0.779 s, ball off the floor 33% of substeps, 0 slip-outs",
+  "[push] three in a train, pitch frame: 0.642 s, ball off the floor 49% of substeps, 0 slip-outs",
+  "[push] 3 abreast round the ball, pitch frame: 0.717 s, ball off the floor 69% of substeps, 0 slip-outs",
+  "[push] 3 abreast round the ball, ball frame: 1.183 s, ball off the floor 17% of substeps, 0 slip-outs",
+  "[hits from the floor, parallel] ball leaves at 2.656, 3.571, 3.810, 3.685 m/s for k = 1–4",
+  "[hits from the floor, aimed at the centre] k=1 2.656 m/s (KE 18.0 → 7.47 J); k=2 3.690 m/s (KE 36.0 → 18.99 J); k=3 4.300 m/s (KE 54.0 → 28.35 J); k=4 4.477 m/s (KE 72.0 → 30.71 J)",
+  "[hits level, parallel] ball leaves at 3.000, 4.354, 4.999, 5.213 m/s for k = 1–4",
+  "[hits level, aimed at the centre] k=1 3.000 m/s (KE 18.0 → 9.00 J); k=2 4.478 m/s (KE 36.0 → 21.18 J); k=3 5.469 m/s (KE 54.0 → 34.35 J); k=4 6.157 m/s (KE 72.0 → 45.09 J)",
+  "[tunnel] main: 624 shots at 25 m/s; deepest overlap left after a substep 0.00 mm",
+  "[slip-out] none          rest FAIL (worst 5.64 s, held up 61); sitting FAIL (worst held s); dribbles pass (0 slip-outs); pinch mirrored (down within 0.00 s, 8 of 8 held up)",
+  "[floor bounce] 0.25 m: e 0.6973, by apex 0.6880; 0.5 m: e 0.7031, by apex 0.6965; 1 m: e 0.6973, by apex 0.6927; 2 m: e 0.6985, by apex 0.6952; 4 m: e 0.7005, by apex 0.6982",
+  "[tunnel] second: 624 shots at 25 m/s; deepest overlap left after a substep 0.00 mm",
+  "[slip-out] drafted       rest FAIL (worst 5.35 s, held up 39); sitting pass (worst 0.47 s); dribbles FAIL (7 slip-outs); pinch mirrored (down within 5.30 s, 6 of 8 held up)",
+  "[P8] mirrored kickoff 1, main, flag42: 2 slip-outs, apex 2.01 m",
+  "[P8] pinch 1, flag42: 6 slip-outs, apex 0.84 m",
+  "[P8] mirrored kickoff 2, main, flag42: 2 slip-outs, apex 2.32 m",
+  "[P8] pinch 2, zoomies, flag42: 12 slip-outs, apex 4.40 m",
+  "[P8] mirrored kickoff 3, main, flag42: 8 slip-outs, apex 2.31 m",
+  "[P8] pinch 3, flag42: 18 slip-outs, apex 2.03 m",
+  "[P8] mirrored kickoff 4, main, flag42: 8 slip-outs, apex 2.70 m",
+  "[P8] pinch 4, zoomies, flag42: 20 slip-outs, apex 4.40 m",
+  "[P8] mirrored kickoff 1, main, flag42E0: 2 slip-outs, apex 2.01 m",
+  "[P8] pinch 1, flag42E0: 104 slip-outs, apex 0.82 m",
+  "[P8] mirrored kickoff 2, main, flag42E0: 4 slip-outs, apex 2.34 m",
+  "[P8] pinch 2, zoomies, flag42E0: 40 slip-outs, apex 4.40 m",
+  "[P8] mirrored kickoff 3, main, flag42E0: 20 slip-outs, apex 2.95 m",
+  "[P8] pinch 3, flag42E0: 36 slip-outs, apex 2.03 m",
+  "[P8] mirrored kickoff 4, main, flag42E0: 4 slip-outs, apex 2.37 m",
+  "[P8] pinch 4, zoomies, flag42E0: 44 slip-outs, apex 4.40 m",
+  "[P8] mirrored kickoff 1, main, wideFlagE0: 12 slip-outs, apex 1.03 m",
+  "[P8] pinch 1, wideFlagE0: 104 slip-outs, apex 0.82 m",
+  "[P8] mirrored kickoff 2, main, wideFlagE0: 38 slip-outs, apex 2.30 m",
+  "[P8] pinch 2, zoomies, wideFlagE0: 82 slip-outs, apex 2.05 m",
+  "[P8] mirrored kickoff 3, main, wideFlagE0: 20 slip-outs, apex 1.44 m",
+  "[P8] pinch 3, wideFlagE0: 38 slip-outs, apex 2.03 m",
+  "[P8] mirrored kickoff 4, main, wideFlagE0: 30 slip-outs, apex 1.52 m",
+  "[P8] pinch 4, zoomies, wideFlagE0: 48 slip-outs, apex 2.05 m",
+  "[P8] mirrored kickoff 1, main, drafted: 2 slip-outs, apex 2.01 m",
+  "[P8] pinch 1: 34 slip-outs, apex 0.82 m",
+  "[P8] mirrored kickoff 2, main, drafted: 4 slip-outs, apex 2.32 m",
+  "[P8] pinch 2, zoomies: 108 slip-outs, apex 4.40 m",
+  "[P8] mirrored kickoff 3, main, drafted: 6 slip-outs, apex 2.12 m",
+  "[P8] pinch 3: 120 slip-outs, apex 2.03 m",
+  "[P8] mirrored kickoff 4, main, drafted: 22 slip-outs, apex 2.98 m",
+  "[P8] pinch 4, zoomies: 146 slip-outs, apex 4.40 m",
+  "[slip-out] wide          rest FAIL (worst 4.00 s, held up 32); sitting pass (worst 0.47 s); dribbles FAIL (48 slip-outs); pinch mirrored (down within 3.92 s, 6 of 8 held up)",
+  "[slip-out] flag          rest pass (worst 1.03 s, held up 0); sitting pass (worst 0.47 s); dribbles FAIL (7 slip-outs); pinch mirrored (down within 1.57 s, 0 of 8 held up)",
+  "[fuzz] main: deepest overlap of the ball with any piece after a substep 0.00 mm; substeps with the ball wholly behind a goal line (all inside a goal) 1101",
+  "[slip-out] e0            rest FAIL (worst 4.43 s, held up 39); sitting pass (worst 0.37 s); dribbles FAIL (7 slip-outs); pinch mirrored (down within 0.39 s, 6 of 8 held up)",
+  "[slip-out] flag+e0       rest pass (worst 0.96 s, held up 0); sitting pass (worst 0.37 s); dribbles FAIL (7 slip-outs); pinch mirrored (down within 0.72 s, 0 of 8 held up)",
+  "[slip-out] wide+flag     rest pass (worst 1.03 s, held up 0); sitting pass (worst 0.47 s); dribbles FAIL (43 slip-outs); pinch mirrored (down within 1.60 s, 0 of 8 held up)",
+  "[fuzz] second: deepest overlap of the ball with any piece after a substep 0.00 mm; substeps with the ball wholly behind a goal line (all inside a goal) 1449",
+  "[slip-out] wide+e0       rest FAIL (worst 1.44 s, held up 21); sitting pass (worst 0.36 s); dribbles FAIL (57 slip-outs); pinch mirrored (down within 0.67 s, 4 of 8 held up)",
+  "[slip-out] wide+flag+e0  rest pass (worst 0.94 s, held up 0); sitting pass (worst 0.36 s); dribbles FAIL (51 slip-outs); pinch mirrored (down within 0.72 s, 0 of 8 held up)",
+  "[slip-out] 57+flag+e0    rest pass (worst 0.94 s, held up 0); sitting pass (worst 0.36 s); dribbles FAIL (27 slip-outs); pinch mirrored (down within 0.72 s, 0 of 8 held up)",
+  "[slip-out] 42+flag       rest pass (worst 1.03 s, held up 0); sitting pass (worst 0.47 s); dribbles pass (0 slip-outs); pinch mirrored (down within 1.57 s, 0 of 8 held up)",
+  "[slip-out] 40+flag       rest pass (worst 1.07 s, held up 0); sitting FAIL (worst 0.56 s); dribbles pass (0 slip-outs); pinch mirrored (down within 1.57 s, 0 of 8 held up)",
+  "[slip-out] 42+flag+e0    rest pass (worst 1.06 s, held up 0); sitting pass (worst 0.46 s); dribbles pass (0 slip-outs); pinch mirrored (down within 0.72 s, 0 of 8 held up)",
+  "[slip-out] 40+flag+e0    rest pass (worst 1.12 s, held up 0); sitting FAIL (worst 0.56 s); dribbles pass (0 slip-outs); pinch mirrored (down within 0.72 s, 0 of 8 held up)",
+  "[slip-out] 44+flag       rest pass (worst 1.03 s, held up 0); sitting pass (worst 0.47 s); dribbles FAIL (3 slip-outs); pinch mirrored (down within 1.57 s, 0 of 8 held up)",
+  "[slip-out] 44+flag+e0    rest pass (worst 1.00 s, held up 0); sitting pass (worst 0.39 s); dribbles FAIL (3 slip-outs); pinch mirrored (down within 0.72 s, 0 of 8 held up)"
+ ],
+ "measure": {
+  "exitCode": 0,
+  "wallSeconds": 50.3,
+  "file": "results/revisit/sim-i6.json",
+  "ranUnderVariant": true,
+  "pick": {
+   "rule": "42+flag",
+   "sweep": "fine",
+   "passesAll": true,
+   "cases": {
+    "restingOnPushers": true,
+    "twoSitting": true,
+    "dribbles": true,
+    "kickoffPinchMirrored": true
+   },
+   "restCases": 864,
+   "restHeld": 0,
+   "restWorstS": 1.383,
+   "sittingWorstS": 0.471,
+   "sittingWorstAtDeg": 4,
+   "dribbles": 336,
+   "dribbleSlips": 0,
+   "pinchDownS": {
+    "1": 0.433,
+    "2": 0.863,
+    "3": 0.875,
+    "4": 1.371,
+    "1 zoomies": 0.596,
+    "2 zoomies": 1.217,
+    "3 zoomies": 1.413,
+    "4 zoomies": 1.575
+   },
+   "pinchMismatches": 0
+  },
+  "passingAll": [
+   "42+flag",
+   "42+flag+e0"
+  ],
+  "slipOut": [
+   {
+    "rule": "none",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": false,
+     "twoSitting": false,
+     "dribbles": true,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 81,
+    "restWorstS": 7.537,
+    "sittingWorstS": "held",
+    "sittingWorstAtDeg": 4,
+    "dribbles": 112,
+    "dribbleSlips": 0,
+    "pinchDownS": {
+     "1": null,
+     "2": null,
+     "3": null,
+     "4": null,
+     "1 zoomies": null,
+     "2 zoomies": null,
+     "3 zoomies": null,
+     "4 zoomies": null
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "drafted",
+    "sweep": "fine",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": false,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 864,
+    "restHeld": 254,
+    "restWorstS": 7.533,
+    "sittingWorstS": 0.471,
+    "sittingWorstAtDeg": 4,
+    "dribbles": 336,
+    "dribbleSlips": 20,
+    "pinchDownS": {
+     "1": 5.296,
+     "2": null,
+     "3": null,
+     "4": null,
+     "1 zoomies": 2.304,
+     "2 zoomies": null,
+     "3 zoomies": null,
+     "4 zoomies": null
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "wide",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": false,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 43,
+    "restWorstS": 6.713,
+    "sittingWorstS": 0.471,
+    "sittingWorstAtDeg": 4,
+    "dribbles": 112,
+    "dribbleSlips": 258,
+    "pinchDownS": {
+     "1": 3.921,
+     "2": null,
+     "3": null,
+     "4": null,
+     "1 zoomies": 2.071,
+     "2 zoomies": null,
+     "3 zoomies": null,
+     "4 zoomies": null
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "flag",
+    "sweep": "fine",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 864,
+    "restHeld": 0,
+    "restWorstS": 1.358,
+    "sittingWorstS": 0.471,
+    "sittingWorstAtDeg": 4,
+    "dribbles": 336,
+    "dribbleSlips": 20,
+    "pinchDownS": {
+     "1": 0.433,
+     "2": 0.863,
+     "3": 0.875,
+     "4": 1.371,
+     "1 zoomies": 0.596,
+     "2 zoomies": 1.217,
+     "3 zoomies": 1.413,
+     "4 zoomies": 1.575
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "e0",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": false,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 51,
+    "restWorstS": 4.017,
+    "sittingWorstS": 0.367,
+    "sittingWorstAtDeg": 12,
+    "dribbles": 112,
+    "dribbleSlips": 8,
+    "pinchDownS": {
+     "1": 0.392,
+     "2": null,
+     "3": null,
+     "4": null,
+     "1 zoomies": 0.358,
+     "2 zoomies": null,
+     "3 zoomies": null,
+     "4 zoomies": null
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "flag+e0",
+    "sweep": "fine",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 864,
+    "restHeld": 0,
+    "restWorstS": 1.288,
+    "sittingWorstS": 0.371,
+    "sittingWorstAtDeg": 13.5,
+    "dribbles": 336,
+    "dribbleSlips": 20,
+    "pinchDownS": {
+     "1": 0.313,
+     "2": 0.392,
+     "3": 0.529,
+     "4": 0.721,
+     "1 zoomies": 0.304,
+     "2 zoomies": 0.383,
+     "3 zoomies": 0.554,
+     "4 zoomies": 0.688
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "wide+flag",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 0,
+    "restWorstS": 1.1,
+    "sittingWorstS": 0.471,
+    "sittingWorstAtDeg": 4,
+    "dribbles": 112,
+    "dribbleSlips": 212,
+    "pinchDownS": {
+     "1": 0.433,
+     "2": 0.863,
+     "3": 0.925,
+     "4": 1.371,
+     "1 zoomies": 0.596,
+     "2 zoomies": 1.217,
+     "3 zoomies": 1.392,
+     "4 zoomies": 1.596
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "wide+e0",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": false,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 33,
+    "restWorstS": 4.008,
+    "sittingWorstS": 0.362,
+    "sittingWorstAtDeg": 12,
+    "dribbles": 112,
+    "dribbleSlips": 286,
+    "pinchDownS": {
+     "1": 0.379,
+     "2": 0.671,
+     "3": null,
+     "4": null,
+     "1 zoomies": 0.4,
+     "2 zoomies": 0.625,
+     "3 zoomies": null,
+     "4 zoomies": null
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "wide+flag+e0",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 0,
+    "restWorstS": 0.938,
+    "sittingWorstS": 0.362,
+    "sittingWorstAtDeg": 12,
+    "dribbles": 112,
+    "dribbleSlips": 240,
+    "pinchDownS": {
+     "1": 0.313,
+     "2": 0.392,
+     "3": 0.392,
+     "4": 0.721,
+     "1 zoomies": 0.313,
+     "2 zoomies": 0.392,
+     "3 zoomies": 0.563,
+     "4 zoomies": 0.637
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "57+flag+e0",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 0,
+    "restWorstS": 0.938,
+    "sittingWorstS": 0.362,
+    "sittingWorstAtDeg": 12,
+    "dribbles": 112,
+    "dribbleSlips": 138,
+    "pinchDownS": {
+     "1": 0.313,
+     "2": 0.392,
+     "3": 0.529,
+     "4": 0.721,
+     "1 zoomies": 0.304,
+     "2 zoomies": 0.383,
+     "3 zoomies": 0.554,
+     "4 zoomies": 0.688
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "42+flag",
+    "sweep": "fine",
+    "passesAll": true,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": true,
+     "dribbles": true,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 864,
+    "restHeld": 0,
+    "restWorstS": 1.383,
+    "sittingWorstS": 0.471,
+    "sittingWorstAtDeg": 4,
+    "dribbles": 336,
+    "dribbleSlips": 0,
+    "pinchDownS": {
+     "1": 0.433,
+     "2": 0.863,
+     "3": 0.875,
+     "4": 1.371,
+     "1 zoomies": 0.596,
+     "2 zoomies": 1.217,
+     "3 zoomies": 1.413,
+     "4 zoomies": 1.575
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "40+flag",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": false,
+     "dribbles": true,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 0,
+    "restWorstS": 1.358,
+    "sittingWorstS": 0.563,
+    "sittingWorstAtDeg": 40,
+    "dribbles": 112,
+    "dribbleSlips": 0,
+    "pinchDownS": {
+     "1": 0.433,
+     "2": 0.863,
+     "3": 0.875,
+     "4": 1.371,
+     "1 zoomies": 0.596,
+     "2 zoomies": 1.217,
+     "3 zoomies": 1.413,
+     "4 zoomies": 1.575
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "42+flag+e0",
+    "sweep": "fine",
+    "passesAll": true,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": true,
+     "dribbles": true,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 864,
+    "restHeld": 0,
+    "restWorstS": 1.383,
+    "sittingWorstS": 0.463,
+    "sittingWorstAtDeg": 42,
+    "dribbles": 336,
+    "dribbleSlips": 0,
+    "pinchDownS": {
+     "1": 0.313,
+     "2": 0.392,
+     "3": 0.529,
+     "4": 0.721,
+     "1 zoomies": 0.304,
+     "2 zoomies": 0.383,
+     "3 zoomies": 0.554,
+     "4 zoomies": 0.688
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "40+flag+e0",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": false,
+     "dribbles": true,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 0,
+    "restWorstS": 1.121,
+    "sittingWorstS": 0.563,
+    "sittingWorstAtDeg": 40,
+    "dribbles": 112,
+    "dribbleSlips": 0,
+    "pinchDownS": {
+     "1": 0.313,
+     "2": 0.392,
+     "3": 0.529,
+     "4": 0.721,
+     "1 zoomies": 0.304,
+     "2 zoomies": 0.383,
+     "3 zoomies": 0.554,
+     "4 zoomies": 0.688
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "44+flag",
+    "sweep": "coarse",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 176,
+    "restHeld": 0,
+    "restWorstS": 1.358,
+    "sittingWorstS": 0.471,
+    "sittingWorstAtDeg": 4,
+    "dribbles": 112,
+    "dribbleSlips": 4,
+    "pinchDownS": {
+     "1": 0.433,
+     "2": 0.863,
+     "3": 0.875,
+     "4": 1.371,
+     "1 zoomies": 0.596,
+     "2 zoomies": 1.217,
+     "3 zoomies": 1.413,
+     "4 zoomies": 1.575
+    },
+    "pinchMismatches": 0
+   },
+   {
+    "rule": "44+flag+e0",
+    "sweep": "fine",
+    "passesAll": false,
+    "cases": {
+     "restingOnPushers": true,
+     "twoSitting": true,
+     "dribbles": false,
+     "kickoffPinchMirrored": true
+    },
+    "restCases": 864,
+    "restHeld": 0,
+    "restWorstS": 1.321,
+    "sittingWorstS": 0.388,
+    "sittingWorstAtDeg": 44,
+    "dribbles": 336,
+    "dribbleSlips": 6,
+    "pinchDownS": {
+     "1": 0.313,
+     "2": 0.392,
+     "3": 0.529,
+     "4": 0.721,
+     "1 zoomies": 0.304,
+     "2 zoomies": 0.383,
+     "3 zoomies": 0.554,
+     "4 zoomies": 0.688
+    },
+    "pinchMismatches": 0
+   }
+  ],
+  "pushes": [
+   {
+    "name": "one pusher, pitch frame",
+    "floorInSolve": true,
+    "seconds": 1.225,
+    "top": 5.7153386890172735,
+    "ballOffFloorShare": 0,
+    "slipOuts": 0
+   },
+   {
+    "name": "one pusher, ball frame",
+    "floorInSolve": true,
+    "seconds": 1.225,
+    "top": 5.7153386890172735,
+    "ballOffFloorShare": 0,
+    "slipOuts": 0
+   },
+   {
+    "name": "two in a train",
+    "floorInSolve": true,
+    "seconds": 0.7791666666666667,
+    "top": 5.71295972957739,
+    "ballOffFloorShare": 0.3315508021390374,
+    "slipOuts": 0
+   },
+   {
+    "name": "four in a train",
+    "floorInSolve": true,
+    "seconds": 0.575,
+    "top": 5.710621529790283,
+    "ballOffFloorShare": 0.6594202898550725,
+    "slipOuts": 0
+   },
+   {
+    "name": "two round the ball, pitch frame",
+    "floorInSolve": true,
+    "seconds": 0.8291666666666667,
+    "top": 5.703738058794006,
+    "ballOffFloorShare": 0.3969849246231156,
+    "slipOuts": 0
+   },
+   {
+    "name": "two round the ball, ball frame",
+    "floorInSolve": true,
+    "seconds": 2.033333333333333,
+    "top": 5.700065574705361,
+    "ballOffFloorShare": 0.05122950819672131,
+    "slipOuts": 0
+   },
+   {
+    "name": "two on a line, pitch frame",
+    "floorInSolve": true,
+    "seconds": 0.8333333333333334,
+    "top": 5.705699330341879,
+    "ballOffFloorShare": 0.4,
+    "slipOuts": 0
+   },
+   {
+    "name": "two on a line, ball frame",
+    "floorInSolve": true,
+    "seconds": 2.033333333333333,
+    "top": 5.700065183035328,
+    "ballOffFloorShare": 0.04918032786885246,
+    "slipOuts": 0
+   },
+   {
+    "name": "four round the ball, pitch frame",
+    "floorInSolve": true,
+    "seconds": 0.7208333333333333,
+    "top": 5.709226893764394,
+    "ballOffFloorShare": 0.7283236994219653,
+    "slipOuts": 0
+   },
+   {
+    "name": "four round the ball, ball frame",
+    "floorInSolve": true,
+    "seconds": 1.3083333333333333,
+    "top": 5.70024568925472,
+    "ballOffFloorShare": 0.2197452229299363,
+    "slipOuts": 0
+   },
+   {
+    "name": "four on a line, pitch frame",
+    "floorInSolve": true,
+    "seconds": 0.7583333333333333,
+    "top": 5.754871249759926,
+    "ballOffFloorShare": 0.7142857142857143,
+    "slipOuts": 0
+   },
+   {
+    "name": "four on a line, ball frame",
+    "floorInSolve": true,
+    "seconds": 0.9208333333333333,
+    "top": 5.716106163130345,
+    "ballOffFloorShare": 0.502262443438914,
+    "slipOuts": 0
+   },
+   {
+    "name": "one pusher, pitch frame",
+    "floorInSolve": false,
+    "seconds": 1.225,
+    "top": 5.7098943643565665,
+    "ballOffFloorShare": 0,
+    "slipOuts": 0
+   },
+   {
+    "name": "one pusher, ball frame",
+    "floorInSolve": false,
+    "seconds": 1.225,
+    "top": 5.7098943643565665,
+    "ballOffFloorShare": 0,
+    "slipOuts": 0
+   },
+   {
+    "name": "two in a train",
+    "floorInSolve": false,
+    "seconds": 0.775,
+    "top": 5.701646818237114,
+    "ballOffFloorShare": 0.4946236559139785,
+    "slipOuts": 0
+   },
+   {
+    "name": "four in a train",
+    "floorInSolve": false,
+    "seconds": 0.5791666666666667,
+    "top": 5.7440483611876365,
+    "ballOffFloorShare": 0.7410071942446043,
+    "slipOuts": 0
+   },
+   {
+    "name": "two round the ball, pitch frame",
+    "floorInSolve": false,
+    "seconds": 0.825,
+    "top": 5.702160232997712,
+    "ballOffFloorShare": 0.5252525252525253,
+    "slipOuts": 0
+   },
+   {
+    "name": "two round the ball, ball frame",
+    "floorInSolve": false,
+    "seconds": 2.0875,
+    "top": 5.700023895172099,
+    "ballOffFloorShare": 0.08582834331337326,
+    "slipOuts": 0
+   },
+   {
+    "name": "two on a line, pitch frame",
+    "floorInSolve": false,
+    "seconds": 0.8291666666666667,
+    "top": 5.704838570289992,
+    "ballOffFloorShare": 0.5276381909547738,
+    "slipOuts": 0
+   },
+   {
+    "name": "two on a line, ball frame",
+    "floorInSolve": false,
+    "seconds": 2.0875,
+    "top": 5.700028238991221,
+    "ballOffFloorShare": 0.08782435129740519,
+    "slipOuts": 0
+   },
+   {
+    "name": "four round the ball, pitch frame",
+    "floorInSolve": false,
+    "seconds": 0.7208333333333333,
+    "top": 5.7046553376041595,
+    "ballOffFloorShare": 0.7514450867052023,
+    "slipOuts": 0
+   },
+   {
+    "name": "four round the ball, ball frame",
+    "floorInSolve": false,
+    "seconds": 1.3083333333333333,
+    "top": 5.702215964322996,
+    "ballOffFloorShare": 0.25796178343949044,
+    "slipOuts": 0
+   },
+   {
+    "name": "four on a line, pitch frame",
+    "floorInSolve": false,
+    "seconds": 0.7625,
+    "top": 5.7243034498914644,
+    "ballOffFloorShare": 0.7814207650273224,
+    "slipOuts": 0
+   },
+   {
+    "name": "four on a line, ball frame",
+    "floorInSolve": false,
+    "seconds": 0.925,
+    "top": 5.706390682625068,
+    "ballOffFloorShare": 0.5495495495495496,
+    "slipOuts": 0
+   }
+  ],
+  "hits": [
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "parallel",
+    "speeds": [
+     2.6557,
+     3.5707,
+     3.8103,
+     3.6846
+    ],
+    "worstMomentumChange": 1.790180836524724e-15,
+    "worstEnergyGain": 0
+   },
+   {
+    "floorInSolve": true,
+    "where": "from the floor",
+    "layout": "centre",
+    "speeds": [
+     2.6557,
+     3.6903,
+     4.3002,
+     4.4772
+    ],
+    "worstMomentumChange": 3.58766985720938e-15,
+    "worstEnergyGain": 0
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "parallel",
+    "speeds": [
+     3,
+     4.3542,
+     4.9993,
+     5.213
+    ],
+    "worstMomentumChange": 7.108895957933346e-15,
+    "worstEnergyGain": 0
+   },
+   {
+    "floorInSolve": true,
+    "where": "level",
+    "layout": "centre",
+    "speeds": [
+     3,
+     4.4783,
+     5.4686,
+     6.157
+    ],
+    "worstMomentumChange": 3.58766985720938e-15,
+    "worstEnergyGain": 0
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "parallel",
+    "speeds": [
+     2.16,
+     3.0552,
+     3.3349,
+     3.2219
+    ],
+    "worstMomentumChange": 3.5596458096434965e-15,
+    "worstEnergyGain": 0
+   },
+   {
+    "floorInSolve": false,
+    "where": "from the floor",
+    "layout": "centre",
+    "speeds": [
+     2.16,
+     3.1381,
+     3.7715,
+     3.9866
+    ],
+    "worstMomentumChange": 3.58766985720938e-15,
+    "worstEnergyGain": 0
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "parallel",
+    "speeds": [
+     3,
+     4.3542,
+     4.9993,
+     5.213
+    ],
+    "worstMomentumChange": 7.108895957933346e-15,
+    "worstEnergyGain": 0
+   },
+   {
+    "floorInSolve": false,
+    "where": "level",
+    "layout": "centre",
+    "speeds": [
+     3,
+     4.4783,
+     5.4686,
+     6.157
+    ],
+    "worstMomentumChange": 3.58766985720938e-15,
+    "worstEnergyGain": 0
+   }
+  ],
+  "dribbleHop": {
+   "runs": 2880,
+   "smallestDegFromVertical": 43.528,
+   "at": "ball frame step 3, zoomies, from 9 m/s, run-up 0.3012 m",
+   "sittingFrictionBoundDeg": 39.23
+  },
+  "tickCostNode": [
+   {
+    "script": "scrum in the corner, flag42",
+    "tickMs": {
+     "p50": 0.27,
+     "p95": 0.472,
+     "max": 1.83,
+     "mean": 0.3
+    },
+    "stepUs": 23,
+    "contactsPerSubstep": 10.32,
+    "ofWhichFloor": 8.62,
+    "bursts": {
+     "13 steps": {
+      "median": 0.26,
+      "max": 0.547
+     },
+     "30 steps": {
+      "median": 0.62,
+      "max": 1.218
+     },
+     "42 steps": {
+      "median": 0.852,
+      "max": 1.651
+     },
+     "270 steps": {
+      "median": 6.13,
+      "max": 7.163
+     }
+    }
+   },
+   {
+    "script": "scrum in the corner",
+    "tickMs": {
+     "p50": 0.341,
+     "p95": 0.721,
+     "max": 1.887,
+     "mean": 0.405
+    },
+    "stepUs": 31.1,
+    "contactsPerSubstep": 11.55,
+    "ofWhichFloor": 8.22,
+    "bursts": {
+     "13 steps": {
+      "median": 0.371,
+      "max": 0.663
+     },
+     "30 steps": {
+      "median": 1.009,
+      "max": 1.962
+     },
+     "42 steps": {
+      "median": 1.438,
+      "max": 1.906
+     },
+     "270 steps": {
+      "median": 10.904,
+      "max": 19.12
+     }
+    }
+   },
+   {
+    "script": "scrum at the wall, flag42",
+    "tickMs": {
+     "p50": 0.387,
+     "p95": 0.921,
+     "max": 4.167,
+     "mean": 0.465
+    },
+    "stepUs": 35.8,
+    "contactsPerSubstep": 11.85,
+    "ofWhichFloor": 8.46,
+    "bursts": {
+     "13 steps": {
+      "median": 0.387,
+      "max": 1.371
+     },
+     "30 steps": {
+      "median": 0.961,
+      "max": 1.823
+     },
+     "42 steps": {
+      "median": 1.373,
+      "max": 2.091
+     },
+     "270 steps": {
+      "median": 6.591,
+      "max": 8.725
+     }
+    }
+   },
+   {
+    "script": "scrum at the wall",
+    "tickMs": {
+     "p50": 0.365,
+     "p95": 0.6,
+     "max": 1.797,
+     "mean": 0.399
+    },
+    "stepUs": 30.7,
+    "contactsPerSubstep": 12.17,
+    "ofWhichFloor": 8,
+    "bursts": {
+     "13 steps": {
+      "median": 0.297,
+      "max": 0.36
+     },
+     "30 steps": {
+      "median": 0.732,
+      "max": 1.409
+     },
+     "42 steps": {
+      "median": 1.137,
+      "max": 3.499
+     },
+     "270 steps": {
+      "median": 7.559,
+      "max": 8.916
+     }
+    }
+   }
+  ]
+ },
+ "verdict": {
+  "allTestsGreen": true,
+  "behaviourFailures": 0,
+  "pinnedRecordFailures": 0,
+  "pickPassesFullSweep": true,
+  "qualifies": true,
+  "rule": "qualifies: no §16 behaviour test fails, and on the full sweep 42° with the flag passes all four slip-out cases; a pinned M0 record that moves is listed, not disqualifying"
+ }
+}

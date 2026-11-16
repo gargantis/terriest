@@ -70,9 +70,10 @@ describe('createReplayBench', () => {
     bench.tick();
     bench.tick();
     expect(bench.base.tick).toBe(t0 + 2);
-    expect(bench.stats().substeps).toBe(2 * 13 * 4);
+    const sub = bench.config.substeps;
+    expect(bench.stats().substeps).toBe(2 * 13 * sub);
     bench.burst(30);
     expect(bench.base.tick).toBe(t0 + 2);
-    expect(bench.stats().substeps).toBe(2 * 13 * 4 + 30 * 4);
+    expect(bench.stats().substeps).toBe(2 * 13 * sub + 30 * sub);
   });
 });

@@ -1,0 +1,13 @@
+import { CostRun, DEFAULT_COST } from '<spike>/src/cost.ts';
+
+const q = new URLSearchParams(location.search);
+const warm = Number(q.get('verifyWarm') ?? '');
+if (Number.isInteger(warm) && warm > 0) DEFAULT_COST.warmupTicks = warm;
+const origReport = CostRun.prototype.report;
+CostRun.prototype.report = function (this: CostRun) {
+  const self = this as unknown as { tickMs: number[]; burstMs: number[][]; options: { warmupTicks: number; settleTicks: number } };
+  (window as unknown as Record<string, unknown>).verifySeries = {
+    tickMs: [...self.tickMs], burstMs: self.burstMs.map((a) => [...a]), warmupTicks: self.options.warmupTicks, settleTicks: self.options.settleTicks,
+  };
+  return origReport.call(this);
+};

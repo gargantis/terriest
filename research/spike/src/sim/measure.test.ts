@@ -1,7 +1,8 @@
 import { describe, it } from 'vitest';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DT, SLIP_OUT_RULES, type SlipOutName } from './config';
+import { makeConfig, SLIP_OUT_RULES, type SlipOutName, substepDt } from './config';
 import { goldenSuite } from './golden';
 import { pushScript } from './scripts';
 import { ballOnTerriers, dribble, type Holding, kickoffPinch, pushTime } from './cases';
@@ -9,17 +10,26 @@ import { createReplayBench } from './source';
 import { park, place, placeBall } from './scripts';
 import { kineticEnergy, momentum, run, scenario } from './testing';
 import { dir, fractionOfTurn, HALF_TURN } from './angle';
+import { solverOf } from '../solver-settings';
 
 // M0's measurements behind research/spike/REPORT.md, from the simulation's
 // side: run 2's numbers in full, and run 3's tick cost in Node. Slow, so
 // guarded:
 //   TERRIEST_SPIKE_MEASURE=1 npx vitest run src/sim/measure.test.ts
 // writes results/sim.json and prints each table. TERRIEST_SPIKE_MEASURE=quick
-// skips the fine slip-out sweeps.
+// skips the fine slip-out sweeps. TERRIEST_SPIKE_MEASURE_OUT names another
+// file, as the cost revisit's runs under a solver variant do (with
+// TERRIEST_SPIKE_SOLVER, test/solver-setup.ts; scripts/revisit/behaviour.mjs).
 
 const MODE = process.env.TERRIEST_SPIKE_MEASURE;
-const out: Record<string, unknown> = { utc: new Date().toISOString(), node: process.version };
-const results = fileURLToPath(new URL('../../results/sim.json', import.meta.url));
+const out: Record<string, unknown> = { utc: new Date().toISOString(), node: process.version, solver: solverOf(makeConfig()) };
+const OUT = process.env.TERRIEST_SPIKE_MEASURE_OUT;
+// As scripts/stop-rule.mjs and scripts/verify/sim-checks.mjs do: a variant's
+// measurements never overwrite results/sim.json, which holds M0's settings.
+if (MODE !== undefined && (process.env.TERRIEST_SPIKE_SOLVER ?? '').trim() !== '' && !OUT) {
+  throw new Error("a solver variant needs TERRIEST_SPIKE_MEASURE_OUT, so results/sim.json keeps M0's settings");
+}
+const results = OUT ? resolve(OUT) : fileURLToPath(new URL('../../results/sim.json', import.meta.url));
 
 const pct = (xs: number[], p: number): number => {
   const s = [...xs].sort((a, b) => a - b);
@@ -49,7 +59,7 @@ describe.runIf(MODE !== undefined)('M0 measurements (simulation)', () => {
 
   it('simultaneous hits, under both readings of the floor', () => {
     const rows: Record<string, unknown>[] = [];
-    const LEAD = 6 * DT * 20.5;
+    const LEAD = 6 * substepDt(makeConfig()) * 20.5;
     const d = new Float64Array(2);
     for (const floorInSolve of [true, false]) for (const level of [false, true]) for (const layout of ['parallel', 'centre'] as const) {
       const speeds: number[] = [];
@@ -196,7 +206,7 @@ describe.runIf(MODE !== undefined)('M0 measurements (simulation)', () => {
     const ticks = runs.reduce((a, r) => a + r.checkpoints.length * 500, 0);
     out.goldens = { runs: runs.length, ms: +ms.toFixed(0), ticksAtCheckpoints: ticks };
     console.log(out.goldens);
-    mkdirSync(fileURLToPath(new URL('../../results/', import.meta.url)), { recursive: true });
+    mkdirSync(dirname(results), { recursive: true });
     writeFileSync(results, JSON.stringify(out, null, 1) + '\n');
   });
 });

@@ -1,0 +1,97 @@
+// Verification probe (not part of the spike): does each bit-still scene come
+// to rest, and stay at rest, under each solver setting? Written apart from
+// scripts/revisit/settle.mjs. The three scenes of contacts.test.ts, plus
+// variations of the pressing scene, to see whether the decisive test is
+// robust: does M0's setting rest in all of them, and do the failing settings
+// fail in all of them? Run from the spike's folder:
+//   node <this> --out <json> [--ticks 12000] [--specs m0,i4,...]
+import { writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const ROOT = process.cwd();
+const imp = (p) => import(pathToFileURL(join(ROOT, p)).href);
+const { ballDir, NOTHING, park, place, placeBall } = await imp('src/sim/scripts.ts');
+const { run, scenario } = await imp('src/sim/testing.ts');
+const { M0_SOLVER, parseSolver, solverLabel } = await imp('src/solver-settings.ts');
+
+const args = process.argv.slice(2);
+const val = (f, d) => (args.includes(f) ? args[args.indexOf(f) + 1] : d);
+const out = resolve(val('--out'));
+const TICKS = Number(val('--ticks', '12000'));
+const specs = val('--specs', 'm0,i6,i4,p1,nofloor,s3,i4+s3,i6+s3,i4+p1,i6+p1').split(',');
+
+const R = 0.8;
+const r = 0.25;
+const D = Math.sqrt(0.8); // horizontal centre distance, terrier touching ball: √((R + r)² − (R − r)²), as contacts.test.ts writes it
+void r;
+const EPS = 1e-6;
+// The ball against a side wall at y = wallY (the pitch is 28 m wide), the
+// terrier touching it at angle deg off the wall's normal, gap m back.
+function wallScene({ x = 3, side = -1, deg = 0, gap = 0, eps = EPS } = {}) {
+  return (over) => scenario(1, over, (s) => {
+    const wallY = side * 14;
+    const by = wallY - side * (R - eps);
+    placeBall(s, x, by);
+    const a = (deg * Math.PI) / 180;
+    const d = D - eps + gap;
+    place(s, 0, x + d * Math.sin(a), by - side * d * Math.cos(a));
+    park(s, 1);
+  });
+}
+const hold = (k) => (k === 0 ? ballDir(0) : NOTHING);
+const holdZoom = (k) => (k === 0 ? ballDir(0, true) : NOTHING);
+const scenes = [
+  { name: 'resting ball, two standing terriers (test 1)', make: (over) => scenario(1, over, (s) => { placeBall(s, 0, 0); place(s, 0, -3, 2); place(s, 1, 3, -2); }), input: () => NOTHING, testSettle: 0 },
+  { name: 'terrier resting against the ball at the wall (test 2)', make: wallScene(), input: () => NOTHING, testSettle: 10 },
+  { name: 'terrier pressing the ball into the wall (test 3)', make: wallScene(), input: hold, testSettle: 60 },
+  { name: 'pressing, from 0.3 m back', make: wallScene({ gap: 0.3 }), input: hold },
+  { name: 'pressing, 10 deg oblique', make: wallScene({ deg: 10 }), input: hold },
+  { name: 'pressing, 30 deg oblique', make: wallScene({ deg: 30 }), input: hold },
+  { name: 'pressing into the +y wall', make: wallScene({ side: 1 }), input: hold },
+  { name: 'pressing at x = -7', make: wallScene({ x: -7 }), input: hold },
+  { name: 'pressing, placed exactly touching', make: wallScene({ eps: 0 }), input: hold },
+  { name: 'pressing in zoomies', make: wallScene(), input: holdZoom },
+];
+
+const bits = (s) => {
+  const all = [s.ball, ...s.terriers];
+  const f = new Float64Array(6 * all.length);
+  all.forEach((b, i) => f.set([b.x, b.y, b.z, b.vx, b.vy, b.vz], 6 * i));
+  return `${Buffer.from(f.buffer).toString('hex')}|${all.map((b) => (b.onFloor ? 1 : 0)).join('')}|${s.terriers.map((t) => t.heading).join(',')}`;
+};
+
+const rows = [];
+for (const spec of specs) {
+  const settings = { ...M0_SOLVER, ...parseSolver(spec) };
+  for (const sc0 of scenes) {
+    const sc = sc0.make(settings);
+    if (sc.sim.C.iterations !== settings.iterations || sc.sim.C.positionPasses !== settings.positionPasses || sc.sim.C.floorInSolve !== settings.floorInSolve || sc.sim.C.substeps !== settings.substeps) throw new Error('settings not applied');
+    const hist = [];
+    let prev = bits(sc.s);
+    let last = 0;
+    let lo = null;
+    let hi = null;
+    for (let t = 1; t <= TICKS; t++) {
+      run(sc, 1, sc0.input);
+      const b = bits(sc.s);
+      if (b !== prev) last = t;
+      prev = b;
+      if (t > TICKS - 1000) {
+        hist.push(b);
+        const v = [sc.s.ball, ...sc.s.terriers].flatMap((q) => [q.x, q.y, q.z]);
+        lo = lo ? lo.map((x, i) => Math.min(x, v[i])) : v;
+        hi = hi ? hi.map((x, i) => Math.max(x, v[i])) : v;
+      }
+    }
+    let period = null;
+    for (let p = 1; p <= 50 && period === null; p++) if (hist.slice(p).every((h, i) => h === hist[i])) period = p;
+    const range = Math.max(...hi.map((x, i) => x - lo[i]));
+    rows.push({ spec, label: solverLabel(settings), scene: sc0.name, ticks: TICKS, lastChangeTick: last, atRest: last <= TICKS - 1000, period, last1000PositionRangeMm: +(range * 1000).toFixed(4), ...(sc0.testSettle !== undefined ? { testSettleTicks: sc0.testSettle, restsWithinTestSettle: last <= sc0.testSettle } : {}) });
+  }
+}
+writeFileSync(out, `${JSON.stringify({ about: 'Verification: when each bit-still scene stops changing under each solver setting, with variations of the pressing scene', utc: new Date().toISOString(), node: process.version, ticks: TICKS, rows }, null, 1)}\n`);
+for (const spec of specs) {
+  const mine = rows.filter((x) => x.spec === spec);
+  console.log(`${spec.padEnd(8)} ${mine.map((x) => (x.atRest ? `rest@${x.lastChangeTick}` : `CYCLE p${x.period} ${x.last1000PositionRangeMm}mm`)).join(' | ')}`);
+}

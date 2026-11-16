@@ -7,8 +7,10 @@
 import { dir, fractionOfTurn, TURN } from './angle.ts';
 
 export const TICK_RATE = 60;
+/** D-3's substeps a tick, the default's; a configuration sets its own
+ *  (SimConfig.substeps), which the simulation reads. */
 export const SUBSTEPS = 4;
-/** One substep, 1/240 s (D-3). */
+/** One substep at the default, 1/240 s (D-3). */
 export const DT = 1 / (TICK_RATE * SUBSTEPS);
 
 /** A tick value meaning "never" (A.1). */
@@ -129,6 +131,8 @@ export interface SimConfig {
   floorInSolve: boolean;
   iterations: number; // forward-and-back sweeps over mirror pairs
   positionPasses: number;
+  /** Physics substeps a tick (D-3); a substep is 1/(60 × substeps) s. */
+  substeps: number;
   restitutionThreshold: number; // m/s
   ballSurface: number; // floor, walls, overhead net, goal frame
   ballGoalNet: number;
@@ -187,6 +191,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   floorInSolve: true,
   iterations: 8,
   positionPasses: 2,
+  substeps: SUBSTEPS,
   restitutionThreshold: 0.3,
   ballSurface: 0.7,
   ballGoalNet: 0.3,
@@ -220,6 +225,23 @@ export const DEFAULT_CONFIG: SimConfig = {
 
 export function makeConfig(over: Partial<SimConfig> = {}): SimConfig {
   return { ...DEFAULT_CONFIG, ...over };
+}
+
+/** One substep of a configuration, in seconds: 1/240 s at 4 substeps. */
+export function substepDt(C: SimConfig): number {
+  return 1 / (TICK_RATE * C.substeps);
+}
+
+/** Substeps a second, for turning substep counts into seconds. */
+export function substepsPerSecond(C: SimConfig): number {
+  return TICK_RATE * C.substeps;
+}
+
+/** The solver's switchable settings must be whole numbers in range. */
+export function checkSolver(C: SimConfig): void {
+  if (!Number.isInteger(C.substeps) || C.substeps < 1) throw new Error(`substeps must be a whole number from 1, not ${C.substeps}`);
+  if (!Number.isInteger(C.iterations) || C.iterations < 1) throw new Error(`iterations must be a whole number from 1, not ${C.iterations}`);
+  if (!Number.isInteger(C.positionPasses) || C.positionPasses < 0) throw new Error(`positionPasses must be a whole number from 0, not ${C.positionPasses}`);
 }
 
 /** Kickoff spots for pack A (pack 0), by pack size (A.5). Pack B's are the

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# The verification's CPU-heavy checks, run after the timing batch so they
+# can't disturb it. Run from the spike's folder: bash <this> <scratch dir>
+set -u
+S="$1"
+OUT=results/verify-revisit
+mkdir -p "$OUT" "$S/tmp"
+log() { echo "[$(date -u +%H:%M:%S)] $*"; }
+
+log "uptime: $(uptime)"
+log "variant check of the revisit's 120 runs"
+node "$S/vvariants.mjs" --in results/revisit/cost-variants.json --out "$OUT/cost-variants-check.json"
+
+log "vitest, whole suite at the defaults (goldens included)"
+node "$S/vbehaviour.mjs" --spec '' --goldens --probe "$S/probe-setup.ts" --out "$OUT/vitest-defaults.json" --tmp "$S/tmp"
+for spec in m0 i4 i6 s3 i4+s3 p1; do
+  log "vitest without the goldens under $spec"
+  node "$S/vbehaviour.mjs" --spec "$spec" --probe "$S/probe-setup.ts" --out "$OUT/behaviour-$spec.json" --tmp "$S/tmp"
+done
+
+log "run 2's sweep (measure.test.ts) at the defaults"
+env -u TERRIEST_SPIKE_SOLVER TERRIEST_SPIKE_MEASURE=1 TERRIEST_SPIKE_MEASURE_OUT="$OUT/sim-defaults.json" npx vitest run src/sim/measure.test.ts --configLoader runner --no-cache > "$S/tmp/measure-defaults.log" 2>&1; log "exit $?"
+log "run 2's sweep under i4+s3"
+TERRIEST_SPIKE_SOLVER=i4+s3 TERRIEST_SPIKE_MEASURE=1 TERRIEST_SPIKE_MEASURE_OUT="$OUT/sim-i4+s3.json" npx vitest run src/sim/measure.test.ts --configLoader runner --no-cache > "$S/tmp/measure-i4+s3.log" 2>&1; log "exit $?"
+
+log "bit-still scenes and the pressing scene's variations"
+node "$S/vsettle.mjs" --out "$OUT/settle.json" --ticks 12000
+log "tunnelling depths"
+node "$S/vtunnel.mjs" --out "$OUT/tunnel-depths.json"
+
+log "run 1 in the three engines and Node"
+TERRIEST_SPIKE_DETERMINISM_OUT="$OUT" npx playwright test --config "$S/pw.det.config.mjs" > "$S/tmp/determinism.log" 2>&1; log "exit $?"
+
+log "lint and typecheck"
+npx eslint . --max-warnings 0 -f json -o "$S/tmp/eslint.json" > "$S/tmp/eslint.log" 2>&1; echo "$?" > "$S/tmp/eslint.exit"
+npx tsc --noEmit > "$S/tmp/tsc.log" 2>&1; echo "$?" > "$S/tmp/tsc.exit"
+log "done; uptime: $(uptime)"

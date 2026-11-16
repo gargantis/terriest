@@ -1,0 +1,23 @@
+// Writes the verification's lint and typecheck results, beside the vitest
+// run at the defaults. Run from the spike's folder: node <this> <tmp dir> <out json>
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+
+const [tmp, outFile] = process.argv.slice(2);
+const read = (f, d = '') => (existsSync(join(tmp, f)) ? readFileSync(join(tmp, f), 'utf8') : d);
+const ROOT = process.cwd();
+const strip = (s) => s.replaceAll(`${ROOT}/`, '').replaceAll(ROOT, '<spike>');
+let lint = null;
+try {
+  const files = JSON.parse(read('eslint.json', 'null'));
+  lint = { exitCode: Number(read('eslint.exit', 'NaN')), files: files.length, errors: files.reduce((a, f) => a + f.errorCount, 0), warnings: files.reduce((a, f) => a + f.warningCount, 0), withProblems: files.filter((f) => f.errorCount + f.warningCount > 0).map((f) => strip(f.filePath)) };
+} catch (e) {
+  lint = { error: String(e) };
+}
+const out = {
+  about: "Verification of M0's cost revisit: lint (npx eslint . --max-warnings 0) and typecheck (npx tsc --noEmit) on the tree as it stands",
+  utc: new Date().toISOString(), node: process.version,
+  lint, typecheck: { exitCode: Number(read('tsc.exit', 'NaN')), output: strip(read('tsc.log')).slice(-2000) },
+};
+writeFileSync(resolve(outFile), `${JSON.stringify(out, null, 1)}\n`);
+console.log(JSON.stringify(out));

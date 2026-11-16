@@ -1,0 +1,20 @@
+// Verification probe (not part of the spike): records, per test file, the
+// solver settings of every Physics that steps a substep, so a run under
+// TERRIEST_SPIKE_SOLVER shows which settings each file's simulations ran.
+import { afterAll, expect } from 'vitest';
+import { appendFileSync } from 'node:fs';
+import { Physics } from '<spike>/src/sim/physics.ts';
+
+const seen = new Map<string, number>();
+const proto = Physics.prototype as unknown as { forcesAndIntegrate: (...a: unknown[]) => void };
+const orig = proto.forcesAndIntegrate;
+proto.forcesAndIntegrate = function (this: { C: { iterations: number; positionPasses: number; floorInSolve: boolean; substeps: number } }, ...a: unknown[]) {
+  const C = this.C;
+  const k = `i${C.iterations} p${C.positionPasses} ${C.floorInSolve ? 'floor' : 'nofloor'} s${C.substeps}`;
+  seen.set(k, (seen.get(k) ?? 0) + 1);
+  return orig.apply(this, a);
+};
+afterAll(() => {
+  const file = (expect.getState().testPath ?? '').replace('<spike>/', '');
+  appendFileSync(process.env.VERIFY_PROBE_OUT!, `${JSON.stringify({ file, env: process.env.TERRIEST_SPIKE_SOLVER ?? '', substepsBySettings: Object.fromEntries(seen) })}\n`);
+});

@@ -1,0 +1,1184 @@
+{
+ "verification": {
+  "batches": {
+   "headline": 36,
+   "extraDrawn": 12,
+   "series": 8,
+   "warm600": 4
+  },
+  "failedRuns": 0,
+  "utc": {
+   "headline": [
+    "2026-11-16T07:23:51.746Z",
+    "2026-11-16T07:38:34.515Z"
+   ],
+   "extra": [
+    "2026-11-16T07:43:51.256Z",
+    "2026-11-16T07:53:39.240Z"
+   ],
+   "series": [
+    "2026-11-16T07:38:36.539Z",
+    "2026-11-16T07:41:40.202Z"
+   ],
+   "warm600": [
+    "2026-11-16T07:41:41.531Z",
+    "2026-11-16T07:43:48.271Z"
+   ]
+  },
+  "uptimeAtStart": "23:23:51 up 3 days,  9:21,  1 user,  load average: 2.07, 1.02, 1.61",
+  "chromium": "156.0.8078.4",
+  "loadBefore1m": [
+   2.07,
+   3.95
+  ],
+  "waitedRuns": 32,
+  "maxWaitS": 45,
+  "gateFailures": 0,
+  "otherCoresMean": [
+   0.5,
+   0.72
+  ],
+  "allLabelsMatch": true,
+  "allContactsMatchNode": false,
+  "timedTicks": [
+   1200
+  ],
+  "warmupTicks": [
+   120,
+   600
+  ],
+  "settleTicks": [
+   120
+  ],
+  "throttleProbe": {
+   "at4Ms": [
+    18.65,
+    31.55
+   ],
+   "at1Ms": [
+    4.11,
+    6.99
+   ],
+   "ratio": [
+    3.02,
+    6.22
+   ],
+   "ratioMedian": 4.315,
+   "runs": 60
+  },
+  "isolated": true,
+  "consoleErrors": 0,
+  "headlineTable": [
+   {
+    "name": "m0",
+    "drawnRuns": 6,
+    "drawnP95": [
+     4.025,
+     4.425
+    ],
+    "drawnP95Median": 4.305,
+    "drawnOver4": 6,
+    "drawnP95ByDevice": {
+     "desktop": [
+      4.3,
+      4.21,
+      4.025
+     ],
+     "Pixel 8a": [
+      4.365,
+      4.425,
+      4.31
+     ]
+    },
+    "tightRuns": 6,
+    "tightP95": [
+     3.06,
+     3.195
+    ],
+    "tightMeanMedian": 1.851,
+    "tightVsM0": "0.0%",
+    "drawnMean": [
+     2.592,
+     2.69
+    ],
+    "drawingAddsToP95": {
+     "range": [
+      0.905,
+      1.365
+     ],
+     "median": 1.167,
+     "pairs": 6
+    },
+    "fps": {
+     "desktop": [
+      21.9,
+      22
+     ],
+     "pixel": [
+      33.3,
+      33.8
+     ]
+    },
+    "contactsPerSubstep": [
+     11.6536,
+     11.6536
+    ]
+   },
+   {
+    "name": "i4",
+    "drawnRuns": 6,
+    "drawnP95": [
+     3.8,
+     3.98
+    ],
+    "drawnP95Median": 3.865,
+    "drawnOver4": 0,
+    "drawnP95ByDevice": {
+     "desktop": [
+      3.845,
+      3.89,
+      3.815
+     ],
+     "Pixel 8a": [
+      3.98,
+      3.885,
+      3.8
+     ]
+    },
+    "tightRuns": 6,
+    "tightP95": [
+     2.7,
+     3.04
+    ],
+    "tightMeanMedian": 1.518,
+    "tightVsM0": "-18.0%",
+    "drawnMean": [
+     2.126,
+     2.217
+    ],
+    "drawingAddsToP95": {
+     "range": [
+      0.76,
+      1.125
+     ],
+     "median": 0.965,
+     "pairs": 6
+    },
+    "fps": {
+     "desktop": [
+      23.4,
+      23.7
+     ],
+     "pixel": [
+      36.2,
+      36.9
+     ]
+    },
+    "contactsPerSubstep": [
+     11.1808,
+     11.1808
+    ]
+   },
+   {
+    "name": "i6",
+    "drawnRuns": 6,
+    "drawnP95": [
+     3.96,
+     4.14
+    ],
+    "drawnP95Median": 4.037,
+    "drawnOver4": 4,
+    "drawnP95ByDevice": {
+     "desktop": [
+      4.14,
+      4.065,
+      3.985
+     ],
+     "Pixel 8a": [
+      3.96,
+      4.01,
+      4.125
+     ]
+    },
+    "tightRuns": 6,
+    "tightP95": [
+     2.79,
+     2.905
+    ],
+    "tightMeanMedian": 1.719,
+    "tightVsM0": "-7.2%",
+    "drawnMean": [
+     2.401,
+     2.447
+    ],
+    "drawingAddsToP95": {
+     "range": [
+      1.11,
+      1.335
+     ],
+     "median": 1.165,
+     "pairs": 6
+    },
+    "fps": {
+     "desktop": [
+      22.2,
+      22.6
+     ],
+     "pixel": [
+      34.6,
+      35
+     ]
+    },
+    "contactsPerSubstep": [
+     11.9776,
+     11.9776
+    ]
+   }
+  ],
+  "headlinePlusExtraDrawn": [
+   {
+    "name": "m0",
+    "drawnRuns": 12,
+    "drawnP95": [
+     4.025,
+     4.49
+    ],
+    "drawnP95Median": 4.335,
+    "drawnOver4": 12,
+    "drawnP95ByDevice": {
+     "desktop": [
+      4.3,
+      4.21,
+      4.025,
+      4.37,
+      4.36,
+      4.055
+     ],
+     "Pixel 8a": [
+      4.365,
+      4.425,
+      4.31,
+      4.425,
+      4.49,
+      4.2
+     ]
+    },
+    "tightRuns": 6,
+    "tightP95": [
+     3.06,
+     3.195
+    ],
+    "tightMeanMedian": 1.851,
+    "tightVsM0": "0.0%",
+    "drawnMean": [
+     2.592,
+     2.69
+    ],
+    "drawingAddsToP95": {
+     "range": [
+      0.905,
+      1.365
+     ],
+     "median": 1.167,
+     "pairs": 6
+    },
+    "fps": {
+     "desktop": [
+      21.5,
+      22
+     ],
+     "pixel": [
+      33.3,
+      34.3
+     ]
+    },
+    "contactsPerSubstep": [
+     11.6536,
+     11.6536
+    ]
+   },
+   {
+    "name": "i4",
+    "drawnRuns": 12,
+    "drawnP95": [
+     3.77,
+     4.315
+    ],
+    "drawnP95Median": 3.888,
+    "drawnOver4": 3,
+    "drawnP95ByDevice": {
+     "desktop": [
+      3.845,
+      3.89,
+      3.815,
+      4.11,
+      3.88,
+      3.77
+     ],
+     "Pixel 8a": [
+      3.98,
+      3.885,
+      3.8,
+      4.025,
+      4.315,
+      3.995
+     ]
+    },
+    "tightRuns": 6,
+    "tightP95": [
+     2.7,
+     3.04
+    ],
+    "tightMeanMedian": 1.518,
+    "tightVsM0": "-18.0%",
+    "drawnMean": [
+     2.126,
+     2.311
+    ],
+    "drawingAddsToP95": {
+     "range": [
+      0.76,
+      1.125
+     ],
+     "median": 0.965,
+     "pairs": 6
+    },
+    "fps": {
+     "desktop": [
+      23.4,
+      23.7
+     ],
+     "pixel": [
+      35.4,
+      36.9
+     ]
+    },
+    "contactsPerSubstep": [
+     11.1808,
+     11.1808
+    ]
+   },
+   {
+    "name": "i6",
+    "drawnRuns": 6,
+    "drawnP95": [
+     3.96,
+     4.14
+    ],
+    "drawnP95Median": 4.037,
+    "drawnOver4": 4,
+    "drawnP95ByDevice": {
+     "desktop": [
+      4.14,
+      4.065,
+      3.985
+     ],
+     "Pixel 8a": [
+      3.96,
+      4.01,
+      4.125
+     ]
+    },
+    "tightRuns": 6,
+    "tightP95": [
+     2.79,
+     2.905
+    ],
+    "tightMeanMedian": 1.719,
+    "tightVsM0": "-7.2%",
+    "drawnMean": [
+     2.401,
+     2.447
+    ],
+    "drawingAddsToP95": {
+     "range": [
+      1.11,
+      1.335
+     ],
+     "median": 1.165,
+     "pairs": 6
+    },
+    "fps": {
+     "desktop": [
+      22.2,
+      22.6
+     ],
+     "pixel": [
+      34.6,
+      35
+     ]
+    },
+    "contactsPerSubstep": [
+     11.9776,
+     11.9776
+    ]
+   }
+  ]
+ },
+ "revisitSameVariants": [
+  {
+   "name": "m0",
+   "drawnRuns": 6,
+   "drawnP95": [
+    3.945,
+    4.595
+   ],
+   "drawnP95Median": 4.235,
+   "drawnOver4": 5,
+   "drawnP95ByDevice": {
+    "desktop": [
+     4.115,
+     3.945,
+     4.415
+    ],
+    "Pixel 8a": [
+     4.21,
+     4.26,
+     4.595
+    ]
+   },
+   "tightRuns": 6,
+   "tightP95": [
+    3.075,
+    3.33
+   ],
+   "tightMeanMedian": 1.845,
+   "tightVsM0": "0.0%",
+   "drawnMean": [
+    2.558,
+    2.686
+   ],
+   "drawingAddsToP95": {
+    "range": [
+     0.615,
+     1.455
+    ],
+    "median": 1.078,
+    "pairs": 6
+   },
+   "fps": {
+    "desktop": [
+     22.1,
+     22.3
+    ],
+    "pixel": [
+     33.6,
+     34.3
+    ]
+   },
+   "contactsPerSubstep": [
+    11.65,
+    11.65
+   ]
+  },
+  {
+   "name": "i6",
+   "drawnRuns": 6,
+   "drawnP95": [
+    3.9,
+    4.315
+   ],
+   "drawnP95Median": 3.978,
+   "drawnOver4": 2,
+   "drawnP95ByDevice": {
+    "desktop": [
+     3.9,
+     4.09,
+     3.945
+    ],
+    "Pixel 8a": [
+     4.315,
+     3.985,
+     3.97
+    ]
+   },
+   "tightRuns": 6,
+   "tightP95": [
+    2.8,
+    3.045
+   ],
+   "tightMeanMedian": 1.675,
+   "tightVsM0": "-9.2%",
+   "drawnMean": [
+    2.361,
+    2.54
+   ],
+   "drawingAddsToP95": {
+    "range": [
+     0.855,
+     1.465
+    ],
+    "median": 1.145,
+    "pairs": 6
+   },
+   "fps": {
+    "desktop": [
+     22.7,
+     23.1
+    ],
+    "pixel": [
+     34.5,
+     35
+    ]
+   },
+   "contactsPerSubstep": [
+    11.98,
+    11.98
+   ]
+  },
+  {
+   "name": "i4",
+   "drawnRuns": 6,
+   "drawnP95": [
+    3.735,
+    4.255
+   ],
+   "drawnP95Median": 4.02,
+   "drawnOver4": 3,
+   "drawnP95ByDevice": {
+    "desktop": [
+     4.125,
+     4.255,
+     3.835
+    ],
+    "Pixel 8a": [
+     4.16,
+     3.915,
+     3.735
+    ]
+   },
+   "tightRuns": 6,
+   "tightP95": [
+    2.75,
+    3.115
+   ],
+   "tightMeanMedian": 1.537,
+   "tightVsM0": "-16.7%",
+   "drawnMean": [
+    2.119,
+    2.287
+   ],
+   "drawingAddsToP95": {
+    "range": [
+     0.62,
+     1.465
+    ],
+    "median": 1.15,
+    "pairs": 6
+   },
+   "fps": {
+    "desktop": [
+     22.8,
+     23.5
+    ],
+    "pixel": [
+     35.5,
+     36.8
+    ]
+   },
+   "contactsPerSubstep": [
+    11.18,
+    11.18
+   ]
+  }
+ ],
+ "pooledDrawn": [
+  {
+   "name": "m0",
+   "drawnRuns": 20,
+   "drawnP95": [
+    3.945,
+    4.595
+   ],
+   "drawnP95Median": 4.28,
+   "drawnOver4": 19,
+   "drawnP95ByDevice": {
+    "desktop": [
+     4.3,
+     4.21,
+     4.025,
+     4.37,
+     4.36,
+     4.055,
+     4.17,
+     4.115,
+     3.945,
+     4.415
+    ],
+    "Pixel 8a": [
+     4.365,
+     4.425,
+     4.31,
+     4.425,
+     4.49,
+     4.2,
+     4.165,
+     4.21,
+     4.26,
+     4.595
+    ]
+   },
+   "tightRuns": 14,
+   "tightP95": [
+    3.04,
+    3.33
+   ],
+   "tightMeanMedian": 1.851,
+   "tightVsM0": "0.0%",
+   "drawnMean": [
+    2.558,
+    2.69
+   ],
+   "drawingAddsToP95": {
+    "range": [
+     0.615,
+     1.455
+    ],
+    "median": 1.115,
+    "pairs": 14
+   },
+   "fps": {
+    "desktop": [
+     21.5,
+     22.3
+    ],
+    "pixel": [
+     33.3,
+     34.3
+    ]
+   },
+   "contactsPerSubstep": [
+    11.65,
+    11.6536
+   ]
+  },
+  {
+   "name": "i4",
+   "drawnRuns": 20,
+   "drawnP95": [
+    3.735,
+    4.315
+   ],
+   "drawnP95Median": 3.947,
+   "drawnOver4": 8,
+   "drawnP95ByDevice": {
+    "desktop": [
+     3.845,
+     3.89,
+     3.815,
+     4.11,
+     3.88,
+     3.77,
+     4.04,
+     4.125,
+     4.255,
+     3.835
+    ],
+    "Pixel 8a": [
+     3.98,
+     3.885,
+     3.8,
+     4.025,
+     4.315,
+     3.995,
+     4.17,
+     4.16,
+     3.915,
+     3.735
+    ]
+   },
+   "tightRuns": 14,
+   "tightP95": [
+    2.645,
+    3.115
+   ],
+   "tightMeanMedian": 1.515,
+   "tightVsM0": "-18.2%",
+   "drawnMean": [
+    2.119,
+    2.311
+   ],
+   "drawingAddsToP95": {
+    "range": [
+     0.62,
+     1.48
+    ],
+    "median": 1.073,
+    "pairs": 14
+   },
+   "fps": {
+    "desktop": [
+     22.8,
+     23.7
+    ],
+    "pixel": [
+     35.4,
+     36.9
+    ]
+   },
+   "contactsPerSubstep": [
+    11.18,
+    11.1808
+   ]
+  },
+  {
+   "name": "i6",
+   "drawnRuns": 12,
+   "drawnP95": [
+    3.9,
+    4.315
+   ],
+   "drawnP95Median": 3.997,
+   "drawnOver4": 6,
+   "drawnP95ByDevice": {
+    "desktop": [
+     4.14,
+     4.065,
+     3.985,
+     3.9,
+     4.09,
+     3.945
+    ],
+    "Pixel 8a": [
+     3.96,
+     4.01,
+     4.125,
+     4.315,
+     3.985,
+     3.97
+    ]
+   },
+   "tightRuns": 12,
+   "tightP95": [
+    2.79,
+    3.045
+   ],
+   "tightMeanMedian": 1.71,
+   "tightVsM0": "-7.6%",
+   "drawnMean": [
+    2.361,
+    2.54
+   ],
+   "drawingAddsToP95": {
+    "range": [
+     0.855,
+     1.465
+    ],
+    "median": 1.165,
+    "pairs": 12
+   },
+   "fps": {
+    "desktop": [
+     22.2,
+     23.1
+    ],
+    "pixel": [
+     34.5,
+     35
+    ]
+   },
+   "contactsPerSubstep": [
+    11.9776,
+    11.98
+   ]
+  }
+ ],
+ "warmup": [
+  {
+   "spec": "m0",
+   "device": "desktop",
+   "mode": "drawn",
+   "warmupTicks": 120,
+   "p95": 4.17,
+   "mean": 2.59,
+   "p95All": 4.17,
+   "p95From51": 4.185,
+   "p95From301": 4.395,
+   "first50Mean": 2.372,
+   "quarters": [
+    {
+     "mean": 1.904,
+     "p95": 3.14
+    },
+    {
+     "mean": 2.656,
+     "p95": 4.48
+    },
+    {
+     "mean": 3.036,
+     "p95": 4.545
+    },
+    {
+     "mean": 2.764,
+     "p95": 4.095
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 4.9,
+   "contactsOk": true
+  },
+  {
+   "spec": "m0",
+   "device": "desktop",
+   "mode": "tight",
+   "warmupTicks": 120,
+   "p95": 3.195,
+   "mean": 1.862,
+   "p95All": 3.195,
+   "p95From51": 3.235,
+   "p95From301": 3.425,
+   "first50Mean": 1.323,
+   "quarters": [
+    {
+     "mean": 1.3,
+     "p95": 2.33
+    },
+    {
+     "mean": 1.981,
+     "p95": 3.6
+    },
+    {
+     "mean": 2.178,
+     "p95": 3.66
+    },
+    {
+     "mean": 1.989,
+     "p95": 3.08
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 4.69,
+   "contactsOk": true
+  },
+  {
+   "spec": "m0",
+   "device": "Pixel 8a",
+   "mode": "drawn",
+   "warmupTicks": 120,
+   "p95": 4.165,
+   "mean": 2.658,
+   "p95All": 4.165,
+   "p95From51": 4.24,
+   "p95From301": 4.415,
+   "first50Mean": 1.999,
+   "quarters": [
+    {
+     "mean": 1.928,
+     "p95": 3.21
+    },
+    {
+     "mean": 2.722,
+     "p95": 4.31
+    },
+    {
+     "mean": 3.07,
+     "p95": 4.305
+    },
+    {
+     "mean": 2.912,
+     "p95": 4.6
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 4.03,
+   "contactsOk": true
+  },
+  {
+   "spec": "m0",
+   "device": "Pixel 8a",
+   "mode": "tight",
+   "warmupTicks": 120,
+   "p95": 3.04,
+   "mean": 1.81,
+   "p95All": 3.04,
+   "p95From51": 3.04,
+   "p95From301": 3.28,
+   "first50Mean": 1.332,
+   "quarters": [
+    {
+     "mean": 1.342,
+     "p95": 2.4
+    },
+    {
+     "mean": 1.894,
+     "p95": 3.6
+    },
+    {
+     "mean": 2.192,
+     "p95": 3.295
+    },
+    {
+     "mean": 1.812,
+     "p95": 2.91
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 5.84,
+   "contactsOk": true
+  },
+  {
+   "spec": "i4",
+   "device": "desktop",
+   "mode": "drawn",
+   "warmupTicks": 120,
+   "p95": 4.04,
+   "mean": 2.179,
+   "p95All": 4.04,
+   "p95From51": 4.025,
+   "p95From301": 4.02,
+   "first50Mean": 2.379,
+   "quarters": [
+    {
+     "mean": 2.138,
+     "p95": 4.25
+    },
+    {
+     "mean": 1.903,
+     "p95": 3.075
+    },
+    {
+     "mean": 1.935,
+     "p95": 3.42
+    },
+    {
+     "mean": 2.739,
+     "p95": 5.1
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 3.02,
+   "contactsOk": true
+  },
+  {
+   "spec": "i4",
+   "device": "desktop",
+   "mode": "tight",
+   "warmupTicks": 120,
+   "p95": 2.645,
+   "mean": 1.469,
+   "p95All": 2.645,
+   "p95From51": 2.62,
+   "p95From301": 2.675,
+   "first50Mean": 1.675,
+   "quarters": [
+    {
+     "mean": 1.446,
+     "p95": 2.565
+    },
+    {
+     "mean": 1.301,
+     "p95": 2.145
+    },
+    {
+     "mean": 1.312,
+     "p95": 2.19
+    },
+    {
+     "mean": 1.816,
+     "p95": 3.06
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 6.22,
+   "contactsOk": true
+  },
+  {
+   "spec": "i4",
+   "device": "Pixel 8a",
+   "mode": "drawn",
+   "warmupTicks": 120,
+   "p95": 4.17,
+   "mean": 2.228,
+   "p95All": 4.17,
+   "p95From51": 4.17,
+   "p95From301": 4.265,
+   "first50Mean": 2.094,
+   "quarters": [
+    {
+     "mean": 2.093,
+     "p95": 3.435
+    },
+    {
+     "mean": 1.97,
+     "p95": 3.185
+    },
+    {
+     "mean": 1.954,
+     "p95": 3.275
+    },
+    {
+     "mean": 2.895,
+     "p95": 5.16
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 4.76,
+   "contactsOk": true
+  },
+  {
+   "spec": "i4",
+   "device": "Pixel 8a",
+   "mode": "tight",
+   "warmupTicks": 120,
+   "p95": 2.69,
+   "mean": 1.479,
+   "p95All": 2.69,
+   "p95From51": 2.695,
+   "p95From301": 2.675,
+   "first50Mean": 1.34,
+   "quarters": [
+    {
+     "mean": 1.482,
+     "p95": 2.87
+    },
+    {
+     "mean": 1.259,
+     "p95": 1.945
+    },
+    {
+     "mean": 1.435,
+     "p95": 2.575
+    },
+    {
+     "mean": 1.74,
+     "p95": 3.095
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 3.94,
+   "contactsOk": true
+  },
+  {
+   "spec": "m0",
+   "device": "desktop",
+   "mode": "drawn",
+   "warmupTicks": 600,
+   "p95": 4.55,
+   "mean": 2.662,
+   "p95All": 4.55,
+   "p95From51": 4.52,
+   "p95From301": 4.49,
+   "first50Mean": 2.923,
+   "quarters": [
+    {
+     "mean": 3.013,
+     "p95": 4.595
+    },
+    {
+     "mean": 2.983,
+     "p95": 4.885
+    },
+    {
+     "mean": 2.857,
+     "p95": 4.885
+    },
+    {
+     "mean": 1.794,
+     "p95": 2.95
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 3.7,
+   "contactsOk": false
+  },
+  {
+   "spec": "m0",
+   "device": "desktop",
+   "mode": "tight",
+   "warmupTicks": 600,
+   "p95": 3.415,
+   "mean": 1.94,
+   "p95All": 3.415,
+   "p95From51": 3.43,
+   "p95From301": 3.335,
+   "first50Mean": 1.925,
+   "quarters": [
+    {
+     "mean": 2.208,
+     "p95": 3.555
+    },
+    {
+     "mean": 2.087,
+     "p95": 3.875
+    },
+    {
+     "mean": 2.016,
+     "p95": 3.16
+    },
+    {
+     "mean": 1.449,
+     "p95": 2.535
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 4.48,
+   "contactsOk": false
+  },
+  {
+   "spec": "m0",
+   "device": "Pixel 8a",
+   "mode": "drawn",
+   "warmupTicks": 600,
+   "p95": 4.47,
+   "mean": 2.777,
+   "p95All": 4.47,
+   "p95From51": 4.35,
+   "p95From301": 4.28,
+   "first50Mean": 3.488,
+   "quarters": [
+    {
+     "mean": 3.188,
+     "p95": 5.13
+    },
+    {
+     "mean": 2.927,
+     "p95": 4.205
+    },
+    {
+     "mean": 2.972,
+     "p95": 4.835
+    },
+    {
+     "mean": 2.022,
+     "p95": 3.56
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 5.34,
+   "contactsOk": false
+  },
+  {
+   "spec": "m0",
+   "device": "Pixel 8a",
+   "mode": "tight",
+   "warmupTicks": 600,
+   "p95": 3.19,
+   "mean": 1.881,
+   "p95All": 3.19,
+   "p95From51": 3.24,
+   "p95From301": 3.185,
+   "first50Mean": 2.183,
+   "quarters": [
+    {
+     "mean": 2.125,
+     "p95": 3.26
+    },
+    {
+     "mean": 1.955,
+     "p95": 3.275
+    },
+    {
+     "mean": 2.133,
+     "p95": 3.57
+    },
+    {
+     "mean": 1.312,
+     "p95": 2.2
+    }
+   ],
+   "seriesMatchesReport": true,
+   "throttleRatio": 4.74,
+   "contactsOk": false
+  }
+ ]
+}

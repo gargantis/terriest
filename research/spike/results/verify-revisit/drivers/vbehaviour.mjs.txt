@@ -1,0 +1,65 @@
+// Verification (not part of the spike): the vitest suite under one solver
+// setting, run independently of scripts/revisit/behaviour.mjs, with a probe
+// (probe-setup.ts) recording the settings every simulation in every test
+// file ran with. Run from the spike's folder:
+//   node <this> --spec m0|i4|... [--goldens] --probe <probe-setup.ts> --out <json> --tmp <dir>
+// Without --goldens, golden.test.ts is left out, as the revisit did.
+import { spawnSync } from 'node:child_process';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpus, loadavg } from 'node:os';
+import { join, resolve } from 'node:path';
+
+const ROOT = process.cwd();
+const args = process.argv.slice(2);
+const val = (f, d) => (args.includes(f) ? args[args.indexOf(f) + 1] : d);
+const spec = val('--spec', '');
+const goldens = args.includes('--goldens');
+const probe = resolve(val('--probe'));
+const out = resolve(val('--out'));
+const tmp = resolve(val('--tmp'));
+const tag = `${spec || 'defaults'}${goldens ? '-all' : ''}`;
+const raw = join(tmp, `vitest-${tag}.json`);
+const probeOut = join(tmp, `probe-${tag}.jsonl`);
+rmSync(raw, { force: true });
+rmSync(probeOut, { force: true });
+
+const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('TERRIEST_SPIKE_')));
+if (spec) env.TERRIEST_SPIKE_SOLVER = spec;
+env.VERIFY_PROBE_OUT = probeOut;
+// The probe rides in a config of its own (vitest.verify.config.mjs, beside
+// probe-setup.ts): the spike's include patterns and setup file, plus the probe.
+const argv = ['vitest', 'run', '--config', probe.replace(/probe-setup\.ts$/, 'vitest.verify.config.mjs'), '--configLoader', 'runner', '--no-cache',
+  '--reporter=default', '--reporter=json', `--outputFile.json=${raw}`, ...(goldens ? [] : ['--exclude', 'src/sim/golden.test.ts'])];
+const before = { l1: +loadavg()[0].toFixed(2), utc: new Date().toISOString() };
+const t0 = Date.now();
+const r = spawnSync('npx', argv, { cwd: ROOT, env, encoding: 'utf8', maxBuffer: 256 << 20 });
+const wallS = +((Date.now() - t0) / 1000).toFixed(1);
+writeFileSync(join(tmp, `vitest-${tag}.log`), `${r.stdout}\n${r.stderr}`);
+const strip = (s) => s.replaceAll(`file://${ROOT}/`, '').replaceAll(`${ROOT}/`, '').replaceAll(ROOT, '<spike>');
+const rep = existsSync(raw) ? JSON.parse(readFileSync(raw, 'utf8')) : null;
+const tests = (rep?.testResults ?? []).flatMap((f) => f.assertionResults.map((a) => ({ file: strip(f.name), title: a.fullName, status: a.status, failure: a.failureMessages?.length ? strip(a.failureMessages[0].split('\n')[0]).slice(0, 300) : undefined })));
+const probes = existsSync(probeOut) ? readFileSync(probeOut, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [];
+// Per test file: every settings label its simulations stepped, with substeps counted.
+const byFile = {};
+for (const p of probes) {
+  const k = strip(p.file) || '(unknown file)';
+  byFile[k] ??= {};
+  for (const [label, n] of Object.entries(p.substepsBySettings)) byFile[k][label] = (byFile[k][label] ?? 0) + n;
+}
+const result = {
+  about: "Verification of M0's cost revisit: the vitest suite under one solver setting, with each test file's simulated settings recorded",
+  utc: before.utc, node: process.version, cpus: cpus().length, load1mBefore: before.l1, wallSeconds: wallS,
+  spec: spec || '(unset: the defaults)', goldensIncluded: goldens,
+  command: `npx ${argv.map((a) => strip(a).replace(/^\/.*\/([^/]+)$/, '<scratch>/$1').replace(/^--outputFile\.json=.*$/, '--outputFile.json=<tmp>')).join(' ')}`,
+  exitCode: r.status,
+  files: rep ? rep.testResults.length : null,
+  tests: rep ? { total: rep.numTotalTests, passed: rep.numPassedTests, failed: rep.numFailedTests, skipped: rep.numPendingTests + (rep.numTodoTests ?? 0) } : null,
+  failed: tests.filter((t) => t.status === 'failed'),
+  skipped: tests.filter((t) => t.status === 'pending' || t.status === 'skipped').map((t) => `${t.file}: ${t.title}`),
+  settingsByFile: byFile,
+  filesProbed: Object.keys(byFile).length,
+};
+writeFileSync(out, `${JSON.stringify(result, null, 1)}\n`);
+const labels = new Set(Object.values(byFile).flatMap((m) => Object.keys(m)));
+console.log(`${tag}: exit ${r.status}; ${result.tests ? `${result.tests.passed} passed, ${result.tests.failed} failed, ${result.tests.skipped} skipped` : 'no report'} in ${result.files} files (${wallS} s); probed ${result.filesProbed} files; settings seen: ${[...labels].join(' | ')}`);
+for (const t of result.failed) console.log(`  FAILED ${t.file} :: ${t.title} :: ${t.failure ?? ''}`);

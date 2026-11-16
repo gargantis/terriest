@@ -1,0 +1,7 @@
+export default {
+  root: '<scratch>/series',
+  publicDir: '<spike>/public',
+  base: './',
+  logLevel: 'warn',
+  build: { outDir: '<scratch>/dist-series', emptyOutDir: true, target: 'es2022', sourcemap: false },
+};

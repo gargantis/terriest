@@ -1,10 +1,11 @@
 # M0 physics and rendering spike: report
 
-**Date:** 2026-11-15. The results files' timestamps are in UTC, early on 2026-11-16.
+**Date:** 2026-11-15. The results files' timestamps are in UTC, early on 2026-11-16. The cost revisit and its verification ran later on 2026-11-16 (§4).
 **Answers:** [PLAN.md](../../PLAN.md) §17 M0 (D-36): the exact-ops contact solver and the three.js page, measured before M1.
 **Verdict:** the solver works and the page fits its budget, but the tick cost has no margin.
 - **The five correctness conditions of the stop rule pass.** Node, Chromium, Firefox and WebKit agree bit for bit. A resting ball is bit-still, simultaneous hitters gain no energy, and mirrored kickoffs stay exactly mirrored. One slip-out rule passes all four of §16's cases: a 42° cone with a slipping flag.
-- **The cost condition sits on its 4 ms line.** At 4× throttle, a 13-step tick's p95 is 2.86–3.39 ms with nothing drawn. While the page draws at 60 Hz it is 3.49–4.60 ms, over 4 ms in 11 of 26 runs. On the drawn reading, which roslambo's proxy used, the clause fires narrowly (§4).
+- **The cost condition sits on its 4 ms line.** At 4× throttle, a 13-step tick's p95 is 2.86–3.39 ms with nothing drawn. While the page draws, with its ticks on the 60 Hz clock, it is 3.49–4.60 ms, over 4 ms in 11 of 26 runs. On the drawn reading, which roslambo's proxy used, the clause fires narrowly (§4).
+- **The revisit it asks for keeps the settings, on two close calls.** Of the cheaper settings tried, only 6 or 4 solver iterations keep every test green, and both have drawn runs over 4 ms. 4 iterations sits on the line: 8 of its 20 drawn runs went over, with a median of 3.95 ms. Every setting whose drawn runs all stayed under 4 ms fails one test: a terrier pressing the ball into a wall never comes to rest. That test is M0's own, and §8 proposes it for §16. So D-3's and D-5's settings stay (§4).
 - **The late-vote repair is too slow.** Its 270 steps take up to 96 ms at 4×, so D-11's spread is needed at M3.
 - **The page passes its checks.** Its counts are within §12's guesses. D-35's policy is right as written, because GLTFLoader needs `blob:` in connect-src. The dist audit needs two app options and no hermet change.
 - **Still owed:** run 6, the frame verdict on your desktop GPU (§7).
@@ -19,7 +20,7 @@
 | WebGL | Drawn in software unless stated otherwise: SwiftShader in Chromium, llvmpipe in Firefox and WebKit. Where stated, the GPU path: the host's Intel Iris Xe through Mesa's D3D12 driver (`GALLIUM_DRIVER=d3d12`), with ANGLE's GL flags for Chromium |
 | Packages | three 0.187.0 and @types/three 0.187.0, both exact; Vite 8.3.8 (rolldown 1.2.19), TypeScript 6.0.3, ESLint 10.15.0, vitest 4.1.12 |
 | hermet | the checkout beside this repo (`../../../hermet`) at 11283ca, unchanged: its exact-ops rule, licence writer and dist audit |
-| Load | The timing runs waited for a 1-minute load of 4 or less (`scripts/m0-run.mjs`, which logs the load in `results/runs-log.json`). Run 3's last two spec runs started at loads of 0.92 and 0.38. Other processes used 0.16 cores on average during them |
+| Load | The timing runs waited for a 1-minute load of 4 or less (`scripts/m0-run.mjs`, which logs the load in `results/runs-log.json`). Run 3's last two spec runs started at loads of 0.92 and 0.38. Other processes used 0.16 cores on average during them. The cost revisit's 120 runs each waited the same way (`scripts/revisit/load.mjs`). They started at loads of 1.36–4.00, and other processes used 0.09–0.32 cores on average during each. The verification's 60 runs started at 2.07–3.95; its sampler put other processes at 0.50–0.72 cores, but it counts kernel time and the session's own work as other |
 
 The raw results are in [results/](results/), and the verification round's in [results/verify/](results/verify/). §11 has the commands, and [README.md](README.md) has every command, URL parameter and results file.
 
@@ -30,7 +31,7 @@ Everything is in this folder, with its own toolchain (D-36). Nothing outside it 
   - roslambo's angles, plus `datan2`: an octant reduction, one exact division and an odd polynomial t·P(t²) with 15 coefficients, rounded to an integer.
   - roslambo's MurmurHash3, over a canonical encoding of the spike's state.
   - The main pitch and D-4's second shape, each built from 28 bounded pieces. Half of the pieces are built, and the other half come from exact point reflection.
-  - D-5's solver. Every slip-out candidate and the floor's part in the solve can be switched.
+  - D-5's solver. Every slip-out candidate can be switched, and so can the four settings the cost revisit tried: the solver's iterations, its position passes, the floor's part in the solve, and D-3's substeps a tick (§4). Their defaults are M0's: 8, 2, the floor in, and 4.
   - D-6 and D-7: movement, the three steering frames, zoomies, jumps, pounces, tumbles and Q-8's bowling. Also kickoffs, goals and touches, and A.2's u16 inputs.
   - 37 golden scripts and a canary, plus `createSimSource`, the only way the page reads the simulation.
   - The state is the spike's own, not A.1's: it has no player IDs, names, Ready or clock. Only kickoff countdowns, play and celebrations are played.
@@ -44,7 +45,8 @@ Everything is in this folder, with its own toolchain (D-36). Nothing outside it 
   - `scripts/audit.mjs` runs hermet's licence writer and dist audit with no exceptions.
   - `scripts/sizes.mjs`, `scripts/tokenizer-check.mjs` and `scripts/cost-node.mjs`, which is run 3 in Node.
   - `scripts/stop-rule.mjs` judges the stop rule, and `scripts/verify/` re-checks it independently.
-- **Tests:** 163 unit tests pass, with 6 environment-guarded measurements skipped. Lint, with no warnings, and the typecheck are clean; I re-ran all three for this report. The integration round's full Playwright run passed 41 tests in the three engines.
+  - `scripts/revisit/` runs the cost revisit under each setting: its tests, a settling probe, run 3's cost, a profile and the adoption rule, into `results/revisit/` (§4). The verification's own drivers are kept, as text, in `results/verify-revisit/drivers/`.
+- **Tests:** 170 unit tests pass, with 6 environment-guarded measurements skipped: M0's 163, plus 7 for the revisit's switches. Lint, with no warnings, and the typecheck are clean; I re-ran all three after the revisit. The integration round's full Playwright run passed 41 tests in the three engines.
 
 ## 3. The questions M0 had to answer
 
@@ -66,12 +68,12 @@ Everything is in this folder, with its own toolchain (D-36). Nothing outside it 
 
 | Condition (§17 M0) | Verdict | Numbers |
 |---|---|---|
-| Any engine mismatching in run 1 | Pass | Each of the 4 engines matched all 37 runs and 178 checkpoints, with canary 10272cf4a03fa75b |
+| Any engine mismatching in run 1 | Pass | Each of the 4 engines matched all 37 runs and 178 checkpoints, with canary 10272cf4a03fa75b. With the revisit's switches in and the defaults unchanged, all four matched again |
 | A resting ball not bit-still | Pass | 3 scenes of 36,000 ticks each: no tick differed, and the largest deviation was 0 |
 | Simultaneous hitters gaining energy | Pass | 32 hits over 3,840 substeps. Kinetic energy never rose above its start, and from the floor, kinetic plus potential energy never did either. Horizontal momentum changed by at most 7.1e-15. A fuzz of 3,000 mid-air hits found no rise in 144,000 substeps |
 | A mirrored kickoff not exactly mirrored | Pass | 37 runs, no mismatch in 36.9 million values. The verifier's 57 runs found none in 75.5 million |
 | No slip-out rule passing §16's slip-out cases | Pass | 42° with the flag, and 42° with the flag and restitution 0, pass all four cases |
-| A 13-step tick's p95 over 4 ms in Chromium at 4× throttle | **Fires narrowly, on the drawn reading** | See the table below |
+| A 13-step tick's p95 over 4 ms in Chromium at 4× throttle | **Fires narrowly, on the drawn reading.** The revisit found no setting to change | See below |
 | Noted only: a worst single tick over 50 ms at 4× | Over | 270 steps took 47.7–96.2 ms at most. D-11's spread is needed at M3, and M0 doesn't stop for it |
 
 **The cost condition.**
@@ -82,9 +84,10 @@ Everything is in this folder, with its own toolchain (D-36). Nothing outside it 
 |---|---|---|---|---|
 | Back to back, nothing drawn | 10 | 2.855–3.390 | 2.987 | 0 |
 | Paced at 60 Hz, nothing drawn | 4 | 2.960–3.335 | 3.217 | 0 |
-| Drawn at 60 Hz, software GL | 16 | 3.810–4.600 | 4.025 | 8 |
-| Drawn at 60 Hz, GPU path | 10 | 3.485–4.340 | 3.830 | 3 |
+| Drawn, ticks on the 60 Hz clock, software GL | 16 | 3.810–4.600 | 4.025 | 8 |
+| Drawn, ticks on the 60 Hz clock, GPU path | 10 | 3.485–4.340 | 3.830 | 3 |
 
+- **The frame rate while drawn:** in software GL at 4×, the page drew 22–26 frames a second at the desktop's size and 33–41 at the Pixel 8a's. On the GPU path it drew 59.5–60. The ticks ran on the page's 60 Hz clock either way.
 - **The simulation's own tick passes,** 15% under the line at its worst run.
 - **Drawing is what takes the margin.**
   - At 4×, drawing raises the tick's mean by about 40%: 2.03–2.77 ms against 1.63–1.92 ms.
@@ -92,16 +95,71 @@ Everything is in this folder, with its own toolchain (D-36). Nothing outside it 
   - SwiftShader's CPU use isn't the cause. On the GPU path the GPU process uses 0.2 cores instead of 4.6–5.4, and the tick still goes over 4 ms in 3 of 10 runs.
 - **The plan doesn't say which reading it means.** C-2 asks for the measurement "as roslambo's proxy does", and that proxy timed its ticks inside its drawn frame bench (roslambo's `e2e/phone-proxy.spec.ts`). So the drawn reading is the closer one, and on it the clause fires.
 
-**Proposal for the revisit the clause asks for, before M1.**
-- **Treat the clause as fired, and keep D-3's and D-5's design.** What the revisit can change is their settings.
-- **Time each cheaper setting in this spike,** where the harnesses are, with §16's tests and run 3's drawn reading:
-  - **solver iterations at 4 and at 6:** 8 is converged on the hits, since 8, 16, 64 and 512 give the same speeds, but fewer are untested;
-  - **one position pass** instead of 2;
-  - **the floor's contacts out of steps 5 and 6:** they are 8.53 of the 11.65 contacts in the list. Without them, one hitter's floor hit sends the ball 2.160 m/s instead of 2.656, and pushes don't change;
-  - **3 substeps** instead of 4: at 25 m/s a body still moves only 0.14 m a substep, under the 0.25 m radius.
-- **Adopt the cheapest setting that keeps every §16 test green** and every drawn run under 4 ms.
-- **If none qualifies, keep the settings and go on.** The simulation's own tick passes, D-11 usually steps 1–2 ticks rather than 13, and the phone run at M5 decides (C-2).
-- **Either way, the clause should name its reading:** the tick timed while the page draws at 60 Hz, as roslambo's proxy measured, with the nothing-drawn reading reported beside it.
+**The revisit, before M1.** The clause asks for D-3's and D-5's settings to be revisited. Their design stays; the revisit tried their settings. The rule, set before any timing: adopt the cheapest setting that keeps every §16 test green and every drawn run under 4 ms, and if none qualifies, keep the settings and go on.
+- **The settings:** each is now a switch, with M0's values as the defaults (README.md, "The cost revisit"):
+  - 6 and 4 solver iterations, against 8. Eight is converged on the hits, since 8, 16, 64 and 512 give the same speeds;
+  - 1 position pass, against 2;
+  - the floor's contacts out of steps 5 and 6. They are 8.53 of the 11.65 contacts in the list;
+  - 3 substeps a tick, against 4. At 25 m/s a body still moves only 0.14 m a substep, under the 0.25 m radius;
+  - then 4 or 6 iterations with 1 pass, and with 3 substeps. The floor out failed too much alone to be worth combining.
+  - The clause's third lever, the pieces' bound test, is the one M0 already built (§8, D-5).
+- **The tests:** under each setting, the whole vitest suite but the golden hashes, which change with any setting by design: 167 tests (`scripts/revisit/behaviour.mjs`). They cover bit-still, bounces, simultaneous hits, push times, the slip-out cases, P8, tunnelling and containment, and movement. Run 2's full slip-out sweep also ran under each setting, and `scripts/stop-rule.mjs` counted its bit-still, energy and P8 conditions.
+- **The cost:** run 3's method (`scripts/revisit/cost.mjs`). That's the production page's `?test=cost` mode on the plan's script, in Chromium 156 at 4×, drawn and back to back, at the desktop's size and the Pixel 8a's, in software GL as run 3 draws.
+  - All 10 settings ran in one batch, with M0's as the control: 3 repetitions, each in a fresh browser, with the settings' order rotated each time. That's 120 runs, 6 drawn and 6 back to back for each setting.
+  - Each run waited for a 1-minute load of 4 or less (§1).
+  - M0's settings read within run 3's ranges: 3.945–4.595 ms drawn and 3.075–3.330 ms back to back. More of their drawn runs went over 4 ms, though (below).
+
+| Setting | §16's tests | Drawn p95 (ms) | Drawn runs over 4 ms | Back to back p95 (ms) | Back to back mean, median (ms) | Contacts a substep |
+|---|---|---|---|---|---|---|
+| M0's: 8 iterations, 2 passes, the floor in, 4 substeps | Pass | 3.945–4.595 | 5 of 6 | 3.075–3.330 | 1.845 | 11.65 |
+| 6 iterations | Pass | 3.900–4.315 | 2 of 6 | 2.800–3.045 | 1.675 (−9%) | 11.98 |
+| 4 iterations | Pass | 3.735–4.255 | 3 of 6 | 2.750–3.115 | 1.537 (−17%) | 11.18 |
+| 1 position pass | Fail: bit-still | 3.400–3.915 | 0 | 2.380–2.790 | 1.466 (−21%) | 10.06 |
+| 6 iterations, 1 pass | Fail: bit-still | 3.900–4.360 | 4 of 6 | 2.790–2.965 | 1.498 (−19%) | 10.17 |
+| 4 iterations, 1 pass | Fail: bit-still | 3.005–3.700 | 0 | 2.275–2.960 | 1.207 (−35%) | 10.36 |
+| 3 substeps | Fail: bit-still | 3.450–3.955 | 0 | 2.500–2.805 | 1.344 (−27%) | 10.35 |
+| 6 iterations, 3 substeps | Fail: bit-still | 3.180–3.475 | 0 | 2.185–2.460 | 1.232 (−33%) | 11.59 |
+| 4 iterations, 3 substeps | Fail: bit-still | 3.215–3.655 | 0 | 2.295–2.700 | 1.072 (−42%) | 10.08 |
+| The floor out | Fail: bit-still, dribbles | 2.710–2.995 | 0 | 1.825–2.050 | 0.913 (−51%) | 2.62 |
+
+- **Only fewer iterations pass the tests.**
+  - At 6 and at 4 iterations all 167 tests pass, and every bit-still scene holds for its 36,000 ticks.
+  - 42° with the flag still passes all four slip-out cases on the full sweep. At 4 iterations:
+    - the ball comes down within 1.383 s from the pushers, and within 0.467 s between two sitting terriers;
+    - none of 336 dribbles slips out;
+    - the pinches come down in 0.425–1.488 s, mirrored.
+- **Every other setting fails the bit-still test.** A terrier pressing the ball into the wall never comes to rest.
+  - Its state cycles every 2 to 9 ticks for all 36,000. Over the last 1,000 it ranges 0.19–0.28 mm and 0.029–0.038 m/s (`scripts/revisit/settle.mjs`). Under M0's settings, and at 6 and 4 iterations, it rests from tick 11.
+  - With 1 pass, the terrier resting against the ball at the wall also settles at tick 12, after the test's 10 settling ticks. From tick 12 it is bit-still, so that failure is the test's settling allowance.
+  - **The floor out fails the dribbles too.** 24 of 336 dribbles slip out under 42° with the flag: the ball hops onto the dribbler at down to 34.4° from vertical, inside the cone, against 43.5° with the floor in. Its tunnelling test failed as well, but nothing tunnels. Two terriers hitting the ball from both sides at 25 m/s pop it to 3 m, and the test's crossing check, which had no height test, counted the terrier running under it as passing through. The deepest overlap is 3.5 mm. The check now tests height (`tunnel.test.ts`). The floor out passes it, and it still catches a terrier that skips through a resting ball in one substep (a probe at 600 m/s).
+  - **3 substeps also narrow the cone's window:** the dribble sweep's lowest hop onto the dribbler falls to 42.84° from vertical, against 43.53°.
+  - Energy and P8 hold under every setting. In the 32 hits kinetic energy never rose above its start, and momentum changed by at most 7.1e-15. No mirrored value differed in the 37 runs.
+- **So no setting qualifies.** 6 and 4 iterations have drawn runs over 4 ms. Every setting whose drawn runs all stay under 4 ms fails the bit-still test.
+- **Verified independently** (`results/verify-revisit/`), with drivers of its own:
+  - **The variants ran:** in all 120 of the revisit's timed runs, and all 56 of the verification's at the default warm-up, the page counted exactly the contacts Node's harness counts under the same settings.
+  - **The throttle applied:** after each run, a fixed busy loop in the same page ran 3.0–6.2 times slower at 4× than at 1×, with a median of 4.3.
+  - **The warm-up is excluded:** dropping the first 50 or 300 timed ticks never lowered the p95 by more than 0.025 ms. 600 warm-up ticks instead of 120 didn't lower it either.
+  - **M0's settings fire the clause again:** 12 drawn runs at 4.025–4.490 ms, all over 4 ms. Back to back, 3.060–3.195 ms.
+  - **The tests:** at 4 and 6 iterations all 167 pass. 3 substeps, alone or with 4 iterations, fails only the pressing scene, and 1 pass fails it and the wall-resting scene. A probe confirmed that every test file's simulations ran the named settings. The pressing scene's verdict holds in six head-on versions of it: M0's settings and fewer iterations rest in all of them, and the other settings cycle in all of them.
+  - **4 iterations:** 3.770–4.315 ms drawn, 3 of 12 over 4 ms, and 2 more runs at 4.04 and 4.17 ms on a build that kept every tick.
+- **Two calls decide the outcome.**
+  - **4 iterations' cost.** Across both batches, 8 of its 20 drawn runs went over 4 ms, with a median of 3.95 ms. The rule disqualifies it on any run over 4 ms; a rule on the median would adopt it.
+  - **The pressing scene.** PLAN §16 asks only that a resting ball and a standing terrier stay bit-still. The pressing scene is M0's own addition, which §8 proposes for §16, and it is the only test that 3 substeps, alone or with 4 or 6 iterations, fails. Without it, 4 iterations with 3 substeps would qualify: none of its 6 drawn runs went over 4 ms (3.215–3.655 ms), and it takes 42% off the back-to-back tick. The verification didn't re-time it.
+  - With §8's amendment applied and the rule read strictly, the settings stay.
+- **The line moves between rounds.** In the revisit's and the verification's rounds, M0's settings went over 4 ms in 19 of 20 drawn runs, with a median of 4.28 ms. In run 3 they went over in 8 of 16 software-GL runs, with a median of 4.025 ms. Their back-to-back p95 didn't move: 3.060–3.330 ms, within run 3's range. The loads don't explain the shift (§1), and its cause wasn't measured. So a setting near the line can pass in one round and fail in the next. Compared in the same rounds, 4 iterations went over in 8 of 20 drawn runs, against M0's settings' 19.
+- **The drawn p95 follows the simulation's cost only loosely.**
+  - 4 iterations cut the back-to-back mean by 17%, but 3 of its 6 drawn runs went over 4 ms, up to 4.255 ms. In the verification's 14, 5 did, up to 4.315 ms.
+  - Drawing adds 0.61–1.47 ms to a run's p95, with a median of 1.06 ms. That compares each drawn run with the back-to-back run of the same setting, repetition and size.
+  - So the back-to-back p95 doesn't predict the drawn one. A 4-iteration run at 2.750 ms back to back drew at 4.125 ms. An M0 run at 3.330 ms drew at 3.945 ms.
+  - Each setting plays the scrum differently, at 10.06–11.98 contacts a substep against M0's 11.65, so the settings weren't timed on the same states. With 1 pass, for one, the scrum peaks at 14 contacts in a substep, against 19.
+- **Where a step's time goes:** V8's sampling profile of the back-to-back bench in Node (`scripts/revisit/profile.mjs`). At M0's settings the impulses take 47% of the simulation's time, detection 20%, the rest of a tick's code 12% and the position passes 8%. At 4 iterations the impulses take 27%.
+
+**So the settings stay:** 8 iterations, 2 position passes, the floor in steps 5 and 6, and 4 substeps. The goldens are unchanged. As the rule planned for this case, M1 goes on:
+- the simulation's own tick passes: back to back at 4×, the control's p95 was 3.075–3.330 ms;
+- D-11 usually steps 1–2 ticks rather than 13;
+- the phone run at M5 decides (C-2). If it needs cheaper ticks, 4 iterations is the cheapest setting that passes §16's tests.
+
+**Either way, the clause should name its reading:** the tick timed while the page draws, its ticks on the 60 Hz clock, as roslambo's proxy measured, with the nothing-drawn reading reported beside it.
 
 ## 5. The runs
 
@@ -301,6 +359,11 @@ The verification round (`scripts/verify/`, `results/verify/`) re-checked each co
   - a `.tsx` or `.jsx` file there isn't linted at all;
   - a parameter typed `typeof Math` and called as `m.sin()` isn't caught;
   - nor is `toLocaleString`.
+- **The cost revisit.** A second verification round re-ran its tests, run 1 and the drawn reading (§4). It changed these:
+  - The floor out's tunnelling failure is the test's crossing check, not a pass-through. The check now tests height (§4).
+  - 4 iterations' cost is a close call, not a clear miss: 8 of 20 drawn runs went over 4 ms.
+  - The page doesn't draw at 60 Hz in software GL at 4×, only its ticks run on that clock (§4). The readings' names say so now.
+  - `measure.test.ts` didn't refuse a solver variant without `TERRIEST_SPIKE_MEASURE_OUT`, so it could have overwritten `results/sim.json`. It refuses now, as `scripts/stop-rule.mjs` and `scripts/verify/sim-checks.mjs` do; `results/sim.json` was never overwritten.
 - **Unchanged, with more evidence:**
   - determinism, with 22 new runs;
   - energy, with a fuzz of 3,000 mid-air hits and no rise in 144,000 substeps; the hits' switches were read back as off in every run;
@@ -360,7 +423,7 @@ Each load warms up for 2 s and then measures for 30 s. Keep the tab in front and
 
 ## 8. Proposed amendments to PLAN.md
 
-Claude applies these; I haven't edited PLAN.md. Only the last item below changes your text, so it goes to you as a §2 row first.
+Claude applied these to PLAN.md on 2026-11-16, each marked M0 there, with the cost revisit's outcome (§4). Only the last item below changes your text. It went to you as a §2 row first, and is now in REQUIREMENTS.md.
 
 ### D-2 (headings and `datan2`): confirm
 
@@ -374,7 +437,7 @@ Claude applies these; I haven't edited PLAN.md. Only the last item below changes
 ### D-3 (60 ticks, 4 substeps): confirm
 
 - **Measured:** nothing tunnels at 25 m/s: 624 shots per pitch, plus the floor, the net and terriers. The fuzzed ball never left either pitch (run 2).
-- **Cost:** a step costs 26.5–29.9 µs at 1× in Chromium. The cost clause's revisit (§4) may try 3 substeps.
+- **Cost:** a step costs 26.5–29.9 µs at 1× in Chromium. The cost revisit tried 3 substeps (§4). They cut the back-to-back tick by 27% at 4×, but a terrier pressing the ball into a wall then never rests: its state cycles every 2 ticks, by 0.28 mm. That pressing scene is the only test it fails, and it enters §16 with M0's amendments (below). So 4 substeps stay.
 
 ### D-4 (bodies and the pitch): confirm
 
@@ -384,18 +447,18 @@ Claude applies these; I haven't edited PLAN.md. Only the last item below changes
 ### D-5 (the contact solver): amend
 
 Steps 1–6 are confirmed: bit-still, bounces at their fractions, no energy gained, exact mirrors. Write in what the plan left open, as the spike built and measured it:
-- **Step 3's bound test:** an axis-aligned box per piece, plus an exact broad phase: a body farther from every wall than its reach tests only the planes. It cut a step from 52.3 to about 28 µs, with the goldens unchanged.
+- **Step 3's bound test:** an axis-aligned box per piece, plus an exact broad phase: a body farther from every wall than its reach tests only the planes. In Node, it cut a step from 52.3 to about 28 µs on an earlier version of the wall scrum, with the goldens unchanged. That was measured while building, and isn't in `results/`.
 - **The floor in steps 5 and 6:**
   - The floor's contacts take part, as non-pulling contacts with no bounce, after step 4's support. Every M0 number used this reading, except the comparisons with the floor out.
   - Without it, push times move by at most 0.06 s, but floor hits are slower: one hitter sends the ball off at 2.160 m/s instead of 2.656.
-  - It's also 8.53 of the 11.65 contacts in a scrum's list, so it's the first lever if the cost revisit needs one.
+  - It's also 8.53 of the 11.65 contacts in a scrum's list. Taking it out halves the back-to-back tick at 4×, but fails §16's tests (§4): a terrier pressing the ball into a wall never rests, and 24 of 336 dribbles slip out. So the floor stays in.
 - **Restitution:** "its closing speed at the start of the substep" is read before step 1's forces.
 - **Step 7, the slip-out:**
   - **When it fires:** a terrier on the floor with a body above it within **42°** of vertical moves out at **2 m/s**, away from the bodies above. Its outward speed is raised to at least 2 m/s, and its sideways speed is kept. It fires every substep the terrier is within the cone, found from step 3's contacts with the geometry after step 6.
   - **The slipping flag:** it stores the body the terrier slipped from, holds off the drive's component toward that body, and clears once that body is on the floor.
   - **No restitution 0,** so L311 needs no §2 row.
 - **Its window is narrow:** 42° to 43.2°. Below 42°, two sitting terriers take over 0.5 s. From 43.23°, the ball of a zoomies dribble hops onto the dribbler inside the cone. Recheck it whenever M2 tunes the collider, the drive or friction (C-21).
-- **Iterations and position passes** stay at 8 and 2, unless the cost revisit (§4) changes them. Eight iterations are converged on the hit cases.
+- **Iterations and position passes** stay at 8 and 2 (§4). Eight iterations are converged on the hit cases. 6 and 4 pass §16's tests too, and 4 cuts the back-to-back tick by 17% at 4×, but both have drawn runs over 4 ms: 4 iterations in 8 of 20, with a median of 3.95 ms. 1 position pass leaves a terrier pressing the ball into a wall cycling every 5 ticks, by 0.2 mm.
 - **A.1 and A.4 follow:**
   - A.1's flags keep slipping, plus a byte for the body slipped from.
   - A.4's slip-out row reads "42° from vertical, 2 m/s sideways, with the slipping flag".
@@ -405,7 +468,7 @@ Steps 1–6 are confirmed: bit-still, bounces at their fractions, no energy gain
 Replace the models' figures with M0's (run 2):
 - **One pusher:** 1.225 s. **Four in a train:** 0.575 s, and two in a train 0.779 s.
 - **Side by side:** 0.72–0.83 s in the pitch frame and 0.92–2.03 s in ball view, against one pusher's 1.225 s.
-- **In ball view, two abreast are slower than one pusher,** at 2.033 s. Driving at the ball's centre from 16.5° off its travel, each pushes forward only while the ball is under 6·cos 16.5° = 5.75 m/s, just above the 5.7 m/s mark.
+- **In ball view, two abreast are slower than one pusher,** at 2.033 s, and so are four round the ball, at 1.313 s. Only four on a line, at 0.921 s, beat it. Driving at the ball's centre from 16.5° off its travel, each of two abreast pushes forward only while the ball is under 6·cos 16.5° = 5.75 m/s, just above the 5.7 m/s mark.
 - **C-18's marks are set with you at M2.** Ball view is the default view, so a remedy matters most there.
 
 ### D-11's worst ticks: amend
@@ -456,11 +519,13 @@ Replace the models' figures with M0's (run 2):
 
 - **§16, simultaneous hits:** "and faster as k grows for parallel approaches" becomes "and the speed at each k is pinned". From the floor, k = 4 parallel hitters (3.685 m/s) are slower than k = 3 (3.810 m/s), under D-5's frictionless contacts. L56's "several hitting it at once send it faster" still holds, since every k > 1 beats one hitter.
 - **§16, a ball on terriers:** the mark for case 1 is 1.5 s from the first landing; 42° with the flag's worst is 1.383 s. "Reach the floor" means the ball's centre within 1 cm of its resting height (0.471 s under 42° with the flag), or its floor contact found in detection (0.475 s).
-- **§16, bit-still:** settle the bodies from 1 µm overlaps and assert that their contacts exist, because bodies placed exactly touching can end up apart by rounding (6.7e-16 m here) and never touch. Add a terrier against the ball at the wall, and one pressing the ball into it.
+- **§16, bit-still:** settle the bodies from 1 µm overlaps and assert that their contacts exist, because bodies placed exactly touching can end up apart by rounding (6.7e-16 m here) and never touch. Add a terrier against the ball at the wall, and one pressing the ball into it. The pressing scene caught every cheaper setting the revisit tried, except fewer iterations, and the revisit's decision rests on it: it is the only test that 3 substeps fails (§4).
+- **§16, tunnelling:** the test that a terrier at 25 m/s never passes through the ball should check height too. With the floor out of the solve, it failed on a terrier running under a ball popped to 3 m.
 - **P8:** add the stored previous input, mirrored as its pitch-frame direction plus 16 steps, and the body a terrier slips from, mirrored as its mirror.
 - **The stop rule's cost clause, and C-2:**
-  - Name the reading: the tick timed while the page draws at 60 Hz, as roslambo's proxy measured, with the nothing-drawn reading beside it (§4).
+  - Name the reading: the tick timed while the page draws, its ticks on the 60 Hz clock, as roslambo's proxy measured, with the nothing-drawn reading beside it (§4).
   - C-2's "roughly 20 contacts" is a peak. 4-a-side scrums average 10.9–12.1 contacts a substep, 8.0–8.5 of them the floor's, with 17–22 at most in one substep.
+  - The revisit found no cheaper setting that passes both §16's tests and the drawn reading, so D-3's and D-5's settings stand (§4). If the phone run at M5 needs cheaper ticks, 4 iterations is the cheapest setting that passes the tests.
 - **C-21:** the drafted rule fails as predicted: 248 of 864 cases held up, and 6 of 8 pinches. A zoomies pinch sends the ball up to the overhead net, its centre 4.4 m above rest, against 0.8–2.0 m at a run.
 - **D-37:** terriest's dist audit options gain `ignoredPaths: ['/']`, for three's `LoaderUtils`. No hermet option or tokenizer fix is needed, so M1's pin at 11283ca stands.
 - **D-38:** the config test covers the verifier's three gaps: every script extension in `src/core/sim` is linted, and a `typeof Math` parameter and `toLocaleString` are banned.
@@ -491,6 +556,11 @@ Replace the models' figures with M0's (run 2):
 - **Parts of the drawing:** the model's markings mask and stripes, correction cross-fades (D-16, D-27), the cameras' fading, and the effects (dust, bark marks, celebrations).
 - **The timeline itself:** the spike's bench times the 13-step replay and the worst-tick bursts, not D-11's code or its spread.
 - **CI's hosted runner** (§15).
+- **What sets the drawn reading's tail.** At every setting the revisit timed, drawing added 0.61–1.47 ms to a 13-step tick's p95, whatever the simulation cost. Neither the cause nor a cure was measured.
+- **What moved the line between rounds.** M0's settings drew over 4 ms in 8 of 16 software-GL runs in run 3, and in 19 of 20 in the revisit's rounds, with the simulation's own cost unchanged (§4).
+- **The revisit's settings on the same states.** Each setting plays the plan's scrum differently, at 10.06–11.98 contacts a substep. So the revisit compares each setting on its own scrum, not one scrum under each setting.
+- **Fewer than 4 iterations, and the revisit on the GPU path.** Neither was tried.
+- **3 substeps with 4 iterations, timed again.** Only the revisit's 6 drawn runs time it, at 3.215–3.655 ms.
 
 ## 11. Reproducing
 
@@ -498,7 +568,7 @@ From `research/spike/`:
 
 ```sh
 npm ci
-npm run lint && npm run typecheck && npm test               # 163 tests; the measurements are skipped
+npm run lint && npm run typecheck && npm test               # 170 tests; the measurements are skipped
 npx playwright test e2e/determinism.spec.ts                 # run 1
 TERRIEST_SPIKE_MEASURE=1 npx vitest run src/sim/measure.test.ts   # run 2 -> results/sim.json, about 1 min
 node scripts/stop-rule.mjs                                  # the stop rule -> results/stop-rule.json
@@ -506,6 +576,9 @@ npx playwright test e2e/cost.spec.ts                        # run 3 -> results/c
 npx playwright test e2e/page.spec.ts                        # run 4 -> results/page.json
 npm run build && node scripts/audit.mjs --app-options       # run 5; then scripts/sizes.mjs and scripts/tokenizer-check.mjs
 node scripts/verify/sim-checks.mjs                          # the verification round; the rest is in README.md
+node scripts/revisit/behaviour.mjs --solver i4              # the cost revisit's tests under one setting -> results/revisit/
+node scripts/revisit/cost.mjs --name variants --solvers m0,i6,i4,p1,nofloor,s3,i4+s3,i6+s3,i4+p1,i6+p1   # its cost, about 50 min
+node scripts/revisit/summary.mjs                            # the adoption rule -> results/revisit/summary.json
 ```
 
-The specs rewrite their results files on every run. `scripts/m0-run.mjs` wraps any of these commands and logs the load (see README.md, "Recording a measurement round").
+The specs rewrite their results files on every run. `scripts/m0-run.mjs` wraps any of these commands and logs the load (see README.md, "Recording a measurement round"). The revisit's drivers wait for the load and log it before each run themselves.

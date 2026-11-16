@@ -1,13 +1,14 @@
 // One tick of the spike's simulation (PLAN §7.2), for a fixed roster:
 //   phase changes (a countdown's end starts play; a celebration's end places
 //   the kickoff), then inputs to intents (D-6, D-7, D-10, what D-8's phase
-//   allows), then 4 substeps of D-5 with touches, tumbles and the goal test
-//   in each, then the timers and the animation fields (D-9).
+//   allows), then the configuration's substeps of D-5 (4 by default, D-3)
+//   with touches, tumbles and the goal test in each, then the timers and
+//   the animation fields (D-9).
 // The match clock, overtime and the roster events are not in the spike.
 // Exact operations only (D-1).
 
 import { angleDiff, datan2, dir } from './angle.ts';
-import { NEVER, type Pack, SUBSTEPS, type SimConfig } from './config.ts';
+import { NEVER, type Pack, type SimConfig } from './config.ts';
 import {
   FRAME_BALL, FRAME_NOSE, frameOf, heldDirection, jumpCount, KEPT_BITS,
   pounceCount, STEP_MASK, STEP_UNITS, ZOOMIES,
@@ -74,7 +75,7 @@ export function step(sim: Sim, s: MatchState, inputs: readonly (number | null)[]
   // Physics.
   const bodies = bodiesOf(sim, s);
   for (let k = 0; k < nT; k++) wasOnFloor[k] = s.terriers[k]!.onFloor;
-  for (let sub = 0; sub < SUBSTEPS; sub++) {
+  for (let sub = 0; sub < C.substeps; sub++) {
     substep(sim, s, bodies, t);
     for (let k = 0; k < nT; k++) {
       const T = s.terriers[k]!;

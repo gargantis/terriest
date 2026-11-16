@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { DT, SUBSTEPS } from './config';
+import { substepDt } from './config';
 import { WALL } from './pitch';
 import { ballDir, NOTHING, park, place, placeBall } from './scripts';
 import { kineticEnergy, run, scenario } from './testing';
@@ -59,7 +59,7 @@ describe('resting contact (D-5 step 4)', () => {
         if (P.ci[c] === 0 && P.cj[c] === ball) seen.terrierBall++;
         if (P.ci[c] === ball && P.cj[c]! < 0 && P.pieceSurface(c) === WALL) wallThisTick = true;
       }
-      if (sub === SUBSTEPS - 1) {
+      if (sub === sc.sim.C.substeps - 1) {
         if (wallThisTick) seen.ballWallTicks++;
         wallThisTick = false;
       }
@@ -80,7 +80,7 @@ describe('resting contact (D-5 step 4)', () => {
     expect(changed).toBe(-1);
     // Touching in every substep. Settled, the ball sits exactly at the wall,
     // which the closest-point test reads as clear of it.
-    expect(seen.terrierBall).toBe(36_000 * SUBSTEPS);
+    expect(seen.terrierBall).toBe(36_000 * sc.sim.C.substeps);
   }, 120_000);
 
   it('holds a terrier pressing the ball into the wall bit-still, every contact under load', () => {
@@ -98,7 +98,7 @@ describe('resting contact (D-5 step 4)', () => {
       if (bodyBits(sc.s) !== want) changed = i;
     }
     expect(changed).toBe(-1);
-    expect(seen.terrierBall).toBe(36_000 * SUBSTEPS);
+    expect(seen.terrierBall).toBe(36_000 * sc.sim.C.substeps);
     expect(seen.ballWallTicks).toBe(36_000);
   }, 120_000);
 });
@@ -235,7 +235,7 @@ describe('rolling (A.5)', () => {
     sc.sim.probe = (s) => {
       n++;
       const sp = Math.hypot(s.ball.vx, s.ball.vy);
-      if (sp > 0) worst = Math.max(worst, Math.abs(last - sp - 0.5 * DT));
+      if (sp > 0) worst = Math.max(worst, Math.abs(last - sp - 0.5 * substepDt(sc.sim.C)));
       else if (stoppedAt < 0) stoppedAt = n;
       last = sp;
     };
@@ -243,7 +243,7 @@ describe('rolling (A.5)', () => {
     expect(worst).toBeLessThan(1e-12);
     expect(sc.s.ball.vx === 0 && sc.s.ball.vy === 0).toBe(true);
     // 3.354 m/s at 0.5 m/s² stops after 6.708 s, rolling 11.25 m.
-    expect(stoppedAt / SUBSTEPS / 60).toBeCloseTo(Math.hypot(3, 1.5) / 0.5, 1);
+    expect(stoppedAt / sc.sim.C.substeps / 60).toBeCloseTo(Math.hypot(3, 1.5) / 0.5, 1);
     expect(Math.hypot(sc.s.ball.x + 6, sc.s.ball.y + 3)).toBeCloseTo(11.25, 1);
   });
 
