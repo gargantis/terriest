@@ -1,0 +1,9 @@
+# PLAN D-35: amorfus's headers, with blob: in connect-src, from which
+# GLTFLoader fetches a .glb's embedded images.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  Content-Security-Policy: script-src 'self'; connect-src 'self' wss: blob:; object-src 'none'; base-uri 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer

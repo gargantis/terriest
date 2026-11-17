@@ -1,0 +1,26 @@
+// Lint fixtures (PLAN D-38): each `// ==` section is one construct, linted
+// on its own in a file of each group by scripts/eslint/config.test.mjs.
+// Never compiled or bundled. Only src/storage touches browser storage,
+// under the global object's names too. (The bare globals and the
+// properties on each name for the global object are looped over in the
+// test.)
+
+// == localStorage destructured from window
+const { localStorage: store } = window;
+export const a = store.length;
+
+// == storage on globalThis, by optional chaining
+export const a = globalThis?.sessionStorage?.length;
+
+// == localStorage through a cast
+export const a = (window as Window).localStorage;
+
+// == localStorage through an alias
+const view = document.defaultView;
+export const a = view?.localStorage;
+
+// == localStorage destructured from a parameter
+export const a = ({ localStorage }: { localStorage: { length: number } }): number => localStorage.length;
+
+// == a key named localStorage
+export const o = { localStorage: 1 };

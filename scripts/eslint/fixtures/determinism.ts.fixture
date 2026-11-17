@@ -1,0 +1,92 @@
+// Lint fixtures (PLAN D-38): each `// ==` section is one construct, linted
+// on its own in a file of each group by scripts/eslint/config.test.mjs.
+// Never compiled or bundled. D-1: deterministic code keeps to exact
+// operations, and Math appears only as Math.<name>, or as a key.
+
+// == Math.sin
+export const a = (x: number): number => Math.sin(x);
+
+// == Math by a computed name
+export const a = (x: number): number => Math['exp'](x);
+
+// == the ** operator
+export const a = (x: number): number => x ** 2;
+
+// == Math.random
+export const a = Math.random();
+
+// == Date.now
+export const a = Date.now();
+
+// == performance.now
+export const a = performance.now();
+
+// == crypto
+export const a = crypto.getRandomValues(new Uint8Array(4));
+
+// == Intl
+export const a = new Intl.NumberFormat('en').format(1);
+
+// == Math destructured
+const { sin } = Math;
+export const a = sin(1);
+
+// == Math aliased
+const M = Math;
+export const a = M.sqrt(2);
+
+// == Math passed on
+export const a = Reflect.get(Math, 'sin');
+
+// == a parameter typed typeof Math
+export const a = (m: typeof Math): number => m.sin(1);
+
+// == a parameter typed Math
+export const a = (m: Math): number => m.sin(1);
+
+// == a parameter typed typeof Math.sin
+export const a = (f: typeof Math.sin): number => f(1);
+
+// == a parameter typed as the global object's Math
+export const a = (m: typeof globalThis.Math): number => m.sin(1);
+
+// == a parameter typed by an indexed type of the global object
+export const a = (m: (typeof globalThis)['Math']): number => m.sin(1);
+
+// == Math read from a parameter typed as the global object
+export const a = (g: typeof globalThis): number => g.Math.sin(1);
+
+// == Math picked from the global object's type
+export const a = (g: Pick<typeof globalThis, 'Math'>): number => g.Math.sin(1);
+
+// == Math read as another object's property
+export const a = (o: { Math: { sin(x: number): number } }): number => o.Math.sin(1);
+
+// == Math destructured from another object
+export const a = ({ Math: m }: { Math: { sin(x: number): number } }): number => m.sin(1);
+
+// == Math by a template key
+export const a = (g: { Math: { sin(x: number): number } }): number => g[`Math`].sin(1);
+
+// == toLocaleString
+export const a = (x: number): string => x.toLocaleString();
+
+// == toLocaleString by a string key
+export const a = (x: number): string => x['toLocaleString']();
+
+// == toLocaleString by a template key
+export const a = (x: number): string => x[`toLocaleString`]();
+
+// == localeCompare
+export const a = (x: string): number => x.localeCompare('b');
+
+// == Temporal
+export const a = Temporal.Now.instant();
+
+// == exact operations, and keys named Math
+export const a = (x: number): number => Math.fround(Math.sqrt(x)) + Math.min(Math.abs(x), Math.PI) + Math.imul(3, 4);
+export const o = { Math: 1 };
+export class C {
+  Math = 1;
+}
+export type T = { Math: number };

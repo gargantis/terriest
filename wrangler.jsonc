@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "terriest",
+  "compatibility_date": "2026-11-16",
+  // Assets only: no "main", so no Worker script ever runs.
+  "assets": { "directory": "./dist", "not_found_handling": "none" },
+  // Request logs would keep visitor IP addresses.
+  "observability": { "enabled": false },
+  // The workers.dev address would show the account's name (C-45),
+  // and so would Preview URLs, which are workers.dev addresses too.
+  "workers_dev": false,
+  "preview_urls": false,
+  // Q-5: terriest.com, as a custom domain.
+  "routes": [{ "pattern": "terriest.com", "custom_domain": true }]
+}

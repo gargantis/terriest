@@ -1,0 +1,107 @@
+// Lint fixtures (PLAN D-38): each `// ==` section is one construct, linted
+// on its own in a file of each group by scripts/eslint/config.test.mjs.
+// Never compiled or bundled. amorfus's subpath bans: the site works from
+// any path (L232), so no History API and no root-absolute URL. The
+// fragment is set with location.replace, never location.hash (§11).
+
+// == history.pushState
+history.pushState(null, '', '#x');
+
+// == history.replaceState
+window.history.replaceState(null, '', '#x');
+
+// == history.pushState by a computed name
+history['pushState'](null, '', '#x');
+
+// == history.replaceState by a template key
+history[`replaceState`](null, '', '#x');
+
+// == history.pushState destructured
+const { pushState } = history;
+pushState.call(history, null, '', '#x');
+
+// == location.hash set
+location.hash = '#join=abc';
+
+// == fetch from the root
+export const a = fetch('/model.glb');
+
+// == fetch from the root, in a template
+export const a = (n: number): Promise<Response> => fetch(`/model-${n}.glb`);
+
+// == fetch from the root, joined three deep
+export const a = (d: string, n: string): Promise<Response> => fetch('/' + d + '/' + n);
+
+// == window.fetch from the root
+export const a = window.fetch('/model.glb');
+
+// == a URL from the root
+export const a = new URL('/model.glb', import.meta.url);
+
+// == a URL from the root, joined
+export const a = (p: string): URL => new URL('/' + p, import.meta.url);
+
+// == location.replace to the root
+location.replace('/');
+
+// == location.replace by a computed name
+location['replace']('/');
+
+// == window.location.assign to the root
+window.location.assign('/play');
+
+// == location.assign to the root, joined
+export const a = (id: string): void => location.assign('/' + id);
+
+// == window.open to the root
+window.open('/');
+
+// == open to the root
+open('/');
+
+// == location to the root
+location = '/';
+
+// == window.location to the root
+window.location = '/';
+
+// == location.href to the root
+location.href = '/';
+
+// == location.href to the root, in a template
+export const a = (id: string): void => {
+  location.href = `/${id}`;
+};
+
+// == location.href to the root, joined twice
+export const a = (p: string): void => {
+  location.href = '/' + p + '/x';
+};
+
+// == location.pathname to the root
+location.pathname = '/';
+
+// == location to the root, in a template
+export const a = (id: string): void => {
+  location.assign(`/#join=${id}`);
+};
+
+// == a link to the root
+export const a = (link: { href: string }): void => {
+  link.href = '/';
+};
+
+// == an image from another host's root
+export const a = (img: { src: string }): void => {
+  img.src = '//elsewhere.example/x.png';
+};
+
+// == relative URLs, and the fragment set by location.replace
+export const a = fetch('./model.glb');
+export const b = new URL('./model.glb', import.meta.url);
+location.replace('#join=abc');
+location.replace('#');
+export const c = 'a/b'.replace('/', '-');
+export const d = (link: { href: string }, id: string): void => {
+  link.href = './#join=' + id;
+};

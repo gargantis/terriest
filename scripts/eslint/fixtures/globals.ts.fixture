@@ -1,0 +1,39 @@
+// Lint fixtures (PLAN D-38): each `// ==` section is one construct, linted
+// on its own in a file of each group by scripts/eslint/config.test.mjs.
+// Never compiled or bundled. src/core gets no DOM, timer, storage or
+// network global, named in the config or not: one of each kind here, and
+// the named ones are looped over in the test.
+
+// == a DOM event listener
+addEventListener('pagehide', () => {});
+
+// == a media query
+export const a = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// == the pixel ratio
+export const a = devicePixelRatio;
+
+// == the Cache API
+export const a = caches.open('x');
+
+// == the cookie store
+export const a = cookieStore;
+
+// == a broadcast channel
+export const a = new BroadcastChannel('tab-lock');
+
+// == a WebTransport session
+export const a = new WebTransport('https://example.org/');
+
+// == a worker
+export const a = new Worker(new URL('./w.js', import.meta.url));
+
+// == Node's setImmediate
+setImmediate(() => {});
+
+// == the environment
+export const a = process.env.X;
+
+// == the globals src/core may use
+export const a = [new TextEncoder(), new TextDecoder(), structuredClone({}), new URL('./x', import.meta.url)];
+console.info(a);

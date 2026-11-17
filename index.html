@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <!-- An empty icon: otherwise Firefox asks for favicon.ico, which isn't shipped (M0). -->
+    <link rel="icon" href="data:," />
+    <title>terriest</title>
+    <style>
+      html, body { margin: 0; height: 100%; }
+      body { background: #1d2b1f; color: #eef3ea; font: 16px/1.5 system-ui, sans-serif; }
+      #fallback { max-width: 40rem; padding: 1rem 1.5rem; }
+      canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    </style>
+  </head>
+  <body>
+    <!-- PLAN D-30: a message by default, so the page is never blank. -->
+    <main id="fallback">
+      <h1 id="fallback-title" tabindex="-1">Loading terriest…</h1>
+      <p id="fallback-note">If this message doesn't go away, the page's scripts may be blocked.</p>
+      <noscript><p>terriest needs JavaScript.</p></noscript>
+    </main>
+    <script src="./boot.js"></script>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

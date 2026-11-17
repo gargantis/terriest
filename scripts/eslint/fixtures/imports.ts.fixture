@@ -1,0 +1,141 @@
+// Lint fixtures (PLAN D-38): each `// ==` section is one construct, linted
+// on its own in a file of each group by scripts/eslint/config.test.mjs.
+// Never compiled or bundled. {{src}} is the path from that file to src/.
+// Only src/render imports three, from 'three' and 'three/addons/…' only;
+// only src/net/trystero.ts imports Trystero, whose types go anywhere; and
+// src/core imports no drawing or browser folder. Everywhere, a specifier is
+// a plain string, written without a detour.
+
+// == three
+import * as THREE from 'three';
+export const v = new THREE.Vector3();
+
+// == three's addons
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+export const l = GLTFLoader;
+
+// == three's types
+import type { Vector3 } from 'three';
+export type V = Vector3;
+
+// == three re-exported
+export { REVISION } from 'three';
+
+// == three imported dynamically
+export const m = import('three');
+
+// == three in an import type
+export type V = import('three').Vector3;
+
+// == three imported by a template
+export const m = import(`three`);
+
+// == a module imported by a variable
+export const m = (name: string): Promise<unknown> => import(name);
+
+// == three's sources
+import { Vector3 } from 'three/src/math/Vector3.js';
+export const v = new Vector3();
+
+// == three's sources imported dynamically
+export const m = import('three/src/math/Vector3.js');
+
+// == three's sources in an import type
+export type V = import('three/src/math/Vector3.js').Vector3;
+
+// == three's sources through node_modules
+import { Vector3 } from '{{src}}/../node_modules/three/src/math/Vector3.js';
+export const v = new Vector3();
+
+// == three's examples folder
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+export const l = GLTFLoader;
+
+// == Trystero
+import { joinRoom } from '@trystero-p2p/nostr';
+export const j = joinRoom;
+
+// == Trystero imported dynamically
+export const m = import('@trystero-p2p/nostr');
+
+// == Trystero's types
+import type { JoinRoomConfig } from '@trystero-p2p/nostr';
+export type C = JoinRoomConfig;
+
+// == Trystero in an import type
+export type C = import('@trystero-p2p/nostr').JoinRoomConfig;
+
+// == Trystero's types re-exported
+export type { JoinRoomConfig } from '@trystero-p2p/nostr';
+
+// == Trystero's types by an inline type specifier
+import { type JoinRoomConfig } from '@trystero-p2p/nostr';
+export type C = JoinRoomConfig;
+
+// == Trystero's types re-exported by an inline type specifier
+export { type JoinRoomConfig } from '@trystero-p2p/nostr';
+
+// == src/render
+import { draw } from '{{src}}/render/scene';
+export const d = draw;
+
+// == src/ui
+import { show } from '{{src}}/ui/home';
+export const s = show;
+
+// == src/input
+import { held } from '{{src}}/input/keyboard';
+export const h = held;
+
+// == src/audio
+import { bark } from '{{src}}/audio/sounds';
+export const b = bark;
+
+// == src/render by a path that starts with ./
+import { draw } from './{{src}}/render/scene';
+export const d = draw;
+
+// == src/render's types
+import type { Pitch } from '{{src}}/render/pitch';
+export type P = Pitch;
+
+// == src/ui imported dynamically
+export const m = import('{{src}}/ui/home');
+
+// == src/render in an import type
+export type P = import('{{src}}/render/pitch').Pitch;
+
+// == src/render by a path through src/
+import { draw } from '{{src}}/../src/render/scene';
+export const d = draw;
+
+// == src/ui from the root
+import { show } from '/src/ui/home';
+export const s = show;
+
+// == a module by a detour through '..'
+import { draw } from '{{src}}/core/../render/scene';
+export const d = draw;
+
+// == a module by a detour through '.'
+import { step } from '{{src}}/core/./sim/step';
+export const s = step;
+
+// == a module by a detour through '//'
+import { draw } from '{{src}}//render/scene';
+export const d = draw;
+
+// == a detour imported dynamically
+export const m = import('{{src}}/core/../render/scene');
+
+// == a detour in an import type
+export type P = import('{{src}}/core/../render/pitch').Pitch;
+
+// == import.meta.glob
+export const g = import.meta.glob('{{src}}/render/*.ts');
+
+// == src/config and the core's own modules
+import { TICK_RATE } from '{{src}}/config';
+import { step } from '{{src}}/core/sim/step';
+import { decode } from './input';
+export const t = [TICK_RATE, step, decode];
