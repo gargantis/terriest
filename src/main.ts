@@ -42,7 +42,15 @@ async function start(boot: Boot): Promise<void> {
     boot.noWebGL2();
     return;
   }
-  document.body.append(canvas);
+  // The pitch is an image in the page's main landmark, as roslambo's arena
+  // is. index.html hides the landmark until boot.js takes its own down, so
+  // the page never shows two.
+  canvas.setAttribute('role', 'img');
+  canvas.setAttribute('aria-label', 'The pitch');
+  const main = document.createElement('main');
+  main.id = 'pitch';
+  main.append(canvas);
+  document.body.append(main);
   await view.start();
   const test = window.terriestTest;
   if (test) test.inspect = () => ({ render: view.info() });

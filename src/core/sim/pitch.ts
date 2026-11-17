@@ -19,17 +19,20 @@
 
 import { config, type PitchShape } from '../../config';
 
+// The pieces' kinds and surfaces are codes, each line marked for the
+// configuration check (src/config.test.ts), which reads a top-level whole
+// number here as a possible copy of a setting.
 export const PLANE = 0;
-export const QUAD = 1;
-export const CAPSULE = 2;
+export const QUAD = 1; // not a setting
+export const CAPSULE = 2; // not a setting
 export type PieceKind = typeof PLANE | typeof QUAD | typeof CAPSULE;
 
 /** What a piece is made of: it sets the bounce (D-5) and the look (§12). */
 export const FLOOR = 0;
-export const WALL = 1; // side walls, cut corners, end-wall panels
-export const NET = 2; // the overhead net
-export const FRAME = 3; // posts and crossbars
-export const GOAL_NET = 4; // each goal's back, side and top netting
+export const WALL = 1; // side walls, cut corners, end-wall panels; not a setting
+export const NET = 2; // the overhead net; not a setting
+export const FRAME = 3; // posts and crossbars; not a setting
+export const GOAL_NET = 4; // each goal's back, side and top netting; not a setting
 export type Surface = typeof FLOOR | typeof WALL | typeof NET | typeof FRAME | typeof GOAL_NET;
 
 /** Pack A, 0, defends the goal at −x; pack B, 1, the goal at +x (D-4). */

@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import { CHROMIUM_GL_ARGS } from './e2e/lib/gl';
 
 // PLAN §16 end to end, in Chromium, Firefox and WebKit, headless, against
 // the built dist/ (the gate runs `npm run build` first). `vite preview`
@@ -13,7 +14,9 @@ import { defineConfig } from '@playwright/test';
 // others itself, and is reported skipped there. A test.only left in fails
 // the run instead of shrinking the gate. Firefox draws WebGL only with
 // DISPLAY or WAYLAND_DISPLAY set, so the gate runs under WSLg or xvfb-run
-// (C-6).
+// (C-6). With GALLIUM_DRIVER set, Chromium takes ANGLE's GL flags, so all
+// three engines draw on the GPU path (e2e/lib/gl.ts); unset, no engine
+// gets a GL flag.
 const BASE_URL = 'http://127.0.0.1:4339/';
 const NET = /\.net\.spec\.ts$/;
 
@@ -33,7 +36,11 @@ export default defineConfig({
   },
   use: { baseURL: BASE_URL, headless: true },
   projects: [
-    { name: 'chromium', testIgnore: NET, use: { browserName: 'chromium' } },
+    {
+      name: 'chromium',
+      testIgnore: NET,
+      use: { browserName: 'chromium', ...(CHROMIUM_GL_ARGS.length > 0 ? { launchOptions: { args: [...CHROMIUM_GL_ARGS] } } : {}) },
+    },
     { name: 'firefox', testIgnore: NET, use: { browserName: 'firefox' } },
     { name: 'webkit', testIgnore: NET, use: { browserName: 'webkit' } },
     { name: 'net', testMatch: NET },

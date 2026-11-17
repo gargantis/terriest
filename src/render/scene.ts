@@ -34,6 +34,15 @@ export interface RenderInfo {
   programs: number;
   geometries: number;
   textures: number;
+  /** The same three counts as the first frame left them, or null before
+   *  it: later frames compile and upload nothing more (§12). */
+  firstFrame: ResourceCounts | null;
+}
+
+export interface ResourceCounts {
+  readonly programs: number;
+  readonly geometries: number;
+  readonly textures: number;
 }
 
 export interface PitchView {
@@ -68,6 +77,12 @@ export function createPitchView(canvas: HTMLCanvasElement, quality: RenderQualit
   let height = 0;
   let ratio = 0;
   let frames = 0;
+  const counts = (): ResourceCounts => ({
+    programs: renderer.info.programs?.length ?? 0,
+    geometries: renderer.info.memory.geometries,
+    textures: renderer.info.memory.textures,
+  });
+  let firstFrame: ResourceCounts | null = null;
   const fit = (): void => {
     const w = Math.max(1, canvas.clientWidth);
     const h = Math.max(1, canvas.clientHeight);
@@ -98,6 +113,7 @@ export function createPitchView(canvas: HTMLCanvasElement, quality: RenderQualit
         o.frustumCulled = false;
       });
       frame();
+      firstFrame = counts();
       for (const o of culled) o.frustumCulled = true;
       const loop = (): void => {
         frame();
@@ -115,9 +131,8 @@ export function createPitchView(canvas: HTMLCanvasElement, quality: RenderQualit
       calls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles,
       lines: renderer.info.render.lines,
-      programs: renderer.info.programs?.length ?? 0,
-      geometries: renderer.info.memory.geometries,
-      textures: renderer.info.memory.textures,
+      ...counts(),
+      firstFrame,
     }),
   };
 }

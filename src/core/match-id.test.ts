@@ -37,6 +37,15 @@ describe('match ID', () => {
     expect(normalizeMatchId(formatMatchId(id).replace(/-/g, ' '))).toBe(id);
     expect(normalizeMatchId(id.replace(/0/g, 'O').replace(/1/g, 'I'))).toBe(id);
     expect(normalizeMatchId(id.replace(/1/g, 'l'))).toBe(id);
+    // About half of all IDs lack a 0 or a 1, so the look-alikes are also
+    // read in a valid ID that has both: O and o for 0; I, i, L and l for 1.
+    const fixed = '0123456789ABCDEFGHJKY';
+    expect(normalizeMatchId(fixed)).toBe(fixed);
+    for (const zero of ['O', 'o']) {
+      for (const one of ['I', 'i', 'L', 'l']) {
+        expect(normalizeMatchId(fixed.replace('0', zero).replace('1', one)), `${zero} for 0 and ${one} for 1`).toBe(fixed);
+      }
+    }
   });
 
   it('rejects every single wrong character', () => {

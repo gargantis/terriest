@@ -49,6 +49,11 @@ export async function expectBootMessage(page: Page, code: BootCode, title: RegEx
   await expect(heading).toHaveText(title);
   await expect(heading).toBeFocused();
   await expect(page.locator('canvas')).toHaveCount(0);
+  await expectAxeClean(page);
+}
+
+/** No violation by axe, with its default rules. */
+export async function expectAxeClean(page: Page): Promise<void> {
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`), 'axe').toEqual([]);
 }

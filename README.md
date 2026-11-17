@@ -5,7 +5,7 @@ Rocket League with terriers: two packs of small dogs corral a giant rubber ball 
 
 ## Run
 
-Needs Node 22.12 or later (`.nvmrc`). The gate's tooling, shared with roslambo and amorfus, is the git submodule `vendor/hermet`, which `npm install` doesn't fetch. So clone with it:
+Needs Node 22.12 or later (`engines` in `package.json`; `.nvmrc` selects Node 22). The gate's tooling, shared with roslambo and amorfus, is the git submodule `vendor/hermet`, which `npm install` doesn't fetch. So clone with it:
 
 ```sh
 git clone --recurse-submodules <this repository's URL>
@@ -28,9 +28,9 @@ npx playwright install --with-deps chromium firefox webkit   # once
 npm run check
 ```
 
-`npm run check` is the gate, and the definition of done. In order, it runs ESLint, with the plan's import and purity boundaries (D-38); public-scan; the typecheck; the unit tests, hermet's included; the build; and the end-to-end tests against the built page in headless Chromium, Firefox and WebKit. A page that requests anything outside the local servers its test names fails the test, so the gate contacts no public host. At M1 it takes about 72 s on the development machine, and longer while the machine is busy. It will grow to several minutes once it plays whole matches (Q-18), and `docs/acceptance.md` logs its wall time at each milestone's exit.
+`npm run check` is the gate, and the definition of done. In order, it runs ESLint, with the plan's import and purity boundaries (D-38); public-scan; the typecheck; the unit tests, hermet's included; the build; and the end-to-end tests against the built page in headless Chromium, Firefox and WebKit. A page that requests anything outside the local servers its test names fails the test, so the gate contacts no public host. At M1 it takes about 76 s on the development machine, and longer while the machine is busy. It will grow to several minutes once it plays whole matches (Q-18), and `docs/acceptance.md` logs its wall time at each milestone's exit.
 
-At M1 there are 11 end-to-end tests in each engine: `e2e/boot.spec.ts`, the boot page's four failure messages (D-30); `e2e/pitch.spec.ts`, the empty pitch, its size, its render quality and its frame rate, which is reported, never judged; and `e2e/smoke.spec.ts`, the page served by `vite preview`, under `dist/_headers`, and from a subpath. `npm run e2e` runs them alone, against the last build.
+At M1 there are 12 end-to-end tests in each engine: `e2e/boot.spec.ts`, the boot page's four failure messages (D-30); `e2e/pitch.spec.ts`, the empty pitch, its size, its render quality, what assistive technology reads of the started page, and its frame rate, which is reported, never judged; and `e2e/smoke.spec.ts`, the page served by `vite preview`, under `dist/_headers`, and from a subpath. `npm run e2e` runs them alone, against the last build.
 
 CI (`.github/workflows/check.yml`) runs the gate under `xvfb-run` on each push and pull request, and the unit tests on arm64. `docs/acceptance.md` logs its runs.
 
@@ -46,17 +46,17 @@ xvfb-run -a npm run check
 
 ### On the GPU (opt-in)
 
-The headless engines draw WebGL in software: SwiftShader in Chromium, llvmpipe in Firefox and WebKit. On WSL2, Mesa's Direct3D 12 driver draws on the host's GPU instead. With it, all three engines reached 60 frames a second on the development machine, Chromium with ANGLE's GL flags (C-6). For faster local runs:
+The headless engines draw WebGL in software: SwiftShader in Chromium, llvmpipe in Firefox and WebKit. On WSL2, Mesa's Direct3D 12 driver draws on the host's GPU instead (C-6):
 
 ```sh
 GALLIUM_DRIVER=d3d12 npm run check
 ```
 
-That moves Firefox and WebKit to the GPU. The gate's Playwright config passes Chromium no flags, so Chromium still draws in SwiftShader. No test depends on the frame rate either way.
+That moves all three engines to the GPU. Firefox and WebKit draw through Mesa, so the variable alone moves them; while it's set, the gate also passes every Chromium it launches ANGLE's GL flags, so Chromium draws through Mesa too (`e2e/lib/gl.ts`). Unset, the gate passes no GL flag. On the development machine each engine then draws the empty pitch at about 60 frames a second, and `e2e/pitch.spec.ts`'s frame-rate lines name the path. At M1 that doesn't make the gate faster: starting each page costs more on that path than drawing the empty pitch saves, so the gate took 93 to 94 s there, against 76 to 78 s in software. Whether it pays once busy scenes make drawing the bottleneck is for measuring then. No test depends on the frame rate either way.
 
 ### The private denylist
 
-public-scan fails on home paths and private key material in every file git tracks or would add. Locally it also fails on the terms of a denylist kept outside the repo, whose path is in `TERRIEST_PRIVATE_TERMS`: one term per line, and a line starting with `#` is a comment. A finding never prints the term. CI has no denylist, and runs the built-in patterns only.
+public-scan fails on home paths, as `/home/<name>/`, `/Users/<name>/` or `C:\Users\<name>`, and on PEM private keys, in the text files git tracks or would add. That's all its built-in patterns cover: it skips binary files, and passes a home path with no `/` after the name, or a WSL path such as `\\wsl.localhost\…`. It also fails on the terms of a denylist kept outside the repo, when `TERRIEST_PRIVATE_TERMS` holds its path: one term per line, and a line starting with `#` is a comment. Its first line says whether it read one, and a path to a missing file fails it. A denylist finding never prints its term, but a built-in finding prints what it matched, which can hold one, such as a user name in a home path. CI has no denylist, and runs the built-in patterns only.
 
 ```sh
 export TERRIEST_PRIVATE_TERMS=/path/to/private-terms.txt

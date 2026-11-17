@@ -1,11 +1,13 @@
 // The empty pitch (PLAN §12, §17 M1) in each engine, read through the test
-// hook (window.terriestTest), after asserting WebGL 2 (C-6). The gate draws
-// at the low render quality, as it plays (C-6, D-33); the quality test
-// loads both. Nothing here depends on the frame rate: the rate is measured
-// and reported for CI's first run (§15), never judged.
+// hook (window.terriestTest), after asserting WebGL 2 (C-6), and what
+// assistive technology reads of it. The gate draws at the low render
+// quality, as it plays (C-6, D-33); the quality test loads both. Nothing
+// here depends on the frame rate: the rate is measured and reported for
+// CI's first run (§15), with the GL path, never judged.
 
+import { GL_PATH } from './lib/gl';
 import { expect, expectWebGL2, test } from './lib/guards';
-import { expectStarted, inspect, installHook } from './lib/page';
+import { expectAxeClean, expectStarted, inspect, installHook } from './lib/page';
 import { decodePng, meanColour } from './lib/png';
 
 test.beforeEach(async ({ page }) => {
@@ -21,12 +23,15 @@ test('the pitch draws, and nothing compiles after its first frame', async ({ pag
   expect(first.frames).toBeGreaterThanOrEqual(1);
   expect(first.calls).toBeGreaterThan(0);
   expect(first.triangles).toBeGreaterThan(0);
-  // A second of frames compiles and uploads nothing new (§12).
+  // Every frame after the first, a second of them, compiles and uploads
+  // nothing new (§12): the counts stay as the first frame left them, which
+  // the page took then, before any frame this test could read.
   await page.waitForTimeout(1_000);
   const later = (await inspect(page)).render;
   expect(later.frames).toBeGreaterThan(first.frames);
-  const kept = (r: typeof first): number[] => [r.programs, r.geometries, r.textures];
-  expect(kept(later), 'programs, geometries, textures').toEqual(kept(first));
+  const counts = (r: typeof first): object => ({ programs: r.programs, geometries: r.geometries, textures: r.textures });
+  expect(later.firstFrame?.programs, 'programs compiled by the first frame').toBeGreaterThan(0);
+  expect(counts(later), 'programs, geometries, textures').toEqual(later.firstFrame);
 
   // What it drew: from the spectators' side, pack A's half on the left and
   // pack B's on the right, each tinted by its pack (L68): blue, orange.
@@ -54,6 +59,14 @@ test('the canvas fills the window, and redraws at a new size', async ({ page }) 
   }
 });
 
+test('the started page shows the pitch as a named image in its one main landmark, and axe finds nothing', async ({ page }) => {
+  await page.goto('./?quality=low');
+  await expectStarted(page);
+  await expect(page.getByRole('main')).toHaveCount(1);
+  await expect(page.getByRole('main').getByRole('img', { name: 'The pitch' })).toBeVisible();
+  await expectAxeClean(page);
+});
+
 test("the empty pitch's frame rate, reported, not judged", async ({ page, browserName }, testInfo) => {
   await page.goto('./?quality=low');
   await expectStarted(page);
@@ -69,10 +82,13 @@ test("the empty pitch's frame rate, reported, not judged", async ({ page, browse
     const info = gl?.getExtension('WEBGL_debug_renderer_info');
     return gl ? String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER)) : 'none';
   });
+  // Only Chromium names its renderer: WebKit always says "Apple GPU", and
+  // Firefox a generic string, so for them the GL path is the variable's.
+  const named = browserName === 'chromium' ? `renderer ${renderer}` : `renderer masked by the engine as "${renderer}"`;
   const size = page.viewportSize();
   const line =
     `${browserName}: ${((b.frames - a.frames) / seconds).toFixed(1)} frames a second over ${seconds.toFixed(1)} s, ` +
-    `low quality, ${size?.width}×${size?.height}, ${renderer}`;
+    `low quality, ${size?.width}×${size?.height}, ${GL_PATH}, ${named}`;
   console.log(`The empty pitch's frame rate, ${line}`);
   testInfo.annotations.push({ type: 'frame rate', description: line });
 });

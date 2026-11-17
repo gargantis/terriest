@@ -112,12 +112,14 @@ const isPointMirror = (p: Piece, q: Piece): boolean =>
   q.nx === -p.nx && q.ny === -p.ny && q.nz === p.nz &&
   q.e1x === -p.e1x && q.e1y === -p.e1y && q.e1z === p.e1z &&
   q.e2x === -p.e2x && q.e2y === -p.e2y && q.e2z === p.e2z &&
+  q.inv1 === p.inv1 && q.inv2 === p.inv2 &&
   q.minX === -p.maxX && q.maxX === -p.minX && q.minY === -p.maxY && q.maxY === -p.minY &&
   q.minZ === p.minZ && q.maxZ === p.maxZ;
 
 /** Every piece's point mirror, (x, y, z) → (−x, −y, z), is in the list,
- *  exactly, so mirrored contacts are bit-for-bit mirrors (D-5), and each
- *  piece's mirror index names it. */
+ *  exactly, every number the contact tests read included, so mirrored
+ *  contacts are bit-for-bit mirrors (D-5), and each piece's mirror index
+ *  names it. */
 function pointMirrors(pieces: readonly Piece[]): string[] {
   const problems: string[] = [];
   pieces.forEach((p, k) => {
@@ -165,12 +167,14 @@ function zoomiesMeter(c: Config): string[] {
 // --- The goal mouth (L306) ---
 
 /** The ball fits through each mouth, under the crossbar and between the
- *  posts as built, and wholly behind the goal line inside the goal, which a
- *  goal needs (D-8). */
-function goalMouth(c: Config): string[] {
+ *  posts, and into the goal behind it, between the side nets and under the
+ *  top net, wholly behind the goal line, which a goal needs (D-8). Each is
+ *  measured on the goal as built, from its pieces: the configuration's own
+ *  pitch, or `built`. */
+function goalMouth(c: Config, built?: Pitch): string[] {
   let p: Pitch;
   try {
-    p = buildPitch(c.pitch);
+    p = built ?? buildPitch(c.pitch);
   } catch (e) {
     return [message(e)];
   }
@@ -178,12 +182,17 @@ function goalMouth(c: Config): string[] {
   const ball = 2 * c.ballRadiusMetres;
   for (const goal of p.goals) {
     const { posts, bar } = frameOf(p, goal.pack);
+    const { back, sides, top } = nettingOf(p, goal.pack);
     const height = bar.oz - bar.radius;
     const width = Math.abs(posts[0].oy - posts[1].oy) - posts[0].radius - posts[1].radius;
+    const between = Math.abs(sides[0].oy - sides[1].oy);
+    const depth = Math.abs(back.ox) - Math.abs(goal.lineX);
     const at = `goal ${goal.pack}`;
     if (!(ball < height)) problems.push(`${at}: the ball, ${ball} m across, doesn't fit under the crossbar, ${height} m up`);
     if (!(ball < width)) problems.push(`${at}: the ball, ${ball} m across, doesn't fit between the posts, ${width} m apart`);
-    if (!(ball < goal.depth)) problems.push(`${at}: the ball, ${ball} m across, can't get wholly behind the line in a goal ${goal.depth} m deep`);
+    if (!(ball < between)) problems.push(`${at}: the ball, ${ball} m across, doesn't fit between the side nets, ${between} m apart`);
+    if (!(ball < top.oz)) problems.push(`${at}: the ball, ${ball} m across, doesn't fit under the top net, ${top.oz} m up`);
+    if (!(ball < depth)) problems.push(`${at}: the ball, ${ball} m across, can't get wholly behind the line in a goal ${depth} m deep`);
   }
   return problems;
 }
@@ -194,6 +203,19 @@ function frameOf(p: Pitch, pack: 0 | 1): { posts: [Piece, Piece]; bar: Piece } {
   const bar = frame.find((q) => q.e1z === 0);
   if (posts.length !== 2 || !bar) throw new Error(`goal ${pack} has ${posts.length} posts and ${bar ? 'a' : 'no'} crossbar`);
   return { posts: [posts[0]!, posts[1]!], bar };
+}
+
+/** A goal's netting by the way each piece faces: the back along x, the
+ *  sides along y, the top down. */
+function nettingOf(p: Pitch, pack: 0 | 1): { back: Piece; sides: [Piece, Piece]; top: Piece } {
+  const net = p.goals[pack].pieces.map((k) => p.pieces[k]!).filter((q) => q.surface === GOAL_NET);
+  const back = net.filter((q) => q.nx !== 0);
+  const sides = net.filter((q) => q.ny !== 0);
+  const top = net.filter((q) => q.nz !== 0);
+  if (back.length !== 1 || sides.length !== 2 || top.length !== 1) {
+    throw new Error(`goal ${pack}'s netting has ${back.length} back, ${sides.length} side and ${top.length} top pieces`);
+  }
+  return { back: back[0]!, sides: [sides[0]!, sides[1]!], top: top[0]! };
 }
 
 // --- Every setting from the tables is in src/config.ts (§7.4) ---
@@ -491,7 +513,8 @@ function stem(list: readonly string[]): string {
 }
 
 /** A literal number, a string, arithmetic on literal numbers, or an array
- *  of them; undefined for anything else. */
+ *  of them, an empty one included, as the kickoff spots' first row is;
+ *  undefined for anything else. */
 function literal(node: ts.Expression): number | string | readonly unknown[] | undefined {
   if (ts.isNumericLiteral(node)) return Number(node.text.replaceAll('_', ''));
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
@@ -514,7 +537,7 @@ function literal(node: ts.Expression): number | string | readonly unknown[] | un
   }
   if (ts.isArrayLiteralExpression(node)) {
     const items = node.elements.map((e) => literal(e));
-    return items.length > 0 && items.every((v) => v !== undefined) ? items : undefined;
+    return items.every((v) => v !== undefined) ? items : undefined;
   }
   return undefined;
 }
@@ -538,25 +561,73 @@ function declared(node: ts.Node): { name: string; init: ts.Expression | undefine
 const sameKind = (setting: unknown, v: unknown): boolean =>
   typeof setting === 'string' ? typeof v === 'string' : typeof v === 'number' || Array.isArray(v);
 
-/** The source files' copies of a setting: a declaration, property or
- *  default whose name is a setting's, unit aside, holding a literal; and,
- *  in the simulation and the bot brain (src/core/sim, src/core/bot), a
- *  literal or literal arithmetic equal to a setting's value that isn't a
- *  whole number or 0.5. A line saying "not a setting" is skipped. */
+const leaves = (v: unknown): unknown[] => (Array.isArray(v) ? v.flatMap(leaves) : [v]);
+/** An array with no number in it, such as an empty list a loop fills. */
+const numberless = (v: unknown): boolean => Array.isArray(v) && !leaves(v).some((n) => typeof n === 'number');
+/** Every array in a value, nested ones included, by its path. */
+const arraysIn = (v: unknown, path: string): [string, readonly unknown[]][] =>
+  Array.isArray(v) ? [[path, v], ...v.flatMap((x, i) => arraysIn(x, `${path}[${i}]`))] : [];
+/** Up to three settings, then how many more. */
+const listed = (paths: readonly string[]): string =>
+  paths.length <= 3 ? paths.join(', ') : `${paths.slice(0, 3).join(', ')} and ${paths.length - 3} more`;
+
+/** The declarations and properties that hold a module's top-level
+ *  constants: each variable at module scope, each property of a class
+ *  declared there, and each property of an object literal one of them
+ *  holds, however deep. */
+function topLevelHolders(sf: ts.SourceFile): Set<ts.Node> {
+  const held = new Set<ts.Node>();
+  const unwrap = (e: ts.Expression): ts.Expression =>
+    ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) ? unwrap(e.expression) : e;
+  const hold = (holder: ts.Node, init: ts.Expression | undefined): void => {
+    if (!init) return;
+    held.add(holder);
+    const e = unwrap(init);
+    if (ts.isObjectLiteralExpression(e)) for (const p of e.properties) if (ts.isPropertyAssignment(p)) hold(p, p.initializer);
+  };
+  for (const s of sf.statements) {
+    if (ts.isVariableStatement(s)) for (const d of s.declarationList.declarations) hold(d, d.initializer);
+    else if (ts.isClassDeclaration(s)) for (const m of s.members) if (ts.isPropertyDeclaration(m)) hold(m, m.initializer);
+  }
+  return held;
+}
+
+/** The source files' copies of a setting. Everywhere: a declaration,
+ *  property or default whose name is a setting's, unit aside, holding a
+ *  literal. And in the simulation and the bot brain (src/core/sim,
+ *  src/core/bot), where M2 ports the M0 spike's own configuration:
+ *  - any literal or literal arithmetic equal to a setting's or a derived
+ *    value that isn't a whole number or 0.5;
+ *  - a top-level constant, or a property of an object literal one holds,
+ *    whose literal is a number equal to a setting's or a derived value but
+ *    0, whole numbers included, or an array equal to one of theirs or to a
+ *    row or entry of a table: TICK_RATE = 60, { iterations: 8 },
+ *    cuts: [4, 4, 4, 4].
+ *  A line saying "not a setting" is skipped. */
 function copies(files: readonly Source[], c: Config): string[] {
   const names = new Map<string, string[]>();
   const values = new Map<number, string[]>();
-  const add = <K>(map: Map<K, string[]>, key: K, path: string): void => void map.set(key, [...(map.get(key) ?? []), path]);
-  const leaves = (v: unknown): unknown[] => (Array.isArray(v) ? v.flatMap(leaves) : [v]);
+  const numbers = new Map<number, string[]>();
+  const arrays = new Map<string, string[]>();
+  const add = <K>(map: Map<K, string[]>, key: K, path: string): void => {
+    const paths = map.get(key) ?? [];
+    if (!paths.includes(path)) map.set(key, [...paths, path]);
+  };
   const distinctive = (n: unknown): n is number => typeof n === 'number' && !Number.isInteger(n) && n !== 0.5;
+  const addValues = (v: unknown, path: string): void => {
+    for (const n of leaves(v)) if (distinctive(n)) add(values, n, path);
+    // A table's numbers are coordinates, not settings: it's matched whole, by row and by entry.
+    if (typeof v === 'number' && v !== 0) add(numbers, Math.abs(v), path);
+    for (const [p, a] of arraysIn(v, path)) if (leaves(a).some((n) => typeof n === 'number' && n !== 0)) add(arrays, JSON.stringify(a), p);
+  };
   for (const path of settingPaths(c)) {
     const v = valueAt(c, path);
     if (typeof v === 'boolean') continue;
     add(names, stem(path.split('.').flatMap(words)), path);
-    for (const n of leaves(v)) if (distinctive(n)) add(values, n, path);
+    addValues(v, path);
   }
   const d = derive(c);
-  for (const path of settingPaths(d)) for (const n of leaves(valueAt(d, path))) if (distinctive(n)) add(values, n, `derived.${path}`);
+  for (const path of settingPaths(d)) addValues(valueAt(d, path), `derived.${path}`);
 
   const problems: string[] = [];
   for (const file of files) {
@@ -566,24 +637,31 @@ function copies(files: readonly Source[], c: Config): string[] {
     const exempt = (node: ts.Node): boolean => lines[lineOf(node)]?.includes('not a setting') ?? false;
     const at = (node: ts.Node): string => `${file.path}:${lineOf(node) + 1}: ${node.getText(sf).split('\n')[0]}`;
     const scanValues = /^src\/core\/(?:sim|bot)\//.test(file.path);
+    const held = scanValues ? topLevelHolders(sf) : new Set<ts.Node>();
     const isLiteralSum = (node: ts.Node): boolean => ts.isBinaryExpression(node) && typeof literal(node) === 'number';
+
+    /** A declaration's copy: by its name, else, at top level, by its value. */
+    const declaration = (node: ts.Node, v: ReturnType<typeof literal>, chain: readonly string[]): string | undefined => {
+      if (v !== undefined && v !== 0 && !numberless(v)) {
+        // The name alone, then with each enclosing name: pitch = { lengthMetres: 40 }.
+        for (let i = chain.length - 1; i >= 0; i--) {
+          const hits = (names.get(stem(chain.slice(i).flatMap(words))) ?? []).filter((p) => sameKind(valueAt(c, p), v));
+          if (hits.length > 0) return `${at(node)} copies ${listed(hits)}`;
+        }
+      }
+      if (!held.has(node)) return undefined;
+      // A whole number or an array; the scan below reports the other numbers.
+      const hits = typeof v === 'number' ? (distinctive(v) ? undefined : numbers.get(Math.abs(v))) : Array.isArray(v) ? arrays.get(JSON.stringify(v)) : undefined;
+      return hits && `${at(node)} is the value of ${listed(hits)}`;
+    };
 
     const visit = (node: ts.Node, chain: readonly string[]): void => {
       let next = chain;
       const decl = declared(node);
       if (decl) {
         next = [...chain, decl.name];
-        const v = decl.init && literal(decl.init);
-        if (v !== undefined && v !== 0 && !exempt(node)) {
-          // The name alone, then with each enclosing name: pitch = { lengthMetres: 40 }.
-          for (let i = next.length - 1; i >= 0; i--) {
-            const hits = (names.get(stem(next.slice(i).flatMap(words))) ?? []).filter((p) => sameKind(valueAt(c, p), v));
-            if (hits.length > 0) {
-              problems.push(`${at(node)} copies ${hits.join(', ')}`);
-              break;
-            }
-          }
-        }
+        const problem = exempt(node) ? undefined : declaration(node, decl.init && literal(decl.init), next);
+        if (problem) problems.push(problem);
       }
       if (scanValues && !exempt(node)) {
         // Each literal, and the whole of any arithmetic on literals: 1 / 240.
@@ -591,7 +669,7 @@ function copies(files: readonly Source[], c: Config): string[] {
         if (ts.isNumericLiteral(node)) v = Number(node.text.replaceAll('_', ''));
         else if (isLiteralSum(node) && !isLiteralSum(node.parent)) v = literal(node as ts.Expression) as number;
         const hits = v === undefined ? undefined : values.get(Math.abs(v));
-        if (hits) problems.push(`${at(node)} is the value of ${hits.join(', ')}`);
+        if (hits) problems.push(`${at(node)} is the value of ${listed(hits)}`);
       }
       ts.forEachChild(node, (child) => visit(child, next));
     };
@@ -640,6 +718,10 @@ describe('the configuration checks (PLAN §7.4)', () => {
     ]);
     const moved = pitch.pieces.map((p, k) => (k === 5 ? { ...p, ox: p.ox + 1e-6 } : p));
     expect(pointMirrors(moved)).toHaveLength(2); // the moved piece, and the piece it mirrored
+    // The closest-point tests' reciprocals too (M2).
+    for (const over of [{ inv1: pitch.pieces[5]!.inv1 * 2 }, { inv2: 7 }]) {
+      expect(pointMirrors(pitch.pieces.map((p, k) => (k === 5 ? { ...p, ...over } : p)))).toHaveLength(2);
+    }
     const misnamed = pitch.pieces.map((p, k) => (k === 2 ? { ...p, mirror: 4 } : p));
     expect(pointMirrors(misnamed).join('\n')).toMatch(/mirror index, 4, names another piece/);
   });
@@ -665,6 +747,21 @@ describe('the configuration checks (PLAN §7.4)', () => {
     expect(goalMouth(planted({ ballRadiusMetres: 1.6 })).join('\n')).toMatch(/under the crossbar/);
     expect(goalMouth(plantedPitch({ mouthWidthMetres: 1.5 })).join('\n')).toMatch(/between the posts/);
     expect(goalMouth(plantedPitch({ goalDepthMetres: 1.5 })).join('\n')).toMatch(/wholly behind the line/);
+    // Measured on the netting as built, not read from the shape: a builder
+    // that put a net in the wrong place is caught.
+    const misbuilt = (name: string, over: Partial<Piece>): Pitch => {
+      expect(pitch.pieces.some((q) => q.name === name), name).toBe(true);
+      return { ...pitch, pieces: pitch.pieces.map((q) => (q.name === name ? { ...q, ...over } : q)) };
+    };
+    expect(goalMouth(config, misbuilt('goal −x back', { ox: -21 }))).toEqual([
+      "goal 0: the ball, 1.6 m across, can't get wholly behind the line in a goal 1 m deep",
+    ]);
+    expect(goalMouth(config, misbuilt('goal +x side +y', { oy: -2.5 }))).toEqual([
+      "goal 1: the ball, 1.6 m across, doesn't fit between the side nets, 1.5 m apart",
+    ]);
+    expect(goalMouth(config, misbuilt('goal −x top', { oz: 1.5 }))).toEqual([
+      "goal 0: the ball, 1.6 m across, doesn't fit under the top net, 1.5 m up",
+    ]);
   });
 
   it('has every setting of the Configuration table, A.4 and A.5, with their values', () => {
@@ -708,7 +805,10 @@ describe('the configuration checks (PLAN §7.4)', () => {
     expect(
       copies(
         [
-          { path: 'src/render/a.ts', text: 'export const RUN_SPEED = 6;\nexport const pitch = { lengthMetres: 40 };\n' },
+          {
+            path: 'src/render/a.ts',
+            text: 'export const RUN_SPEED = 6;\nexport const pitch = { lengthMetres: 40 };\nexport const KICKOFF_SPOTS = [[], [[-10, 0]]];\n',
+          },
           { path: 'src/ui/b.ts', text: "export function f(maxPackSize = 4, steering = 'anchored') { return [maxPackSize, steering]; }\n" },
           { path: 'src/core/sim/c.ts', text: 'export const fall = 9.8 * 2;\nexport const dt = 1 / 240;\n' },
         ],
@@ -717,12 +817,37 @@ describe('the configuration checks (PLAN §7.4)', () => {
     ).toEqual([
       'src/render/a.ts:1: RUN_SPEED = 6 copies runSpeedMetresPerSecond',
       'src/render/a.ts:2: lengthMetres: 40 copies pitch.lengthMetres',
+      // An empty row is a literal too, so the table's copy is one.
+      'src/render/a.ts:3: KICKOFF_SPOTS = [[], [[-10, 0]]] copies kickoffSpotsMetres',
       'src/ui/b.ts:1: maxPackSize = 4 copies packSizeMax',
       "src/ui/b.ts:1: steering = 'anchored' copies steering",
       'src/core/sim/c.ts:1: 9.8 is the value of gravityMetresPerSecond2',
       'src/core/sim/c.ts:2: 1 / 240 is the value of derived.substepSeconds',
     ]);
-    // Counters, halves, reads of the configuration and marked lines pass.
+    // In the simulation, a top-level constant under any name, whole numbers
+    // included, as the M0 spike's configuration names them.
+    const spike = [
+      'export const TICK_RATE = 60;',
+      'export const CONFIG = { iterations: 8, celebrationTicks: 204, tumble: { guardTicks: 90 }, cuts: [4, 4, 4, 4] };',
+      'export class Solver { passes = 2; }',
+      'export const SPOTS = [',
+      '  [],',
+      '  [[-10, 0]],',
+      '  [[-9, 4], [-9, -4]],',
+      '  [[-9, 5], [-9, -5], [-15, 0]],',
+      '  [[-8, 6], [-8, -6], [-14, 3], [-14, -3]],',
+      '];',
+    ].join('\n');
+    expect(copies([{ path: 'src/core/sim/e.ts', text: spike }], config)).toEqual([
+      'src/core/sim/e.ts:1: TICK_RATE = 60 is the value of readyExpirySeconds, ticksPerSecond',
+      'src/core/sim/e.ts:2: iterations: 8 is the value of pitch.mouthWidthMetres, idleFrictionMetresPerSecond2, solverIterations and 2 more',
+      'src/core/sim/e.ts:2: celebrationTicks: 204 is the value of derived.celebrationTicks',
+      'src/core/sim/e.ts:2: guardTicks: 90 copies tumbleGuardSeconds',
+      'src/core/sim/e.ts:2: cuts: [4, 4, 4, 4] is the value of pitch.cornerCutsMetres',
+      'src/core/sim/e.ts:3: passes = 2; is the value of packSizeDefault, pitch.goalDepthMetres, ballMassKg and 9 more',
+      'src/core/sim/e.ts:4: SPOTS = [ is the value of kickoffSpotsMetres, derived.kickoffSpots[0]',
+    ]);
+    // Counters, halves, locals, reads of the configuration and marked lines pass.
     const fine = [
       'import { config } from "../../config";',
       'let ticks = 0;',
@@ -731,7 +856,8 @@ describe('the configuration checks (PLAN §7.4)', () => {
       'export const half = 0.5 * ticks;',
       'export const g = config.gravityMetresPerSecond2;',
       'export const shade = 0.25; // not a setting: a colour',
-      'export const steps = 12;',
+      'export const QUAD = 1; // not a setting',
+      'export function f(): number { const steps = 12; return steps * ticks; }',
     ].join('\n');
     expect(copies([{ path: 'src/core/sim/d.ts', text: fine }], config)).toEqual([]);
   });

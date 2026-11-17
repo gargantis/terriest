@@ -1,10 +1,10 @@
 // What every end-to-end spec checks (PLAN §16): WebGL 2 in the engine before
-// anything else (C-6), and "Everywhere": no console error, and no request
-// outside the servers the spec loads from. The gate contacts no public host
-// (§16), so a request to any other host fails, third-party.json's relays
-// and STUN hosts included: Practice contacts none (§20), and the relay
-// check is outside the gate. third-party.json drives the runtime and the
-// dist audit instead.
+// anything else (C-6), and "Everywhere": no console error, WebGL's errors
+// included in every engine, and no request outside the servers the spec
+// loads from. The gate contacts no public host (§16), so a request to any
+// other host fails, third-party.json's relays and STUN hosts included:
+// Practice contacts none (§20), and the relay check is outside the gate.
+// third-party.json drives the runtime and the dist audit instead.
 
 import { test as base, expect, type Page } from '@playwright/test';
 
@@ -29,11 +29,24 @@ export interface PageWatch {
   allowedErrors: RegExp[];
 }
 
-/** Records console errors, page errors and every request, WebSockets included. */
+/**
+ * Whether a console message counts as an error: any error, and a WebGL
+ * error that Chromium and Firefox log as a warning, where WebKit logs it as
+ * an error. That's Chromium's "WebGL: INVALID_ENUM: …" and ANGLE's
+ * "GL_INVALID_OPERATION: …", and any "WebGL warning: …" from Firefox, whose
+ * text doesn't say which are errors. A driver's performance note, such as
+ * Chromium's "GPU stall due to ReadPixels", isn't one.
+ */
+export function isConsoleError(type: string, text: string): boolean {
+  if (type === 'error') return true;
+  return type === 'warning' && /^WebGL: (?:INVALID_|OUT_OF_MEMORY|CONTEXT_LOST)|\bGL_(?:INVALID_[A-Z_]+|OUT_OF_MEMORY)\b|WebGL warning: /.test(text);
+}
+
+/** Records console errors (isConsoleError), page errors and every request, WebSockets included. */
 export async function watchPage(page: Page, allowed: string[] = []): Promise<PageWatch> {
   const w: PageWatch = { errors: [], requests: [], allowed, allowedErrors: [] };
   page.on('console', (m) => {
-    if (m.type() === 'error') w.errors.push(m.text());
+    if (isConsoleError(m.type(), m.text())) w.errors.push(m.text());
   });
   page.on('pageerror', (e) => w.errors.push(String(e)));
   page.on('request', (r) => w.requests.push(r.url()));
@@ -52,13 +65,23 @@ export async function watchPage(page: Page, allowed: string[] = []): Promise<Pag
 /**
  * The requests under none of the allowed prefixes, matched as prefixes, so
  * a page served from a subpath can't leave it (L232). A data: URL is no
- * request; a blob: URL is checked by the URL it was made under.
+ * request. A blob: URL names only the origin of the page that made it, not
+ * its path, and never reaches the network, so it's allowed when that
+ * origin is an allowed prefix's; one with an opaque origin isn't.
  */
 export function outsideRequests(w: PageWatch): string[] {
+  const originOf = (u: string): string => {
+    try {
+      return new URL(u).origin;
+    } catch {
+      return 'null';
+    }
+  };
+  const origins = new Set(w.allowed.map(originOf).filter((o) => o !== 'null'));
   return w.requests.filter((u) => {
     if (u.startsWith('data:')) return false;
-    const url = u.startsWith('blob:') ? u.slice('blob:'.length) : u;
-    return !w.allowed.some((prefix) => url.startsWith(prefix));
+    if (u.startsWith('blob:')) return !origins.has(originOf(u));
+    return !w.allowed.some((prefix) => u.startsWith(prefix));
   });
 }
 

@@ -2,6 +2,10 @@
 // characters plus a mod-32 check character, 21 in all. A third copy of
 // roslambo's src/core/round-id.ts, renamed for matches, with terriest's own
 // Play-again prefix (PLAN Q-2). The same format as amorfus's join secret.
+// One more difference: matchIdFromHash reads a malformed % escape as no
+// ID, as amorfus's URLSearchParams reading of its fragment does, where
+// roslambo's roundIdFromHash throws URIError. A module shared by the three
+// (Q-2) would settle on one.
 
 const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const BODY = 20;
@@ -44,9 +48,10 @@ export function generateMatchId(): string {
 /** C-42: the Play again match's ID, the same for every press, so every
  *  press leads to the same match (D-12): the first 100 bits of
  *  SHA-256("terriest again" + previous ID), the ID as normalizeMatchId
- *  returns it. The prefix is terriest's own, not roslambo's "roslambo
- *  again", so a terriest match never shares a room with a roslambo round
- *  (Q-2). */
+ *  returns it. The prefix is terriest's own (Q-2), not roslambo's
+ *  "roslambo again", so the two apps derive different Play again IDs from
+ *  the same previous ID. What keeps their rooms apart is Trystero's appId,
+ *  'terriest' (D-18), which keys every room with its ID. */
 export async function nextMatchId(previous: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`terriest again${previous}`));
   return withCheck(body(new Uint8Array(digest)));

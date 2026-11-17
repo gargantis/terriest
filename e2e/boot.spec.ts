@@ -3,15 +3,22 @@
 // the main landmark, focused, the app's canvas never made, and axe. All
 // four run in every engine, because the engines differ here: on file://,
 // Chromium and WebKit refuse the module script, while Firefox runs it,
-// and it must then do nothing.
+// and it must then do nothing. Each first asserts that the engine has
+// WebGL 2 (C-6), so a run without a display fails here at once, and the
+// test that switches WebGL 2 off shows the switch did it, not the engine.
 
 import type { Browser, Page } from '@playwright/test';
 import { pathToFileURL } from 'node:url';
-import { expect, expectEverywhere, test, watchPage } from './lib/guards';
+import { CHROMIUM_GL_ARGS } from './lib/gl';
+import { expect, expectEverywhere, expectWebGL2, test, watchPage } from './lib/guards';
 import { expectBootMessage, moduleScript, mountDist } from './lib/page';
 import { DIST } from './lib/serve.mjs';
 
 const escaped = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+test.beforeEach(async ({ page }) => {
+  await expectWebGL2(page);
+});
 
 test('without WebGL 2, the page says so, and nothing else runs', async ({ page, browserName, playwright, baseURL }) => {
   // Chromium and Firefox switch WebGL 2 off at launch; WebKit has no
@@ -28,7 +35,9 @@ test('without WebGL 2, the page says so, and nothing else runs', async ({ page, 
     });
   } else {
     own = await playwright[browserName].launch(
-      browserName === 'chromium' ? { args: ['--disable-webgl2'] } : { firefoxUserPrefs: { 'webgl.enable-webgl2': false } },
+      browserName === 'chromium'
+        ? { args: ['--disable-webgl2', ...CHROMIUM_GL_ARGS] }
+        : { firefoxUserPrefs: { 'webgl.enable-webgl2': false } },
     );
     // A page of its own context: axe opens another page in it.
     target = await (await own.newContext()).newPage();
@@ -36,10 +45,16 @@ test('without WebGL 2, the page says so, and nothing else runs', async ({ page, 
   try {
     // The guard watches the test's own page; a launched browser's is watched here.
     const watch = own === null ? null : await watchPage(target, [baseURL!]);
+    // Playwright's clock, running, so the load timeout can be passed at once below.
+    await target.clock.install();
     await target.goto(baseURL!);
     await expectBootMessage(target, 'W', /^terriest needs WebGL 2$/);
     const webgl2 = await target.evaluate(() => document.createElement('canvas').getContext('webgl2') !== null);
     expect(webgl2, 'WebGL 2 switched off').toBe(false);
+    // The message stays (D-30): past the load timeout, it's still W's.
+    await target.clock.fastForward(20_000);
+    await expect(target.locator('html')).toHaveAttribute('data-boot', 'W');
+    await expect(target.getByRole('main').getByRole('heading', { level: 1 })).toHaveText(/^terriest needs WebGL 2$/);
     if (watch) expectEverywhere(watch);
   } finally {
     await own?.close();
