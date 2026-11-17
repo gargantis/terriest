@@ -422,7 +422,7 @@ Each load warms up for 2 s and then measures for 30 s. Keep the tab in front and
 **Before your result,** the evidence was headless, on this machine's GPU path:
 - **The scene builder's bench,** whose script wasn't kept, on this machine's GPU path at 1280 × 720, with a 10 s window. It drove the page from a stub source. All 12 configurations passed (three engines, two drawers, two qualities), with p95 16.7–17.2 ms and max 16.8–18 ms. In software GL, only Firefox at low quality passed.
 - **The drawn cost page with the real simulation,** on the GPU path at 4× throttle, in Chromium only, over 10 runs: 59.5–60 fps, with a frame p95 of 16.7 ms (`results/verify/drawn-gl.json`).
-- **Not run:** §17's provisional settling, the scene page with the real simulation on the GPU path in all three headless engines. Your load ran on the real GPU, which that path only stands in for.
+- **Run at M1, on 2026-11-17:** §17's provisional settling, for the loads your report didn't cover. The scene page, drawing the real simulation, ran headless on this machine's GPU path, one load at a time. Chromium and Firefox passed every load, at both qualities; WebKit, which stands in only for Safari, failed high quality at pixel ratio 2. They're logged with their figures in [docs/acceptance.md](../../docs/acceptance.md), and stay owner-pending.
 
 ## 8. Proposed amendments to PLAN.md
 
@@ -552,7 +552,7 @@ Replace the models' figures with M0's (run 2):
 
 ## 10. Not measured
 
-- **The rest of run 6** (§7): your report gave one load's verdict, without its browser, quality or figures. Nor has the page with the real simulation run headless on this machine's GPU path in all three engines.
+- **The rest of run 6** (§7): your report gave one load's verdict, without its browser, quality or figures. At M1 the other loads were settled provisionally, headless on this machine's GPU path, which only stands in for your browsers.
 - **The Pixel 8a's CPU and GPU.** 4× DevTools throttling is a crude stand-in. At 1×, 60 Hz pacing doubles the tick, which suggests power management matters as much as the throttle.
 - **Real Safari** (Q-12).
 - **A model at the budget's ceiling:** 8,000 triangles, 32 bones, 512 × 512.

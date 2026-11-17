@@ -10,10 +10,12 @@
 - M0 finished on 2026-11-16: see [research/spike/REPORT.md](research/spike/REPORT.md). Its amendments are marked "M0", in §0, §2–§5, §7, §8, §12, §16, §17 and Appendix A.
   - The five correctness conditions of its stop rule passed. The cost condition fired narrowly, on the tick timed while the page draws (§17).
   - The cost revisit that condition asks for kept D-3's and D-5's settings: 4 substeps, 8 iterations, 2 position passes and the floor in the solve. No cheaper setting kept §16's tests green with every drawn run under 4 ms, though two calls were close (D-3, D-5).
-  - Run 6, the frame verdict on your desktop GPU, came back from you the same day: PASS, on ANGLE's Direct3D 11 path with the Intel Iris Xe. Your report covered one load and didn't name its browser or quality, so the other loads stay open under §17's rule for attended steps (research/spike/REPORT.md §7).
+  - Run 6, the frame verdict on your desktop GPU, came back from you the same day: PASS, on ANGLE's Direct3D 11 path with the Intel Iris Xe. Your report covered one load and didn't name its browser or quality, so the other loads stay open under §17's rule for attended steps (research/spike/REPORT.md §7). On 2026-11-17 Claude settled them provisionally, headless on C-6's GPU path: Chromium and Firefox passed (`docs/acceptance.md`). They stay yours to confirm before the deploy.
+- M1's local exits were met on 2026-11-17, on the branch `m1-skeleton-gate`. A clone made with `--recurse-submodules` builds, and `npm run check` is green in about 76 s (`docs/acceptance.md`). Its first CI run waits for a push, and hermet's docs naming terriest wait on hermet's branch `name-terriest`, both for your go-ahead (§17). Its amendments are marked "M1", in §1, §3, §4, §15–§17 and Appendix A.6.
 
 **Date:** 2026-11-14; approved 2026-11-15.
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
+**Line numbers:** an L-number counts REQUIREMENTS.md's lines at 6254a1d. §2's amendments (06e3ba4) added a line after L286, so from L287 on, each line is one further down in today's file: L306 is today's line 307 (M1).
 
 How to read this:
 - **§0** summarises the plan.
@@ -99,7 +101,7 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 | # | Question | Proposal | Needed by |
 |---|---|---|---|
 | Q-1 | Licence, and whether the repo is public | As roslambo: public, no licence, all rights reserved. `package.json` says `"license": "UNLICENSED"`, the README says no licence is granted, and `public-scan` runs in the gate. Bundled packages' notices still ship (§20). | M1 |
-| Q-2 | The match-ID code: a third copy, or one module shared with amorfus and roslambo? REQUIREMENTS L334 leaves this to you. | A third copy: roslambo's `round-id.ts` and its tests, renamed for matches, with its own Play-again prefix. The two existing codecs share the format, but sharing would change two finished apps and stretch hermet's charter, which is checks rather than app behaviour. A shared module can come later, as one change across all three. | M1 |
+| Q-2 | The match-ID code: a third copy, or one module shared with amorfus and roslambo? REQUIREMENTS L334 leaves this to you. | A third copy: roslambo's `round-id.ts` and its tests, renamed for matches, with its own Play-again prefix. The two existing codecs share the format, but sharing would change two finished apps and stretch hermet's charter, which is checks rather than app behaviour. A shared module can come later, as one change across all three.<br>**M1:** built as `src/core/match-id.ts`, with every roslambo test ported, and the documented example. One difference beyond the rename and the prefix: a link with a malformed `%` escape gives no match ID, where roslambo's router throws. | M1 |
 | Q-20 | roslambo and amorfus: do they take hermet's fix now? Their live sites serve MIT and ISC code without its licence text (C-8). | Bump each to hermet 11283ca, add amorfus's missing notice for its vendored FastNoiseLite as an `extra` entry, run each one's gate, and redeploy each with your go-ahead, outside this plan's milestones. | any time |
 
 ### Group A, settled by you on 2026-11-14
@@ -251,7 +253,7 @@ Four rows waited for a later step. One has gone in, and three still wait:
   - Nothing in a test depends on the frame rate: the timeline runs on timers (D-31), and the gamepad is read on them too (D-29).
   - The gate runs at the low render-quality setting, a real player option (D-33), not a test mode.
   - The gate asserts WebGL 2 before anything else.
-  - An opt-in GPU path, `GALLIUM_DRIVER=d3d12`, reached 60 fps in all three engines here, for faster local runs.
+  - An opt-in GPU path, `GALLIUM_DRIVER=d3d12`, reached 60 fps in all three engines here, for faster local runs. **M1:** the gate passes on it, with M0's ANGLE flags giving Chromium the GPU too. At M1 it's slower, though: 93–94 s against 76–78 s in software, since starting each page costs more than drawing the empty pitch saves. It's there to check the GPU path, and its speed is measured again once the scenes are busy.
   - In CI (§15), M1's first run is the probe for software GL on the hosted runner. If an engine can't draw there, or the runner can't hold the real-page matches, CI runs a separately named `check:ci`, labelled partial, that leaves out exactly those specs, and the local `npm run check` stays the definition of done, as amorfus's D-17 does.
 - **Residual:** the gate never judges frame time. It's judged by hand: on your desktop for now, and on the phone when it runs, planned for M5 (Q-4).
 
@@ -340,6 +342,7 @@ Four rows waited for a later step. One has gone in, and three still wait:
 | C-51 | L43's bandana pattern can't be read at most play distances on the Pixel 8a held sideways. With a 45–60° vertical field of view and about 355 CSS px of height, a 6 cm band is 1.8–2.6 CSS px tall at 10 m and a 2 cm stripe under 1 px (research/audit/REPORT.md §9), which the low setting aliases. Each half's floor is also in its pack's colour (L68). | §12's palette test, pack against pack and against both floors; the look book at phone size; a pack cue offered at Q-11 |
 | C-52 | On Windows, the Sticky Keys shortcut, on by default, opens a prompt after five Shift presses, and Shift is zoomies (L77). The prompt takes focus, so every key is released (D-29) and the terrier stops until it's dismissed. | Zoomies stays on Shift (L77). The README says how to turn the shortcut off, and on Windows only, the keyboard's control hint says so too (D-29). |
 | C-53 | L102 lists no goal whistle, but L202 has one, and L265 rules out sound beyond L102's list. | §2: a whistle with a goal's chorus, at the confirmed tick (D-32) |
+| C-54 | hermet's checks have gaps, found by M1's review. The dist audit misses a host written with an upper-case scheme (`HTTPS://`), one in a JS string that starts with `//`, and anything in a shipped `.svg`, whose text it never reads. public-scan misses a home path that ends at the user's name, and the Windows path into WSL (`\\wsl.localhost\…\home\<name>\…`). Its private denylist, `TERRIEST_PRIVATE_TERMS`, isn't set on this machine, so only the built-in patterns run here too. | A hermet change, for your go-ahead, needed before any `.svg` ships (§15). Until then, D-38's lint bans src's root-absolute and `//` URL literals, the e2e guard fails any request a test makes outside its servers, and `public-scan` says when it ran without the denylist. Setting the variable, to a file kept outside the repo, is yours (README). |
 
 ---
 
@@ -733,6 +736,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - a screen wake lock is held during Pre-match and Match, and on Propose until someone joins, where the browser offers one. It's requested again at each `visibilitychange` to visible, since the browser drops it whenever the page is hidden.
 - **Desktops (L170):** Pre-match's and Match's pitch fills the window at any size, with the screen's other contents drawn over it.
 - **Leaving:** during Pre-match and Match, a `beforeunload` guard asks before the page is left. Chrome on Android shows it once the page has had a touch; iOS Safari doesn't.
+- **M1:** the boot codes are amorfus's F (`file://`), S (an insecure context) and L (the load timeout, 20 s), plus W (no WebGL 2). The module makes the WebGL 2 context and reports W, so if the module never loads, L shows instead. The page leaves out `viewport-fit=cover`, so the browser keeps it inside the safe-area insets. M4's phone layout opts in, and then pads the messages and frames the pitch itself.
 - **Cost if wrong:** low.
 
 **D-31 — Hidden tabs (roslambo D-23, as amended 2026-10-25).** The timeline runs on timers, not animation frames. A hidden page keeps sending, with nothing held, and only a page frozen for more than 2 s rejoins from a peer. Practice pauses instead, with its menu open (D-22, Q-15). Frame times are judged on a visible page.
@@ -786,6 +790,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - The gate runs hermet's tests under terriest's own ESLint, ws and vitest. Never edit `vendor/hermet` in place.
 - **Cost if wrong:** as roslambo.
 - **M0, amended** (research/spike/REPORT.md §5.5, §8): the dist audit gains `ignoredPaths: ['/']`, above. No hermet option or tokenizer fix is needed, so M1's pin at 11283ca stands.
+- **M1:** all four options are passed as written. At M1, `textFiles` and `loopbackFiles` (boot.js's localhost example) are needed. `ignoredHosts` exempts nothing until Trystero is bundled at M3, and nor does `ignoredPaths` until GLTFLoader arrives at M4. The audit's gaps are C-54.
 
 **D-38 — Lint boundaries.**
 - **Choice:**
@@ -800,6 +805,14 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - **Testing the lint:** a config test with fixture files, as roslambo's `scripts/eslint/config.test.mjs` does. It lints every banned construct in each group (`src/core/sim`, `src/core/bot`, `src/core/timeline`, `src/render`, `src/ui`, `src/net`, `src/storage`), D-1's `const { sin } = Math` included, and expects it to fail or pass as that group's rules say, not one directory per rule.
 - **Cost if wrong:** none.
 - **M0, amended** (research/spike/REPORT.md §6, §8): the spike's verifier found three gaps in its lint, none of them present in its simulation. A `.tsx` or `.jsx` file isn't linted at all; a parameter typed `typeof Math` and called as `m.sin()` isn't caught; and nor is `toLocaleString`. So in `src/core/sim` and `src/core/bot`, every script extension is linted, a `typeof Math` parameter and `toLocaleString` are banned, and the config test covers all three.
+- **M1, amended:** the lint is stricter than the list above, with a fixture for each ban in the config test (117 tests):
+  - every script extension is linted in every group, with typescript-eslint's rules;
+  - in `src/core/sim` and `src/core/bot`, `Math` appears only as `Math.<name>`, so no type or key reaches it either, and every `toLocale…` method and `localeCompare` is banned;
+  - `src/core`'s globals are an allowlist, with `no-undef` on: `console`, `crypto`, `structuredClone`, `TextDecoder`, `TextEncoder` and `URL`, plus `process` in its tests;
+  - `import()` takes only a plain string, and no import path detours through `node_modules`, through a `.` or `..` after a named folder, or through `//`;
+  - an inline type import or re-export that compiles to a bare import is banned, since `verbatimModuleSyntax` keeps the import, and Vite then bundles the module;
+  - the subpath bans also cover template literals, `+` chains, `window.open`, `location.hash =` (§11) and any root-absolute `.href` or `.src`;
+  - `src/config.ts` is held to exact operations by `src/config.test.ts`, which lints its text as if it were in `src/core/sim`.
 
 ### Bots
 
@@ -1148,6 +1161,11 @@ D-39, with roslambo's hosting:
 | `deploy` | `check && wrangler deploy`, with wrangler's stored login (Q-6); each run waits for your go-ahead |
 | `emit-goldens` | rewrites the golden hashes; refuses unless `TERRIEST_EMIT_GOLDENS=1` |
 
+**M1:**
+- `dev:local` arrives at M3, `emit-goldens` at M2, and the per-chunk size plugin with M4's drawers.
+- A `precheck` step runs prebuild's submodule check before the gate too, since lint imports `vendor/hermet` first.
+- In `playwright.config.ts`, a spec that launches every engine itself is named `*.net.spec.ts` and runs once. Every other spec runs in each engine's project, and a `test.only` fails the run.
+
 **`dev:local`:** the dev server hands the page the local relay's URL through a dev-only Vite variable, read only under `import.meta.env.DEV`, so the build drops it. There, the screens and the `#test=net` page both use it as their only relay, with the browsers' default ICE, never roslambo's `local: true`: its loopback rewrite works only for the end-to-end tests' specially launched engines (`e2e/lib/browsers.ts`, from roslambo).
 
 **A fresh clone:** `vendor/hermet` is a submodule, which `npm install` doesn't fetch. So L279's `npm install && npm run build` holds from a clone made with `--recurse-submodules`, or after `git submodule update --init`, as the README's Run section says, like roslambo's.
@@ -1297,7 +1315,7 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
 - **The site served from a subpath**, with every request staying under it (L232).
 - **A build mismatch** is refused with its message. **A failed canary** says why on Propose and Join, and Practice still plays (D-23).
 - **How the insecure context, the subpath, the mismatch and the failed canary are made:** the insecure context is `http://insecure.test/`, and the subpath mount is `/a/b/` on the preview's own origin. Both are fulfilled from `dist/` by Playwright's request interception, because `vite preview` answers 403 to a Host it doesn't list and serves only `/`; amorfus's strict server, which accepts any Host, would also do. The mismatched peer loads the bundle rewritten through interception, so that its build hash differs, and the failed canary's page loads it with the canary's expected hash rewritten the same way.
-- **Everywhere:** no request outside `third-party.json`, and no console errors. A test that reloads or leaves a match accepts D-30's leave prompt.
+- **Everywhere:** no request outside `third-party.json`, and no console errors. A test that reloads or leaves a match accepts D-30's leave prompt. **M1:** the guard is stricter. A test may reach only the servers it loads from and a local relay it names, so the gate contacts no public host at all, as this section's heading says, and the engines' WebGL warnings count as errors. `third-party.json` still bounds what the build may name (the dist audit) and, from M3, what the app contacts.
 
 **By hand, for now** (you, on your desktop; logged in `docs/acceptance.md` from M1; if one has to wait, §17's rule for attended steps applies):
 - **M0:** the spike's scene page in Chrome, Edge and Firefox on Windows (`http://localhost:<port>`, through WSL2's forwarding): its frame verdict on your GPU, recorded in `research/spike/REPORT.md`.
@@ -1342,7 +1360,7 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
   3. **Cost:** tick cost with a 13-step replay every tick, timed on run 1's most contact-heavy script (4 a side scrumming at the ball against a wall), with contacts per substep reported beside each cost. Then the worst single ticks on the same script, each against L286's 50 ms maximum frame: a resync (about 30 steps), a joiner's catch-up (about 42) and a late-vote repair (up to about 270) (C-2; research/audit/REPORT.md §9). Both on the desktop and in Chromium at the Pixel 8a's size, at 1× and 4× CPU throttle.
   4. **The page in all three headless engines at once,** served with D-35's `_headers` applied: frame-rate independence; draw counts and download sizes for both drawers; and the stand-in's embedded texture loading under the content security policy.
   5. **The audit:** every finding classified (C-9).
-  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and read off the frame verdict. *M0:* you reported PASS on 2026-11-16, on ANGLE's Direct3D 11 path with the Intel Iris Xe, for one load whose browser and quality the report didn't name. The other loads stay open under the rule for attended steps above, and research/spike/REPORT.md §7 says how to run them.
+  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and read off the frame verdict. *M0:* you reported PASS on 2026-11-16, on ANGLE's Direct3D 11 path with the Intel Iris Xe, for one load whose browser and quality the report didn't name. The other loads stay open under the rule for attended steps above, and research/spike/REPORT.md §7 says how to run them. *M1:* on 2026-11-17 Claude settled them provisionally, headless on C-6's GPU path: Chromium and Firefox passed every load, and are logged in `docs/acceptance.md` as owner-pending.
 - *Questions answered,* each with a number in `research/spike/REPORT.md`:
   - determinism, pass or fail per engine;
   - whether resting contact is bit-still;
@@ -1378,6 +1396,7 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
   - `npm install && npm run build` emits `dist/` from a clone made with `--recurse-submodules`, or after `git submodule update --init`, as the README's Run section says (§15);
   - `npm run check` is green locally, and in CI once pushed, or in `check:ci` if the first CI run shows the hosted runner can't draw or hold the matches (§15);
   - the gate's wall time is logged in `docs/acceptance.md`, and so is the first CI run once pushed.
+- *M1, on 2026-11-17:* the local exits are met. A clone made with `--recurse-submodules` from the branch, with hermet fetched from GitHub, builds with `npm install && npm run build`, and `npm run check` is green in about 76 s, logged. The first CI run waits for your push. hermet's docs are on hermet's branch `name-terriest`, waiting for your go-ahead to land and push them.
 
 **M2 — Simulation core, tuning and the bot brain**
 - *Build:*
@@ -1666,6 +1685,11 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 ### A.6 Toolchain pins
 
 roslambo's (its PLAN A.6, checked 2026-10-24), re-checked at M1: Node ≥ 22.12 (`.nvmrc` 22), vite ^8.3, typescript ~6.0, eslint ^10 with typescript-eslint ^8.72, vitest ^4.1, fast-check ^4.10, `@playwright/test` 1.64.1 exact, wrangler ^4.152, `@trystero-p2p/nostr` 0.26.0 exact, ws ^8 (dev). Plus three 0.187.0 exact (checked on npm 2026-11-14); `@types/three` 0.187.0 exact (dev), since three ships no types of its own, which M0 found exists (D-34); and `@axe-core/playwright` ^4.10 (dev), as amorfus pins it. These are re-checked at M1 with the rest.
+
+**M1, re-checked on 2026-11-16:**
+- **The lockfile holds** vite 8.3.6, typescript 6.0.3, eslint 10.14.0, `@eslint/js` 10.0.1, typescript-eslint 8.72.1, vitest 4.1.12, fast-check 4.10.2, `@playwright/test` 1.64.1, wrangler 4.158.0, ws 8.22.2, `@types/node` 22.20.5, three 0.187.0, `@types/three` 0.187.0, `@axe-core/playwright` 4.14.0 and `@trystero-p2p/nostr` 0.26.0.
+- **No package in it is under a week old.** It was resolved with `npm install --before` set a week back. That held back typescript-eslint 8.73.0 and wrangler 4.163.0, both published that day; wrangler holds the deploy login. A change of dependencies resolves the same way.
+- **Newer releases outside the pins:** typescript 7.0 and vitest 5.1, both new majors; `@playwright/test` 1.65.1, though the installed browsers are 1.64.1's; and `@trystero-p2p/nostr` 0.27.0, which D-18 doesn't take.
 
 ### A.7 `wrangler.jsonc`
 
