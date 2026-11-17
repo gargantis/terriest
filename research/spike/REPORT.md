@@ -1,6 +1,6 @@
 # M0 physics and rendering spike: report
 
-**Date:** 2026-11-15. The results files' timestamps are in UTC, early on 2026-11-16. The cost revisit and its verification ran later on 2026-11-16 (§4).
+**Date:** 2026-11-15. The results files' timestamps are in UTC, early on 2026-11-16. The cost revisit and its verification ran later on 2026-11-16 (§4), and you reported run 6 the same day (§7).
 **Answers:** [PLAN.md](../../PLAN.md) §17 M0 (D-36): the exact-ops contact solver and the three.js page, measured before M1.
 **Verdict:** the solver works and the page fits its budget, but the tick cost has no margin.
 - **The five correctness conditions of the stop rule pass.** Node, Chromium, Firefox and WebKit agree bit for bit. A resting ball is bit-still, simultaneous hitters gain no energy, and mirrored kickoffs stay exactly mirrored. One slip-out rule passes all four of §16's cases: a 42° cone with a slipping flag.
@@ -8,7 +8,7 @@
 - **The revisit it asks for keeps the settings, on two close calls.** Of the cheaper settings tried, only 6 or 4 solver iterations keep every test green, and both have drawn runs over 4 ms. 4 iterations sits on the line: 8 of its 20 drawn runs went over, with a median of 3.95 ms. Every setting whose drawn runs all stayed under 4 ms fails one test: a terrier pressing the ball into a wall never comes to rest. That test is M0's own, and §8 proposes it for §16. So D-3's and D-5's settings stay (§4).
 - **The late-vote repair is too slow.** Its 270 steps take up to 96 ms at 4×, so D-11's spread is needed at M3.
 - **The page passes its checks.** Its counts are within §12's guesses. D-35's policy is right as written, because GLTFLoader needs `blob:` in connect-src. The dist audit needs two app options and no hermet change.
-- **Still owed:** run 6, the frame verdict on your desktop GPU (§7).
+- **Run 6, the frame verdict on your desktop GPU, passed** in the one load you reported, on ANGLE's Direct3D 11 path with the Intel Iris Xe. The report didn't say which browser and quality that was, so §7's other loads are still open.
 
 ## 1. Setup
 
@@ -58,7 +58,7 @@ Everything is in this folder, with its own toolchain (D-36). Nothing outside it 
 | Which slip-out rule passes §16's cases, and how soon it brings the ball down | **A 42° cone from vertical with the slipping flag,** at 2 m/s.<br>• A ball resting on pushers comes down within 1.383 s of first landing on them (864 cases, against a 1.5 s mark).<br>• Between two sitting terriers it comes down within 0.471 s (against 0.5 s).<br>• 336 dribbles never slip out.<br>• Kickoff pinches come down 0.433–1.650 s after landing, mirrored.<br>The same rule with restitution 0 also passes. None of the other 14 candidates does. | Run 2 |
 | Does a mirrored kickoff stay mirrored? | **Yes, exactly.** 37 mirrored runs, 345,600 substeps and 36.9 million values compared after every substep, with 1,884 slip-outs inside them: no mismatch. | Run 2 |
 | Tick cost per step and per tick, with its contacts per substep, and the worst single ticks | Measured on the plan's script, at **11.65 contacts per substep** (8.53 of them the floor's, at most 19), in Chromium.<br>• **Per step:** 26.5–29.9 µs at 1×, and 129–148 µs at 4×.<br>• **A 13-step tick's p95:** 0.55–0.71 ms at 1×. At 4×, 2.86–3.39 ms with nothing drawn, or 3.49–4.60 ms while the page draws.<br>• **Worst ticks at 4×:** 30 steps took at most 15.5 ms and 42 steps 23.3 ms. 270 steps took 47.7–96.2 ms at most, over 50 ms in 21 of 24 configuration runs. | Run 3 |
-| Frame time on your desktop GPU | **Not measured yet:** run 6 is yours (§7). On this machine's GPU, headless, the scene passed in all 12 configurations of engine, drawer and quality: p95 at most 17.2 ms, max at most 18 ms. That bench drove the scene from a stub, not the simulation. | §7 |
+| Frame time on your desktop GPU | **PASS** in the one load you reported: p95 ≤ 18 ms and max ≤ 50 ms at 60 Hz, on ANGLE's Direct3D 11 path with the Intel Iris Xe. The report gave the verdict and the renderer, but not the browser, the quality or the interval's figures, so the other loads are still open (§7). Before it, headless on this machine's GPU path, the scene passed in all 12 configurations of engine, drawer and quality: p95 at most 17.2 ms, max at most 18 ms. That bench drove the scene from a stub, not the simulation. | Run 6 |
 | The spike's counts against the drawing budget's starting guesses | **All under the guesses.**<br>• A code-built terrier: 1,516 triangles, against 2,000.<br>• The stand-in: 2,220 triangles, 8 bones and a 256 × 256 texture, against 8,000, 32 and 512 × 512.<br>• 8 terriers in 9 draw calls code-built and 16 with the stand-in, against 40.<br>• Download per drawer, brotli, three not included: at most 23,747 B code-built, and 30,572 B more with the stand-in, against 200 KB.<br>M0 lowers none of the figures (§8). | Runs 4 and 5 |
 | What three.js and GLTFLoader cost to download | **three's core:** 118,806 B brotli (594,863 raw), shared by both paths. **The model chunk** (GLTFLoader, SkeletonUtils and the drawer): 13,320 B (49,773 raw), loaded on the model path only. Another 10,014 B of three's core serve only GLTFLoader, but they ship in the entry chunk, which both paths load. | Run 5 |
 | What the content security policy must allow for GLTFLoader | **`blob:` in connect-src,** as D-35 plans. Under amorfus's policy, each engine refuses one fetch (connect-src blocking `blob:`) and the embedded texture is missing. Under D-35's policy exactly as written, the texture loads at 256 × 256 in all three engines, with nothing refused. | Run 4 |
@@ -374,6 +374,8 @@ The verification round (`scripts/verify/`, `results/verify/`) re-checked each co
 
 It answers "frame time on your desktop GPU" (§16, "By hand"). The measure is roslambo's verdict: the interval between animation frames at p95 ≤ 18 ms and max ≤ 50 ms, with the display at 60 Hz. The page is the spike's scene, drawing the simulation's 4-a-side showcase.
 
+**Your result, 2026-11-16: PASS** in one load, on ANGLE's Direct3D 11 path with the Intel Iris Xe Graphics. The renderer line names your GPU, not a software renderer, so the load counts. Your report gave the box's verdict line and its renderer line. It didn't name the browser, or give the quality from the box's second line or the interval's figures from the line below the verdict. So it fills the first row of the table below, and the other loads are still open. §17's rule for attended steps covers them: they don't hold up M1, and they land before M5's deploy.
+
 **Serve it** from a WSL terminal, in this repo:
 
 ```sh
@@ -409,6 +411,7 @@ Each load warms up for 2 s and then measures for 30 s. Keep the tab in front and
 
 | Browser and version | Quality | Verdict | p95 (ms) | max (ms) | Frames in 30 s | Renderer |
 |---|---|---|---|---|---|---|
+| Not stated | Not stated | **PASS** | not given | not given | not given | ANGLE, Direct3D 11, Intel Iris Xe Graphics |
 | Chrome | high | | | | | |
 | Chrome | low | | | | | |
 | Edge | high | | | | | |
@@ -416,10 +419,10 @@ Each load warms up for 2 s and then measures for 30 s. Keep the tab in front and
 | Firefox | high | | | | | |
 | Firefox | low | | | | | |
 
-**Until then:** per §17, if run 6 hasn't happened when M0's other exits are met, Claude settles it provisionally in the headless engines on C-6's GPU path. What exists so far:
+**Before your result,** the evidence was headless, on this machine's GPU path:
 - **The scene builder's bench,** whose script wasn't kept, on this machine's GPU path at 1280 × 720, with a 10 s window. It drove the page from a stub source. All 12 configurations passed (three engines, two drawers, two qualities), with p95 16.7–17.2 ms and max 16.8–18 ms. In software GL, only Firefox at low quality passed.
 - **The drawn cost page with the real simulation,** on the GPU path at 4× throttle, in Chromium only, over 10 runs: 59.5–60 fps, with a frame p95 of 16.7 ms (`results/verify/drawn-gl.json`).
-- **Not run yet:** the settling run itself, the scene page with the real simulation on the GPU path in all three engines.
+- **Not run:** §17's provisional settling, the scene page with the real simulation on the GPU path in all three headless engines. Your load ran on the real GPU, which that path only stands in for.
 
 ## 8. Proposed amendments to PLAN.md
 
@@ -549,7 +552,7 @@ Replace the models' figures with M0's (run 2):
 
 ## 10. Not measured
 
-- **Your desktop GPU** (run 6), and the page with the real simulation on this machine's GPU path in all three engines.
+- **The rest of run 6** (§7): your report gave one load's verdict, without its browser, quality or figures. Nor has the page with the real simulation run headless on this machine's GPU path in all three engines.
 - **The Pixel 8a's CPU and GPU.** 4× DevTools throttling is a crude stand-in. At 1×, 60 Hz pacing doubles the tick, which suggests power management matters as much as the throttle.
 - **Real Safari** (Q-12).
 - **A model at the budget's ceiling:** 8,000 triangles, 32 bones, 512 × 512.

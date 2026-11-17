@@ -7,9 +7,10 @@
   - The phone, a third device and a gamepad come up again before M5, as Q-4 proposed.
   - REQUIREMENTS L342 and L345 ask for the phone early, so until it runs, the drawing budget stays provisional (C-2).
 - *The owner, 2026-11-14:* the domain is terriest.com, on Cloudflare (Q-5). Deploys use wrangler's stored full login (Q-6). Make hermet's licence fix and push it (Q-3): done, pushed to hermet's main as 11283ca. roslambo and amorfus take it, as Q-20 proposes.
-- M0 finished on 2026-11-16, except run 6, which waits for the owner under §17's rule for attended steps: see [research/spike/REPORT.md](research/spike/REPORT.md). Its amendments are marked "M0", in §0, §2–§5, §7, §8, §12, §16, §17 and Appendix A.
+- M0 finished on 2026-11-16: see [research/spike/REPORT.md](research/spike/REPORT.md). Its amendments are marked "M0", in §0, §2–§5, §7, §8, §12, §16, §17 and Appendix A.
   - The five correctness conditions of its stop rule passed. The cost condition fired narrowly, on the tick timed while the page draws (§17).
   - The cost revisit that condition asks for kept D-3's and D-5's settings: 4 substeps, 8 iterations, 2 position passes and the floor in the solve. No cheaper setting kept §16's tests green with every drawn run under 4 ms, though two calls were close (D-3, D-5).
+  - Run 6, the frame verdict on your desktop GPU, came back from you the same day: PASS, on ANGLE's Direct3D 11 path with the Intel Iris Xe. Your report covered one load and didn't name its browser or quality, so the other loads stay open under §17's rule for attended steps (research/spike/REPORT.md §7).
 
 **Date:** 2026-11-14; approved 2026-11-15.
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
@@ -85,7 +86,7 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 
 **Approved** on 2026-11-15, at its defaults, with the settlements recorded at the top of §1.
 
-**What this rests on (§5):** your requirements; roslambo's, amorfus's and hermet's plans, code and reports; a two-round audit on 2026-11-14 that checked every claim the requirements make about them, probed WebGL 2 in the three headless engines here, and rebuilt both siblings to confirm the licence bug, then hermet's fix; and two reviews of this plan's drafts, which modelled the solver, the timeline and the cameras. Nothing in the physics or rendering has been measured yet. Every cost here is an estimate, labelled as one. **M0** has since measured both on this machine, all but run 6's frame verdict, though not the phone, and its numbers are marked M0 (§5).
+**What this rests on (§5):** your requirements; roslambo's, amorfus's and hermet's plans, code and reports; a two-round audit on 2026-11-14 that checked every claim the requirements make about them, probed WebGL 2 in the three headless engines here, and rebuilt both siblings to confirm the licence bug, then hermet's fix; and two reviews of this plan's drafts, which modelled the solver, the timeline and the cameras. Nothing in the physics or rendering has been measured yet. Every cost here is an estimate, labelled as one. **M0** has since measured both on this machine, run 6's frame verdict in one of your browsers included, though not the phone, and its numbers are marked M0 (§5).
 
 ---
 
@@ -832,7 +833,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 - The example match ID's check character (C-15).
 - npm, read only: three 0.187.0 (MIT), `@trystero-p2p/nostr` 0.26.0, and the hermet submodule fetchable at 18a37b2.
 
-**Measured since approval:** M0, in [research/spike/REPORT.md](research/spike/REPORT.md), on this machine: the contact solver in four engines, the page's counts and downloads, three.js's audit, and the tick cost in throttled Chromium. Its frame verdict on your desktop GPU, run 6, waits for you.
+**Measured since approval:** M0, in [research/spike/REPORT.md](research/spike/REPORT.md), on this machine: the contact solver in four engines, the page's counts and downloads, three.js's audit, and the tick cost in throttled Chromium. Its frame verdict on your desktop GPU, run 6, passed in the one load you reported, and its other loads are open.
 
 **Not measured** when the plan was written: the contact solver, three.js's bundle and its audit, the phone, real networks, and every cost in this plan. M0 has since measured the first three on the desktop (above); the phone's first run is planned for M5 (Q-4).
 
@@ -1341,7 +1342,7 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
   3. **Cost:** tick cost with a 13-step replay every tick, timed on run 1's most contact-heavy script (4 a side scrumming at the ball against a wall), with contacts per substep reported beside each cost. Then the worst single ticks on the same script, each against L286's 50 ms maximum frame: a resync (about 30 steps), a joiner's catch-up (about 42) and a late-vote repair (up to about 270) (C-2; research/audit/REPORT.md §9). Both on the desktop and in Chromium at the Pixel 8a's size, at 1× and 4× CPU throttle.
   4. **The page in all three headless engines at once,** served with D-35's `_headers` applied: frame-rate independence; draw counts and download sizes for both drawers; and the stand-in's embedded texture loading under the content security policy.
   5. **The audit:** every finding classified (C-9).
-  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and read off the frame verdict. *M0:* it waits for you, and research/spike/REPORT.md §7 says how. Until then, the rule for attended steps above applies.
+  6. **By hand:** you open the page in Chrome, Edge and Firefox on Windows, and read off the frame verdict. *M0:* you reported PASS on 2026-11-16, on ANGLE's Direct3D 11 path with the Intel Iris Xe, for one load whose browser and quality the report didn't name. The other loads stay open under the rule for attended steps above, and research/spike/REPORT.md §7 says how to run them.
 - *Questions answered,* each with a number in `research/spike/REPORT.md`:
   - determinism, pass or fail per engine;
   - whether resting contact is bit-still;
