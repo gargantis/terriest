@@ -1,10 +1,10 @@
 // The pitch as a list of bounded static pieces (PLAN D-4, §7.3), built from
-// the configuration's pitch shape: M0's buildPitch, without its contact
-// tests, which arrive at M2. Each piece is convex, and each has its point
-// mirror, (x, y, z) → (−x, −y, z), in the list: the floor and the overhead
-// net are their own, and every other piece is built once and reflected by
-// negating x and y, so a mirrored body meets a bit-for-bit mirrored contact
-// (D-5's mirror pairs, P8).
+// the configuration's pitch shape: M0's buildPitch, and from M2 its contact
+// tests, pieceContact and insideRegion (design §1.7). Each piece is convex,
+// and each has its point mirror, (x, y, z) → (−x, −y, z), in the list: the
+// floor and the overhead net are their own, and every other piece is built
+// once and reflected by negating x and y, so a mirrored body meets a
+// bit-for-bit mirrored contact (D-5's mirror pairs, P8).
 //
 //   planes:   the floor and the overhead net;
 //   quads:    the side walls, the four cut corners, the end-wall panels
@@ -257,6 +257,107 @@ export function insideFloorPlan(shape: PitchShape, x: number, y: number, margin 
     hx - x + (hy - y) >= c2 + m && // (+x,+y)
     x + hx + (hy - y) >= c3 + m // (−x,+y)
   );
+}
+
+// --- Contact tests (D-5 step 3; design §1.7): the M0 spike's pitch.ts ---
+
+/** Output of pieceContact: the unit normal from the piece toward the body,
+ *  and the depth of the overlap (≥ 0 when in contact). */
+export interface PieceHit { nx: number; ny: number; nz: number; depth: number }
+
+/** The sphere (c, r) against a piece: true, with the normal and depth, when
+ *  they touch or overlap. Faces of planes and quads are one-sided: a centre
+ *  up to r behind a face is pushed back out the front. Quad edges, quad
+ *  corners and capsules use the true closest point. */
+export function pieceContact(p: Piece, cx: number, cy: number, cz: number, r: number, out: PieceHit): boolean {
+  if (p.kind === PLANE) {
+    const h = (cx - p.ox) * p.nx + (cy - p.oy) * p.ny + (cz - p.oz) * p.nz;
+    if (h > r) return false;
+    out.nx = p.nx; out.ny = p.ny; out.nz = p.nz; out.depth = r - h;
+    return true;
+  }
+  // The cheap bound test.
+  if (cx + r < p.minX || cx - r > p.maxX || cy + r < p.minY || cy - r > p.maxY || cz + r < p.minZ || cz - r > p.maxZ) return false;
+  const dx = cx - p.ox;
+  const dy = cy - p.oy;
+  const dz = cz - p.oz;
+  if (p.kind === QUAD) {
+    const h = dx * p.nx + dy * p.ny + dz * p.nz;
+    if (h > r || h < -r) return false;
+    let u = (dx * p.e1x + dy * p.e1y + dz * p.e1z) * p.inv1;
+    let w = (dx * p.e2x + dy * p.e2y + dz * p.e2z) * p.inv2;
+    if (u >= 0 && u <= 1 && w >= 0 && w <= 1) {
+      out.nx = p.nx; out.ny = p.ny; out.nz = p.nz; out.depth = r - h;
+      return true;
+    }
+    u = u < 0 ? 0 : u > 1 ? 1 : u;
+    w = w < 0 ? 0 : w > 1 ? 1 : w;
+    const qx = dx - (u * p.e1x + w * p.e2x);
+    const qy = dy - (u * p.e1y + w * p.e2y);
+    const qz = dz - (u * p.e1z + w * p.e2z);
+    return toward(qx, qy, qz, r, p, out);
+  }
+  // Capsule: the closest point on the segment o → o + e1.
+  let t = (dx * p.e1x + dy * p.e1y + dz * p.e1z) * p.inv1;
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  const qx = dx - t * p.e1x;
+  const qy = dy - t * p.e1y;
+  const qz = dz - t * p.e1z;
+  return toward(qx, qy, qz, r + p.radius, p, out);
+}
+
+/** The contact along (qx, qy, qz), from the closest point to the centre. */
+function toward(qx: number, qy: number, qz: number, reach: number, p: Piece, out: PieceHit): boolean {
+  const d2 = qx * qx + qy * qy + qz * qz;
+  if (d2 > reach * reach) return false;
+  const d = Math.sqrt(d2);
+  if (d === 0) {
+    // A centre exactly on the piece: the face normal, or +z for a capsule.
+    if (p.kind === QUAD) { out.nx = p.nx; out.ny = p.ny; out.nz = p.nz; } else { out.nx = 0; out.ny = 0; out.nz = 1; }
+    out.depth = reach;
+    return true;
+  }
+  out.nx = qx / d; out.ny = qy / d; out.nz = qz / d; out.depth = reach - d;
+  return true;
+}
+
+/** Whether a point is inside the space the pieces enclose: the pitch's floor
+ *  plan under the overhead net, or a goal box under its top netting, with
+ *  tol of slack. For the tests (§16's fuzz): a centre outside it has gone
+ *  through a piece. */
+export function insideRegion(shape: PitchShape, x: number, y: number, z: number, tol: number): boolean {
+  const hx = shape.lengthMetres / 2;
+  const hy = shape.widthMetres / 2;
+  if (z < -tol) return false;
+  const ax = x < 0 ? -x : x;
+  if (ax <= hx + tol) {
+    if (y < -hy - tol || y > hy + tol || z > shape.heightMetres + tol) return false;
+    const cuts = shape.cornerCutsMetres;
+    // Each cut line: the distances from the corner along both walls sum to the cut.
+    const m = tol * Math.sqrt(2);
+    if (x + hx + (y + hy) < cuts[0] - m) return false; // (−x,−y)
+    if (hx - x + (y + hy) < cuts[1] - m) return false; // (+x,−y)
+    if (hx - x + (hy - y) < cuts[2] - m) return false; // (+x,+y)
+    if (x + hx + (hy - y) < cuts[3] - m) return false; // (−x,+y)
+    return true;
+  }
+  // Behind a goal line: only inside the goal box.
+  const gy = shape.mouthWidthMetres / 2;
+  return ax <= hx + shape.goalDepthMetres + tol && y >= -gy - tol && y <= gy + tol && z <= shape.mouthHeightMetres + tol;
+}
+
+/** The deepest overlap of a sphere with any piece, the floor included. */
+export function deepestOverlap(pitch: Pitch, x: number, y: number, z: number, r: number): { depth: number; piece: string } {
+  const hit: PieceHit = { nx: 0, ny: 0, nz: 0, depth: 0 };
+  let depth = 0;
+  let piece = '';
+  for (const p of pitch.pieces) {
+    if (pieceContact(p, x, y, z, r, hit) && hit.depth > depth) {
+      depth = hit.depth;
+      piece = p.name;
+    }
+  }
+  return { depth, piece };
 }
 
 /** The pitch of the configuration. */
