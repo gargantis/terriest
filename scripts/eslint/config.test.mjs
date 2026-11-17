@@ -10,6 +10,11 @@ import { fileURLToPath } from 'node:url';
 // and the storage properties are looped over below.
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const eslint = new ESLint({ cwd: root });
+// The first lint loads the config, typescript-eslint and TypeScript: about
+// 2 s on the development machine, and past vitest's 5 s default for a test
+// when the machine is busy (M1). So these tests get a minute, as
+// src/config.test.ts's lint does. The checks are the same.
+const LINT_TIMEOUT_MS = 60_000;
 
 // A file in each group, and core's tests, which take the rest of src/core's
 // rules and may read the environment.
@@ -210,7 +215,7 @@ const sections = (file) =>
     .map((s) => [s.slice(0, s.indexOf('\n')).trim(), s.slice(s.indexOf('\n') + 1)]);
 const fixtures = readdirSync(FIXTURES).filter((f) => f.endsWith('.fixture')).sort();
 
-describe('the project lint, group by group (D-38)', () => {
+describe('the project lint, group by group (D-38)', { timeout: LINT_TIMEOUT_MS }, () => {
   it('has an expectation for every construct in the fixtures, and a construct for every expectation', () => {
     const names = fixtures.flatMap((f) => sections(f).map(([name]) => name));
     expect([...names].sort()).toEqual(Object.keys(EXPECT).sort());
@@ -254,7 +259,7 @@ describe('the project lint, group by group (D-38)', () => {
   });
 });
 
-describe('the files the lint reaches', () => {
+describe('the files the lint reaches', { timeout: LINT_TIMEOUT_MS }, () => {
   const EXTS = ['ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs'];
 
   it('lints every script extension in src/core/sim and src/core/bot (D-38, M0)', async () => {

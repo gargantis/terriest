@@ -21,11 +21,17 @@ export interface PageWatch {
   requests: string[];
   /** URL prefixes the page may request: a server's base URL, the local relay's ws:// URL. */
   allowed: string[];
+  /**
+   * The browser's own console errors for something a test breaks on
+   * purpose, such as a module script it refuses (§16): each pattern must
+   * match an error's whole text.
+   */
+  allowedErrors: RegExp[];
 }
 
 /** Records console errors, page errors and every request, WebSockets included. */
 export async function watchPage(page: Page, allowed: string[] = []): Promise<PageWatch> {
-  const w: PageWatch = { errors: [], requests: [], allowed };
+  const w: PageWatch = { errors: [], requests: [], allowed, allowedErrors: [] };
   page.on('console', (m) => {
     if (m.type() === 'error') w.errors.push(m.text());
   });
@@ -56,9 +62,11 @@ export function outsideRequests(w: PageWatch): string[] {
   });
 }
 
-/** Fails unless the page logged no error and requested nothing outside. */
+/** Fails unless the page logged no error but those allowed, and requested nothing outside. */
 export function expectEverywhere(w: PageWatch): void {
-  expect(w.errors, 'console errors (PLAN §16, Everywhere)').toEqual([]);
+  const whole = w.allowedErrors.map((re) => new RegExp(`^(?:${re.source})$`, re.flags.replace('g', '')));
+  const errors = w.errors.filter((e) => !whole.some((re) => re.test(e)));
+  expect(errors, 'console errors (PLAN §16, Everywhere)').toEqual([]);
   expect(outsideRequests(w), `requests outside ${w.allowed.join(', ')} (PLAN §16, Everywhere)`).toEqual([]);
 }
 
@@ -67,7 +75,8 @@ export function expectEverywhere(w: PageWatch): void {
  * than where it last reads the page, so an error the page raises after
  * that still fails it. `guard` watches the test's page from before its
  * first load, allowing the configured base URL; a test that serves the page
- * from elsewhere sets `guard.allowed`. A spec that launches its own
+ * from elsewhere sets `guard.allowed`, and one that breaks a load on
+ * purpose sets `guard.allowedErrors`. A spec that launches its own
  * browsers (a *.net.spec.ts) watches each page and calls expectEverywhere.
  */
 export const test = base.extend<{ guard: PageWatch }>({

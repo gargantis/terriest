@@ -1,0 +1,785 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { ESLint } from 'eslint';
+import ts from 'typescript';
+import { describe, expect, it } from 'vitest';
+import { config, type Config, type Derived, derive, derived, packSpots, type PitchShape, type SpotTable } from './config';
+import { buildPitch, CAPSULE, FRAME, GOAL_NET, insideFloorPlan, type Piece, type Pitch, pitch, PLANE, QUAD } from './core/sim/pitch';
+
+// PLAN §7.4: the configuration checks. Each check returns the problems it
+// finds, so each test runs it on src/config.ts, which must have none, and on
+// a copy with a planted bad value, which it must catch.
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+const read = (path: string): string => readFileSync(`${root}${path}`, 'utf8');
+
+/** A copy of the configuration with some settings changed. */
+const planted = (over: Partial<Config>): Config => ({ ...config, ...over });
+const plantedPitch = (over: Partial<PitchShape>): Config => planted({ pitch: { ...config.pitch, ...over } });
+
+const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
+// --- No tunnelling (D-3) ---
+
+/** The fastest body moves less than the smallest radius in a substep, and
+ *  the fastest pair, two bodies at the bound head on, closes less than the
+ *  smallest radius sum. The bound must cover the speeds the settings give a
+ *  body directly; §16's fuzz checks it in play from M2. */
+function tunnelling(c: Config): string[] {
+  const problems: string[] = [];
+  const bound = c.speedBoundMetresPerSecond;
+  const substep = 1 / (c.ticksPerSecond * c.substepsPerTick);
+  const r = c.terrierRadiusMetres;
+  const R = c.ballRadiusMetres;
+  const radius = Math.min(r, R);
+  const sum = Math.min(r + r, r + R);
+  if (!(bound * substep < radius)) {
+    problems.push(`at ${bound} m/s a body moves ${bound * substep} m in a substep, not less than the smallest radius, ${radius} m`);
+  }
+  if (!(2 * bound * substep < sum)) {
+    problems.push(`two bodies at ${bound} m/s close ${2 * bound * substep} m in a substep, not less than the smallest radius sum, ${sum} m`);
+  }
+  const g = c.gravityMetresPerSecond2;
+  const direct: [string, number][] = [
+    ['run speed', c.runSpeedMetresPerSecond],
+    ['zoomies speed', c.zoomiesSpeedMetresPerSecond],
+    ['a pounce from the air', Math.hypot(c.pounceSpeedMetresPerSecond, Math.sqrt(2 * g * c.jumpHeightMetres))],
+    ['a fall from the overhead net', Math.sqrt(2 * g * c.pitch.heightMetres)],
+  ];
+  for (const [what, v] of direct) if (!(v < bound)) problems.push(`${what} reaches ${v} m/s, not under the ${bound} m/s bound`);
+  return problems;
+}
+
+// --- The windows and the history (A.4) ---
+
+/** The late window and the vote window fit in the state history after the
+ *  input delay, and every TICK's input history covers the delay and the
+ *  late window, as roslambo checks. */
+function history(c: Config): string[] {
+  const problems: string[] = [];
+  const span = c.inputDelayTicks + c.lateWindowTicks + c.voteWindowTicks;
+  if (!(span < c.stateHistoryTicks)) {
+    problems.push(`the input delay, late window and vote window span ${span} ticks, not inside the ${c.stateHistoryTicks}-tick state history`);
+  }
+  if (!(c.inputHistoryTicks >= c.inputDelayTicks + c.lateWindowTicks)) {
+    problems.push(`a TICK's ${c.inputHistoryTicks}-tick input history doesn't cover the input delay and the late window`);
+  }
+  return problems;
+}
+
+// --- Kickoff spots (D-8, A.5) ---
+
+/** For every pack size, each pack has a spot per terrier, inside the pitch
+ *  by a terrier's radius, apart from every other spot and from the ball on
+ *  the centre spot. The spots are mirrored: pack B's are pack A's point
+ *  mirror, and pack A's are symmetric about the long axis, so both readings
+ *  of "mirrored" pick the same set (D-4, C-22). */
+function kickoff(c: Config, spots: readonly [SpotTable, SpotTable] = packSpots(c)): string[] {
+  const problems: string[] = [];
+  const r = c.terrierRadiusMetres;
+  const [a, b] = spots;
+  for (let n = c.packSizeMin; n <= c.packSizeMax; n++) {
+    const sa = a[n] ?? [];
+    const sb = b[n] ?? [];
+    const at = `pack size ${n}`;
+    if (sa.length !== n || sb.length !== n) problems.push(`${at}: ${sa.length} and ${sb.length} spots, not ${n} for each pack`);
+    const all = [...sa, ...sb];
+    all.forEach(([x, y], i) => {
+      if (!insideFloorPlan(c.pitch, x, y, r)) problems.push(`${at}: (${x}, ${y}) isn't inside the pitch by a terrier's radius`);
+      if (!(Math.hypot(x, y) > c.ballRadiusMetres + r)) problems.push(`${at}: a terrier on (${x}, ${y}) touches the ball on the centre spot`);
+      for (const [u, v] of all.slice(i + 1)) {
+        if (!(Math.hypot(x - u, y - v) > 2 * r)) problems.push(`${at}: terriers on (${x}, ${y}) and (${u}, ${v}) touch`);
+      }
+    });
+    sa.forEach(([x, y], k) => {
+      const m = sb[k];
+      if (!m || m[0] !== -x || m[1] !== -y) problems.push(`${at}: pack B's spot ${k} isn't pack A's (${x}, ${y}) point-mirrored`);
+      if (!sa.some(([u, v]) => u === x && v === -y)) problems.push(`${at}: pack A's (${x}, ${y}) has no mirror across the long axis`);
+    });
+  }
+  return problems;
+}
+
+/** The configuration with pack size n's spots for pack A replaced. */
+const withSpots = (n: number, spots: readonly (readonly [number, number])[]): Config =>
+  planted({ kickoffSpotsMetres: config.kickoffSpotsMetres.map((s, k) => (k === n ? spots : s)) });
+
+// --- Point mirrors (D-4) ---
+
+const isPointMirror = (p: Piece, q: Piece): boolean =>
+  q.kind === p.kind && q.surface === p.surface && q.radius === p.radius &&
+  q.ox === -p.ox && q.oy === -p.oy && q.oz === p.oz &&
+  q.nx === -p.nx && q.ny === -p.ny && q.nz === p.nz &&
+  q.e1x === -p.e1x && q.e1y === -p.e1y && q.e1z === p.e1z &&
+  q.e2x === -p.e2x && q.e2y === -p.e2y && q.e2z === p.e2z &&
+  q.minX === -p.maxX && q.maxX === -p.minX && q.minY === -p.maxY && q.maxY === -p.minY &&
+  q.minZ === p.minZ && q.maxZ === p.maxZ;
+
+/** Every piece's point mirror, (x, y, z) → (−x, −y, z), is in the list,
+ *  exactly, so mirrored contacts are bit-for-bit mirrors (D-5), and each
+ *  piece's mirror index names it. */
+function pointMirrors(pieces: readonly Piece[]): string[] {
+  const problems: string[] = [];
+  pieces.forEach((p, k) => {
+    const found = pieces.flatMap((q, j) => (isPointMirror(p, q) ? [j] : []));
+    if (found.length === 0) problems.push(`${p.name}: its point mirror isn't in the list`);
+    else if (!found.includes(p.mirror)) problems.push(`${p.name}: its mirror index, ${p.mirror}, names another piece`);
+    if (pieces[p.mirror]?.mirror !== k) problems.push(`${p.name}: its mirror's mirror isn't itself`);
+  });
+  return problems;
+}
+
+function pitchMirrors(shape: PitchShape): string[] {
+  try {
+    return pointMirrors(buildPitch(shape).pieces);
+  } catch (e) {
+    return [message(e)];
+  }
+}
+
+/** D-4's second shape: point-symmetric but not mirror-symmetric. */
+const SECOND_SHAPE: PitchShape = { ...config.pitch, lengthMetres: 50, widthMetres: 30, cornerCutsMetres: [6, 3, 6, 3], mouthWidthMetres: 10 };
+
+// --- The zoomies meter (A.1) ---
+
+/** The tuned times give whole units a tick: a full meter drains in the
+ *  zoomies time and refills from empty in the refill time, in a u16. */
+function zoomiesMeter(c: Config): string[] {
+  let d: Derived;
+  try {
+    d = derive(c);
+  } catch (e) {
+    return [message(e)];
+  }
+  const problems: string[] = [];
+  const { zoomiesMeterFull: full, zoomiesMeterDrainPerTick: drain, zoomiesMeterRefillPerTick: refill } = d;
+  for (const [what, v] of [['full', full], ['drain', drain], ['refill', refill]] as const) {
+    if (!(Number.isInteger(v) && v > 0 && v <= 0xffff)) problems.push(`the meter's ${what}, ${v}, isn't a whole number of units in a u16`);
+  }
+  const ticks = (seconds: number): number => Math.round(seconds * c.ticksPerSecond);
+  if (drain * ticks(c.zoomiesFullSeconds) !== full) problems.push(`a full meter doesn't drain in ${c.zoomiesFullSeconds} s`);
+  if (refill * ticks(c.zoomiesRefillSeconds) !== full) problems.push(`an empty meter doesn't refill in ${c.zoomiesRefillSeconds} s`);
+  return problems;
+}
+
+// --- The goal mouth (L306) ---
+
+/** The ball fits through each mouth, under the crossbar and between the
+ *  posts as built, and wholly behind the goal line inside the goal, which a
+ *  goal needs (D-8). */
+function goalMouth(c: Config): string[] {
+  let p: Pitch;
+  try {
+    p = buildPitch(c.pitch);
+  } catch (e) {
+    return [message(e)];
+  }
+  const problems: string[] = [];
+  const ball = 2 * c.ballRadiusMetres;
+  for (const goal of p.goals) {
+    const { posts, bar } = frameOf(p, goal.pack);
+    const height = bar.oz - bar.radius;
+    const width = Math.abs(posts[0].oy - posts[1].oy) - posts[0].radius - posts[1].radius;
+    const at = `goal ${goal.pack}`;
+    if (!(ball < height)) problems.push(`${at}: the ball, ${ball} m across, doesn't fit under the crossbar, ${height} m up`);
+    if (!(ball < width)) problems.push(`${at}: the ball, ${ball} m across, doesn't fit between the posts, ${width} m apart`);
+    if (!(ball < goal.depth)) problems.push(`${at}: the ball, ${ball} m across, can't get wholly behind the line in a goal ${goal.depth} m deep`);
+  }
+  return problems;
+}
+
+function frameOf(p: Pitch, pack: 0 | 1): { posts: [Piece, Piece]; bar: Piece } {
+  const frame = p.goals[pack].pieces.map((k) => p.pieces[k]!).filter((q) => q.surface === FRAME);
+  const posts = frame.filter((q) => q.e1z !== 0);
+  const bar = frame.find((q) => q.e1z === 0);
+  if (posts.length !== 2 || !bar) throw new Error(`goal ${pack} has ${posts.length} posts and ${bar ? 'a' : 'no'} crossbar`);
+  return { posts: [posts[0]!, posts[1]!], bar };
+}
+
+// --- Every setting from the tables is in src/config.ts (§7.4) ---
+
+/** How a table row maps to src/config.ts: the settings it names, and the
+ *  numbers its value cell gives, in order (by default, the settings' own
+ *  values). `holds` checks what the numbers can't. */
+interface Row {
+  readonly keys: readonly string[];
+  readonly numbers?: (c: Config) => readonly number[];
+  readonly holds?: (c: Config, value: string) => boolean;
+}
+
+const plusMinus = (spots: readonly (readonly [number, number])[]): number[] => {
+  // A.5 writes a spot and its mirror across the long axis as (x, ±y).
+  const out: number[] = [];
+  for (let k = 0; k < spots.length; k++) {
+    const [x, y] = spots[k]!;
+    const next = spots[k + 1];
+    if (next && y !== 0 && next[0] === x && next[1] === -y) {
+      out.push(x, y, -y);
+      k++;
+    } else out.push(x, y);
+  }
+  return out;
+};
+
+/** REQUIREMENTS' Configuration table, by row. A TBD row's value is A.5's. */
+const CONFIGURATION: Readonly<Record<string, Row>> = {
+  'Pack size': { keys: ['packSizeMin', 'packSizeMax', 'packSizeDefault'] },
+  'Match length': { keys: ['matchLengthDefaultMinutes', 'matchLengthMinMinutes', 'matchLengthMaxMinutes'] },
+  'Ready expiry': { keys: ['readyExpirySeconds'] },
+  'Start countdown': { keys: ['startCountdownSeconds'] },
+  'Kickoff countdown': { keys: ['kickoffCountdownSeconds'] },
+  'Goal celebration': { keys: ['celebrationSeenSeconds'] },
+  'Kickoff spots': { keys: ['kickoffSpotsMetres'] },
+  Pitch: {
+    keys: ['pitch.lengthMetres', 'pitch.widthMetres', 'pitch.heightMetres', 'pitch.cornerCutsMetres'],
+    numbers: ({ pitch: p }) => {
+      const cuts = p.cornerCutsMetres;
+      return [p.lengthMetres, p.widthMetres, p.heightMetres, ...(cuts.every((x) => x === cuts[0]) ? [cuts[0]] : cuts)];
+    },
+  },
+  'Goal mouth': { keys: ['pitch.mouthWidthMetres', 'pitch.mouthHeightMetres', 'pitch.goalDepthMetres'] },
+  Ball: { keys: ['ballRadiusMetres', 'ballMassKg', 'terrierMassKg'], numbers: (c) => [2 * c.ballRadiusMetres, c.ballMassKg / c.terrierMassKg] },
+  'Ball bounce': { keys: ['ballRestitution'] },
+  'Ball rolling slowdown': { keys: ['rollingSlowdownMetresPerSecond2'] },
+  Terrier: { keys: ['terrierShoulderHeightMetres', 'terrierLengthMetres'] },
+  'Terrier–ball bounce': { keys: ['terrierBallRestitution'] },
+  'Terrier bounce': { keys: ['terrierRestitution'] },
+  'Re-arm gap': { keys: ['rearmGapMetres'] },
+  'Run speed': { keys: ['runSpeedMetresPerSecond'] },
+  Acceleration: { keys: ['accelerationMetresPerSecond2'] },
+  'Turn rate': { keys: ['turnRateTurnsPerSecond'] },
+  Steering: { keys: ['steering'], numbers: () => [], holds: (c, value) => value.toLowerCase() === c.steering },
+  'Chase view swing': {
+    keys: ['chaseSwingTimeConstantSeconds', 'chaseSwingMaxTurnsPerSecond', 'chaseCalmerTimeConstantSeconds', 'chaseCalmerMaxTurnsPerSecond'],
+  },
+  'Zoomies speed': { keys: ['zoomiesSpeedMetresPerSecond'] },
+  'Zoomies meter': { keys: ['zoomiesFullSeconds', 'zoomiesRefillSeconds'] },
+  Jump: { keys: ['jumpHeightMetres'] },
+  Gravity: { keys: ['gravityMetresPerSecond2'] },
+  Pounce: { keys: ['pounceSpeedMetresPerSecond', 'lungeSeconds', 'pounceWaitSeconds'] },
+  'Bowling speed': { keys: ['bowlingSpeedMetresPerSecond'] },
+  Tumble: { keys: ['tumbleSeconds'] },
+  'Tumble guard': { keys: ['tumbleGuardSeconds'] },
+  Bark: { keys: ['barkMaxPerSecond'] },
+  Spectators: { keys: ['spectatorsMax'] },
+};
+
+/** PLAN A.4, by row. */
+const A4: Readonly<Record<string, Row>> = {
+  // "(M0 kept 4, D-3)" names the substeps again.
+  'Tick rate, substeps': { keys: ['ticksPerSecond', 'substepsPerTick'], numbers: (c) => [c.ticksPerSecond, c.substepsPerTick, c.substepsPerTick] },
+  'Input delay d, late window w, vote window v': { keys: ['inputDelayTicks', 'lateWindowTicks', 'voteWindowTicks'] },
+  'State history, input history per TICK': { keys: ['stateHistoryTicks', 'inputHistoryTicks'] },
+  'Worst-tick spread': {
+    keys: ['spreadMaxStepsPerTick'],
+    numbers: (c) => [c.spreadMaxStepsPerTick, 270, Math.ceil(270 / c.spreadMaxStepsPerTick)],
+  },
+  'Solver iterations (forward and back sweeps over mirror pairs), position passes (also in mirror pairs)': {
+    keys: ['solverIterations', 'positionPasses', 'floorContactsInSolve'],
+    numbers: (c) => [c.solverIterations, c.positionPasses],
+    holds: (c, value) => c.floorContactsInSolve === value.includes("the floor's contacts in both"),
+  },
+  'Restitution threshold': { keys: ['restitutionThresholdMetresPerSecond'] },
+  'Slip-out': { keys: ['slipOutConeDegrees', 'slipOutSpeedMetresPerSecond'] },
+  'Ball overhead': { keys: ['ballOverheadEnterMetres', 'ballOverheadLeaveMetres'] },
+  Stick: { keys: ['stickSteps', 'stickHysteresisSteps', 'stickDeadZoneFraction', 'chaseRereadDegrees'] },
+  // "bodies in contact share one decay"
+  Smoothing: { keys: ['smoothingMs', 'ownSmoothingMs'], numbers: (c) => [c.smoothingMs, c.ownSmoothingMs, 1] },
+  'Removal before the start countdown': { keys: ['removalSilentTicks'] },
+  'Sitting, from the start countdown': { keys: ['sittingSilentTicks'] },
+  'Abandoned match': { keys: ['abandonedSeconds'] },
+  'A duplicate ID replaces a connection': { keys: ['duplicateIdSilentSeconds'] },
+  'Handshake timeout, connection-failure message': { keys: ['handshakeTimeoutSeconds', 'connectionFailureSeconds'] },
+  'Largest message, maxReceiveBytes': {
+    keys: ['messageMaxBytes', 'maxReceiveBytes'],
+    numbers: (c) => [c.messageMaxBytes, c.maxReceiveBytes / 1048576], // 1 MiB
+  },
+  'Mesh cap': { keys: ['meshPlayersMax', 'spectatorsMax'] },
+  'Display name': { keys: ['displayNameMaxChars', 'displayNameMaxBytes'] },
+  'Timer stall': { keys: ['timerStallSeconds'] },
+  Phone: { keys: ['phoneShortSideCssPx'] },
+  "Touch controls' edge margin": { keys: ['touchEdgeMarginCssPx'] },
+  "Results' press guard": { keys: ['resultsPressGuardSeconds'] },
+  'Lost graphics': { keys: ['lostGraphicsSeconds'] },
+  'Render quality': {
+    keys: ['renderQuality.high.pixelRatioMax', 'renderQuality.high.msaa', 'renderQuality.low.pixelRatioMax', 'renderQuality.low.msaa'],
+    numbers: ({ renderQuality: q }) => [q.high.pixelRatioMax, q.low.pixelRatioMax],
+    holds: ({ renderQuality: q }, value) => q.high.msaa === /high:[^;]*with MSAA/.test(value) && q.low.msaa === !/low:[^;]*no MSAA/.test(value),
+  },
+  'Sound under rollback': { keys: ['soundShiftTicksMax'] },
+  'Bot reactions': { keys: ['botReactionSeconds'] },
+};
+
+/** PLAN A.5, by row; its first row is "as REQUIREMENTS' Configuration table". */
+const A5: Readonly<Record<string, Row>> = {
+  'Kickoff spots, pack A (pack B is the point mirror)': {
+    keys: ['kickoffSpotsMetres'],
+    numbers: (c) => c.kickoffSpotsMetres.flatMap((spots, n) => (n === 0 ? [] : [n, ...plusMinus(spots)])),
+  },
+  // "to exactly 0", and "a 3 m/s ball rolls 9 m"
+  'Ball rolling slowdown': {
+    keys: ['rollingSlowdownMetresPerSecond2'],
+    numbers: ({ rollingSlowdownMetresPerSecond2: a }) => [a, 0, 3, (3 * 3) / (2 * a)],
+  },
+  'Terrier bounce': { keys: ['terrierRestitution'] },
+  'Terrier against the floor': { keys: ['terrierFloorRestitution'] },
+  'Goal netting bounce': { keys: ['goalNetRestitution', 'ballRestitution'] },
+  'Re-arm gap': { keys: ['rearmGapMetres'] },
+  'Chase view swing': {
+    keys: ['chaseSwingTimeConstantSeconds', 'chaseSwingMaxTurnsPerSecond', 'chaseCalmerTimeConstantSeconds', 'chaseCalmerMaxTurnsPerSecond'],
+  },
+  'Ball view swing': { keys: ['ballViewSwingMaxTurnsPerSecond', 'ballViewCalmerMaxTurnsPerSecond'] },
+  'Tumble guard': { keys: ['tumbleGuardSeconds'] },
+  'Terrier collider': { keys: ['terrierRadiusMetres', 'terrierMassKg', 'ballMassKg'] },
+  'Idle friction': { keys: ['idleFrictionMetresPerSecond2'] },
+  'Get-up': { keys: ['getUpSeconds', 'tumbleSeconds'] },
+  'Nose turn rate (vehicle-style)': { keys: ['noseTurnRateTurnsPerSecond', 'noseReverseMetresPerSecond'] },
+  'Posts and crossbar': { keys: ['pitch.postRadiusMetres'] },
+};
+
+/** Settings in none of the tables, with their sources. */
+const ELSEWHERE: Readonly<Record<string, string>> = {
+  coatCount: 'PLAN §6, D-12: the number of coats',
+  zoomiesMeterUnitsPerTick: "A.1: the meter's half-ticks",
+  speedBoundMetresPerSecond: 'D-3: the fastest body',
+  renderQualityDefault: 'D-33: high by default',
+};
+
+/** The [setting, value] rows of the first table after a heading, with
+ *  Markdown's bold and code marks removed. */
+function tableRows(doc: string, heading: string): [string, string][] {
+  const lines = doc.split('\n');
+  const start = lines.findIndex((line) => line === heading || line.startsWith(`${heading} `));
+  if (start < 0) throw new Error(`no heading "${heading}"`);
+  const rows: string[][] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line.startsWith('|')) rows.push(line.split('|').slice(1, -1).map((cell) => cell.trim().replace(/\*\*|`/g, '')));
+    else if (rows.length > 0 || line.startsWith('#')) break;
+  }
+  return rows.slice(2).map(([setting = '', value = '']): [string, string] => [setting, value]);
+}
+
+const NUMBER_WORDS: Readonly<Record<string, number>> = { one: 1, twice: 2, half: 0.5 };
+
+/** The numbers a value cell gives, in order, without the plan's
+ *  references (Q-7, D-28, L312, M2, §13): −, ±, %, thousands' commas, and
+ *  "one", "twice" and "half". */
+function numbersIn(value: string): number[] {
+  const text = value.replace(/§\d+(?:\.\d+)*/g, ' ').replace(/\b(?:[QDCP]-\d+|[LM]\d+)\b/g, ' ');
+  const out: number[] = [];
+  for (const m of text.matchAll(/(±)?([−-])?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(%)?|\b(one|twice|half)\b/g)) {
+    if (m[5]) {
+      out.push(NUMBER_WORDS[m[5]]!);
+      continue;
+    }
+    let n = Number(m[3]!.replaceAll(',', ''));
+    if (m[4]) n /= 100;
+    if (m[2]) n = -n;
+    if (m[1]) out.push(n, -n);
+    else out.push(n);
+  }
+  return out;
+}
+
+/** Every setting's path in a configuration: its keys, and a group's keys
+ *  under the group's name. */
+function settingPaths(value: unknown, prefix = ''): string[] {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return Object.entries(value).flatMap(([k, v]) => settingPaths(v, prefix ? `${prefix}.${k}` : k));
+  }
+  return [prefix];
+}
+
+const valueAt = (c: unknown, path: string): unknown =>
+  path.split('.').reduce<unknown>((o, k) => (typeof o === 'object' && o !== null ? (o as Record<string, unknown>)[k] : undefined), c);
+
+/** Each row of REQUIREMENTS' Configuration table and of A.4 and A.5 names
+ *  settings that src/config.ts has, with the values the row gives. A TBD in
+ *  the table takes A.5's starting value; a value the table gives wins over
+ *  A.5's, as Q-10 records tuned values there. And every setting in
+ *  src/config.ts is in a table, or in ELSEWHERE with its source. */
+function documented(c: Config, requirements: string, plan: string): string[] {
+  const problems: string[] = [];
+  const paths = new Set(settingPaths(c));
+  const claimed = new Set(Object.keys(ELSEWHERE));
+  const table = tableRows(requirements, '## Configuration');
+  const a5 = tableRows(plan, '### A.5');
+  // A.5's rows by the setting they name: "Kickoff spots, pack A (…)".
+  const base = (name: string): string => name.split(/,| \(/)[0]!;
+  const given = new Set(table.filter(([, value]) => !value.includes('TBD')).map(([name]) => name));
+  const check = (where: string, rows: [string, string][], map: Readonly<Record<string, Row>>): void => {
+    const names = new Set(rows.map(([name]) => name));
+    for (const name of Object.keys(map)) if (!names.has(name)) problems.push(`${where} has no row "${name}"`);
+    for (const [name, value] of rows) {
+      if (where === 'A.5' && value.startsWith("as REQUIREMENTS'")) continue;
+      const row = map[name];
+      if (!row) {
+        problems.push(`${where} "${name}" maps to no setting in src/config.ts`);
+        continue;
+      }
+      for (const key of row.keys) {
+        claimed.add(key);
+        if (!paths.has(key)) problems.push(`${where} "${name}": src/config.ts has no ${key}`);
+      }
+      if (where === 'A.5' && given.has(base(name))) continue;
+      if (value.includes('TBD')) {
+        if (!a5.some(([n]) => base(n) === name)) problems.push(`${where} "${name}" is TBD, and A.5 has no starting value for it`);
+        continue;
+      }
+      const want = numbersIn(value);
+      let got: readonly unknown[];
+      try {
+        got = row.numbers ? row.numbers(c) : row.keys.map((key) => valueAt(c, key));
+      } catch (e) {
+        got = [message(e)];
+      }
+      if (want.length !== got.length || want.some((n, i) => n !== got[i])) {
+        problems.push(`${where} "${name}" gives ${JSON.stringify(want)}, and src/config.ts ${JSON.stringify(got)}`);
+      }
+      if (row.holds && !row.holds(c, value)) problems.push(`${where} "${name}": src/config.ts doesn't match "${value}"`);
+    }
+  };
+  check('the Configuration table', table, CONFIGURATION);
+  check('A.4', tableRows(plan, '### A.4'), A4);
+  check('A.5', a5, A5);
+  for (const path of paths) if (!claimed.has(path)) problems.push(`${path} is in src/config.ts but in no table`);
+  return problems;
+}
+
+// --- And nowhere else (§7.4) ---
+
+interface Source {
+  readonly path: string;
+  readonly text: string;
+}
+
+const SCRIPT = /\.(?:[cm]?[jt]s|[jt]sx)$/;
+
+/** The shipped and dev scripts under a folder of the repo: no tests, no
+ *  declarations, and not src/config.ts. */
+function sourcesUnder(dir: string): Source[] {
+  if (!existsSync(`${root}${dir}`)) return [];
+  return readdirSync(`${root}${dir}`, { recursive: true, encoding: 'utf8' })
+    .map((p) => `${dir}/${p.replaceAll('\\', '/')}`)
+    .filter((p) => SCRIPT.test(p) && !/\.test\.[^/]*$/.test(p) && !p.endsWith('.d.ts') && p !== 'src/config.ts')
+    .sort()
+    .map((path) => ({ path, text: read(path) }));
+}
+
+/** A name's words, lower case: runSpeedMetresPerSecond, RUN_SPEED_MPS. */
+const words = (name: string): string[] =>
+  name
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/([A-Za-z])([0-9])/g, '$1 $2')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+
+const UNIT_WORDS = new Set([
+  'metres', 'meters', 'metre', 'meter', 'm', 'mps', 'per', 'second', 'seconds', 'sec', 'secs', 's', 'ms', 'minute', 'minutes',
+  'tick', 'ticks', 'turn', 'turns', 'degree', 'degrees', 'deg', 'kg', 'byte', 'bytes', 'chars', 'characters', 'css', 'px',
+  'unit', 'units', 'fraction', 'squared', '2',
+]);
+
+/** A name without its unit, as an order-free key: runSpeedMetresPerSecond
+ *  and RUN_SPEED are both "run speed"; ticksPerSecond is "ticks". */
+function stem(list: readonly string[]): string {
+  const w = [...list];
+  while (w.length > 1 && UNIT_WORDS.has(w[w.length - 1]!)) w.pop();
+  return w.sort().join(' ');
+}
+
+/** A literal number, a string, arithmetic on literal numbers, or an array
+ *  of them; undefined for anything else. */
+function literal(node: ts.Expression): number | string | readonly unknown[] | undefined {
+  if (ts.isNumericLiteral(node)) return Number(node.text.replaceAll('_', ''));
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) return literal(node.expression);
+  if (ts.isPrefixUnaryExpression(node) && (node.operator === ts.SyntaxKind.MinusToken || node.operator === ts.SyntaxKind.PlusToken)) {
+    const v = literal(node.operand);
+    return typeof v === 'number' ? (node.operator === ts.SyntaxKind.MinusToken ? -v : v) : undefined;
+  }
+  if (ts.isBinaryExpression(node)) {
+    const a = literal(node.left);
+    const b = literal(node.right);
+    if (typeof a !== 'number' || typeof b !== 'number') return undefined;
+    switch (node.operatorToken.kind) {
+      case ts.SyntaxKind.PlusToken: return a + b;
+      case ts.SyntaxKind.MinusToken: return a - b;
+      case ts.SyntaxKind.AsteriskToken: return a * b;
+      case ts.SyntaxKind.SlashToken: return a / b;
+      default: return undefined;
+    }
+  }
+  if (ts.isArrayLiteralExpression(node)) {
+    const items = node.elements.map((e) => literal(e));
+    return items.length > 0 && items.every((v) => v !== undefined) ? items : undefined;
+  }
+  return undefined;
+}
+
+const scriptKind = (path: string): ts.ScriptKind =>
+  path.endsWith('.tsx') ? ts.ScriptKind.TSX : path.endsWith('.jsx') ? ts.ScriptKind.JSX : /\.[cm]?js$/.test(path) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+
+/** The name and value of a declaration, property, parameter default or
+ *  enum member. */
+function declared(node: ts.Node): { name: string; init: ts.Expression | undefined } | undefined {
+  if (
+    ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node) || ts.isPropertyDeclaration(node) ||
+    ts.isParameter(node) || ts.isBindingElement(node) || ts.isEnumMember(node)
+  ) {
+    const n = node.name;
+    if (ts.isIdentifier(n) || ts.isStringLiteral(n) || ts.isPrivateIdentifier(n)) return { name: n.text, init: node.initializer };
+  }
+  return undefined;
+}
+
+const sameKind = (setting: unknown, v: unknown): boolean =>
+  typeof setting === 'string' ? typeof v === 'string' : typeof v === 'number' || Array.isArray(v);
+
+/** The source files' copies of a setting: a declaration, property or
+ *  default whose name is a setting's, unit aside, holding a literal; and,
+ *  in the simulation and the bot brain (src/core/sim, src/core/bot), a
+ *  literal or literal arithmetic equal to a setting's value that isn't a
+ *  whole number or 0.5. A line saying "not a setting" is skipped. */
+function copies(files: readonly Source[], c: Config): string[] {
+  const names = new Map<string, string[]>();
+  const values = new Map<number, string[]>();
+  const add = <K>(map: Map<K, string[]>, key: K, path: string): void => void map.set(key, [...(map.get(key) ?? []), path]);
+  const leaves = (v: unknown): unknown[] => (Array.isArray(v) ? v.flatMap(leaves) : [v]);
+  const distinctive = (n: unknown): n is number => typeof n === 'number' && !Number.isInteger(n) && n !== 0.5;
+  for (const path of settingPaths(c)) {
+    const v = valueAt(c, path);
+    if (typeof v === 'boolean') continue;
+    add(names, stem(path.split('.').flatMap(words)), path);
+    for (const n of leaves(v)) if (distinctive(n)) add(values, n, path);
+  }
+  const d = derive(c);
+  for (const path of settingPaths(d)) for (const n of leaves(valueAt(d, path))) if (distinctive(n)) add(values, n, `derived.${path}`);
+
+  const problems: string[] = [];
+  for (const file of files) {
+    const sf = ts.createSourceFile(file.path, file.text, ts.ScriptTarget.Latest, true, scriptKind(file.path));
+    const lines = file.text.split('\n');
+    const lineOf = (node: ts.Node): number => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line;
+    const exempt = (node: ts.Node): boolean => lines[lineOf(node)]?.includes('not a setting') ?? false;
+    const at = (node: ts.Node): string => `${file.path}:${lineOf(node) + 1}: ${node.getText(sf).split('\n')[0]}`;
+    const scanValues = /^src\/core\/(?:sim|bot)\//.test(file.path);
+    const isLiteralSum = (node: ts.Node): boolean => ts.isBinaryExpression(node) && typeof literal(node) === 'number';
+
+    const visit = (node: ts.Node, chain: readonly string[]): void => {
+      let next = chain;
+      const decl = declared(node);
+      if (decl) {
+        next = [...chain, decl.name];
+        const v = decl.init && literal(decl.init);
+        if (v !== undefined && v !== 0 && !exempt(node)) {
+          // The name alone, then with each enclosing name: pitch = { lengthMetres: 40 }.
+          for (let i = next.length - 1; i >= 0; i--) {
+            const hits = (names.get(stem(next.slice(i).flatMap(words))) ?? []).filter((p) => sameKind(valueAt(c, p), v));
+            if (hits.length > 0) {
+              problems.push(`${at(node)} copies ${hits.join(', ')}`);
+              break;
+            }
+          }
+        }
+      }
+      if (scanValues && !exempt(node)) {
+        // Each literal, and the whole of any arithmetic on literals: 1 / 240.
+        let v: number | undefined;
+        if (ts.isNumericLiteral(node)) v = Number(node.text.replaceAll('_', ''));
+        else if (isLiteralSum(node) && !isLiteralSum(node.parent)) v = literal(node as ts.Expression) as number;
+        const hits = v === undefined ? undefined : values.get(Math.abs(v));
+        if (hits) problems.push(`${at(node)} is the value of ${hits.join(', ')}`);
+      }
+      ts.forEachChild(node, (child) => visit(child, next));
+    };
+    visit(sf, []);
+  }
+  return problems;
+}
+
+// --- The tests ---
+
+describe('the configuration checks (PLAN §7.4)', () => {
+  it('no tunnelling (D-3)', () => {
+    expect(tunnelling(config)).toEqual([]);
+    // 25 m/s for 1/60 s is 0.42 m, past the terrier's 0.25 m.
+    expect(tunnelling(planted({ substepsPerTick: 1 })).join('\n')).toMatch(/smallest radius, 0.25 m[\s\S]*smallest radius sum/);
+    expect(tunnelling(planted({ terrierRadiusMetres: 0.1 }))).toHaveLength(2);
+    expect(tunnelling(planted({ pounceSpeedMetresPerSecond: 30 })).join('\n')).toMatch(/a pounce from the air reaches/);
+  });
+
+  it('fits the late window and the vote window in the state history (A.4)', () => {
+    expect(history(config)).toEqual([]);
+    expect(history(planted({ voteWindowTicks: 250 })).join('\n')).toMatch(/span 264 ticks/);
+    expect(history(planted({ stateHistoryTicks: 26 }))).toHaveLength(1);
+    expect(history(planted({ inputHistoryTicks: 13 })).join('\n')).toMatch(/input history/);
+  });
+
+  it('puts the kickoff spots inside the pitch, apart, and mirrored, for every pack size (D-8, A.5)', () => {
+    expect(kickoff(config)).toEqual([]);
+    expect(kickoff(withSpots(1, [[-19.9, 0]])).join('\n')).toMatch(/isn't inside the pitch/);
+    expect(kickoff(withSpots(1, [[-18.5, 12.5]])).join('\n')).toMatch(/isn't inside the pitch/); // in the cut corner
+    expect(kickoff(withSpots(1, [[-1, 0]])).join('\n')).toMatch(/touches the ball/);
+    expect(kickoff(withSpots(2, [[-9, 0.2], [-9, -0.2]])).join('\n')).toMatch(/touch$/m);
+    expect(kickoff(withSpots(2, [[-9, 4], [-9, -3]])).join('\n')).toMatch(/no mirror across the long axis/);
+    expect(kickoff(withSpots(3, [[-9, 5], [-9, -5]])).join('\n')).toMatch(/2 and 2 spots, not 3/);
+    // Pack B's spots come from pack A's by negation; a table that breaks it is caught.
+    const [a, b] = packSpots(config);
+    const bent = b.map((spots, n) => (n === 2 ? [spots[0]!, [9, 5] as const] : spots));
+    expect(kickoff(config, [a, bent]).join('\n')).toMatch(/pack B's spot 1 isn't/);
+  });
+
+  it("has every pitch piece's point mirror in the list (D-4)", () => {
+    expect(pitchMirrors(config.pitch)).toEqual([]);
+    expect(pitchMirrors(SECOND_SHAPE)).toEqual([]);
+    expect(pitchMirrors({ ...config.pitch, cornerCutsMetres: [4, 3, 4, 4] })).toEqual([
+      'the corner cuts 4, 3, 4, 4 are not point-symmetric (D-4)',
+    ]);
+    const moved = pitch.pieces.map((p, k) => (k === 5 ? { ...p, ox: p.ox + 1e-6 } : p));
+    expect(pointMirrors(moved)).toHaveLength(2); // the moved piece, and the piece it mirrored
+    const misnamed = pitch.pieces.map((p, k) => (k === 2 ? { ...p, mirror: 4 } : p));
+    expect(pointMirrors(misnamed).join('\n')).toMatch(/mirror index, 4, names another piece/);
+  });
+
+  it("gives the zoomies meter's tuned times whole units a tick (A.1)", () => {
+    expect(zoomiesMeter(config)).toEqual([]);
+    expect([derived.zoomiesMeterFull, derived.zoomiesMeterDrainPerTick, derived.zoomiesMeterRefillPerTick]).toEqual([360, 2, 1]);
+    expect(zoomiesMeter(planted({ zoomiesRefillSeconds: 5 })).join('\n')).toMatch(/refill 1.2 a tick/);
+    expect(zoomiesMeter(planted({ zoomiesFullSeconds: 2.5 }))).not.toEqual([]);
+    expect(zoomiesMeter(planted({ zoomiesMeterUnitsPerTick: 1 }))).not.toEqual([]);
+    expect(zoomiesMeter(planted({ zoomiesFullSeconds: 3.01 })).join('\n')).toMatch(/not a whole number/);
+  });
+
+  it('leaves the ball room under the crossbar (L306)', () => {
+    expect(goalMouth(config)).toEqual([]);
+    // REQUIREMENTS' Goal mouth: "the ball fits under the crossbar with 1.4 m to spare".
+    for (const goal of pitch.goals) {
+      const { posts, bar } = frameOf(pitch, goal.pack);
+      expect(bar.oz - bar.radius - 2 * config.ballRadiusMetres).toBeCloseTo(1.4, 12);
+      expect(Math.abs(posts[0].oy - posts[1].oy) - 2 * config.pitch.postRadiusMetres).toBeCloseTo(config.pitch.mouthWidthMetres, 12);
+    }
+    expect(goalMouth(plantedPitch({ mouthHeightMetres: 1.5 })).join('\n')).toMatch(/doesn't fit under the crossbar/);
+    expect(goalMouth(planted({ ballRadiusMetres: 1.6 })).join('\n')).toMatch(/under the crossbar/);
+    expect(goalMouth(plantedPitch({ mouthWidthMetres: 1.5 })).join('\n')).toMatch(/between the posts/);
+    expect(goalMouth(plantedPitch({ goalDepthMetres: 1.5 })).join('\n')).toMatch(/wholly behind the line/);
+  });
+
+  it('has every setting of the Configuration table, A.4 and A.5, with their values', () => {
+    const requirements = read('REQUIREMENTS.md');
+    const plan = read('PLAN.md');
+    expect(documented(config, requirements, plan)).toEqual([]);
+
+    expect(documented(planted({ runSpeedMetresPerSecond: 7 }), requirements, plan)).toEqual([
+      'the Configuration table "Run speed" gives [6], and src/config.ts [7]',
+    ]);
+    const noLunge: Record<string, unknown> = { ...config };
+    delete noLunge.lungeSeconds;
+    expect(documented(noLunge as unknown as Config, requirements, plan).join('\n')).toMatch(/"Pounce": src\/config.ts has no lungeSeconds/);
+    expect(documented({ ...config, ballSpinTurnsPerSecond: 0 } as Config, requirements, plan)).toEqual([
+      'ballSpinTurnsPerSecond is in src/config.ts but in no table',
+    ]);
+    expect(documented(planted({ steering: 'vehicle' }), requirements, plan).join('\n')).toMatch(/"Steering": src\/config.ts doesn't match/);
+    expect(documented(planted({ kickoffSpotsMetres: [[], [[-11, 0]], ...config.kickoffSpotsMetres.slice(2)] }), requirements, plan)).toHaveLength(1);
+
+    // And the documents: a row with no setting, a row gone, a TBD with no
+    // starting value, a changed value.
+    const spin = requirements.replace('| Spectators |', '| Ball spin | None | |\n| Spectators |');
+    expect(documented(config, spin, plan)).toEqual(['the Configuration table "Ball spin" maps to no setting in src/config.ts']);
+    expect(documented(config, requirements.replace(/^\| Jump \|.*\n/m, ''), plan).join('\n')).toMatch(/has no row "Jump"/);
+    const noGuard = plan.replace('| Tumble guard | 1.5 s |', '| Tumble cover | 1.5 s |');
+    expect(documented(config, requirements, noGuard).join('\n')).toMatch(/"Tumble guard" is TBD, and A.5 has no starting value/);
+    const friction = plan.replace('| Idle friction | 8 m/s² |', '| Idle friction | 7 m/s² |');
+    expect(documented(config, requirements, friction)).toEqual(['A.5 "Idle friction" gives [7], and src/config.ts [8]']);
+    // A value tuned at M2 and recorded in the table wins over A.5's start (Q-10).
+    const tuned = requirements.replace(/^\| Re-arm gap \| \*\*TBD\*\* \|/m, '| Re-arm gap | 0.5 m |');
+    expect(tuned).not.toBe(requirements);
+    expect(documented(planted({ rearmGapMetres: 0.5 }), tuned, plan)).toEqual([]);
+    expect(documented(planted({ rearmGapMetres: 0.5 }), requirements, plan)).toEqual(['A.5 "Re-arm gap" gives [0.6], and src/config.ts [0.5]']);
+  });
+
+  it('has the settings nowhere else: no copy in src or dev', () => {
+    const files = [...sourcesUnder('src'), ...sourcesUnder('dev')];
+    expect(files.map((f) => f.path)).toContain('src/core/sim/pitch.ts');
+    expect(copies(files, config)).toEqual([]);
+
+    expect(
+      copies(
+        [
+          { path: 'src/render/a.ts', text: 'export const RUN_SPEED = 6;\nexport const pitch = { lengthMetres: 40 };\n' },
+          { path: 'src/ui/b.ts', text: "export function f(maxPackSize = 4, steering = 'anchored') { return [maxPackSize, steering]; }\n" },
+          { path: 'src/core/sim/c.ts', text: 'export const fall = 9.8 * 2;\nexport const dt = 1 / 240;\n' },
+        ],
+        config,
+      ),
+    ).toEqual([
+      'src/render/a.ts:1: RUN_SPEED = 6 copies runSpeedMetresPerSecond',
+      'src/render/a.ts:2: lengthMetres: 40 copies pitch.lengthMetres',
+      'src/ui/b.ts:1: maxPackSize = 4 copies packSizeMax',
+      "src/ui/b.ts:1: steering = 'anchored' copies steering",
+      'src/core/sim/c.ts:1: 9.8 is the value of gravityMetresPerSecond2',
+      'src/core/sim/c.ts:2: 1 / 240 is the value of derived.substepSeconds',
+    ]);
+    // Counters, halves, reads of the configuration and marked lines pass.
+    const fine = [
+      'import { config } from "../../config";',
+      'let ticks = 0;',
+      'ticks += 1;',
+      'export const kickoffSpots: number[][] = [];',
+      'export const half = 0.5 * ticks;',
+      'export const g = config.gravityMetresPerSecond2;',
+      'export const shade = 0.25; // not a setting: a colour',
+      'export const steps = 12;',
+    ].join('\n');
+    expect(copies([{ path: 'src/core/sim/d.ts', text: fine }], config)).toEqual([]);
+  });
+});
+
+describe('src/config.ts', () => {
+  it("keeps to the simulation's exact operations, which read it from M2 (D-1, D-38)", async () => {
+    // Linted as if it were in src/core/sim, where exact-ops applies.
+    const eslint = new ESLint({ cwd: root });
+    const lint = async (text: string): Promise<string[]> =>
+      (await eslint.lintText(text, { filePath: `${root}src/core/sim/config-as-sim.ts` })).flatMap((r) =>
+        r.messages.map((m) => `${m.ruleId ?? ''}: ${m.message}`),
+      );
+    const text = read('src/config.ts');
+    expect(await lint(text)).toEqual([]);
+    expect((await lint(`${text}\nexport const planted = Math.sin(config.lungeSeconds);\n`)).join('\n')).toMatch(/^hermet\/exact-ops:/);
+  }, 60_000);
+
+  it('derives whole ticks and the jump speed (D-6, Q-7)', () => {
+    expect(derived.substepSeconds).toBe(1 / 240);
+    expect(derived.celebrationTicks).toBe(204); // 3 s seen, plus w + v ticks to confirm the goal
+    expect([derived.lungeTicks, derived.pounceWaitTicks, derived.tumbleTicks, derived.getUpTicks, derived.tumbleGuardTicks]).toEqual([18, 90, 90, 30, 90]);
+    expect([derived.readyExpiryTicks, derived.startCountdownTicks, derived.kickoffCountdownTicks, derived.botReactionTicks]).toEqual([3600, 300, 180, 15]);
+    expect(derived.jumpSpeedMetresPerSecond).toBeCloseTo(4.43, 2);
+    expect(() => derive(planted({ lungeSeconds: 0.31 }))).toThrow(/the lunge: 0.31 s is/);
+  });
+
+  it('is frozen, and builds the pitch the page draws (D-4)', () => {
+    expect(Object.isFrozen(config) && Object.isFrozen(config.pitch) && Object.isFrozen(config.kickoffSpotsMetres[2]![0])).toBe(true);
+    expect(Object.isFrozen(pitch.pieces[3]) && Object.isFrozen(pitch.goals[1].floor)).toBe(true);
+    const kinds = [PLANE, QUAD, CAPSULE].map((kind) => pitch.pieces.filter((p) => p.kind === kind).length);
+    expect(kinds).toEqual([2, 20, 6]);
+    expect(pitch.goalLineX).toBe(20);
+    expect(pitch.outline).toHaveLength(8);
+    for (const pack of [0, 1] as const) {
+      const goal = pitch.goals[pack];
+      expect(goal.pack).toBe(pack);
+      expect(goal.lineX).toBe(pack === 0 ? -20 : 20);
+      expect(goal.pieces.map((k) => pitch.pieces[k]!.surface).sort()).toEqual([FRAME, FRAME, FRAME, GOAL_NET, GOAL_NET, GOAL_NET, GOAL_NET]);
+      expect(pitch.halves[pack].pack).toBe(pack);
+    }
+    // The halves meet on the halfway line, and their areas add up to the floor's.
+    const area = (pts: readonly (readonly [number, number])[]): number =>
+      pts.reduce((s, [x, y], i) => s + (x * pts[(i + 1) % pts.length]![1] - pts[(i + 1) % pts.length]![0] * y) / 2, 0);
+    expect(area(pitch.halves[0].outline) + area(pitch.halves[1].outline)).toBeCloseTo(area(pitch.outline), 9);
+    expect(area(pitch.outline)).toBeCloseTo(40 * 28 - 4 * (4 * 4) / 2, 9);
+    // D-4's second shape is point-symmetric but not mirror-symmetric.
+    const inside = (x: number, y: number): boolean => insideFloorPlan(SECOND_SHAPE, x, y);
+    expect([inside(-21.5, -14.4), inside(-21.5, 14.4), inside(21.5, 14.4), inside(21.5, -14.4)]).toEqual([false, true, false, true]);
+  });
+});

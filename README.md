@@ -1,2 +1,114 @@
 # terriest
 Rocket League with terriers: two packs of small dogs corral a giant rubber ball into goals. Terri. Terrier. Terriest.
+
+**Status:** in development, and nothing is playable yet. [REQUIREMENTS.md](REQUIREMENTS.md) says what the game must do; [PLAN.md](PLAN.md) says how, and lists the milestones. Numbers such as Q-5 or C-14 below are the plan's. Done so far: M0, the physics and rendering spike ([research/spike/REPORT.md](research/spike/REPORT.md)). Now: M1, the skeleton and its test gate, with a page that draws an empty pitch. [docs/acceptance.md](docs/acceptance.md) holds the acceptance criteria and the log of runs the gate doesn't make.
+
+## Run
+
+Needs Node 22.12 or later (`.nvmrc`). The gate's tooling, shared with roslambo and amorfus, is the git submodule `vendor/hermet`, which `npm install` doesn't fetch. So clone with it:
+
+```sh
+git clone --recurse-submodules <this repository's URL>
+cd terriest
+npm install && npm run build   # emits dist/
+```
+
+In a clone made without `--recurse-submodules`, fetch it once before building:
+
+```sh
+git submodule update --init
+```
+
+Without it, `npm run build` and `npm run check` stop at once and name that command. The dev server is `npm run dev`, at http://localhost:5173/. Until Settings arrive at M4, the address picks the render quality: `?quality=low` or `?quality=high`, high by default (D-33).
+
+## Test
+
+```sh
+npx playwright install --with-deps chromium firefox webkit   # once
+npm run check
+```
+
+`npm run check` is the gate, and the definition of done. In order, it runs ESLint, with the plan's import and purity boundaries (D-38); public-scan; the typecheck; the unit tests, hermet's included; the build; and the end-to-end tests against the built page in headless Chromium, Firefox and WebKit. A page that requests anything outside the local servers its test names fails the test, so the gate contacts no public host. At M1 it takes about 72 s on the development machine, and longer while the machine is busy. It will grow to several minutes once it plays whole matches (Q-18), and `docs/acceptance.md` logs its wall time at each milestone's exit.
+
+At M1 there are 11 end-to-end tests in each engine: `e2e/boot.spec.ts`, the boot page's four failure messages (D-30); `e2e/pitch.spec.ts`, the empty pitch, its size, its render quality and its frame rate, which is reported, never judged; and `e2e/smoke.spec.ts`, the page served by `vite preview`, under `dist/_headers`, and from a subpath. `npm run e2e` runs them alone, against the last build.
+
+CI (`.github/workflows/check.yml`) runs the gate under `xvfb-run` on each push and pull request, and the unit tests on arm64. `docs/acceptance.md` logs its runs.
+
+### Without a display
+
+Firefox draws WebGL only while `DISPLAY` or `WAYLAND_DISPLAY` is set, and the gate checks for WebGL 2 in each engine first (C-6). WSLg sets both. Elsewhere, as in CI, run the gate in a virtual display:
+
+```sh
+xvfb-run -a npm run check
+```
+
+`npx playwright install --with-deps` installs `xvfb-run`.
+
+### On the GPU (opt-in)
+
+The headless engines draw WebGL in software: SwiftShader in Chromium, llvmpipe in Firefox and WebKit. On WSL2, Mesa's Direct3D 12 driver draws on the host's GPU instead. With it, all three engines reached 60 frames a second on the development machine, Chromium with ANGLE's GL flags (C-6). For faster local runs:
+
+```sh
+GALLIUM_DRIVER=d3d12 npm run check
+```
+
+That moves Firefox and WebKit to the GPU. The gate's Playwright config passes Chromium no flags, so Chromium still draws in SwiftShader. No test depends on the frame rate either way.
+
+### The private denylist
+
+public-scan fails on home paths and private key material in every file git tracks or would add. Locally it also fails on the terms of a denylist kept outside the repo, whose path is in `TERRIEST_PRIVATE_TERMS`: one term per line, and a line starting with `#` is a comment. A finding never prints the term. CI has no denylist, and runs the built-in patterns only.
+
+```sh
+export TERRIEST_PRIVATE_TERMS=/path/to/private-terms.txt
+```
+
+## Build
+
+```sh
+npm run build   # emits dist/, a fully static folder
+```
+
+It typechecks, builds with Vite, and writes the bundled packages' licence notices to `dist/THIRD-PARTY-LICENSES.txt`. Then hermet's dist audit checks `dist/`: relative references only, no host outside `third-party.json`, no secrets, only allowed file types, and exactly the expected notices, each with its licence text.
+
+## Deploy
+
+```sh
+npm run deploy   # the gate, then wrangler deploy
+```
+
+It deploys `dist/` to Cloudflare Workers static assets, at terriest.com: assets only, with request logs, the `workers.dev` address and Preview URLs off (`wrangler.jsonc`). wrangler signs in with its stored login, with no API token, and `wrangler login` renews a lapsed one at a browser (Q-6). Nothing is deployed yet, and every deploy waits for the owner's go-ahead.
+
+**The first deploy** makes terriest.com a Workers custom domain, which replaces any A, AAAA or CNAME records the name has, and any Workers custom domain on it (Q-5). Before it, the owner lists those from the Cloudflare dashboard, and the go-ahead names what will be replaced. Run without a terminal, as Claude runs it, wrangler replaces them without asking; in the owner's own terminal, it asks first. That deploy also checks that the zone is on the account this machine deploys with.
+
+## Privacy
+
+No accounts, analytics or tracking.
+
+- **At M1** the page contacts only the server it's loaded from, and the gate fails a page that requests anything else.
+- **From M3,** with matches, nothing is contacted until you propose or join one. Opening a `#join=` link or entering a code counts as joining. Then these see the following (PLAN §20; the relays and STUN servers are in [third-party.json](third-party.json)):
+
+| Who | Why | What they see |
+|---|---|---|
+| Six public Nostr relays, and any you add in Settings | signalling, so browsers can find each other | your IP address, Origin, User-Agent and timing, a hashed room topic, a Nostr key and Trystero peer ID made for each page load, and the sizes of encrypted session descriptions |
+| stun.cloudflare.com and stun.l.google.com | STUN: your public address, for direct connections | your IP address and port |
+| Your own TURN server, if you add one | relaying between browsers that can't connect directly | your IP address and traffic volume |
+| The other browsers in the match | the game | your IP address, player ID, name, coat and inputs |
+
+- **Practice** (from M3) contacts no one.
+- **Hosting:** once deployed, Cloudflare serves terriest.com. It sees each HTTP request, never the `#join=` fragment, and request logs are off.
+
+## Licence
+
+None. All rights reserved: this repository is public so it can be read, but no licence is granted to use, copy, modify or distribute it. Bundled third-party packages keep their own licences. Their notices, with their texts, ship in `dist/THIRD-PARTY-LICENSES.txt`: three's from M1, and Trystero's and `@noble/secp256k1`'s from M3.
+
+## Known limits
+
+- **Safari may delete stored data** after 7 days without a visit (C-14): the player ID, name, coat and settings the game keeps from M4. Only a re-typed name and coat are at stake.
+- **Real Safari is unverified.** Playwright's WebKit stands in for it in the gate. If the device round before M5 names a Mac or an iPhone, the determinism page and one match run on it before release (Q-12).
+- **Phone performance is unverified** while the Pixel 8a's run is pending (Q-13).
+
+## Windows: the Sticky Keys shortcut
+
+Shift will be zoomies (from M4). On Windows, pressing Shift five times opens the Sticky Keys prompt. The prompt takes focus, so every key is released and your terrier stops until you dismiss it (C-52). To turn the shortcut off:
+- **Windows 11:** Settings > Accessibility > Keyboard > Sticky keys, then turn off **Keyboard shortcut for Sticky keys**.
+- **Windows 10:** Settings > Ease of Access > Keyboard, then clear **Allow the shortcut key to start Sticky Keys**.

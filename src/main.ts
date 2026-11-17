@@ -1,13 +1,53 @@
-// The page's entry (PLAN §6). M1's placeholder draws one frame of an empty
-// scene and then takes the boot message down; without WebGL 2 the message
-// stays (D-30). The boot page and the empty pitch replace it.
-import { drawEmptyScene } from './render/scene';
+// The page's entry (PLAN §6): wiring. public/boot.js runs its checks first
+// and defines window.terriestBoot only if they pass (D-30). Then the
+// renderer starts, the empty pitch draws its first frame, and boot.js is
+// told the app has started, which takes its message down. Without WebGL 2,
+// boot.js shows that message instead, and nothing else runs. Settings
+// arrive at M4; until then the render quality comes from the URL (D-33).
 
-const canvas = document.createElement('canvas');
-document.body.append(canvas);
-if (drawEmptyScene(canvas)) {
-  document.getElementById('fallback')?.remove();
-  document.documentElement.dataset.drawn = '1';
-} else {
-  canvas.remove();
+import { qualityFrom } from './render/quality';
+import { createPitchView, type RenderInfo } from './render/scene';
+
+/** What public/boot.js offers the module (D-30). */
+export interface Boot {
+  /** The app has started: cancels the load timeout and takes the message down. */
+  started(): void;
+  /** No WebGL 2 at load: its message shows, and stays. */
+  noWebGL2(): void;
 }
+
+/** What the end-to-end tests read, through window.terriestTest. */
+export interface Inspection {
+  render: RenderInfo;
+}
+
+/** Set by an end-to-end test before the page loads, and never by a normal
+ *  page, whose behaviour it never changes: the page only adds inspect()
+ *  to it once it has started. M3 and M4 extend it (§16, D-27). */
+export interface TerriestTest {
+  inspect?: () => Inspection;
+}
+
+declare global {
+  interface Window {
+    terriestBoot?: Boot;
+    terriestTest?: TerriestTest;
+  }
+}
+
+async function start(boot: Boot): Promise<void> {
+  const canvas = document.createElement('canvas');
+  const view = createPitchView(canvas, qualityFrom(location.search));
+  if (!view) {
+    boot.noWebGL2();
+    return;
+  }
+  document.body.append(canvas);
+  await view.start();
+  const test = window.terriestTest;
+  if (test) test.inspect = () => ({ render: view.info() });
+  boot.started();
+}
+
+const boot = window.terriestBoot;
+if (boot) void start(boot);

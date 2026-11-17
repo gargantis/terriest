@@ -11,15 +11,22 @@
       html, body { margin: 0; height: 100%; }
       body { background: #1d2b1f; color: #eef3ea; font: 16px/1.5 system-ui, sans-serif; }
       #fallback { max-width: 40rem; padding: 1rem 1.5rem; }
+      #fallback code {
+        font: 0.9em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        background: #2f4232; padding: 0.1em 0.3em; border-radius: 3px; overflow-wrap: anywhere;
+      }
+      /* The pitch fills the window (D-30), shown once the app has started. */
       canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+      html:not([data-boot="started"]) canvas { visibility: hidden; }
     </style>
   </head>
   <body>
-    <!-- PLAN D-30: a message by default, so the page is never blank. -->
+    <!-- PLAN D-30: a message by default, so the page is never blank. public/boot.js
+         replaces it with a failure's own, or takes it down once the app has started. -->
     <main id="fallback">
       <h1 id="fallback-title" tabindex="-1">Loading terriest…</h1>
       <p id="fallback-note">If this message doesn't go away, the page's scripts may be blocked.</p>
-      <noscript><p>terriest needs JavaScript.</p></noscript>
+      <noscript><p>terriest needs JavaScript, which is off for this page.</p></noscript>
     </main>
     <script src="./boot.js"></script>
     <script type="module" src="./src/main.ts"></script>
