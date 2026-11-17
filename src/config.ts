@@ -10,9 +10,9 @@
 // L-numbers count lines of REQUIREMENTS at 6254a1d: from L287 on, today's
 // are one further on (the plan's L306, Goal mouth, is now line 307).
 //
-// The simulation reads this from M2, so its arithmetic is exact operations
-// only (D-1): + − × ÷, Math.sqrt and Math.round. Binary angles wait for
-// M2's angle module.
+// The simulation reads this from M2, through src/core/sim/params.ts, so its
+// arithmetic is exact operations only (D-1): + − × ÷, Math.sqrt and
+// Math.round. The binary angles are params.ts's, from src/core/sim/math.ts.
 
 /** Steering schemes (Configuration: Steering; D-7). */
 export type Steering = 'anchored' | 'screen-relative' | 'vehicle';
@@ -46,6 +46,9 @@ export const config = deepFreeze({
     [[-9, 5], [-9, -5], [-15, 0]],
     [[-8, 6], [-8, -6], [-14, 3], [-14, -3]],
   ] as SpotTable,
+  // A warm-up arrival whose spot isn't clear steps from it toward its own
+  // goal line by this much at a time (A.4: Warm-up arrivals; D-8).
+  warmUpArrivalStepMetres: 1,
 
   // The pitch (Configuration: Pitch, Goal mouth; A.5: Posts and crossbar;
   // D-4). src/core/sim/pitch.ts builds its pieces from this.
@@ -110,6 +113,13 @@ export const config = deepFreeze({
   barkMaxPerSecond: 1, // the sender keeps to it (D-10)
   ballOverheadEnterMetres: 0.3, // horizontal centre distance (D-7)
   ballOverheadLeaveMetres: 0.4,
+  // The ball-frame push assist's speed cap: 0 turns it off, and on it's at
+  // least the zoomies speed (A.5; C-18).
+  pushAssistCapMetresPerSecond: 0,
+
+  // Animation (A.4: Gait and running; D-9), from M0's animate().
+  gaitCycleMetres: 0.6, // run on the floor in a gait cycle
+  runningMinSpeedMetresPerSecond: 0.2, // running above it, or while the drive is on
 
   // Cameras (Configuration: Chase view swing; A.5; D-28): each viewer's
   // own, outside the state, tuned at M4.
@@ -161,7 +171,7 @@ export const config = deepFreeze({
   chaseRereadDegrees: 45, // chase view reads the screen again from this far (Q-19)
   touchEdgeMarginCssPx: 32, // from the side edges, inside the safe-area insets
 
-  // The page (A.4; D-16, D-30, D-31, D-33, §13, Q-9, Q-11, Q-17).
+  // The page (A.4; D-16, D-30, D-31, D-33, §13, Q-11, Q-17).
   smoothingMs: 100, // a correction's offset decay; bodies in contact share one (D-16)
   ownSmoothingMs: 50, // for your own terrier
   timerStallSeconds: 2, // a longer gap between timer runs is a stall (D-31)
@@ -174,8 +184,20 @@ export const config = deepFreeze({
     low: { pixelRatioMax: 1, msaa: false }, // and simpler effects
   },
   soundShiftTicksMax: 3, // an event a re-simulation moves this far plays once (§13)
-  botReactionSeconds: 0.25, // with aim noise seeded per bot (Q-9)
   coatCount: 8, // the coat list is fixed with the look at M4 (Q-11); M0 drew 8
+
+  // The bot brain (A.4: Bot brain; Q-9, D-39), which M2 tunes. Its bark gap
+  // is the Bark setting's (L327).
+  botReactionSeconds: 0.25, // before it acts on what it sees
+  botAimNoiseDegrees: 10, // either way, seeded per bot
+  botZoomiesBeyondMetres: 5, // zooms at a ball farther than this
+  botPounceWithinMetres: 2, // of the ball's surface
+  botPounceAlignDegrees: 20, // lined up with the ball and the goal
+  botSupportMetres: 5, // behind the ball
+  botDefendMetres: 6, // out from its goal line
+  botBarkEverySeconds: 5, // about: jittered by the bark gap either way
+  botStuckSeconds: 2, // held within botStuckMetres, then it turns away
+  botStuckMetres: 0.5,
 } as const);
 
 /** The configuration's type with its numbers widened, for a copy that a
@@ -202,7 +224,8 @@ export function packSpots(c: Config): readonly [SpotTable, SpotTable] {
 }
 
 /** The settings in the simulation's units: whole ticks, the zoomies meter's
- *  units (A.1), the substep, the jump speed and both packs' kickoff spots.
+ *  units (A.1), the substep, the jump speed and both packs' kickoff spots;
+ *  from M2, a minute's ticks and the bots' and the bark gap's ticks.
  *  Throws on a time that isn't a whole number of ticks, and on a meter whose
  *  rates aren't whole units a tick. */
 export function derive(c: Config) {
@@ -210,7 +233,8 @@ export function derive(c: Config) {
   const ticks = (seconds: number, what: string): number => {
     const t = seconds * rate;
     const whole = Math.round(t);
-    if (Math.abs(t - whole) > 1e-9) throw new Error(`${what}: ${seconds} s is ${t} ticks, not a whole number`);
+    // Written so NaN and ±Infinity fail it too: 1 / a bark rate of 0 is Infinity.
+    if (!(Math.abs(t - whole) <= 1e-9)) throw new Error(`${what}: ${seconds} s is ${t} ticks, not a whole number`);
     return whole;
   };
   // A.1: a tick of zoomies drains its units a tick, and the meter refills
@@ -236,6 +260,10 @@ export function derive(c: Config) {
     getUpTicks: ticks(c.getUpSeconds, 'the get-up'),
     tumbleGuardTicks: ticks(c.tumbleGuardSeconds, 'the tumble guard'),
     botReactionTicks: ticks(c.botReactionSeconds, "the bots' reaction"),
+    ticksPerMinute: ticks(60, 'a minute'), // the match length's (D-8)
+    botBarkEveryTicks: ticks(c.botBarkEverySeconds, "the bots' bark period"),
+    botStuckTicks: ticks(c.botStuckSeconds, "the bots' unstick"),
+    barkGapTicks: ticks(1 / c.barkMaxPerSecond, 'the bark gap'), // L327
     zoomiesMeterFull: full,
     zoomiesMeterDrainPerTick: units,
     zoomiesMeterRefillPerTick: refill,

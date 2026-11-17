@@ -1,7 +1,8 @@
 // Lint fixtures (PLAN D-38): each `// ==` section is one construct, linted
 // on its own in a file of each group by scripts/eslint/config.test.mjs.
 // Never compiled or bundled. D-1: deterministic code keeps to exact
-// operations, and Math appears only as Math.<name>, or as a key.
+// operations, and Math appears only as Math.<name>, or as a key. §7.3:
+// Map, Set, WeakMap and WeakSet appear only as keys.
 
 // == Math.sin
 export const a = (x: number): number => Math.sin(x);
@@ -82,6 +83,77 @@ export const a = (x: string): number => x.localeCompare('b');
 
 // == Temporal
 export const a = Temporal.Now.instant();
+
+// == new Map
+export const a = new Map<string, number>();
+
+// == new Set
+export const a = new Set<number>();
+
+// == new WeakMap
+export const a = new WeakMap<object, number>();
+
+// == new WeakSet
+export const a = new WeakSet<object>();
+
+// == a class extending Map
+export class A extends Map<string, number> {}
+
+// == a class expression extending Set
+export const A = class extends Set<number> {};
+
+// == a Map constructor aliased
+const M = Map;
+export const a = new M<string, number>();
+
+// == a Map constructor through a cast
+export const a = new (Map as MapConstructor)<string, number>();
+
+// == a Set constructor by a comma
+export const a = new (0, Set)<number>();
+
+// == a Map built by Reflect.construct
+export const a = Reflect.construct(Map, []) as object;
+
+// == a Map constructor passed on
+const make = (C: new () => object): object => new C();
+export const a = make(Map);
+
+// == a parameter typed MapConstructor
+export const a = (C: MapConstructor): object => new C();
+
+// == a Set iterated through a parameter typed ReadonlySet
+export const a = (s: ReadonlySet<number>): number => {
+  let n = 0;
+  for (const x of s) n += x;
+  return n;
+};
+
+// == a Map read from a parameter typed as the global object
+export const a = (g: typeof globalThis): object => new g.Map();
+
+// == a WeakMap by a string key
+export const a = (g: typeof globalThis): object => new g['WeakMap']();
+
+// == a WeakSet by a template key
+export const a = (g: typeof globalThis): object => new g[`WeakSet`]();
+
+// == keys named Map and Set
+export const o = { Map: 1, Set: 2 };
+export interface I {
+  WeakMap: number;
+  ReadonlySet(): void;
+}
+export class C {
+  WeakSet = 1;
+  Map(): number {
+    return 1;
+  }
+}
+export const b = (u: Uint8Array): number => {
+  u.set([1]);
+  return u.length;
+};
 
 // == exact operations, and keys named Math
 export const a = (x: number): number => Math.fround(Math.sqrt(x)) + Math.min(Math.abs(x), Math.PI) + Math.imul(3, 4);

@@ -133,6 +133,22 @@ const LOCALE = '/^(toLocale|localeCompare$)/';
 const LOCALE_BANS = [`Identifier[name=${LOCALE}]`, `Literal[value=${LOCALE}]`, `TemplateElement[value.raw=${LOCALE}]`].map(
   (selector) => ({ selector, message: LOCALE_MESSAGE }),
 );
+// Arrays only (PLAN §7.3, M2): a Map or Set iterates in insertion order,
+// which can follow arrival order, and a per-object cache carries one call's
+// state into the next. A ban on `new Map` alone misses an alias, a cast, a
+// comma or Reflect.construct, so, as with Math, the names appear only as
+// keys: never constructed, extended, aliased, passed on, named in a type
+// (ReadonlySet and MapConstructor too) or read as a property (`g.Map`, for
+// a g typed as the global object). A Set passed in as an Iterable is out of
+// a syntax rule's reach, and holds by review.
+const COLLECTION_MESSAGE =
+  'Arrays only in src/core/sim and src/core/bot: a Map or Set iterates in insertion order, which can follow arrival order, so none is named but as a key: never constructed, aliased, passed on or typed (PLAN §7.3, D-38).';
+const COLLECTION = '/^(Readonly|Weak)?(Map|Set)(Constructor)?$/';
+const COLLECTION_BANS = [
+  `Identifier[name=${COLLECTION}]:not(ObjectExpression > Property > .key, PropertyDefinition > .key, MethodDefinition > .key, TSPropertySignature > .key, TSMethodSignature > .key)`,
+  `Literal[value=${COLLECTION}]`,
+  `TemplateElement[value.raw=${COLLECTION}]`,
+].map((selector) => ({ selector, message: COLLECTION_MESSAGE }));
 
 // amorfus's subpath bans: the site works from any path (REQUIREMENTS L232).
 const HISTORY_MESSAGE = 'The History API breaks subpath hosting; set the fragment with location.replace (PLAN §11, D-38).';
@@ -200,7 +216,7 @@ function groupRules({ exact = false, core = false, render = false, trystero = fa
     imports.push({ regex: BROWSER_DIRS, message: BROWSER_DIRS_MESSAGE });
     syntax.push(...dynamicBans(BROWSER_DIRS, BROWSER_DIRS_MESSAGE));
   }
-  if (exact) syntax.push(...MATH_BANS, ...LOCALE_BANS);
+  if (exact) syntax.push(...MATH_BANS, ...LOCALE_BANS, ...COLLECTION_BANS);
   const globals = core ? CORE_GLOBALS : storage ? [] : STORAGE_GLOBALS;
   return {
     ...(exact ? { 'hermet/exact-ops': 'error' } : {}),
@@ -238,8 +254,9 @@ export default defineConfig(
     files: SRC_NOT_TS,
     rules: { '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }] },
   },
-  // The six groups. exact-ops and the Math and locale bans guard shipped
-  // simulation and bot code; their tests may use ordinary maths (D-38).
+  // The six groups. exact-ops and the Math, locale and collection bans guard
+  // shipped simulation and bot code; their tests may use ordinary maths and
+  // collections (D-38).
   { files: SIM, ignores: SIM_TESTS, languageOptions: coreLanguage, rules: groupRules({ exact: true, core: true }) },
   { files: under('core'), ignores: SIM, languageOptions: coreLanguage, rules: coreRules },
   { files: SIM_TESTS, languageOptions: coreLanguage, rules: coreRules },

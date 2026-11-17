@@ -917,14 +917,16 @@ Lint and the golden files depend on these paths, so the paths are part of the co
 Everything below is in the canonical state (Appendix A.1), and so in the hash. Spectators and the proposer, unless they play, are not.
 
 - **Match:** phase and the tick it began, overtime, tick, pack size, match length, clock, score, the last goal (tick, pack, own goal, and its scorers: set at the goal and cleared at each kickoff placement, so a spectator who arrives mid-celebration can still name them).
-- **The ball:** position and velocity (six float64), on-floor flag, last hit tick and strength, last contact tick.
+- **The ball:** position and velocity (six float64), on-floor flag, last hit tick and strength, the last hit's velocity change, last contact tick.
 - **Per terrier**, in (spot, pack) order:
   - **identity:** player ID, name, pack, spot, coat;
   - **lifecycle:** join tick, Ready-until tick, last tick with an input, the previous present final input (D-10);
-  - **body:** heading and the overhead reference (D-7); position and velocity (six float64); flags (on the floor, sitting, lunging, zoomies locked out, ball overhead, and slipping, with the body slipped from: M0's slip-out uses both, D-5);
+  - **body:** heading and the overhead reference (D-7); position and velocity (six float64); flags (on the floor, sitting, zoomies locked out, ball overhead, touching the ball, and slipping, with the body slot slipped from: M0's slip-out uses both, D-5);
   - **timers:** zoomies meter (in half-ticks), pounce wait, lunge, tumble and guard;
-  - **counts:** touching the ball, touches, goals;
+  - **counts:** touches, goals;
   - **animation:** the fields of D-9.
+
+**M2:** as A.1 fixed it. The draft's lunging flag went, since the lunge timer says it; touching the ball became a flag; slipped-from names a body slot; and the ball keeps its last hit's velocity change, the squash's axis (D-9).
 
 ### 7.2 One tick, in order
 
@@ -1561,50 +1563,59 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
 
 ### A.1 Canonical state (the hash input and the STATE payload)
 
-*Provisional; M2 fixes it with the first goldens.*
+**M2, fixed** before the first goldens, as `src/core/sim/codec.ts` writes it; the draft it replaces was provisional. Little-endian, in this order. "Written" gives the step of §7.2 that changes each field: 1 events, 2 presence, 3 phase changes, 4 inputs, 5 physics, 6 the clock, 7 animation. "Place" is a kickoff placement and "arrive" a warm-up arrival (D-8); "gen" is genesis.
 
-```
-u16  codec version = 1
-u8   phase: 0 warm-up, 1 start countdown, 2 kickoff countdown, 3 in play, 4 celebration, 5 ended
-u32  phase start tick
-u8   overtime: 0 or 1
-u32  tick
-u8   pack size (1–4)
-u32  match length (ticks)
-u32  clock (ticks left; in overtime, ticks since it began)
-u8   score A, u8 score B
-u32  last goal tick (0xFFFFFFFF: none), u8 last goal pack, u8 own goal
-u8   last goal scorers (bit k: the k-th terrier in the list; 0 for an own goal), set at the goal, cleared at each kickoff placement
-ball:
-     f64     x, y, z, vx, vy, vz
-     u8      on the floor
-     u32     last hit tick, f64 last hit strength
-     u32     last contact tick
-u8   n
-n × terrier, in (spot, pack) order:
-     u8[16]  player ID (a bot's derived from its host's)
-     u8+n    display name (UTF-8, ≤ 32 bytes)
-     u8      pack, u8 spot, u8 coat
-     u32     join tick, u32 ready until (0: not ready), u32 last tick with an input
-     u16     previous present final input, with the bark bits cleared
-     u32     heading (binary angle)
-     u32     overhead reference (binary angle): the heading when the ball-overhead flag set
-     f64     x, y, z, vx, vy, vz
-     u8      flags: on the floor, sitting, lunging, zoomies locked out, ball overhead, slipping (M0, D-5)
-     u8      slipped from: 0 none; else 1 + the body's index, the terriers in this order, then the ball (M0, D-5)
-     u16     zoomies meter in half-ticks: full 360, drains 2 a tick, refills 1
-     u16     pounce wait, lunge, tumble, guard (ticks)
-     u8      touching the ball
-     u16     touches, u8 goals
-     u8      animation phase, u32 its start tick
-     u32     gait (binary angle)
-     u32     take-off tick, u32 landing tick
-     u32     last ball contact tick, u32 last terrier contact tick
-     u32     last push received: direction (binary angle) and tick
-     i32     heading change this tick
-```
+| Bytes | Field | Written |
+|---|---|---|
+| u16 | codec version = 1 | constant |
+| u8 | phase: 0 warm-up, 1 start countdown, 2 kickoff countdown, 3 in play, 4 celebration, 5 ended | 3; 5 (a goal starts a celebration); 6 (the end, or the overtime kickoff) |
+| u32 | phase start tick | with the phase |
+| u8 | overtime, 0 or 1 | 3 (a celebration ends level at 0:00), 6 |
+| u32 | tick | the tick's end |
+| u8 | pack size, 1–4 | gen |
+| u32 | match length, ticks | gen: minutes × ticks a minute |
+| u32 | clock: ticks left; in overtime, ticks since it began | gen (the length); 6 |
+| u8, u8 | score A, score B, saturating at 255 | 5 |
+| u32, u8, u8 | last goal tick (NEVER: none), its pack, own goal | 5; kept until the next goal |
+| u8 | scorers: bit k for the k-th terrier in the list; 0 for an own goal | 5; cleared at each placement |
+| 6 × f64 | ball x, y, z, vx, vy, vz | 5; place |
+| u8 | ball on the floor | 5 (support); place |
+| u32, f64 | ball's last hit tick, its strength (the closing speed) | 5, before the solve |
+| 3 × f64 | ball's last hit's velocity change, x, y, z | 5, after the solve, in the substep that sets the hit |
+| u32 | ball's last contact tick | 5, after the solve |
+| u8 | n, at most 2 × pack size | 1, 2 |
+| *n terriers, in (spot, pack) order:* | | |
+| 16 × u8 | player ID (a bot's derived from its host's) | 1 (JOIN) |
+| u8 + bytes | display name: its length, then UTF-8, at most 32 bytes | 1 (JOIN, cleaned) |
+| u8, u8, u8 | pack, spot, coat | 1 (JOIN, SWITCH, arrive); the spot also at a placement, by ID rank |
+| u32, u32, u32 | join tick; ready until (0: not ready); last tick with an input | 1; 1 and 3 (expiry); 1 and 2 |
+| u16 | previous present final input, bits 0–12 (the bark bits cleared) | 4 |
+| u32 | heading (binary angle) | 1 (arrive), 3 and 6 (place), 4 (turns) |
+| u32 | overhead reference (binary angle): the heading when the ball-overhead flag set | 4, when the flag sets; place and arrive (the heading) |
+| 6 × f64 | x, y, z, vx, vy, vz | 1 (arrive), 3 and 6 (place), 4 (jump, pounce), 5 |
+| u8 | flags: bit 0 on the floor, 1 sitting, 2 zoomies locked out, 3 ball overhead, 4 slipping, 5 touching the ball; 6–7 zero | 2 (sitting), 4, 5; place |
+| u8 | slipped from: 0 none, else 1 + a body slot | 5; place; cleared when that slot is vacated (1, 2) |
+| u16 | zoomies meter, half-ticks: full 360, drains 2 a tick, refills 1 | 4; place and arrive (full) |
+| 4 × u16 | pounce wait, lunge, tumble, guard (ticks) | 4 (pounce), 5 (a lunge's end, a tumble), 7; place and arrive (0) |
+| u16, u8 | touches (saturating at 65,535), goals (at 255) | 5 |
+| u8, u32 | animation phase, its start tick | 7; place and arrive |
+| u32 | gait (binary angle) | 7 |
+| u32, u32 | take-off tick, landing tick | 4 (jump), 5 (each substep) |
+| u32, u32 | last ball contact tick, last terrier contact tick | 5 |
+| u32, u32 | last push received: direction (binary angle), tick | 5 |
+| i32 | heading change this tick | 4; place (0) |
 
-About 180 bytes per terrier, about 1.5 KB for 8 (*estimate*). The hash is roslambo's: MurmurHash3 x86-32 with seeds 0 and 0x9747B28C, 8 bytes, compared as an unsigned big-endian number.
+**M2: what the draft left open, fixed:**
+- **The flags:** the draft's lunging flag went, since the lunge timer says it. Touching the ball, a byte of its own in the draft, is bit 5, and bits 6–7 are zero.
+- **No intents:** whether a terrier's drive is on, its target and whether it zooms aren't state, though M0's spike encoded them. Step 4 writes them before anything reads them.
+- **Slots:** a terrier's body slot is 2 × spot + pack, and the ball's is 2 × pack size. Slipped from names a slot, since list indices stop matching the solver's mirror slots (D-5) when a warm-up pack isn't full. Slipping is set exactly when it names one, never the terrier's own, and a LEAVE, a removal or a SWITCH that frees a slot clears every slipped-from that names it.
+- **NEVER,** 0xFFFFFFFF, is a tick that never happened: take-off, landing, both contact ticks, the last push, the ball's last hit and last contact, the last goal. The push direction is 0 while its tick is NEVER.
+- **Counters saturate:** touches at 65,535, goals and scores at 255, the overtime clock at 2³² − 1, so no field leaves its type.
+- **Holes:** in warm-up a pack may have fewer terriers than the pack size, and gaps in its spots after a LEAVE; the list stays in (spot, pack) order with unique slots. From the start countdown on, both packs are full, so list index k is slot k.
+- **The ball's hit change** (D-9, L101): the ball's velocity change in the substep that set its last hit, from after the forces to after the impulses, so the impulses and the floor's bounce without gravity. It's the squash's axis, which the velocity after a glancing hit would get wrong. A mirrored state's horizontal parts are ±0, so P8 holds, and the fixed warm-up ball's change is 0, which draws no axis.
+- **Encoding and decoding:** encoding refuses a float that isn't finite (D-1) and a field outside its type, and checks nothing else, so a test-only state, such as a short pack in play, still encodes and hashes. Decoding never throws: malformed, inconsistent or trailing bytes give nothing, and so does a state that `src/core/sim/valid.ts`'s checks refuse. So every state those checks pass round-trips byte for byte, and one they refuse never comes from a peer.
+
+**Size:** 30 bytes of header, 89 for the ball and 1 for n, then 142 bytes a terrier plus its name: 1,512 bytes at 8 terriers with 32-byte names. The hash is roslambo's: MurmurHash3 x86-32 with seeds 0 and 0x9747B28C, 8 bytes, compared as an unsigned big-endian number.
 
 ### A.2 Input (u16)
 
@@ -1643,10 +1654,12 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Restitution threshold | 0.3 m/s |
 | Slip-out | 42° from vertical, 2 m/s sideways, with the slipping flag (M0 chose it, D-5) |
 | Ball overhead | enter under 0.3 m, leave above 0.4 m (horizontal centre distance) |
+| Gait and running | the gait turns a cycle per 0.6 m run on the floor; a terrier draws as running above 0.2 m/s, or while its drive is on (M2, from M0, D-9) |
 | Stick | 32 steps, half-step hysteresis, 0.2 dead zone; chase view re-reads at 45° |
 | Smoothing | 100 ms; 50 ms for your own terrier; bodies in contact share one decay; chosen from M3's correction measurement (D-16) |
 | Removal before the start countdown | 180 silent ticks (roslambo Q-15) |
 | Sitting, from the start countdown | 120 silent ticks |
+| Warm-up arrivals | the pack's next free spot if it's clear, else the first clear point in 1 m steps from it toward the pack's own goal line, else the spot itself (M2, D-8) |
 | Abandoned match | from the start countdown, 30 s with no browser that controls a terrier (Q-16) |
 | A duplicate ID replaces a connection | silent for 2 s |
 | Handshake timeout, connection-failure message | 10 s, 20 s |
@@ -1660,7 +1673,7 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Lost graphics | the plain message after 5 s, counted only while the page is visible (D-30) |
 | Render quality | high: pixel ratio capped at 2, with MSAA; low: capped at 1, no MSAA, simpler effects (D-33) |
 | Sound under rollback | an event that a re-simulation moves by up to 3 ticks plays once (§13) |
-| Bot reactions | about 0.25 s, with aim noise seeded per bot (Q-9) |
+| Bot brain | reacts after 0.25 s, with aim noise up to 10° either way, seeded per bot; zooms at a ball over 5 m away; pounces when the ball's surface is within 2 m and lined up within 20°; supports 5 m behind the ball; defends 6 m out from its goal line; barks about every 5 s; turns away after 2 s held within 0.5 m (M2, Q-9, D-39) |
 
 ### A.5 Gameplay values (the Configuration table; *starting values* for the TBDs and new settings, chosen at M2, and the cameras' at M4)
 
@@ -1681,6 +1694,7 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Get-up | the last 0.5 s of the 1.5 s tumble |
 | Nose turn rate (vehicle-style) | 1 turn/s; reverse at up to 3 m/s |
 | Posts and crossbar | capsules, radius 0.1 m |
+| Ball-frame push assist (C-18) | off: its speed cap is 0 m/s, which turns it off; on, the cap is at least the zoomies speed; compared on the tuning page (M2) |
 
 ### A.6 Toolchain pins
 

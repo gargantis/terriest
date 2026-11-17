@@ -4,6 +4,7 @@ import { ESLint } from 'eslint';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { config, type Config, type Derived, derive, derived, packSpots, type PitchShape, type SpotTable } from './config';
+import { STEP_MASK } from './core/sim/input';
 import { buildPitch, CAPSULE, FRAME, GOAL_NET, insideFloorPlan, type Piece, type Pitch, pitch, PLANE, QUAD } from './core/sim/pitch';
 
 // PLAN §7.4: the configuration checks. Each check returns the problems it
@@ -43,6 +44,8 @@ function tunnelling(c: Config): string[] {
   const direct: [string, number][] = [
     ['run speed', c.runSpeedMetresPerSecond],
     ['zoomies speed', c.zoomiesSpeedMetresPerSecond],
+    // A drive target too: a pusher well off the ball's travel drives at the cap (C-18, M2).
+    ["the push assist's cap", c.pushAssistCapMetresPerSecond],
     ['a pounce from the air', Math.hypot(c.pounceSpeedMetresPerSecond, Math.sqrt(2 * g * c.jumpHeightMetres))],
     ['a fall from the overhead net', Math.sqrt(2 * g * c.pitch.heightMetres)],
   ];
@@ -218,6 +221,39 @@ function nettingOf(p: Pitch, pack: 0 | 1): { back: Piece; sides: [Piece, Piece];
   return { back: back[0]!, sides: [sides[0]!, sides[1]!], top: top[0]! };
 }
 
+// --- Settings that a format or a rule fixes (M2, design §10) ---
+
+/** A.2's five step bits fix the stick's steps: today nothing else ties the
+ *  setting to the input format. */
+function stickSteps(c: Config): string[] {
+  const steps = STEP_MASK + 1;
+  return c.stickSteps === steps ? [] : [`the stick has ${c.stickSteps} steps, and A.2's five step bits hold ${steps}`];
+}
+
+/** A landing terrier never bounces (L312), and D-5 step 4 has no terrier
+ *  floor bounce to read the setting with, so any other value would be one
+ *  the simulation silently ignores. */
+function terrierFloor(c: Config): string[] {
+  const e = c.terrierFloorRestitution;
+  return e === 0 ? [] : [`a terrier keeps ${e} of its speed off the floor, but a landing terrier never bounces (L312)`];
+}
+
+/** The ball-frame push assist is off at 0, and on it never slows a pusher
+ *  below its base speed: its cap is at least the zoomies speed (C-18). */
+function pushAssist(c: Config): string[] {
+  const cap = c.pushAssistCapMetresPerSecond;
+  const zoomies = c.zoomiesSpeedMetresPerSecond;
+  return cap === 0 || cap >= zoomies ? [] : [`the push assist's cap, ${cap} m/s, is neither 0, which is off, nor at least the zoomies speed, ${zoomies} m/s`];
+}
+
+/** A bot's barks come about every period, jittered by the bark gap either
+ *  way, so the period is at least two gaps and no bark comes within the
+ *  gap of the last (L327). */
+function botBarks(c: Config): string[] {
+  const gap = 1 / c.barkMaxPerSecond;
+  return c.botBarkEverySeconds >= 2 * gap ? [] : [`bots bark every ${c.botBarkEverySeconds} s, under two bark gaps of ${gap} s`];
+}
+
 // --- Every setting from the tables is in src/config.ts (§7.4) ---
 
 /** How a table row maps to src/config.ts: the settings it names, and the
@@ -329,7 +365,15 @@ const A4: Readonly<Record<string, Row>> = {
     holds: ({ renderQuality: q }, value) => q.high.msaa === /high:[^;]*with MSAA/.test(value) && q.low.msaa === !/low:[^;]*no MSAA/.test(value),
   },
   'Sound under rollback': { keys: ['soundShiftTicksMax'] },
-  'Bot reactions': { keys: ['botReactionSeconds'] },
+  // M2's rows (design §10).
+  'Warm-up arrivals': { keys: ['warmUpArrivalStepMetres'] },
+  'Gait and running': { keys: ['gaitCycleMetres', 'runningMinSpeedMetresPerSecond'] },
+  'Bot brain': {
+    keys: [
+      'botReactionSeconds', 'botAimNoiseDegrees', 'botZoomiesBeyondMetres', 'botPounceWithinMetres', 'botPounceAlignDegrees',
+      'botSupportMetres', 'botDefendMetres', 'botBarkEverySeconds', 'botStuckSeconds', 'botStuckMetres',
+    ],
+  },
 };
 
 /** PLAN A.5, by row; its first row is "as REQUIREMENTS' Configuration table". */
@@ -357,6 +401,8 @@ const A5: Readonly<Record<string, Row>> = {
   'Get-up': { keys: ['getUpSeconds', 'tumbleSeconds'] },
   'Nose turn rate (vehicle-style)': { keys: ['noseTurnRateTurnsPerSecond', 'noseReverseMetresPerSecond'] },
   'Posts and crossbar': { keys: ['pitch.postRadiusMetres'] },
+  // M2's row (design §4.4, §10).
+  'Ball-frame push assist (C-18)': { keys: ['pushAssistCapMetresPerSecond'] },
 };
 
 /** Settings in none of the tables, with their sources. */
@@ -687,6 +733,9 @@ describe('the configuration checks (PLAN §7.4)', () => {
     expect(tunnelling(planted({ substepsPerTick: 1 })).join('\n')).toMatch(/smallest radius, 0.25 m[\s\S]*smallest radius sum/);
     expect(tunnelling(planted({ terrierRadiusMetres: 0.1 }))).toHaveLength(2);
     expect(tunnelling(planted({ pounceSpeedMetresPerSecond: 30 })).join('\n')).toMatch(/a pounce from the air reaches/);
+    // The push assist's cap, which 0 turns off (M2).
+    expect(tunnelling(planted({ pushAssistCapMetresPerSecond: 30 }))).toEqual(["the push assist's cap reaches 30 m/s, not under the 25 m/s bound"]);
+    expect(tunnelling(planted({ pushAssistCapMetresPerSecond: 12 }))).toEqual([]);
   });
 
   it('fits the late window and the vote window in the state history (A.4)', () => {
@@ -764,6 +813,31 @@ describe('the configuration checks (PLAN §7.4)', () => {
     ]);
   });
 
+  it("holds the stick to A.2's 32 steps (M2)", () => {
+    expect(stickSteps(config)).toEqual([]);
+    expect(stickSteps(planted({ stickSteps: 16 }))).toEqual(["the stick has 16 steps, and A.2's five step bits hold 32"]);
+  });
+
+  it('keeps a landing terrier from bouncing (L312, M2)', () => {
+    expect(terrierFloor(config)).toEqual([]);
+    expect(terrierFloor(planted({ terrierFloorRestitution: 0.1 })).join('\n')).toMatch(/keeps 0.1 of its speed off the floor/);
+  });
+
+  it("keeps the push assist off, or its cap at least the zoomies speed (C-18, M2)", () => {
+    expect(pushAssist(config)).toEqual([]);
+    for (const cap of [9, 12]) expect(pushAssist(planted({ pushAssistCapMetresPerSecond: cap })), `${cap} m/s`).toEqual([]);
+    expect(pushAssist(planted({ pushAssistCapMetresPerSecond: 6 })).join('\n')).toMatch(/cap, 6 m\/s, is neither 0/);
+    expect(pushAssist(planted({ pushAssistCapMetresPerSecond: -1 }))).toHaveLength(1);
+    expect(pushAssist(planted({ pushAssistCapMetresPerSecond: 10, zoomiesSpeedMetresPerSecond: 11 }))).toHaveLength(1);
+  });
+
+  it("spaces a bot's barks at least two bark gaps apart (L327, M2)", () => {
+    expect(botBarks(config)).toEqual([]);
+    expect(botBarks(planted({ botBarkEverySeconds: 2 }))).toEqual([]);
+    expect(botBarks(planted({ botBarkEverySeconds: 1.5 })).join('\n')).toMatch(/every 1.5 s, under two bark gaps of 1 s/);
+    expect(botBarks(planted({ barkMaxPerSecond: 0.25 })).join('\n')).toMatch(/two bark gaps of 4 s/);
+  });
+
   it('has every setting of the Configuration table, A.4 and A.5, with their values', () => {
     const requirements = read('REQUIREMENTS.md');
     const plan = read('PLAN.md');
@@ -839,12 +913,12 @@ describe('the configuration checks (PLAN §7.4)', () => {
       '];',
     ].join('\n');
     expect(copies([{ path: 'src/core/sim/e.ts', text: spike }], config)).toEqual([
-      'src/core/sim/e.ts:1: TICK_RATE = 60 is the value of readyExpirySeconds, ticksPerSecond',
+      'src/core/sim/e.ts:1: TICK_RATE = 60 is the value of readyExpirySeconds, ticksPerSecond, derived.barkGapTicks',
       'src/core/sim/e.ts:2: iterations: 8 is the value of pitch.mouthWidthMetres, idleFrictionMetresPerSecond2, solverIterations and 2 more',
       'src/core/sim/e.ts:2: celebrationTicks: 204 is the value of derived.celebrationTicks',
       'src/core/sim/e.ts:2: guardTicks: 90 copies tumbleGuardSeconds',
       'src/core/sim/e.ts:2: cuts: [4, 4, 4, 4] is the value of pitch.cornerCutsMetres',
-      'src/core/sim/e.ts:3: passes = 2; is the value of packSizeDefault, pitch.goalDepthMetres, ballMassKg and 9 more',
+      'src/core/sim/e.ts:3: passes = 2; is the value of packSizeDefault, pitch.goalDepthMetres, ballMassKg and 11 more',
       'src/core/sim/e.ts:4: SPOTS = [ is the value of kickoffSpotsMetres, derived.kickoffSpots[0]',
     ]);
     // Counters, halves, locals, reads of the configuration and marked lines pass.
@@ -883,6 +957,17 @@ describe('src/config.ts', () => {
     expect([derived.readyExpiryTicks, derived.startCountdownTicks, derived.kickoffCountdownTicks, derived.botReactionTicks]).toEqual([3600, 300, 180, 15]);
     expect(derived.jumpSpeedMetresPerSecond).toBeCloseTo(4.43, 2);
     expect(() => derive(planted({ lungeSeconds: 0.31 }))).toThrow(/the lunge: 0.31 s is/);
+    // M2's: a minute, the bots' bark period and unstick, and the bark gap.
+    expect([derived.ticksPerMinute, derived.botBarkEveryTicks, derived.botStuckTicks, derived.barkGapTicks]).toEqual([3600, 300, 120, 60]);
+    expect(derive(planted({ barkMaxPerSecond: 2 })).barkGapTicks).toBe(30);
+    expect(() => derive(planted({ barkMaxPerSecond: 7 }))).toThrow(/the bark gap: .* not a whole number/);
+    expect(() => derive(planted({ botStuckSeconds: 0.33 }))).toThrow(/the bots' unstick: 0.33 s is/);
+    expect(() => derive(planted({ botBarkEverySeconds: 4.99 }))).toThrow(/the bots' bark period: 4.99 s is/);
+    // No time is a whole number of ticks that isn't a number: a bark rate of 0 gives an endless gap.
+    expect(() => derive(planted({ barkMaxPerSecond: 0 }))).toThrow(/the bark gap: Infinity s is Infinity ticks, not a whole number/);
+    expect(() => derive(planted({ botStuckSeconds: NaN }))).toThrow(/the bots' unstick: NaN s is/);
+    expect(() => derive(planted({ lungeSeconds: Infinity }))).toThrow(/the lunge: Infinity s is/);
+    expect(() => derive(planted({ tumbleSeconds: -Infinity }))).toThrow(/the tumble: -Infinity s is/);
   });
 
   it('is frozen, and builds the pitch the page draws (D-4)', () => {
