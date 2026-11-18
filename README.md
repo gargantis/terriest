@@ -1,7 +1,7 @@
 # terriest
 Rocket League with terriers: two packs of small dogs corral a giant rubber ball into goals. Terri. Terrier. Terriest.
 
-**Status:** in development, and nothing is playable yet. [REQUIREMENTS.md](REQUIREMENTS.md) says what the game must do; [PLAN.md](PLAN.md) says how, and lists the milestones. Numbers such as Q-5 or C-14 below are the plan's. Done so far: M0, the physics and rendering spike ([research/spike/REPORT.md](research/spike/REPORT.md)). Now: M1, the skeleton and its test gate, with a page that draws an empty pitch. [docs/acceptance.md](docs/acceptance.md) holds the acceptance criteria and the log of runs the gate doesn't make.
+**Status:** in development, and nothing is playable yet. [REQUIREMENTS.md](REQUIREMENTS.md) says what the game must do; [PLAN.md](PLAN.md) says how, and lists the milestones. Numbers such as Q-5 or C-14 below are the plan's. Done so far: M0, the physics and rendering spike ([research/spike/REPORT.md](research/spike/REPORT.md)); M1, the skeleton and its test gate, with a page that draws an empty pitch; and M2, the deterministic simulation, its goldens, the bot brain and the tuning page, all running offline. Next: M3, the timeline, networking and Practice. [docs/acceptance.md](docs/acceptance.md) holds the acceptance criteria and the log of runs the gate doesn't make.
 
 ## Run
 
@@ -28,9 +28,25 @@ npx playwright install --with-deps chromium firefox webkit   # once
 npm run check
 ```
 
-`npm run check` is the gate, and the definition of done. In order, it runs ESLint, with the plan's import and purity boundaries (D-38); public-scan; the typecheck; the unit tests, hermet's included; the build; and the end-to-end tests against the built page in headless Chromium, Firefox and WebKit. A page that requests anything outside the local servers its test names fails the test, so the gate contacts no public host. At M1 it takes about 76 s on the development machine, and longer while the machine is busy. It will grow to several minutes once it plays whole matches (Q-18), and `docs/acceptance.md` logs its wall time at each milestone's exit.
+`npm run check` is the gate, and the definition of done. In order, it runs ESLint, with the plan's import and purity boundaries (D-38); public-scan; the typecheck; the unit tests, hermet's included; the build; and the end-to-end tests against the built page in headless Chromium, Firefox and WebKit. A page that requests anything outside the local servers its test names fails the test, so the gate contacts no public host. At M2 it takes about 2¼ minutes on the development machine, and longer while the machine is busy: most of its unit tests' time is the bots playing whole matches. It will grow once the end-to-end tests play whole matches too (Q-18), and `docs/acceptance.md` logs its wall time at each milestone's exit.
 
-At M1 there are 12 end-to-end tests in each engine: `e2e/boot.spec.ts`, the boot page's four failure messages (D-30); `e2e/pitch.spec.ts`, the empty pitch, its size, its render quality, what assistive technology reads of the started page, and its frame rate, which is reported, never judged; and `e2e/smoke.spec.ts`, the page served by `vite preview`, under `dist/_headers`, and from a subpath. `npm run e2e` runs them alone, against the last build.
+At M2 there are 14 end-to-end tests in each engine: `e2e/boot.spec.ts`, the boot page's four failure messages (D-30); `e2e/determinism.spec.ts`, the golden runs replayed through the built page (below); `e2e/pitch.spec.ts`, the empty pitch, its size, its render quality, what assistive technology reads of the started page, and its frame rate, which is reported, never judged; and `e2e/smoke.spec.ts`, the page served by `vite preview`, under `dist/_headers`, and from a subpath. `npm run e2e` runs them alone, against the last build.
+
+### The goldens
+
+`src/core/sim/goldens.json` pins the simulation's bits (PLAN §16): the unit tests replay its 25 runs and the canary in Node, and `e2e/determinism.spec.ts` replays them through the built page in each engine. A change to the simulation or its settings changes them, and the tests then fail until they're re-emitted, on purpose, saying so in the commit:
+
+```sh
+TERRIEST_EMIT_GOLDENS=1 npm run emit-goldens
+```
+
+The script refuses without the variable, and the golden test fails when the variable is set but not by the script, so the gate never rewrites the goldens by itself.
+
+To check a browser by hand, open the built page's determinism page, which replays every run and shows its verdict:
+
+```sh
+npm run build && npx vite preview   # then open http://127.0.0.1:4339/#test=determinism
+```
 
 CI (`.github/workflows/check.yml`) runs the gate under `xvfb-run` on each push and pull request, and the unit tests on arm64. `docs/acceptance.md` logs its runs.
 
@@ -61,6 +77,27 @@ public-scan fails on home paths, as `/home/<name>/`, `/Users/<name>/` or `C:\Use
 ```sh
 export TERRIEST_PRIVATE_TERMS=/path/to/private-terms.txt
 ```
+
+## Tune
+
+The tuning page runs the real simulation and the bots, with a slider for every setting they read (PLAN Q-10, §15). With the dev server running (`npm run dev`), open http://localhost:5173/dev/tuning.html. It's dev only: the build never includes it, and it stores nothing.
+
+- **Pick a scenario:** kickoffs and bot matches, pushes, a ball on terriers, dribbles, simultaneous hits, bowling, shots into the goal's netting, touches, and every golden run. One terrier follows the keyboard: W, A, S and D steer it, Space jumps, Shift is zoomies, E pounces and Q barks, and the frame selector picks the pitch, the ball line or the nose.
+- **Move a slider,** and the scene restarts with it. The values ride in the address, so a tuned scene can be reloaded or shared.
+- **Copy settings** writes the changed values as a snippet for `src/config.ts`, and as the rows of PLAN.md's A.4 and A.5 and of REQUIREMENTS.md's Configuration table that they change, in those tables' own wording.
+- **Record** and **Stop** save a run as a JSON download, which replays to the same final hash.
+
+M2's values were set by measurement ([research/tuning/REPORT.md](research/tuning/REPORT.md)), and they're provisional until the owner confirms or changes them, on this page or by naming them.
+
+### The tuning metrics
+
+The measurements behind those values run off the gate, in about 8 to 9 minutes:
+
+```sh
+npx vitest run --config dev/vitest.config.ts
+```
+
+They write `research/tuning/results.json`, and refuse to overwrite it unless `TERRIEST_TUNING_OUT` names the file to write. `TERRIEST_TUNING_ONLY` runs only the sections it names, `TERRIEST_TUNING_BASE` measures from settings other than `src/config.ts`'s, and `TERRIEST_TUNING_CANDIDATES` replaces candidate lists, as `dev/tuning.metrics.ts`'s header says. The report holds M2's method, its commands and its results.
 
 ## Build
 

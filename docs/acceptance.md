@@ -26,7 +26,7 @@ The owner makes these on their desktop, and at M5 on the phone too. The checks o
 | Milestone | Check | Status |
 |---|---|---|
 | M0 | Run 6: the spike's scene page in Chrome, Edge and Firefox on Windows, at high and low quality, for the frame verdict on the owner's GPU. [research/spike/REPORT.md](../research/spike/REPORT.md) §7 says how to run it, and holds its table. | **PASS in one load**, reported by the owner on 2026-11-16: ANGLE, Direct3D 11, Intel Iris Xe. The report didn't state its browser, quality or figures. **The other loads are owner-pending** (§17), **settled provisionally as PASS** on 2026-11-17 in the headless engines on C-6's GPU path (below). |
-| M2 | The tuning page: the feel and M2's values (Q-10). | not yet due |
+| M2 | The tuning page: the feel and M2's values (Q-10). | **Settled provisionally by measurement** on 2026-11-17, as the owner chose ("settle"), and **owner-pending** (§17): the goal netting's bounce 0 and the push assist on at 9 m/s, eight values kept at their starts, and C-18's marks (below). The owner confirms or changes them before M5's deploy. |
 | M3 | Two desktop browsers connect through `npm run dev:local` on the `#test=net` page. | not yet due |
 | M4 | Practice in each desktop browser with the keyboard, and a gamepad if there is one, against bots whose level the owner accepts or changes (Q-9). The cameras: the chase-view swing, and the feel values confirmed in ball and chase view (Q-10). A match between the three desktop browsers through `npm run dev:local`. The frame bench on the owner's GPU. The look book (Q-11). | not yet due |
 | M5 | The deployed site, in desktop browsers and on the phone (Q-4). | not yet due |
@@ -51,6 +51,42 @@ Headless Chromium stands in for Chrome and Edge, and Firefox for Firefox. Every 
 
 The owner's own loads still land before M5's deploy, and replace these.
 
+### M2's tuning, settled provisionally (owner-pending)
+
+The owner chose "settle" for Q-10 on 2026-11-17, so Claude set M2's values by measurement, under §17's rule for attended steps, by the method of [research/tuning/REPORT.md](../research/tuning/REPORT.md), committed at e1a4c99 before anything was measured. Each value's candidates ran alone from the starting values, and a fixed rule picked: the start stays unless a check fails, the netting takes its largest passing bounce, and the push assist its smallest passing cap. Then the picks ran together, and every check and bot mark passed. The values are in `src/config.ts` and PLAN's A.4 and A.5, marked provisional. REQUIREMENTS.md's TBDs wait for the owner's sign-off (PLAN §2).
+
+| Value | Settled | Start | What decided it |
+|---|---|---|---|
+| Goal netting bounce | **0** | 0.3 | The largest bounce at which all 18 test shots stay wholly behind the goal line through their celebration. At 0.3 every one comes back out, a 10 m/s high shot 8.5 m onto the pitch. |
+| Push assist (C-18) | **on, a 9 m/s cap** | off | The smallest cap at which two and four side by side in ball view beat one pusher's 1.225 s. |
+| Kickoff spots | A.5's | A.5's | The spots' checks pass; at 1 to 4 a side, with and without zoomies, each kickoff pinch comes down, mirrored, in 0.433 to 1.962 s; and the bot marks and the end-to-end setups pass. |
+| Ball rolling slowdown | 0.5 m/s² | the same | §16's push marks pass at every candidate, 0.3 to 1 m/s². |
+| Terrier bounce | 0.3 | the same | The slip-out cases pass at every candidate, 0 to 0.5. |
+| Re-arm gap | 0.6 m | the same | A push counts 1 touch and a rebound met again 2, at every candidate, 0.3 to 1 m. |
+| Slip hold-off | 0.6 m | the same | The slip-out cases pass from 0.5 m up; at 0.4 and 0.3 m a ball on pushers takes 1.721 and 2.000 s to come down. Nothing bounds it from above. |
+| Tumble guard | 1.5 s | the same | A terrier pounced on in turn is up for at least the guard after each get-up, at every candidate, 0.5 to 2.5 s. |
+| Terrier collider | radius 0.25 m | the same | Every other radius tried, 0.2 to 0.3 m, shuts C-21's window. |
+| Idle friction | 8 m/s² | the same | At 10 and 12 m/s², two sitting terriers take 0.887 and 2.979 s to let the ball down, over the 0.5 s mark. |
+
+REQUIREMENTS' acceleration, 15 m/s², and bowling speed, 4 m/s, passed their checks, so the method proposed no change to either.
+
+**C-18's marks,** set at M2 at the 9 m/s cap, to 95% of run speed from rest in contact. `push.test.ts` holds each ± 10%, and in ball view each must beat one pusher too.
+
+| Pushers side by side | Pitch frame | Ball view | Ball view, assist off |
+|---|---|---|---|
+| two round the ball | 0.829 s | 1.175 s | 2.033 s |
+| two on a line | 0.833 s | 1.175 s | 2.033 s |
+| four round the ball | 0.721 s | 0.983 s | 1.313 s |
+| four on a line | 0.758 s | 0.854 s | 0.921 s |
+
+One pusher takes 1.225 s in both frames, with the assist on or off.
+
+**For the owner, with the bowling speed (Q-8, C-5):** in seeded bot matches the ball bowls terriers over 5.2 times a minute of play at 2 a side and 6.5 at 4 a side, against 0.3 pounce tumbles a minute. At 4.5 m/s it's 3.3 and 4.2 a minute. At 5 m/s it's 2.2 and 2.1, but then a pounce from the air, which sends the ball off at 4.57 m/s, no longer bowls, against REQUIREMENTS' note. At 3.5 m/s it's 9.0 and 10.1, and at 3 m/s 12.2 and 13.3. 4 m/s is REQUIREMENTS' value and passes its checks, so it stays. Whether the ball should tumble terriers this much more often than pounces do is the owner's call.
+
+**The bot marks** at the settled values: the empty goal 100 of 100 within 20 s, the fall-back 100 of 100 at each pack size, a goal in regulation 100 of 100, never stuck, and both end-to-end setups 25 of 25. For the owner's play test at M4, every mark still passes at reactions of 0.15 and 0.35 s and at aim noise of 5° and 15°.
+
+**To confirm or change them:** on the tuning page (`npm run dev`, then http://localhost:5173/dev/tuning.html, whose **Copy settings** writes the changes out), or by naming the values. A change re-emits the goldens and re-runs the bot marks, and a change to the netting or the push assist sets its gate test or C-18's marks again.
+
 ## Checks outside the gate (PLAN §16)
 
 | Run | When | Status |
@@ -62,6 +98,8 @@ The owner's own loads still land before M5's deploy, and replace these.
 | The Pixel 8a runs: the frame-time run at the render quality phones start with (D-33), and real touch. Firefox and Edge for Android each play a Practice match with real touch, and Firefox joins one networked match (L236). | M5 | not yet run |
 | The relay check, which writes to the public relays, with the owner's go-ahead (Q-14). | before the first deploy, at M5 | not yet run |
 | Real Safari: the determinism page and one match, if the device round before M5 names a Mac or an iPhone (Q-4, Q-12). | M5 | waits for the device round |
+| The tuning metrics (PLAN §15, §16), which settled M2's values and recheck C-21's window: `npx vitest run --config dev/vitest.config.ts`. | M2, and whenever the collider, the drive or friction changes | Run on 2026-11-17 by [research/tuning/REPORT.md](../research/tuning/REPORT.md)'s method, which holds the results: rounds 1 and 2 at e1a4c99, in 535 and 517 s, then once more at the settled values, in 508 s. |
+| The step's cost against the M0 spike's (PLAN C-2): the wall scrum with 8 inputs a tick, both steps timed tick by tick in one process. | M2 | At a9aca0a, from 5.0% less to 0.4% more than the spike's, inside M2's 5% budget. Not re-timed since: the comparison needs both simulations' bodies equal tick by tick, and in the scrum the slip release moves them off the spike's from tick 104, and at the settled values the push assist from tick 29. |
 
 ## Log
 
@@ -72,6 +110,7 @@ The owner's own loads still land before M5's deploy, and replace these.
 | Milestone | Date | Commit | Wall time | Where and how |
 |---|---|---|---|---|
 | M1 | 2026-11-17 | the commit that adds this row | 76.4 s, the median of three consecutive green runs, which took 76.0 to 77.5 s | The development machine: WSL2 with 12 threads, on WSLg's display. GL in software: SwiftShader in Chromium, llvmpipe in Firefox and WebKit. The end-to-end tests took about 60 s of it, 12 in each engine. On the GPU path (`GALLIUM_DRIVER=d3d12`), it took 93 to 94 s. While the machine was busy with other work, an earlier tree took 171 s. |
+| M2 | 2026-11-17 | the commit that adds this row | 138.2 s and 138.3 s, two consecutive green runs | The development machine, in software GL, as for M1. The unit stage took 37 to 38 s, 49 files and 575 tests, most of it the bot marks' whole matches; the end-to-end tests 1.3 minutes, 14 in each engine. Through M2 the gate took 114.5 and 114.3 s once the bot marks arrived (a9aca0a), 131.2 and 123.1 s with the tuning page (ccf92c8), and 129.4, 137.4, 141.2 and 131.1 s at the commits that settled the values (c429814, e1a4c99, c82c3e8). M2's design had estimated 97 to 105 s. |
 
 ### CI runs (PLAN §15)
 
