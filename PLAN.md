@@ -1673,7 +1673,7 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Lost graphics | the plain message after 5 s, counted only while the page is visible (D-30) |
 | Render quality | high: pixel ratio capped at 2, with MSAA; low: capped at 1, no MSAA, simpler effects (D-33) |
 | Sound under rollback | an event that a re-simulation moves by up to 3 ticks plays once (§13) |
-| Bot brain | reacts after 0.25 s, with aim noise up to 10° either way, seeded per bot; zooms at a ball over 5 m away; pounces when the ball's surface is within 2 m and lined up within 20°; supports 5 m behind the ball; defends 6 m out from its goal line; barks about every 5 s; turns away after 2 s held within 0.5 m (M2, Q-9, D-39) |
+| Bot brain | reacts after 0.25 s, with aim noise up to 10° either way, seeded per bot; zooms toward a target over 5 m away; pounces when the ball's surface is within 2 m and the shot is lined up within 20°; supports 5 m behind the ball; defends 6 m out from its goal line; barks about every 5 s; turns away after 2 s held within 0.5 m (M2, Q-9, D-39) |
 
 ### A.5 Gameplay values (the Configuration table; *starting values* for the TBDs and new settings, chosen at M2, and the cameras' at M4)
 

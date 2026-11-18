@@ -6,8 +6,8 @@ import { bytesToHash, hash64, hashToBytes } from './hash';
 import { KEPT_BITS } from './input';
 import { defaultParams, simParams } from './params';
 import {
-  type AnimPhase, ballSlot, cleanName, cloneState, findTerrier, genesis, IN_PLAY, isNameControl, KICKOFF_COUNTDOWN, type MatchState,
-  nameAllowed, NEVER, newTerrier, type Pack, packCount, type Phase, slotOf, sortTerriers, STANDING, type Terrier, WARM_UP,
+  type AnimPhase, ballSlot, CELEBRATION, cleanName, cloneState, ENDED, findTerrier, genesis, IN_PLAY, isNameControl, KICKOFF_COUNTDOWN,
+  type MatchState, nameAllowed, NEVER, newTerrier, type Pack, packCount, type Phase, slotOf, sortTerriers, STANDING, type Terrier, WARM_UP,
 } from './state';
 import { stateProblems } from './valid';
 
@@ -90,25 +90,27 @@ function terrier(slot: number, slots: readonly number[], packSize: number, tick:
 /** Any valid state, the rules' checks of §6.7 included: in warm-up any
  *  roster, and from the start countdown on, both packs full; overtime only
  *  from the kickoff countdown on, with the clock in the match otherwise;
- *  Ready within its expiry, and join and input ticks no later than the tick. */
+ *  the tick under 2^31, and the phase's start no later; scorers only in a
+ *  celebration or the end; Ready within its expiry, and join and input
+ *  ticks no later than the tick. */
 const state: fc.Arbitrary<MatchState> = fc
   .record({
     packSize: fc.integer({ min: 1, max: 4 }),
     phase: fc.integer({ min: 0, max: 5 }).map((p) => p as Phase),
-    tick: fc.oneof(fc.integer({ min: 0, max: 5000 }), fc.integer({ min: 0, max: 0xffffffff - P.readyExpiryTicks })),
+    tick: fc.oneof(fc.integer({ min: 0, max: 5000 }), fc.integer({ min: 0, max: 0x7fffffff })),
     here: fc.array(fc.boolean(), { minLength: 8, maxLength: 8 }),
   })
   .chain(({ packSize, phase, tick, here }) => {
     const slots = Array.from({ length: 2 * packSize }, (_, k) => k).filter((k) => phase !== WARM_UP || here[k]);
     return fc
       .record({
-        phaseStart: u32,
+        phaseStart: fc.integer({ min: 0, max: tick }),
         overtime: phase >= KICKOFF_COUNTDOWN ? fc.boolean() : fc.constant(false),
         matchLengthTicks: fc.integer({ min: 1, max: 0xffffffff }),
         clock: u32,
         score: fc.tuple(u8, u8),
         lastGoalTick: u32, lastGoalPack: fc.constantFrom<Pack>(0, 1), ownGoal: fc.boolean(),
-        scorers: fc.integer({ min: 0, max: (1 << slots.length) - 1 }),
+        scorers: phase === CELEBRATION || phase === ENDED ? fc.integer({ min: 0, max: (1 << slots.length) - 1 }) : fc.constant(0),
         ball: fc.record({
           x: float, y: float, z: float, vx: float, vy: float, vz: float, onFloor: fc.boolean(),
           lastHitTick: u32, lastHitStrength: float, lastHitDvx: float, lastHitDvy: float, lastHitDvz: float, lastContactTick: u32,
@@ -516,6 +518,7 @@ describe('the state (design §1.4)', () => {
     expect([t.meter, t.slipFrom, t.slipping, t.anim, t.animStart, t.z, t.onFloor]).toEqual([360, -1, false, STANDING, 42, 0.25, true]);
     const s = genesis({ packSize: 2, matchMinutes: 1 });
     s.terriers.push(t);
+    s.tick = 42;
     expect(stateProblems(s)).toEqual([]);
   });
 

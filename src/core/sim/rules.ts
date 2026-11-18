@@ -1,37 +1,106 @@
 // The match rules, PLAN D-8 and D-12 (design §1.10, §6): events, presence,
 // phases, kickoffs and arrivals, Q-8's bowling, goals and credit, the clock,
-// the end and the Terriest. Phase 2 writes the subset the M0 spike's tests
-// need, from its step.ts (bowled, goal, the phase changes) and state.ts
-// (placeKickoff): events as a no-op, presence with sitting only, a
-// countdown's end and a celebration's end to a kickoff, the kickoff
-// placement by ID rank, bowling, the goal test and credit, the clock as a
-// no-op, and the winner and the Terriest. Phase 3's rules builder completes
-// it from roslambo's rules.ts: the events, removal and Ready, the start
-// countdown, the clock, overtime, the end, arrivals and vacated slots. The
-// signatures are final.
+// the end and the Terriest. From the M0 spike's step.ts (bowled, goal, the
+// phase changes) and state.ts (placeKickoff), and roslambo's rules.ts (the
+// events, presence and Ready), with packs, SWITCH, warm-up arrivals, the
+// start countdown, the clock, overtime, the end, spots ranked by player ID,
+// and one vacate for every way a slot is freed.
 // Exact operations only (D-1).
 
+import { JOIN, LEAVE, READY, SWITCH, UNREADY } from './input';
 import { datan2 } from './math';
 import type { SimParams } from './params';
+import { insideFloorPlan } from './pitch';
 import {
-  CELEBRATION, ENDED, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, NEVER, type Pack, SITTING, slotOf, sortTerriers, STANDING,
-  START_COUNTDOWN, type Terrier, WARM_UP,
+  CELEBRATION, cleanName, ENDED, findTerrier, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, NEVER, newTerrier, type Pack, packCount,
+  SITTING, slotOf, sortTerriers, STANDING, START_COUNTDOWN, type Terrier, WARM_UP,
 } from './state';
 import type { Sim } from './step';
 
 /** A u8 counter's ceiling: scores and goals saturate there (A.1). */
 const U8_MAX = 255; // not a setting
+/** The overtime clock's ceiling, A.1's u32. */
+const U32_MAX = 0xffffffff; // not a setting
 
-/** Step 1 (design §6.1): the roster events, in warm-up only; true if the
- *  roster or a slot changed. Reads s and sim.ins only. Phase 3. */
-export function applyEvents(_sim: Sim, _s: MatchState, _t: number): boolean {
-  return false;
+/** Step 1 (design §6.1): the roster events, in warm-up only, over the
+ *  canonical inputs, which are in ID order: LEAVE, then SWITCH, then JOIN,
+ *  each in ID order, then READY, then UNREADY (D-12). So a place a LEAVE or
+ *  a SWITCH frees can be taken in the same tick, as Practice's pack swap
+ *  needs (D-22). Reads s and sim.ins only: a JOIN adds a terrier that
+ *  sim.bodies holds only once step binds again. True if the roster or a
+ *  slot changed. */
+export function applyEvents(sim: Sim, s: MatchState, t: number): boolean {
+  // From the start countdown the roster is locked: every event is ignored,
+  // LEAVE included (roslambo).
+  if (s.phase !== WARM_UP) return false;
+  const P = sim.P;
+  const ins = sim.ins;
+  let changed = false;
+  // A member leaves, freeing its place.
+  for (let k = 0; k < ins.length; k++) {
+    const x = ins[k]!;
+    if ((x.events & LEAVE) === 0) continue;
+    const at = findTerrier(s, x.id);
+    if (at < 0) continue;
+    removeTerrier(s, at);
+    changed = true;
+  }
+  // A member moves to the other pack if it has room. Its old slot is
+  // vacated, since its slot changes with its pack, and the switch cancels
+  // its Ready (D-12). A non-member's SWITCH is ignored, even beside its JOIN:
+  // the session re-sends it, and it lands a tick later (design §6.1).
+  for (let k = 0; k < ins.length; k++) {
+    const x = ins[k]!;
+    if ((x.events & SWITCH) === 0) continue;
+    const at = findTerrier(s, x.id);
+    if (at < 0) continue;
+    const T = s.terriers[at]!;
+    const to = x.switchPack;
+    if ((to !== 0 && to !== 1) || to === T.pack || packCount(s, to) >= s.packSize) continue;
+    vacate(s, slotOf(T));
+    T.pack = to;
+    T.readyUntil = 0;
+    placeArrival(sim, s, T, t);
+    changed = true;
+  }
+  // A non-member joins a pack with room: for a pack's last place, the first
+  // in ID order. A coat outside the list reads as coat 0, and a name that
+  // isn't allowed as '' (D-12, C-17).
+  for (let k = 0; k < ins.length; k++) {
+    const x = ins[k]!;
+    if ((x.events & JOIN) === 0 || findTerrier(s, x.id) >= 0) continue;
+    const pack = x.joinPack;
+    if ((pack !== 0 && pack !== 1) || packCount(s, pack) >= s.packSize) continue;
+    const c = x.coat;
+    const coat = c !== undefined && Number.isInteger(c) && c >= 0 && c < P.coatCount ? c : 0;
+    const T = newTerrier(x.id, cleanName(x.name, P), pack, coat, t, P);
+    s.terriers.push(T);
+    placeArrival(sim, s, T, t);
+    changed = true;
+  }
+  // Ready, then its cancellation: both in one input leave a member not
+  // ready, as roslambo's do.
+  for (let k = 0; k < ins.length; k++) {
+    const x = ins[k]!;
+    if ((x.events & READY) === 0) continue;
+    const at = findTerrier(s, x.id);
+    if (at >= 0) s.terriers[at]!.readyUntil = t + P.readyExpiryTicks;
+  }
+  for (let k = 0; k < ins.length; k++) {
+    const x = ins[k]!;
+    if ((x.events & UNREADY) === 0) continue;
+    const at = findTerrier(s, x.id);
+    if (at >= 0) s.terriers[at]!.readyUntil = 0;
+  }
+  if (changed) sortTerriers(s);
+  return changed;
 }
 
 /** Step 2 (design §6.2): each terrier with an input this tick was heard
- *  from now and stands; from the start countdown on, a terrier silent for
- *  the sitting threshold sits (D-16). True if a terrier was removed, which
- *  phase 3's warm-up removal adds. */
+ *  from now and stands. In warm-up a terrier silent for the removal
+ *  threshold is removed (roslambo Q-15); from the start countdown on, one
+ *  silent for the sitting threshold sits instead, on its spot (D-16). True
+ *  if a terrier was removed. */
 export function applyPresence(sim: Sim, s: MatchState, t: number): boolean {
   const P = sim.P;
   const list = s.terriers;
@@ -44,15 +113,38 @@ export function applyPresence(sim: Sim, s: MatchState, t: number): boolean {
       T.sitting = true;
     }
   }
-  return false;
+  if (s.phase !== WARM_UP) return false;
+  // Removal keeps the list's order, so it needs no sort.
+  let removed = false;
+  for (let k = list.length - 1; k >= 0; k--) {
+    if (t - list[k]!.lastInputTick < P.removeAfterTicks) continue;
+    removeTerrier(s, k);
+    removed = true;
+  }
+  return removed;
 }
 
-/** Step 3 (design §6.3): a countdown's end starts play, and a celebration's
- *  end starts a kickoff countdown with its placement. True if it placed the
- *  terriers. Phase 3 adds Ready's expiry, the start countdown, and a
- *  celebration's end in overtime or at 0:00. */
+/** Step 3 (design §6.3), in its order: Ready's expiry; the start countdown
+ *  once both packs are full and every terrier is ready; a countdown's end,
+ *  which starts play; a celebration's end, which starts a kickoff
+ *  countdown, the overtime kickoff, or the end. Each countdown starts with
+ *  the kickoff placement. True if it placed the terriers, whose slots the
+ *  placement ranks by ID. */
 export function applyPhaseChanges(sim: Sim, s: MatchState, t: number): boolean {
   const P = sim.P;
+  const list = s.terriers;
+  if (s.phase === WARM_UP) {
+    for (let k = 0; k < list.length; k++) {
+      const T = list[k]!;
+      if (T.readyUntil !== 0 && t >= T.readyUntil) T.readyUntil = 0;
+    }
+    if (packCount(s, 0) !== s.packSize || packCount(s, 1) !== s.packSize) return false;
+    for (let k = 0; k < list.length; k++) if (!(list[k]!.readyUntil > t)) return false;
+    placeKickoff(sim, s, t);
+    s.phase = START_COUNTDOWN;
+    s.phaseStart = t;
+    return true;
+  }
   if (
     (s.phase === START_COUNTDOWN && t - s.phaseStart >= P.startCountdownTicks) ||
     (s.phase === KICKOFF_COUNTDOWN && t - s.phaseStart >= P.kickoffCountdownTicks)
@@ -62,6 +154,16 @@ export function applyPhaseChanges(sim: Sim, s: MatchState, t: number): boolean {
     return false;
   }
   if (s.phase === CELEBRATION && t - s.phaseStart >= P.celebrationTicks) {
+    // The overtime goal's celebration ends the match, and so does one at
+    // 0:00 with a pack ahead. One at 0:00 that levelled it, the goal in the
+    // tick that brought the clock to 0 (L107), leads to the overtime
+    // kickoff, and the clock counts up from 0 (D-8).
+    if (s.overtime || (s.clock === 0 && s.score[0] !== s.score[1])) {
+      s.phase = ENDED;
+      s.phaseStart = t;
+      return false;
+    }
+    if (s.clock === 0) s.overtime = true;
     placeKickoff(sim, s, t);
     s.phase = KICKOFF_COUNTDOWN;
     s.phaseStart = t;
@@ -128,20 +230,104 @@ export function placeKickoff(sim: Sim, s: MatchState, t: number): void {
   intents.targetVy.fill(0);
 }
 
-/** A warm-up arrival (design §6.5): reads s, never sim.bodies. Phase 3. */
-export function placeArrival(_sim: Sim, _s: MatchState, _T: Terrier, _t: number): void {
-  throw new Error('warm-up arrivals arrive with the rules, in phase 3 (design §6.5)');
+/** Whether a standing terrier centred at (x, y) would be strictly apart from
+ *  every body but T, in 3D: each other terrier's centre more than 2r away,
+ *  and the ball's more than R + r (design §6.5). */
+function clearOfBodies(P: SimParams, s: Readonly<MatchState>, T: Readonly<Terrier>, x: number, y: number): boolean {
+  const r = P.terrierRadius;
+  const touch = r + r;
+  const list = s.terriers;
+  for (let k = 0; k < list.length; k++) {
+    const U = list[k]!;
+    if (U === T) continue;
+    const dx = U.x - x, dy = U.y - y, dz = U.z - r;
+    if (dx * dx + dy * dy + dz * dz <= touch * touch) return false;
+  }
+  const b = s.ball;
+  const reach = P.ballRadius + r;
+  const dx = b.x - x, dy = b.y - y, dz = b.z - r;
+  return dx * dx + dy * dy + dz * dz > reach * reach;
+}
+
+/** A warm-up arrival, a JOIN or a SWITCH into the other pack (D-8, design
+ *  §6.5). It takes the pack's lowest spot that no other member holds, and
+ *  stands on that spot's point if no body is in the way. Otherwise it goes
+ *  to the first clear point in steps from the spot toward its own goal
+ *  line, at the same y, inside the floor plan by its radius; if there is
+ *  none, onto the spot, and the position passes push it out (D-5). It
+ *  arrives at rest, facing the ball, with a full meter, no timers, flags or
+ *  slip, and stands; it keeps the spot until the start countdown's
+ *  placement ranks its pack by ID. Reads s, never sim.bodies: the terriers
+ *  placed earlier in the tick are in s, and only there until step binds
+ *  again (design §3). */
+export function placeArrival(sim: Sim, s: MatchState, T: Terrier, t: number): void {
+  const P = sim.P;
+  const list = s.terriers;
+  let held = 0;
+  for (let k = 0; k < list.length; k++) {
+    const U = list[k]!;
+    if (U !== T && U.pack === T.pack) held |= 1 << U.spot;
+  }
+  let spot = 0;
+  while ((held & (1 << spot)) !== 0) spot++;
+  const at = P.kickoffSpots[T.pack][s.packSize]?.[spot];
+  if (!at) throw new Error(`no kickoff spot ${spot} for pack ${T.pack} at ${s.packSize} a side (A.5)`);
+  const r = P.terrierRadius;
+  const y = at[1];
+  let x = at[0];
+  // Toward its own goal line: −x for pack A, +x for pack B, so a mirrored
+  // arrival steps to the mirrored point. A step that isn't positive, which
+  // the tuning page could set, never leaves the spot.
+  const step = P.arrivalStep;
+  if (step > 0 && !clearOfBodies(P, s, T, x, y)) {
+    const toward = T.pack === 0 ? -step : step;
+    for (let k = 1; ; k++) {
+      const px = at[0] + k * toward;
+      if (!insideFloorPlan(P.pitch.shape, px, y, r)) break;
+      if (clearOfBodies(P, s, T, px, y)) {
+        x = px;
+        break;
+      }
+    }
+  }
+  T.spot = spot;
+  T.x = x; T.y = y; T.z = r;
+  T.vx = 0; T.vy = 0; T.vz = 0; T.onFloor = true;
+  T.heading = datan2(-y, -x);
+  T.overheadRef = T.heading;
+  T.sitting = false; T.zoomLocked = false; T.ballOverhead = false; T.touchingBall = false;
+  T.slipping = false;
+  T.slipFrom = -1;
+  T.meter = P.meterFull;
+  T.pounceWait = 0; T.lunge = 0; T.tumble = 0; T.guard = 0;
+  T.headingChange = 0;
+  T.anim = STANDING;
+  T.animStart = t;
 }
 
 /** Frees a slot: every terrier's slipping flag and slipFrom that name it
- *  clear. LEAVE, removal and SWITCH all call it (design §6.1). Phase 3. */
-export function vacate(_s: MatchState, _slot: number): void {
-  throw new Error('vacating a slot arrives with the rules, in phase 3 (design §6.1)');
+ *  clear. LEAVE, removal and SWITCH all call it, so no slipFrom ever names
+ *  an empty slot, or a body that took the slot in the same tick (design
+ *  §6.1). */
+export function vacate(s: MatchState, slot: number): void {
+  const list = s.terriers;
+  for (let k = 0; k < list.length; k++) {
+    const T = list[k]!;
+    if (T.slipFrom !== slot) continue;
+    T.slipping = false;
+    T.slipFrom = -1;
+  }
 }
 
-/** Vacates a terrier's slot, then removes it (design §6.1). Phase 3. */
-export function removeTerrier(_s: MatchState, _index: number): void {
-  throw new Error('removal arrives with the rules, in phase 3 (design §6.1)');
+/** Vacates a terrier's slot, then removes it (design §6.1). The list keeps
+ *  its order, and the scorers' bits above it move down, so each bit still
+ *  names its terrier and none names one past the list (A.1). */
+export function removeTerrier(s: MatchState, index: number): void {
+  const list = s.terriers;
+  vacate(s, slotOf(list[index]!));
+  for (let k = index; k + 1 < list.length; k++) list[k] = list[k + 1]!;
+  list.pop();
+  s.scorers = (s.scorers & ((1 << index) - 1)) | ((s.scorers >>> (index + 1)) << index);
 }
 
 /** Q-8's bowling rule: the ball's horizontal velocity along the horizontal
@@ -196,10 +382,31 @@ export function scoreGoal(_sim: Sim, s: MatchState, pack: Pack, t: number): void
   s.phaseStart = t;
 }
 
-/** Step 6 (design §6.6): the clock, in a tick that began in play; true if
- *  it placed the terriers for the overtime kickoff. Phase 3. */
-export function advanceClock(_sim: Sim, _s: MatchState, _t: number, _beganInPlay: boolean): boolean {
-  return false;
+/** Step 6 (design §6.6): the clock, only in a tick that began in play,
+ *  which means in play after step 3, so it counts exactly the ticks played.
+ *  In overtime it counts up, saturating. Otherwise it counts down, and at 0
+ *  with the phase still in play, so no goal this tick, the match ends with
+ *  a pack ahead, or goes to the overtime kickoff level. A goal in the tick
+ *  that brings it to 0 has started its celebration, whose end decides
+ *  (L107). True if it placed the terriers for the overtime kickoff. */
+export function advanceClock(sim: Sim, s: MatchState, t: number, beganInPlay: boolean): boolean {
+  if (!beganInPlay) return false;
+  if (s.overtime) {
+    if (s.clock < U32_MAX) s.clock++;
+    return false;
+  }
+  if (s.clock > 0) s.clock--;
+  if (s.clock !== 0 || s.phase !== IN_PLAY) return false;
+  if (s.score[0] !== s.score[1]) {
+    s.phase = ENDED;
+    s.phaseStart = t;
+    return false;
+  }
+  s.overtime = true;
+  placeKickoff(sim, s, t);
+  s.phase = KICKOFF_COUNTDOWN;
+  s.phaseStart = t;
+  return true;
 }
 
 /** The pack that won: in ENDED, the one with more goals; null before the

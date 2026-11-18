@@ -146,7 +146,8 @@ export function step(sim: Sim, s: MatchState, inputs: readonly TickInput[]): voi
   if (applyEvents(sim, s, t)) bindSlots(sim, s);
   if (applyPresence(sim, s, t)) bindSlots(sim, s);
   if (applyPhaseChanges(sim, s, t)) bindSlots(sim, s);
-  // Step 3 may have ended the match (phase 3's rules).
+  // Step 3 may have ended the match: a celebration's end in overtime, or at
+  // 0:00 with a pack ahead (design §6.3).
   if ((s.phase as Phase) === ENDED) {
     s.tick = t;
     return;

@@ -1,14 +1,19 @@
 // What every valid state keeps (design §6.7): the decoder applies it, so a
 // peer's STATE can't put a state that breaks step into the timeline (D-20),
-// and the property tests check it as the simulation runs. Phase 1 wrote
-// the structural checks; phase 3's rules builder adds the ones the rules
-// imply, and owns the file from then on, which is why it isn't in codec.ts.
+// and the property tests check it as the simulation runs. The structural
+// checks, then the ones the rules imply (D-8, D-12): apart from the codec,
+// so the rules' owner never edits a file it doesn't own.
 
 import { isPlayerId, KEPT_BITS } from './input';
 import { defaultParams, type SimParams } from './params';
-import { ballSlot, ENDED, type MatchState, nameAllowed, SITTING, slotOf, STANDING, WARM_UP } from './state';
+import { ballSlot, CELEBRATION, ENDED, KICKOFF_COUNTDOWN, type MatchState, nameAllowed, SITTING, slotOf, STANDING, WARM_UP } from './state';
 
 const whole = (x: number, min: number, max: number): boolean => Number.isInteger(x) && x >= min && x <= max;
+
+/** 2^31 ticks, 414 days at 60 a second, which no match reaches. From a tick
+ *  under it, step runs about 2^31 more ticks before a tick it writes, a
+ *  Ready's end included, leaves A.1's u32 (design §6.7). */
+const TICK_LIMIT = 0x80000000; // not a setting: 2^31
 
 /** What makes a state invalid; [] for a valid one. */
 export function stateProblems(s: Readonly<MatchState>, P: SimParams = defaultParams): string[] {
@@ -72,5 +77,35 @@ export function stateProblems(s: Readonly<MatchState>, P: SimParams = defaultPar
   for (const pack of [0, 1] as const) if (inPack[pack]! > size) problems.push(`pack ${pack} has ${inPack[pack]} terriers, more than ${size}`);
   // A bit for each terrier in the list (A.1).
   if (!whole(s.scorers, 0, n < 8 ? (1 << n) - 1 : 0xff)) problems.push(`the scorers, ${s.scorers}, name a terrier past the list's ${n}`);
+
+  // From the rules. The tick leaves step room, and the phase began at a tick
+  // that has passed, so no countdown or celebration waits on a future one.
+  if (!(s.tick < TICK_LIMIT)) problems.push(`the tick, ${s.tick}, is 2^31 or more: no match reaches it, and later ticks would leave a u32 (A.1)`);
+  if (!(s.phaseStart <= s.tick)) problems.push(`the phase started at tick ${s.phaseStart}, after the tick, ${s.tick}`);
+  // The scorers name the last goal's terriers from its celebration until
+  // the next placement clears them, so they're 0 in any other phase (§6.8).
+  if (s.scorers !== 0 && s.phase !== CELEBRATION && s.phase !== ENDED) problems.push(`the scorers, ${s.scorers}, outside a celebration or the end`);
+  // Overtime begins with its kickoff (D-8).
+  if (s.overtime === true && s.phase < KICKOFF_COUNTDOWN) problems.push(`overtime in phase ${s.phase}, before any kickoff countdown (D-8)`);
+  // Outside overtime the clock counts down from the match's length; a
+  // placed test state's 2^31-tick length and clock are valid (design §13, R-7).
+  if (s.overtime !== true && !(s.clock <= s.matchLengthTicks)) problems.push(`the clock, ${s.clock}, is past the match length, ${s.matchLengthTicks}, outside overtime`);
+  // The start countdown needs both packs full, and nothing leaves after it.
+  // The marks' test-only short packs break this on purpose, and are never
+  // encoded for a peer (design §2.3).
+  if (s.phase !== WARM_UP) {
+    for (const pack of [0, 1] as const) {
+      if (inPack[pack] !== size) problems.push(`pack ${pack} has ${inPack[pack]} of ${size} terriers: from the start countdown on, both packs are full`);
+    }
+  }
+  // A Ready lasts its expiry from the tick it was sent (D-12), and a terrier
+  // joined and was last heard from at ticks that have passed, so none is
+  // spared its sitting or removal (D-16).
+  for (let k = 0; k < n; k++) {
+    const T = list[k]!;
+    const ready = T.readyUntil;
+    if (ready !== 0 && !(ready <= s.tick + P.readyExpiryTicks)) problems.push(`terrier ${k} is ready until tick ${ready}, past the tick plus the Ready expiry`);
+    if (!(T.joinTick <= s.tick && T.lastInputTick <= s.tick)) problems.push(`terrier ${k} joined or was last heard from after the tick, ${s.tick}`);
+  }
   return problems;
 }

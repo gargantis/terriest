@@ -4,6 +4,10 @@
 // told the app has started, which takes its message down. Without WebGL 2,
 // boot.js shows that message instead, and nothing else runs. Settings
 // arrive at M4; until then the render quality comes from the URL (D-33).
+// The fragment's #test=determinism opens the determinism page instead,
+// from a chunk of its own and with no canvas (§16; design §7.5); M3's net
+// and M4's frames pages hang off the same parse. Without it, nothing here
+// changes.
 
 import { qualityFrom } from './render/quality';
 import { createPitchView, type RenderInfo } from './render/scene';
@@ -35,7 +39,16 @@ declare global {
   }
 }
 
+/** The #test= page the fragment names, or null for a normal page. */
+function testPage(): string | null {
+  return new URLSearchParams(location.hash.slice(1)).get('test');
+}
+
 async function start(boot: Boot): Promise<void> {
+  if (testPage() === 'determinism') {
+    (await import('./determinism')).run(boot);
+    return;
+  }
   const canvas = document.createElement('canvas');
   const view = createPitchView(canvas, qualityFrom(location.search));
   if (!view) {

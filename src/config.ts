@@ -190,7 +190,7 @@ export const config = deepFreeze({
   // is the Bark setting's (L327).
   botReactionSeconds: 0.25, // before it acts on what it sees
   botAimNoiseDegrees: 10, // either way, seeded per bot
-  botZoomiesBeyondMetres: 5, // zooms at a ball farther than this
+  botZoomiesBeyondMetres: 5, // zooms toward a target farther than this
   botPounceWithinMetres: 2, // of the ball's surface
   botPounceAlignDegrees: 20, // lined up with the ball and the goal
   botSupportMetres: 5, // behind the ball

@@ -19,6 +19,7 @@
     "e2e": "playwright test",
     "precheck": "node scripts/prebuild.mjs",
     "check": "npm run lint && npm run public-scan && npm run typecheck && npm run test && npm run build && npm run e2e",
+    "emit-goldens": "node scripts/emit-goldens.mjs",
     "deploy": "npm run check && wrangler deploy"
   },
   "devDependencies": {
