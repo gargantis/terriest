@@ -150,7 +150,9 @@ function resolveOne(sim: Sim, s: MatchState, T: Terrier, t: number): void {
           const sp = Math.sqrt(vx * vx + vy * vy);
           // cos φ < 1: a pusher on the ball's travel keeps its base speed,
           // bit for bit on an axis, where dir() is exact; off the axes cos φ
-          // can round just under 1, and its speed gains an ulp.
+          // can round just under 1, and its speed gains an ulp. "Moving" is
+          // design §4.4's 0.3 m/s, read from the restitution threshold, not
+          // a key of its own: tuning the threshold moves the assist too.
           if (along < sp && sp > P.restitutionThreshold) {
             const assisted = (speed * sp) / along;
             if (assisted > speed) speed = assisted < P.pushAssistCap ? assisted : P.pushAssistCap;

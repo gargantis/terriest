@@ -1652,7 +1652,7 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Worst-tick spread | at most 42 steps a tick to start, so a 270-step repair takes 7 ticks; M3 checks the cap (D-11) |
 | Solver iterations (forward and back sweeps over mirror pairs), position passes (also in mirror pairs) | 8, 2, with the floor's contacts in both (M0 kept them, D-5) |
 | Restitution threshold | 0.3 m/s |
-| Slip-out | 42° from vertical, 2 m/s sideways, with the slipping flag (M0 chose it, D-5) |
+| Slip-out | 42° from vertical, 2 m/s sideways, with the slipping flag (M0 chose it, D-5); the flag holds the drive off toward the body slipped from only within 0.6 m of it, surface to surface in plan view (M2) |
 | Ball overhead | enter under 0.3 m, leave above 0.4 m (horizontal centre distance) |
 | Gait and running | the gait turns a cycle per 0.6 m run on the floor; a terrier draws as running above 0.2 m/s, or while its drive is on (M2, from M0, D-9) |
 | Stick | 32 steps, half-step hysteresis, 0.2 dead zone; chase view re-reads at 45° |

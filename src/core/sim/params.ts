@@ -48,6 +48,7 @@ export interface SimParams {
   readonly floorInSolve: boolean;
   readonly slipCos: number; // dir(fractionOfTurn(cone°, 360))[0], cos 42°
   readonly slipSpeed: number;
+  readonly slipHoldOff: number; // the slip release's reach, surface to surface in plan view (D-5 step 7, M2)
   readonly bowlingSpeed: number;
   readonly rearmGap: number;
   readonly lungeTicks: number;
@@ -147,6 +148,7 @@ export function simParams(c: Config = config): SimParams {
     floorInSolve: c.floorContactsInSolve,
     slipCos: cone[0]!,
     slipSpeed: c.slipOutSpeedMetresPerSecond,
+    slipHoldOff: c.slipHoldOffMetres,
     bowlingSpeed: c.bowlingSpeedMetresPerSecond,
     rearmGap: c.rearmGapMetres,
     lungeTicks: d.lungeTicks,

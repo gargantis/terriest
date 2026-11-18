@@ -43,6 +43,9 @@ const M0: Config = {
   gaitCycleMetres: 0.6, runningMinSpeedMetresPerSecond: 0.2,
   ticksPerSecond: 60, substepsPerTick: 4, solverIterations: 8, positionPasses: 2, floorContactsInSolve: true,
   restitutionThresholdMetresPerSecond: 0.3, slipOutConeDegrees: 42, slipOutSpeedMetresPerSecond: 2,
+  // Not the spike's, which held the drive off at any distance: the slip
+  // release's reach, at which the pins were re-pinned (below).
+  slipHoldOffMetres: 0.6,
 };
 
 /** bodyHash at ticks 1, 60 and 600 of six M0 scenes, each with the spike's
@@ -62,11 +65,12 @@ const M0: Config = {
  *  mismatch is a port bug: never fixed by re-pinning.
  *
  *  Re-pinned once, deliberately, for M2's slip release (bots-F4): the
- *  slipping flag's hold-off acts only while the terrier is within the
- *  re-arm gap of the body it slipped from, surface to surface in plan view
- *  (physics.ts's drive()), where M0's acted at any distance. Four scenes
- *  slip out and then drive toward the body from farther out, so they leave
- *  M0's bits at the tick the release first acts: the push at 323, the pinch
+ *  slipping flag's hold-off acts only while the terrier is within 0.6 m of
+ *  the body it slipped from (slipHoldOffMetres, which was the re-arm gap
+ *  then), surface to surface in plan view (physics.ts's drive()), where
+ *  M0's acted at any distance. Four scenes slip out and then drive toward
+ *  the body from farther out, so they leave M0's bits at the tick the
+ *  release first acts: the push at 323, the pinch
  *  at 396, the wall scrum at 104 and the dribble at 462. Until then each
  *  still moves by the spike's bits, which `spike` holds: the spike's own
  *  chain to the tick before, recorded the same way. Their other values are

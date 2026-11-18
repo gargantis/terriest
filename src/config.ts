@@ -145,9 +145,14 @@ export const config = deepFreeze({
   solverIterations: 8, // forward and back sweeps over mirror pairs
   positionPasses: 2, // also in mirror pairs
   floorContactsInSolve: true, // in both
-  restitutionThresholdMetresPerSecond: 0.3, // slower contacts settle with no bounce
+  // Slower contacts settle with no bounce. The push assist reads it too, as
+  // the speed above which the ball is moving (C-18, design §4.4's 0.3 m/s).
+  restitutionThresholdMetresPerSecond: 0.3,
   slipOutConeDegrees: 42, // from vertical, with the slipping flag
   slipOutSpeedMetresPerSecond: 2, // sideways
+  // The slipping flag holds the drive off toward the body slipped from only
+  // this close to it, surface to surface in plan view (M2's slip release).
+  slipHoldOffMetres: 0.6,
 
   // Presence and the room (A.4; Configuration: Spectators; D-12, D-16,
   // D-17, D-18, D-21).

@@ -60,7 +60,7 @@ describe('SimParams (design §1.5)', () => {
     expect([P.ballRadius, P.ballInvMass, P.terrierRadius, P.terrierInvMass]).toEqual([0.8, 1 / 2, 0.25, 1]);
     expect([P.runSpeed, P.zoomiesSpeed, P.noseReverse, P.pounceSpeed]).toEqual([6, 9, 3, 10]);
     expect([P.restitutionThreshold, P.ballSurface, P.ballGoalNet, P.terrierBall, P.terrierRestitution]).toEqual([0.3, 0.7, 0.3, 0.5, 0.3]);
-    expect([P.iterations, P.positionPasses, P.floorInSolve, P.slipSpeed]).toEqual([8, 2, true, 2]);
+    expect([P.iterations, P.positionPasses, P.floorInSolve, P.slipSpeed, P.slipHoldOff]).toEqual([8, 2, true, 2, 0.6]);
     expect([P.bowlingSpeed, P.rearmGap, P.arrivalStep, P.runningMinSpeed, P.pushAssistCap]).toEqual([4, 0.6, 1, 0.2, 0]);
     expect([P.coatCount, P.nameMaxChars, P.nameMaxBytes]).toEqual([8, 20, 32]);
     expect([P.packSizeMin, P.packSizeMax, P.matchMinutesMin, P.matchMinutesMax]).toEqual([1, 4, 1, 10]);
@@ -77,6 +77,9 @@ describe('SimParams (design §1.5)', () => {
       [{ jumpHeightMetres: 1.2 }, ['jumpSpeed']],
       [{ ballOverheadLeaveMetres: 0.45 }, ['overheadLeave2']],
       [{ slipOutConeDegrees: 43 }, ['slipCos']],
+      // The slip release's reach and the re-arm gap are separate settings (M2).
+      [{ slipHoldOffMetres: 0.5 }, ['slipHoldOff']],
+      [{ rearmGapMetres: 0.5 }, ['rearmGap']],
       [{ turnRateTurnsPerSecond: 3 }, ['turnPerTick']],
       [{ substepsPerTick: 5 }, ['driveCapDt', 'dt', 'gravityDt', 'idleFrictionDt', 'rollingSlowdownDt', 'substeps']],
       [{ tumbleSeconds: 2 }, ['tumbleTicks']],

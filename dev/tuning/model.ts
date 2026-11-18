@@ -58,7 +58,7 @@ export const SLIDERS: readonly Slider[] = [
   range('goalNetRestitution', "Ball off the goal's netting (C-48)", 'bounces', 0, 1, 0.01),
   range('terrierBallRestitution', 'Terrier against the ball', 'bounces', 0, 1, 0.05),
   range('terrierRestitution', 'Terriers off each other and the walls', 'bounces', 0, 1, 0.05),
-  range('restitutionThresholdMetresPerSecond', 'Restitution threshold, m/s', 'bounces', 0, 2, 0.05),
+  range('restitutionThresholdMetresPerSecond', "Restitution threshold, m/s; also the push assist's moving ball", 'bounces', 0, 2, 0.05),
 
   range('gravityMetresPerSecond2', 'Gravity, m/s²', 'forces', 1, 20, 0.1),
   range('accelerationMetresPerSecond2', "Acceleration, the drive's cap, m/s²", 'forces', 1, 40, 0.5),
@@ -115,6 +115,7 @@ export const SLIDERS: readonly Slider[] = [
 
   range('slipOutConeDegrees', 'Slip-out cone from vertical, ° (C-21)', 'slip-out', 30, 60, 0.1),
   range('slipOutSpeedMetresPerSecond', 'Slip-out speed, m/s', 'slip-out', 0, 6, 0.1),
+  range('slipHoldOffMetres', "The slipping flag's hold-off, within this of the body, surface to surface, m", 'slip-out', 0, 2, 0.05),
 
   range('botReactionSeconds', 'Reaction, s', 'bots', 0, 1, 0.05),
   range('botAimNoiseDegrees', 'Aim noise either way, °', 'bots', 0, 45, 1),
@@ -574,7 +575,7 @@ export const ROWS: readonly Row[] = [
     keys: ['solverIterations', 'positionPasses', 'floorContactsInSolve'], numbers: (c) => [c.solverIterations, c.positionPasses],
   },
   cfg('A.4', 'Restitution threshold', 'restitutionThresholdMetresPerSecond'),
-  cfg('A.4', 'Slip-out', 'slipOutConeDegrees', 'slipOutSpeedMetresPerSecond'),
+  cfg('A.4', 'Slip-out', 'slipOutConeDegrees', 'slipOutSpeedMetresPerSecond', 'slipHoldOffMetres'),
   cfg('A.4', 'Ball overhead', 'ballOverheadEnterMetres', 'ballOverheadLeaveMetres'),
   cfg('A.4', 'Removal before the start countdown', 'removalSilentTicks'),
   cfg('A.4', 'Sitting, from the start countdown', 'sittingSilentTicks'),

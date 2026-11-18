@@ -5,8 +5,9 @@
 // pinch, squeeze and scrum setups) and cases.ts (the rest and dribble
 // setups). The spike's literal radii are read from SimParams; its
 // coordinates and inputs stay, each marked where the configuration scan
-// would read one as a setting. It ships in the determinism chunk, so it
-// keeps to exact operations (D-1).
+// would read one as a setting. M2 adds design §9.6's shots into the
+// netting. It ships in the determinism chunk, so it keeps to exact
+// operations (D-1).
 //
 // A placed state may hold fewer terriers than its pack size (members):
 // warm-up has holes anyway, and in play it's a test-only state, the
@@ -406,5 +407,47 @@ export function restScene(c: RestCase): Scene {
       if (c.holding === 'ball frame') return ballDir(0);
       return pack === 0 ? pitchDir(0) : pitchDir(16);
     },
+  };
+}
+
+// --- The netting shots (design §9.6, C-48) ---
+
+/** A shot into the +x goal's netting, with nobody near: from 3 m in front of
+ *  the goal line, aimed through the mouth's centre at an angle in plan,
+ *  rolling, high (its centre 2 m up) or lobbed (4 m/s up). */
+export interface NettingShot {
+  readonly speed: number; // m/s, in plan
+  readonly angleDeg: number; // in plan, from straight at the goal
+  readonly kind: 'rolling' | 'high' | 'lobbed';
+}
+
+/** Design §9.6's 18 shots: at 5 and 10 m/s, at 0°, 20° and 35°, each
+ *  rolling, high and lobbed. The tuning page and its metrics run them, and
+ *  so will netting.test.ts, which holds the settled value in the gate
+ *  (design §11). */
+export const NETTING_SHOTS: readonly NettingShot[] = [5, 10].flatMap((speed) =>
+  [0, 20, 35].flatMap((angleDeg) => (['rolling', 'high', 'lobbed'] as const).map((kind) => ({ speed, angleDeg, kind }))),
+);
+
+/** A netting shot as a scene: 1 a side in play, both terriers parked and
+ *  holding nothing, the ball placed with the shot's velocity. */
+export function nettingScene(shot: NettingShot): Scene {
+  const { speed, angleDeg, kind } = shot;
+  return {
+    name: `netting: a ${kind} shot at ${speed} m/s, ${angleDeg}° in plan`,
+    packSize: 1, // not a setting
+    phase: IN_PLAY,
+    mirrored: false,
+    setup: (s, P) => {
+      park(P, s, 0);
+      park(P, s, 1);
+      const d = new Float64Array(2);
+      dir(fractionOfTurn(angleDeg, 360), d);
+      const back = 3; // not a setting: a scene's coordinate
+      const z = kind === 'high' ? 2 : P.ballRadius; // not a setting: a scene's coordinate
+      const vz = kind === 'lobbed' ? 4 : 0; // not a setting: a scene's velocity
+      placeBall(P, s, P.pitch.goalLineX - back, -(d[1]! / d[0]!) * back, z, speed * d[0]!, speed * d[1]!, vz);
+    },
+    input: () => NOTHING,
   };
 }

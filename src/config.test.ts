@@ -338,7 +338,8 @@ const A4: Readonly<Record<string, Row>> = {
     holds: (c, value) => c.floorContactsInSolve === value.includes("the floor's contacts in both"),
   },
   'Restitution threshold': { keys: ['restitutionThresholdMetresPerSecond'] },
-  'Slip-out': { keys: ['slipOutConeDegrees', 'slipOutSpeedMetresPerSecond'] },
+  // M2 adds the slip release's reach (bots-F4).
+  'Slip-out': { keys: ['slipOutConeDegrees', 'slipOutSpeedMetresPerSecond', 'slipHoldOffMetres'] },
   'Ball overhead': { keys: ['ballOverheadEnterMetres', 'ballOverheadLeaveMetres'] },
   Stick: { keys: ['stickSteps', 'stickHysteresisSteps', 'stickDeadZoneFraction', 'chaseRereadDegrees'] },
   // "bodies in contact share one decay"

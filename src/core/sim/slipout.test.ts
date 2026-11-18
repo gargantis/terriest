@@ -1,14 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
+import { config } from '../../config';
 import { ballOnTerriers, dribble, kickoffPinch, type SlipResult } from './cases';
-import { defaultParams } from './params';
+import { defaultParams, type SimParams, simParams } from './params';
 import { park, pitchDir, place, placeBall, placedMatch, type RestCase } from './scenes';
 import { ballSlot } from './state';
 import { makeSim, step } from './step';
 
 // PLAN §16 "A ball on terriers" (D-5 step 7, C-21) under M0's rule, 42° with
 // the slipping flag, on the M0 spike's own subset of each case, with M2's
-// slip release (bots-F4): the flag's hold-off acts only within the re-arm
-// gap of the body slipped from, surface to surface in plan view. M0 compared
+// slip release (bots-F4): the flag's hold-off acts only within 0.6 m of the
+// body slipped from, surface to surface in plan view (A.4). M0 compared
 // 16 candidates; the gate runs only the chosen one, and the window's bounds,
 // which are measurements, are the metrics' (design §12). "Comes down" and
 // "reaches the floor" are the ball's centre within 1 cm of its resting
@@ -104,14 +105,15 @@ describe("§16's slip-out cases under 42° with the flag (D-5 step 7)", () => {
 // ball was down. M2's slip release, chosen by a measured experiment (the
 // flag cleared 0, 0.1, 0.25, 0.6 or 1 m clear of the body, or its hold-off
 // kept to within 0 or 0.6 m): the hold-off acts only while the terrier is
-// within the re-arm gap of the body, surface to surface in plan view. The
-// flag itself still clears once the body is down.
+// within 0.6 m of the body, surface to surface in plan view. That was the
+// re-arm gap's value, and is now a setting of its own, slipHoldOffMetres,
+// so the two tune apart. The flag itself still clears once the body is down.
 describe('the slip release (D-5 step 7, bots-F4)', () => {
   const P = defaultParams;
   /** 1 a side: A slipping from the ball, on the floor at (x, 0) facing it at
    *  vx, holding toward it in the pitch frame (+x), with the ball's centre
    *  3 m up over the centre spot; B parked, sending nothing. */
-  function slipped(x: number, vx: number): (ticks: number) => { vx: number; slipping: boolean }[] {
+  function slipped(x: number, vx: number, P: SimParams = defaultParams): (ticks: number) => { vx: number; slipping: boolean }[] {
     const s = placedMatch(P, 1, {});
     park(P, s, 1);
     place(P, s, 0, x, 0);
@@ -143,10 +145,21 @@ describe('the slip release (D-5 step 7, bots-F4)', () => {
     expect(seen.every((x) => x.slipping)).toBe(true);
   });
 
-  it('still holds the drive off toward the body within the re-arm gap, and from the gap out lets it go', () => {
-    const inside = slipped(-(reach + 0.9 * P.rearmGap), 0)(10);
-    expect(Math.max(...inside.map((x) => Math.abs(x.vx))), 'just inside the gap: no speed gained toward the ball').toBeLessThan(1e-12);
-    const outside = slipped(-(reach + 1.1 * P.rearmGap), 0)(1);
+  it('still holds the drive off toward the body within its reach, 0.6 m, and from there out lets it go', () => {
+    expect(P.slipHoldOff).toBe(0.6);
+    const inside = slipped(-(reach + 0.9 * P.slipHoldOff), 0)(10);
+    expect(Math.max(...inside.map((x) => Math.abs(x.vx))), 'just inside the reach: no speed gained toward the ball').toBeLessThan(1e-12);
+    const outside = slipped(-(reach + 1.1 * P.slipHoldOff), 0)(1);
     expect(outside[0]!.vx, 'just outside: the drive acts').toBeGreaterThan(0);
+  });
+
+  it('reads its own reach, not the re-arm gap', () => {
+    // The re-arm gap at half the reach: the hold-off still acts at 0.54 m.
+    const shortGap = simParams({ ...config, rearmGapMetres: 0.3 });
+    const inside = slipped(-(reach + 0.9 * P.slipHoldOff), 0, shortGap)(10);
+    expect(Math.max(...inside.map((x) => Math.abs(x.vx)))).toBeLessThan(1e-12);
+    // The reach at half its value: there it no longer does.
+    const shortReach = simParams({ ...config, slipHoldOffMetres: 0.3 });
+    expect(slipped(-(reach + 0.9 * P.slipHoldOff), 0, shortReach)(1)[0]!.vx).toBeGreaterThan(0);
   });
 });

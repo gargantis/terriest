@@ -18,8 +18,9 @@ import { encodeInput, FRAME_BALL, FRAME_PITCH, frameOf, heldDirection, JOIN, REA
 import { datan2, dir, fractionOfTurn, HALF_TURN, QUARTER_TURN } from '../../src/core/sim/math';
 import { simParams, type SimParams } from '../../src/core/sim/params';
 import {
-  ballDir, chasey, CORNER_SCRUM, dribbleScene, NOTHING, park, pinchScene, pitchDir, place, placeBall, placedMatch, pushScene, type RestCase,
-  RESTING_BALL, restScene, ROLLING_BALL, type Scene, sceneInputs, sceneStart, SQUEEZE, touchReach, WALL_SCRUM,
+  ballDir, chasey, CORNER_SCRUM, dribbleScene, NETTING_SHOTS, nettingScene, type NettingShot, NOTHING, park, pinchScene, pitchDir, place,
+  placeBall, placedMatch, pushScene, type RestCase, RESTING_BALL, restScene, ROLLING_BALL, type Scene, sceneInputs, sceneStart, SQUEEZE,
+  touchReach, WALL_SCRUM,
 } from '../../src/core/sim/scenes';
 import { CANARY_SCRIPT, GOLDEN_SCRIPTS, type ScriptSpec, scriptTickInputs } from '../../src/core/sim/scripts';
 import { CELEBRATION, genesis, KICKOFF_COUNTDOWN, type MatchState, slotOf, type Terrier } from '../../src/core/sim/state';
@@ -867,32 +868,16 @@ function bowling(): Scenario[] {
   return out;
 }
 
-/** §9.6's netting shots: from 3 m in front of the +x goal line, aimed
- *  through the mouth's centre at an angle in plan, rolling, high (centre
- *  2 m up) or lobbed (4 m/s up), with nobody near: the architect's. */
-export function nettingShot(speed: number, angleDeg: number, kind: 'rolling' | 'high' | 'lobbed'): Scenario {
-  return {
-    id: `netting-${speed}-${angleDeg}-${kind}`, group: NETTING, label: `A ${kind} shot at ${speed} m/s, ${angleDeg}° in plan`, length: 600,
-    setup: (P) => {
-      const s = placedMatch(P, 1);
-      park(P, s, 0);
-      park(P, s, 1);
-      const a = (angleDeg * Math.PI) / 180;
-      const back = 3;
-      const z = kind === 'high' ? 2 : P.ballRadius;
-      placeBall(P, s, P.pitch.goalLineX - back, -Math.tan(a) * back, z, speed * Math.cos(a), speed * Math.sin(a), kind === 'lobbed' ? 4 : 0);
-      return { s, inputs: everyoneIdle, measures: [nettingRebound(P)] };
-    },
-  };
+/** One of §9.6's netting shots, from scenes.ts, which the metrics run, with
+ *  its rebound's readout. */
+export function nettingShot(shot: NettingShot): Scenario {
+  const { speed, angleDeg, kind } = shot;
+  return sceneScenario(NETTING, `netting-${speed}-${angleDeg}-${kind}`, nettingScene(shot), 600, {
+    label: `A ${kind} shot at ${speed} m/s, ${angleDeg}° in plan`,
+  }, (P) => [nettingRebound(P)]);
 }
 
-export const NETTING_SPEEDS = [5, 10];
-export const NETTING_ANGLES = [0, 20, 35];
-export const NETTING_KINDS = ['rolling', 'high', 'lobbed'] as const;
-
-function nettingShots(): Scenario[] {
-  return NETTING_SPEEDS.flatMap((v) => NETTING_ANGLES.flatMap((a) => NETTING_KINDS.map((kind) => nettingShot(v, a, kind))));
-}
+const nettingShots = (): Scenario[] => NETTING_SHOTS.map(nettingShot);
 
 /** 1 a side, placed in play, both terriers parked; setup places what the scenario needs. */
 function placed(P: SimParams, setup: (s: MatchState) => void): MatchState {

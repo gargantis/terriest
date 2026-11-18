@@ -170,6 +170,8 @@ describe('the tuning page model (design §9.5)', () => {
     expect(text).toMatch(/\| Run speed \| 7 m\/s \|/);
     expect(text).toMatch(/Keeps 65% of its speed into the surface/);
     expect(text).toMatch(/\| Re-arm gap \| \*\*TBD\*\* \|.*\n {2}\(TBD there/);
+    // The slip release's reach, apart from the re-arm gap, in A.4's Slip-out row (M2).
+    expect(tableSnippet({ slipHoldOffMetres: 0.5 }, docs)).toContain('toward the body slipped from only within 0.5 m of it, surface to surface in plan view (M2) |');
     const spots = tableSnippet({ kickoffSpotsMetres: [[], [[-11, 0]], [[-9, 4.5], [-9, -4.5]], ...config.kickoffSpotsMetres.slice(3)] }, docs);
     expect(spots).toContain('1 a side: (−11, 0). 2: (−9, ±4.5). 3: (−9, ±5), (−15, 0). 4: (−8, ±6), (−14, ±3). Everyone faces the ball');
     expect(tableSnippet({ coatCount: 9 }, docs)).toMatch(/In no table .*: coatCount/);

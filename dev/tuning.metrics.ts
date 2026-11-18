@@ -15,12 +15,15 @@
 //     these candidate lists in place of the defaults for their keys.
 //
 // The 'values' section is §9.6's table: each value's metric, check and rule,
-// fixed before anything is measured. The rule keeps the start value unless
-// a named check fails, and then takes the candidate nearest it that passes;
-// the netting takes the largest that passes, and the push assist the
-// smallest cap. The other sections measure the configuration itself.
+// fixed before anything is measured (research/tuning/REPORT.md's method).
+// The rule keeps the start value unless a named check fails, and then takes
+// the candidate nearest it that passes; the netting takes the largest that
+// passes, and the push assist the smallest cap. It writes the picks, as a
+// TERRIEST_TUNING_BASE for the next round, and apart from them any pick
+// that would move a value REQUIREMENTS gives, which only the owner can. The
+// other sections measure the configuration itself.
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, it } from 'vitest';
@@ -31,11 +34,11 @@ import { e2eMatch, emptyGoalRun, fallBackRun, hostOf, regulationMatch, theBrain 
 import { ballOnTerriers, dribble, kickoffPinch, pushTime } from '../src/core/sim/cases';
 import { JOIN, READY, type TickInput } from '../src/core/sim/input';
 import { simParams, type SimParams } from '../src/core/sim/params';
-import { type RestCase, sceneInputs, sceneStart, WALL_SCRUM } from '../src/core/sim/scenes';
+import { NETTING_SHOTS, type RestCase, sceneInputs, sceneStart, WALL_SCRUM } from '../src/core/sim/scenes';
 import { ENDED, genesis, IN_PLAY } from '../src/core/sim/state';
 import { makeSim, step } from '../src/core/sim/step';
-import { BOX_SIDE_METRES, build, parseValue, sliderOf, spotProblems, valueAt, withValue } from './tuning/model';
-import { NETTING_ANGLES, NETTING_KINDS, NETTING_SPEEDS, nettingShot, results, Run, type Scenario, scenarioOf } from './tuning/scenarios';
+import { BOX_SIDE_METRES, build, findRow, parseValue, ROWS, sliderOf, spotProblems, valueAt, withValue } from './tuning/model';
+import { nettingShot, results, Run, type Scenario, scenarioOf } from './tuning/scenarios';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DEFAULT_OUT = 'research/tuning/results.json';
@@ -317,19 +320,14 @@ function botTumbles(c: Config, packSize: number, seeds: number): Record<string, 
   return { matches: seeds, minutes: round(minutes, 1), bowledAMinute: minutes > 0 ? round(bowled / minutes) : null, pouncedAMinute: minutes > 0 ? round(pounced / minutes) : null };
 }
 
-/** §9.6's netting shots: each one's least |x| from its goal to its
- *  celebration's end, and whether every one stays wholly behind the line. */
+/** §9.6's netting shots, scenes.ts's 18: each one's least |x| from its goal
+ *  to its celebration's end, and whether every one stays wholly behind the
+ *  line. A shot that doesn't score fails too. */
 function netting(c: Config): Record<string, unknown> {
-  const shots: { speed: number; angle: number; kind: string; goal: boolean; leastX: number | null; wholly: boolean }[] = [];
-  for (const speed of NETTING_SPEEDS) {
-    for (const angle of NETTING_ANGLES) {
-      for (const kind of NETTING_KINDS) {
-        const r = measured(nettingShot(speed, angle, kind), c);
-        const m = r['back out of the netting']!;
-        shots.push({ speed, angle, kind, goal: m.goal === true, leastX: round(m.leastX as number | null), wholly: m.wholly === true });
-      }
-    }
-  }
+  const shots = NETTING_SHOTS.map((shot) => {
+    const m = measured(nettingShot(shot), c)['back out of the netting']!;
+    return { speed: shot.speed, angle: shot.angleDeg, kind: shot.kind, goal: m.goal === true, leastX: round(m.leastX as number | null), wholly: m.wholly === true };
+  });
   const worst = (v: number): number | null => Math.min(...shots.filter((s) => s.speed === v && s.leastX !== null).map((s) => s.leastX!));
   const fails = shots.filter((s) => !s.wholly).map((s) => `${s.kind} at ${s.speed} m/s, ${s.angle}°: ${s.goal ? `least |x| ${s.leastX}` : 'no goal'}`);
   return { shots, worstAt5: worst(5), worstAt10: worst(10), whollyBehind: paramsOf(c).pitch.goalLineX + paramsOf(c).ballRadius, fails };
@@ -512,13 +510,29 @@ interface Value {
 
 const failsOf = (m: Record<string, unknown>): string[] => (Array.isArray(m.fails) ? (m.fails as string[]) : []);
 
-function pick(rule: Value['rule'], start: number, trials: readonly Trial[]): number | null {
+/** A value's rule over its trials (research/tuning/REPORT.md's method):
+ *  'keep' keeps the start if its checks pass there, listed or not, else
+ *  takes the passing candidate nearest it, the smaller on a tie; 'largest'
+ *  and 'smallest' take that of the passing candidates. null when none
+ *  passes. */
+function pick(rule: Value['rule'], start: number, startPasses: boolean, trials: readonly Trial[]): number | null {
+  if (rule === 'keep' && startPasses) return start;
   const passing = trials.filter((t) => t.pass).map((t) => t.value);
   if (passing.length === 0) return null;
   if (rule === 'largest') return Math.max(...passing);
   if (rule === 'smallest') return Math.min(...passing);
-  return passing.includes(start) ? start : passing.sort((a, b) => Math.abs(a - start) - Math.abs(b - start) || a - b)[0]!;
+  // Distances to 9 decimal places, so float noise never decides a tie: 0.6 − 0.5 and 0.7 − 0.6.
+  const far = (v: number): number => Number(Math.abs(v - start).toFixed(9));
+  return [...passing].sort((a, b) => far(a) - far(b) || a - b)[0]!;
 }
+
+/** Settings whose value REQUIREMENTS' Configuration table gives (not TBD):
+ *  a pick that moves one is proposed to the owner, never adopted (design
+ *  §14 Q-1). Read from the table, by the tuning page's rows. */
+const REQUIRED: readonly string[] = (() => {
+  const requirements = readFileSync(resolve(ROOT, 'REQUIREMENTS.md'), 'utf8');
+  return ROWS.filter((r) => r.where === 'Configuration' && !(findRow(requirements, r)?.cells[1] ?? '').includes('TBD')).flatMap((r) => r.keys);
+})();
 
 function valuesTable(base: Config): Value[] {
   const zoomies = base.zoomiesSpeedMetresPerSecond;
@@ -538,9 +552,11 @@ function valuesTable(base: Config): Value[] {
       measure: (c) => {
         const pinches = [1, 2, 3, 4].flatMap((n) => [false, true].map((z) => ({ n, z, r: kickoffPinch(n, z, 10, c) })));
         const fails = [...spotProblems(c)];
+        // §16's case 4 as it reads: the pinch comes down, mirrored. Settle
+        // restated §9.6's "within 1.5 s" so; the time is reported.
         for (const { n, z, r } of pinches) {
           if (r.mirror !== null) fails.push(`the pinch at ${n}${z ? ', zoomies' : ''} lost P8`);
-          if (r.down === null || r.down > 1.5) fails.push(`the pinch at ${n}${z ? ', zoomies' : ''} comes down in ${round(r.down) ?? 'more than 10'} s, over 1.5 s`);
+          if (r.down === null) fails.push(`the pinch at ${n}${z ? ', zoomies' : ''} doesn't come down in 10 s`);
         }
         const solo = c.kickoffSpotsMetres[1] ?? [];
         if (!(solo.length === 1 && solo[0]![1] === 0)) fails.push("the 1-a-side spot isn't on y = 0, where §16's Practice setup needs it");
@@ -564,12 +580,17 @@ function valuesTable(base: Config): Value[] {
     },
     {
       name: 'Re-arm gap', rule: 'keep', candidates: [candidatesFor('rearmGapMetres', [0.6, 0.5, 0.7, 0.4, 0.8, 0.3, 1])],
-      note: "the slip release's hold-off reaches as far as the re-arm gap (physics.ts's drive(), bots-F4), so §16's slip-out cases are its checks too (C-21)",
       measure: (c) => {
         const m = touches(c);
-        const s = slipChecks(c, false);
-        return { metrics: { ...m, slipOut: s.metrics }, fails: [...failsOf(m), ...s.fails] };
+        return { metrics: m, fails: failsOf(m) };
       },
+    },
+    {
+      // M2's slip release (bots-F4), a setting of its own since settle: it
+      // was the re-arm gap, whose candidates it takes.
+      name: 'Slip hold-off', rule: 'keep', candidates: [candidatesFor('slipHoldOffMetres', [0.6, 0.5, 0.7, 0.4, 0.8, 0.3, 1])],
+      note: "§16's slip-out cases bound it from below (C-21): as the re-arm gap, at phase 4, 0.5 m passed and 0.4 m failed case 1; no check bounds it from above",
+      measure: (c) => slipChecks(c, false),
     },
     {
       name: 'Tumble guard', rule: 'keep', candidates: [candidatesFor('tumbleGuardSeconds', [1.5, 1, 2, 0.5, 2.5])],
@@ -743,6 +764,9 @@ describe('the tuning metrics (design §9.6)', () => {
 
   it.runIf(runs('values'))("§9.6's table: each value's candidates through its checks, and its rule's pick", () => {
     ran++;
+    // Each value alone: its candidates from the base, everything else at the base.
+    const picks: Record<string, number> = {};
+    const proposals: Record<string, number> = {};
     const table = valuesTable(BASE).map((value) => {
       const start = value.measure(BASE);
       const lists = value.candidates.map(({ key, values }) => {
@@ -751,12 +775,21 @@ describe('the tuning metrics (design §9.6)', () => {
           const m = v === from ? start : value.measure(withValue(BASE, key, v));
           return { value: v, pass: m.fails.length === 0, fails: m.fails, metrics: m.metrics };
         });
-        return { key, start: from, trials, pick: pick(value.rule, from, trials) };
+        const chosen = pick(value.rule, from, start.fails.length === 0, trials);
+        if (chosen !== null && chosen !== from) (REQUIRED.includes(key) ? proposals : picks)[key] = chosen;
+        return { key, start: from, trials, pick: chosen };
       });
       const row = { value: value.name, rule: value.rule, note: value.note ?? null, atTheBase: { pass: start.fails.length === 0, fails: start.fails, metrics: start.metrics }, candidates: lists };
       console.log(`${value.name}: ${start.fails.length === 0 ? 'passes' : `fails: ${start.fails.join('; ')}`} at the base${lists.map((l) => `; ${l.key} picks ${l.pick ?? 'none'}`).join('')}`);
       return row;
     });
     out.values = table;
+    // The values whose checks all pass at the base, the changes the rules
+    // pick (TERRIEST_TUNING_BASE for the next round), and the picks that
+    // would move one of REQUIREMENTS' values, which only the owner can.
+    out.allPassAtTheBase = table.every((r) => r.atTheBase.pass);
+    out.picks = picks;
+    out.proposals = proposals;
+    console.log(`every value passes at the base: ${String(out.allPassAtTheBase)}; picks ${JSON.stringify(picks)}; for the owner ${JSON.stringify(proposals)}`);
   });
 });
