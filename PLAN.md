@@ -1059,6 +1059,16 @@ Everything below is in the canonical state (Appendix A.1), and so in the hash. S
 - **The tables:** each row of the Configuration table, A.4 and A.5 names settings `src/config.ts` has, with the numbers the row gives, read from the documents at run time; a TBD takes A.5's value; and every setting is in a table, or named with its source.
 - **Nowhere else:** `src` and `dev` are scanned for a setting's name holding a literal, and `src/core/sim` and `src/core/bot` for a setting's or a derived value too: any value that isn't whole or 0.5, and in a top-level constant any value but 0. A line that says `not a setting` is passed.
 
+**M3:** eight checks are new, each in `src/config.test.ts` with a planted bad value it must catch (research/m3/DESIGN.md §10). M3's settings reach the timeline, the session, the transports and the glue through `netSettings()` (`src/core/session/settings.ts`), in their units, so the nowhere-else scan finds no copy of them. The scan knows them by the names a port would give them too, `netSettings()`'s fields and roslambo's constants (`window`, `SEND_BEHIND`), and scans `src/core/timeline`, `src/core/session` and `src/core/protocol` for a value that isn't whole or 0.5, as the simulation's, for roslambo's inline clock gains.
+- **TICK's history:** `inputHistoryTicks` is 16, since a TICK's u16 masks hold 16 ticks, as the stick's steps are held to A.2's bits. With the windows' check, w is then at most 14 at d = 2: a wider w needs a wider history, a protocol version 2, and this check moves with it.
+- **Trystero's frame:** the largest message and Trystero 0.26.0's 36-byte inline header fit its 16,384-byte frame, so no message is chunked, and `maxReceiveBytes` is at least that frame (D-18). Both numbers are Trystero's, at the version A.6 pins exactly; the check names them, and reads them from the installed package.
+- **The spread:** the cap is at least w + 1 steps a tick, a normal tick's worst, so only a changed base far back is spread (D-11). A cap under 42 spreads a joiner's catch-up too.
+- **Bots stay ready:** a host sends a bot's READY again with less than the Ready expiry left, and at least the time a READY lost once takes to land on its second sending, read from the final state: 2d + 2w + `eventRetryTicks` + 1 ticks, since a READY for the expiry's own tick still renews it (C-41).
+- **Leaving:** a page that leaves keeps its room for at least d + w ticks, so its LEAVE is final at its sender before the room closes.
+- **After a stall:** a catch-up sends only its newest `stallSendTicks` ticks' inputs, a whole number from 1 to w.
+- **Liveness:** pings go at most half the duplicate ID's silence apart, so a live connection always answers within C-12's 2 s, even one that sends only PEERS.
+- **Counts on the wire:** the name's byte limit, the IDs PEERS lists (every browser of the mesh but its sender: the mesh cap plus the spectators, less one) and the bots a TICK carries (`BOT_SLOTS`) each fit the protocol's u8 counts; the name's limit fits A.1's byte too.
+
 ---
 
 ## 8. Timeline, networking and consensus
@@ -1808,6 +1818,8 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Input delay d, late window w, vote window v | 2, 12, 12 ticks (roslambo); d is chosen again from M3's correction measurement (D-16) |
 | State history, input history per TICK | 256 ticks, 16 ticks (roslambo's code) |
 | Worst-tick spread | at most 42 steps a tick to start, so a 270-step repair takes 7 ticks; M3 checks the cap (D-11) |
+| Join warm-up and the tick clock | a joiner holds finalisation until every active player has been heard from, at most 0.5 s; a peer's clock offset counts once heard for 2 s, smoothed by 0.1 of each new sample; the clock runs fast or slow by 0.5% for each tick of the median offset, at most 2%, with a 1-tick deadband, and checks the median every 1 s, jumping once it's past the middle of the late window (roslambo D-11, M0, M3) |
+| Resync and joining | a peer that lost a vote asks the next voter for the winning state after 0.5 s; a joiner asks the next peer that holds the match after 1 s; JOIN, SWITCH, READY and UNREADY go again once 30 ticks pass after their tick is final without the state showing them (roslambo §8.3, M3) |
 | Solver iterations (forward and back sweeps over mirror pairs), position passes (also in mirror pairs) | 8, 2, with the floor's contacts in both (M0 kept them, D-5) |
 | Restitution threshold | 0.3 m/s |
 | Slip-out | 42° from vertical, 2 m/s sideways, with the slipping flag (M0 chose it, D-5); the flag holds the drive off toward the body slipped from only within 0.6 m of it, surface to surface in plan view (M2, provisional by measurement) |
@@ -1819,12 +1831,16 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Sitting, from the start countdown | 120 silent ticks |
 | Warm-up arrivals | the pack's next free spot if it's clear, else the first clear point in 1 m steps from it toward the pack's own goal line, else the spot itself (M2, D-8) |
 | Abandoned match | from the start countdown, 30 s with no browser that controls a terrier (Q-16) |
-| A duplicate ID replaces a connection | silent for 2 s |
+| A duplicate ID replaces a connection | silent for 2 s: no message, and no answer to a ping (C-12, M3) |
+| Gossip | PEERS on each change and every 5 s, and a ping to each peer every 1 s (roslambo D-14, C-12, M3) |
 | Handshake timeout, connection-failure message | 10 s, 20 s |
+| Leaving | a page that leaves, or presses Play again, keeps its room for 0.4 s, so its LEAVE or its AGAIN goes out (roslambo, M3) |
 | Largest message, `maxReceiveBytes` | 16,000 bytes, 1 MiB |
+| Misbehaving peers | more than 3 TICKs a tick from a sender, or from a forwarder for each origin apart, over 2 s from a connection open that long, or 20 invalid messages from a peer, close its connection (roslambo §9.3, §9.4, M3) |
 | Mesh cap | 8 browsers that play, 4 spectators |
 | Display name | 20 characters, 32 bytes |
-| Timer stall | a gap over 2 s between timer runs: a networked page rejoins from a peer, and Practice opens its menu and pauses (D-22, D-31) |
+| Timeline timer | every 4 ms, never on animation frames (D-31, M3) |
+| Timer stall | a gap over 2 s between timer runs: a networked page rejoins from a peer whose clock ran on, or goes on from its own tick if none did, and Practice opens its menu and pauses (D-22, D-31); after a shorter gap, a networked page sends only its newest 3 ticks' inputs (M3) |
 | Phone | a coarse pointer and a shorter side under 600 CSS px (D-30) |
 | Touch controls' edge margin | 32 CSS px from the side edges, inside the safe-area insets (D-29) |
 | Results' press guard | only a press that begins 0.5 s or more after Results appears (Q-17) |
@@ -1832,6 +1848,7 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Render quality | high: pixel ratio capped at 2, with MSAA; low: capped at 1, no MSAA, simpler effects (D-33) |
 | Sound under rollback | an event that a re-simulation moves by up to 3 ticks plays once (§13) |
 | Bot brain | reacts after 0.25 s, with aim noise up to 10° either way, seeded per bot; zooms toward a target over 5 m away; pounces when the ball's surface is within 2 m and the shot is lined up within 20°; supports 5 m behind the ball; defends 6 m out from its goal line; barks about every 5 s; turns away after 2 s held within 0.5 m (M2, Q-9, D-39) |
+| Bot hosting | a host sends a bot's READY again once the bot's Ready has 10 s left, so a bot is always ready (C-41, M3) |
 
 ### A.5 Gameplay values (the Configuration table; *starting values* for the TBDs and new settings, chosen at M2, and the cameras' at M4)
 

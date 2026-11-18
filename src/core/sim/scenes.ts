@@ -422,7 +422,7 @@ export function restScene(c: RestCase): Scene {
         dir((HALF_TURN + offset) >>> 0, d);
         const ax = rho * d[0]!, ay = rho * d[1]!;
         place(P, s, 2 * j, ax, ay);
-        place(P, s, 2 * j + 1, -ax, -ay + (c.offMirror === true ? 0.02 : 0));
+        place(P, s, 2 * j + 1, -ax, -ay + (c.offMirror === true ? 0.02 : 0)); // not a setting: a scene's offset
       }
       placeBall(P, s, 0, 0, r + reach * cosT + 0.01);
       if (c.holding === 'sitting') for (const t of s.terriers) t.sitting = true;

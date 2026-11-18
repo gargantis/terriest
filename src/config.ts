@@ -148,6 +148,21 @@ export const config = deepFreeze({
   spreadMaxStepsPerTick: 42, // a worst tick's steps, spread: a 270-step repair takes 7 ticks (D-11)
   speedBoundMetresPerSecond: 25, // D-3: the fastest a body moves; §16's tunnelling fuzz shoots at it
 
+  // The joiner's warm-up and the tick clock (A.4: Join warm-up and the tick
+  // clock; D-11, D-15): roslambo's literals, configured from M3.
+  joinWarmupSeconds: 0.5, // finalisation held until every active player is heard, at most this (roslambo D-7, M0)
+  clockSettleSeconds: 2, // a peer's clock offset counts once heard this long (roslambo D-11, M0)
+  clockSmoothing: 0.1, // each new sample's weight in a peer's offset (roslambo's EWMA)
+  clockGainPerTick: 0.005, // the rate's change for each tick of median offset: 0.5% (roslambo D-11, M0)
+  clockRateMax: 0.02, // of the rate, either way: 2% (roslambo D-11, M0)
+  clockDeadbandTicks: 1, // no rate change within this median offset (roslambo D-11, M0)
+  clockRebalanceSeconds: 1, // how often the median is taken (roslambo's rebalance)
+
+  // Resyncs, joining and events (A.4: Resync and joining; D-12, D-13), M3.
+  resyncRetrySeconds: 0.5, // then a resync asks the next voter (roslambo §8.3)
+  stateRequestRetrySeconds: 1, // then a joiner asks the next peer that holds the match (roslambo's JOIN_RETRY_MS)
+  eventRetryTicks: 30, // after its tick is final, an event the state doesn't show goes again (roslambo §8.3's delay + 30)
+
   // The solver (A.4; D-5): M0 kept these.
   solverIterations: 8, // forward and back sweeps over mirror pairs
   positionPasses: 2, // also in mirror pairs
@@ -176,6 +191,16 @@ export const config = deepFreeze({
   displayNameMaxChars: 20,
   displayNameMaxBytes: 32, // UTF-8
 
+  // Gossip, misbehaving peers, leaving and bot hosting (A.4: Gossip,
+  // Misbehaving peers, Leaving, Bot hosting; D-19, D-21, C-12, C-41), M3.
+  peersEverySeconds: 5, // PEERS on each change and this often (§9; roslambo D-14)
+  pingEverySeconds: 1, // to each peer, at most half the duplicate's silence (C-12); roslambo's PING_EVERY_MS was 2 s
+  floodTicksPerTick: 3, // TICKs a tick from a connection, or for each origin it forwards (roslambo §9.3)
+  floodSeconds: 2, // counted over this long, from a connection open that long (roslambo §9.3)
+  invalidMessagesMax: 20, // then the connection closes (roslambo §9.4)
+  leaveGraceSeconds: 0.4, // a leaving page keeps its room this long, so its LEAVE or AGAIN goes out (roslambo's LEAVE_GRACE_MS)
+  botReadyRenewSeconds: 10, // a host sends a bot's READY again with this long left, so a bot is always ready (C-41, §14)
+
   // Controls (A.4; D-10, D-29).
   stickSteps: 32, // directions a turn
   stickHysteresisSteps: 0.5,
@@ -187,6 +212,8 @@ export const config = deepFreeze({
   smoothingMs: 100, // a correction's offset decay; bodies in contact share one (D-16)
   ownSmoothingMs: 50, // for your own terrier
   timerStallSeconds: 2, // a longer gap between timer runs is a stall (D-31)
+  stallSendTicks: 3, // after a shorter catch-up, only the newest ticks' inputs go (A.4: Timer stall; D-10; roslambo D-11's 2026-10-25 fix)
+  timelineTimerMs: 4, // the timeline's timer period, never animation frames (D-31; roslambo's ADVANCE_EVERY_MS)
   phoneShortSideCssPx: 600, // a phone: a coarse pointer and a shorter side under this (D-30)
   resultsPressGuardSeconds: 0.5, // Results takes a press that begins this long after it shows (Q-17)
   lostGraphicsSeconds: 5, // then the plain message, counted while the page is visible (D-30)

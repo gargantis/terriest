@@ -4,6 +4,7 @@ import { ESLint } from 'eslint';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { config, type Config, type Derived, derive, derived, packSpots, type PitchShape, type SpotTable } from './config';
+import { BOT_SLOTS } from './core/bot/bot-id';
 import { STEP_MASK } from './core/sim/input';
 import { buildPitch, CAPSULE, FRAME, GOAL_NET, insideFloorPlan, type Piece, type Pitch, pitch, PLANE, QUAD } from './core/sim/pitch';
 
@@ -254,6 +255,109 @@ function botBarks(c: Config): string[] {
   return c.botBarkEverySeconds >= 2 * gap ? [] : [`bots bark every ${c.botBarkEverySeconds} s, under two bark gaps of ${gap} s`];
 }
 
+// --- The network's settings (M3; M3's design §10) ---
+
+/** A TICK's present and "same" masks are u16s, a bit a tick (M3's design §5.3). */
+const TICK_MASK_TICKS = 16;
+
+/** A TICK carries the history its masks hold, as A.2's bits fix the
+ *  stick's steps. A wider late window needs a wider history (protocol 2). */
+function tickHistory(c: Config): string[] {
+  const n = c.inputHistoryTicks;
+  return n === TICK_MASK_TICKS ? [] : [`a TICK's input history is ${n} ticks, and its u16 masks hold ${TICK_MASK_TICKS}`];
+}
+
+/** Trystero 0.26.0's, the version A.6 pins exactly: an action's frame
+ *  (data-limits.mjs's maxActionFrameBytes) and the header of a message sent
+ *  in one frame (action-wire.mjs's inlineHeaderSize). */
+const TRYSTERO_FRAME_BYTES = 16384;
+const TRYSTERO_INLINE_HEADER_BYTES = 36;
+
+/** The largest message goes in one frame with its header, so no message is
+ *  chunked, and maxReceiveBytes takes at least a frame (D-18). */
+function trysteroFrame(c: Config): string[] {
+  const problems: string[] = [];
+  const framed = c.messageMaxBytes + TRYSTERO_INLINE_HEADER_BYTES;
+  if (!(framed <= TRYSTERO_FRAME_BYTES)) {
+    problems.push(
+      `the largest message, ${c.messageMaxBytes} bytes, and Trystero's ${TRYSTERO_INLINE_HEADER_BYTES}-byte inline header make ${framed} bytes, past its ${TRYSTERO_FRAME_BYTES}-byte frame`,
+    );
+  }
+  if (!(c.maxReceiveBytes >= TRYSTERO_FRAME_BYTES)) problems.push(`maxReceiveBytes, ${c.maxReceiveBytes}, is under Trystero's ${TRYSTERO_FRAME_BYTES}-byte frame`);
+  return problems;
+}
+
+/** A normal tick's worst, a late input at the late window's start, is
+ *  w + 1 steps, which the spread never splits (D-11, M3's design §2.8). */
+function spreadCap(c: Config): string[] {
+  const cap = c.spreadMaxStepsPerTick;
+  const worst = c.lateWindowTicks + 1;
+  return cap >= worst ? [] : [`the spread's cap, ${cap} steps a tick, is under a normal tick's worst, w + 1 = ${worst} steps`];
+}
+
+/** A host sends a bot's READY again before its Ready expires, and early
+ *  enough that one lost once lands on its second sending. Sent at local
+ *  tick n, when the final state, w behind, shows the Ready's time left, it
+ *  is for tick n + d, final at n + d + w; it goes again once the final tick
+ *  passes n + d + eventRetryTicks without the state showing it, at local
+ *  tick n + d + w + eventRetryTicks + 1, for d later. The Ready expires at
+ *  n − w and its time left, and a READY for that tick still renews it,
+ *  since a tick's events come before the expiry (step.ts). So the time
+ *  left is at least 2d + 2w + eventRetryTicks + 1 ticks (C-41, M3's design
+ *  §4.8; roslambo's tendBots). */
+function botsReady(c: Config): string[] {
+  const problems: string[] = [];
+  const renew = c.botReadyRenewSeconds;
+  const land = 2 * (c.inputDelayTicks + c.lateWindowTicks) + c.eventRetryTicks + 1;
+  if (!(renew < c.readyExpirySeconds)) problems.push(`a bot's READY goes again with ${renew} s of its Ready left, not under the ${c.readyExpirySeconds} s expiry`);
+  if (!(renew * c.ticksPerSecond >= land)) {
+    problems.push(
+      `a bot's READY goes again with ${renew} s of its Ready left, under the ${land} ticks, 2d + 2w + eventRetryTicks + 1, one lost once takes to land`,
+    );
+  }
+  return problems;
+}
+
+/** A leaving page keeps its room until its LEAVE is final at its sender,
+ *  d + w ticks on (M3's design §4.2). */
+function leaving(c: Config): string[] {
+  const grace = c.leaveGraceSeconds * c.ticksPerSecond;
+  const final = c.inputDelayTicks + c.lateWindowTicks;
+  return grace >= final ? [] : [`a leaving page keeps its room for ${c.leaveGraceSeconds} s, ${grace} ticks, under the ${final} ticks, d + w, its LEAVE takes to be final`];
+}
+
+/** After a catch-up a page sends only its newest ticks' inputs: at least
+ *  its newest, and no more than the late window, since older ones would
+ *  reach peers near its end, in time for some and too late for others
+ *  (A.4's Timer stall, roslambo D-11's 2026-10-25 fix). */
+function afterStall(c: Config): string[] {
+  const n = c.stallSendTicks;
+  const ok = Number.isInteger(n) && n >= 1 && n <= c.lateWindowTicks;
+  return ok ? [] : [`after a stall a page sends its newest ${n} ticks' inputs, not a whole number from 1 to the late window's ${c.lateWindowTicks}`];
+}
+
+/** Pings go at most half C-12's silence apart, so a live connection answers
+ *  one well within it, even one that sends only PEERS (M3's design §4.4). */
+function liveness(c: Config): string[] {
+  const silence = c.duplicateIdSilentSeconds;
+  return c.pingEverySeconds <= silence / 2 ? [] : [`pings every ${c.pingEverySeconds} s, over half the ${silence} s silence that lets a duplicate ID replace a connection (C-12)`];
+}
+
+/** The protocol's counts are u8s: a string's byte length, the IDs PEERS
+ *  lists and the bots a TICK carries (M3's design §5). */
+const U8_MAX = 255;
+
+/** Each count fits its u8: the name's bytes, as A.1's byte holds them too;
+ *  PEERS' IDs, every browser of the mesh but the sender; and BOT_SLOTS. */
+function wireCounts(c: Config, botSlots: number = BOT_SLOTS): string[] {
+  const problems: string[] = [];
+  if (!(c.displayNameMaxBytes <= U8_MAX)) problems.push(`a name of ${c.displayNameMaxBytes} bytes doesn't fit a wire string's u8 length`);
+  const peers = c.meshPlayersMax + c.spectatorsMax - 1;
+  if (!(peers <= U8_MAX)) problems.push(`PEERS lists up to ${peers} IDs, the mesh cap and the spectators less the sender, past its u8 count`);
+  if (!(botSlots <= U8_MAX)) problems.push(`a TICK carries up to ${botSlots} bots, BOT_SLOTS, past its u8 count`);
+  return problems;
+}
+
 // --- Every setting from the tables is in src/config.ts (§7.4) ---
 
 /** How a table row maps to src/config.ts: the settings it names, and the
@@ -355,7 +459,8 @@ const A4: Readonly<Record<string, Row>> = {
   },
   'Mesh cap': { keys: ['meshPlayersMax', 'spectatorsMax'] },
   'Display name': { keys: ['displayNameMaxChars', 'displayNameMaxBytes'] },
-  'Timer stall': { keys: ['timerStallSeconds'] },
+  // M3 extends it with the catch-up's newest ticks.
+  'Timer stall': { keys: ['timerStallSeconds', 'stallSendTicks'] },
   Phone: { keys: ['phoneShortSideCssPx'] },
   "Touch controls' edge margin": { keys: ['touchEdgeMarginCssPx'] },
   "Results' press guard": { keys: ['resultsPressGuardSeconds'] },
@@ -375,6 +480,16 @@ const A4: Readonly<Record<string, Row>> = {
       'botSupportMetres', 'botDefendMetres', 'botBarkEverySeconds', 'botStuckSeconds', 'botStuckMetres',
     ],
   },
+  // M3's rows (M3's design §10); the duplicate ID's is reworded, with the same number.
+  'Join warm-up and the tick clock': {
+    keys: ['joinWarmupSeconds', 'clockSettleSeconds', 'clockSmoothing', 'clockGainPerTick', 'clockRateMax', 'clockDeadbandTicks', 'clockRebalanceSeconds'],
+  },
+  'Resync and joining': { keys: ['resyncRetrySeconds', 'stateRequestRetrySeconds', 'eventRetryTicks'] },
+  Gossip: { keys: ['peersEverySeconds', 'pingEverySeconds'] },
+  'Misbehaving peers': { keys: ['floodTicksPerTick', 'floodSeconds', 'invalidMessagesMax'] },
+  'Timeline timer': { keys: ['timelineTimerMs'] },
+  Leaving: { keys: ['leaveGraceSeconds'] },
+  'Bot hosting': { keys: ['botReadyRenewSeconds'] },
 };
 
 /** PLAN A.5, by row; its first row is "as REQUIREMENTS' Configuration table". */
@@ -639,12 +754,51 @@ function topLevelHolders(sf: ts.SourceFile): Set<ts.Node> {
   return held;
 }
 
+/** M3's settings under the names its ports would give them, where their
+ *  stems aren't a setting's own (M3's design §0): netSettings' fields,
+ *  derived ones included, and roslambo's constants. netSettings' tickMs is
+ *  left out: its stem, "tick", is every script's tick: in src/core/sim. */
+const PORTED_NAMES: Readonly<Record<string, readonly string[]>> = {
+  delay: ['inputDelayTicks'],
+  window: ['lateWindowTicks'],
+  history: ['stateHistoryTicks', 'inputHistoryTicks'],
+  spreadCap: ['spreadMaxStepsPerTick'],
+  inputSpan: ['stateHistoryTicks', 'lateWindowTicks', 'inputDelayTicks'],
+  warmupMs: ['joinWarmupSeconds'],
+  settleMs: ['clockSettleSeconds'],
+  smoothing: ['clockSmoothing'],
+  gainPerTick: ['clockGainPerTick'],
+  rateMax: ['clockRateMax'],
+  deadbandTicks: ['clockDeadbandTicks'],
+  rebalanceMs: ['clockRebalanceSeconds'],
+  sampleMaxTicks: ['stateHistoryTicks', 'lateWindowTicks', 'inputDelayTicks'],
+  duplicateSilentMs: ['duplicateIdSilentSeconds'],
+  floodTicksMax: ['floodTicksPerTick', 'floodSeconds'],
+  timerMs: ['timelineTimerMs'],
+  stallMs: ['timerStallSeconds'],
+  SEND_BEHIND: ['stallSendTicks'],
+  JOIN_RETRY_MS: ['stateRequestRetrySeconds'],
+  INVALID_LIMIT: ['invalidMessagesMax'],
+  EWMA: ['clockSmoothing'],
+  FLOOD_WINDOW_MS: ['floodSeconds'],
+  ADVANCE_EVERY_MS: ['timelineTimerMs'],
+  STALLED_MS: ['timerStallSeconds'],
+  STATE_RING: ['stateHistoryTicks'],
+  INPUT_RING: ['stateHistoryTicks', 'lateWindowTicks', 'inputDelayTicks'],
+  MAX_STRING: ['displayNameMaxBytes'],
+  FAIL_AFTER_MS: ['connectionFailureSeconds'],
+};
+
 /** The source files' copies of a setting. Everywhere: a declaration,
- *  property or default whose name is a setting's, unit aside, holding a
- *  literal. And in the simulation and the bot brain (src/core/sim,
- *  src/core/bot), where M2 ports the M0 spike's own configuration:
+ *  property or default whose name is a setting's, unit aside, or one of
+ *  PORTED_NAMES, holding a literal. In the simulation and the bot brain
+ *  (src/core/sim, src/core/bot), where M2 ports the M0 spike's own
+ *  configuration, and in M3's timeline, session and protocol
+ *  (src/core/timeline, src/core/session, src/core/protocol), where M3
+ *  ports roslambo's inline clock gains:
  *  - any literal or literal arithmetic equal to a setting's or a derived
- *    value that isn't a whole number or 0.5;
+ *    value that isn't a whole number or 0.5.
+ *  And in the simulation and the bot brain alone:
  *  - a top-level constant, or a property of an object literal one holds,
  *    whose literal is a number equal to a setting's or a derived value but
  *    0, whole numbers included, or an array equal to one of theirs or to a
@@ -673,6 +827,7 @@ function copies(files: readonly Source[], c: Config): string[] {
     add(names, stem(path.split('.').flatMap(words)), path);
     addValues(v, path);
   }
+  for (const [name, paths] of Object.entries(PORTED_NAMES)) for (const path of paths) add(names, stem(words(name)), path);
   const d = derive(c);
   for (const path of settingPaths(d)) addValues(valueAt(d, path), `derived.${path}`);
 
@@ -683,8 +838,8 @@ function copies(files: readonly Source[], c: Config): string[] {
     const lineOf = (node: ts.Node): number => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line;
     const exempt = (node: ts.Node): boolean => lines[lineOf(node)]?.includes('not a setting') ?? false;
     const at = (node: ts.Node): string => `${file.path}:${lineOf(node) + 1}: ${node.getText(sf).split('\n')[0]}`;
-    const scanValues = /^src\/core\/(?:sim|bot)\//.test(file.path);
-    const held = scanValues ? topLevelHolders(sf) : new Set<ts.Node>();
+    const scanValues = /^src\/core\/(?:sim|bot|timeline|session|protocol)\//.test(file.path);
+    const held = /^src\/core\/(?:sim|bot)\//.test(file.path) ? topLevelHolders(sf) : new Set<ts.Node>();
     const isLiteralSum = (node: ts.Node): boolean => ts.isBinaryExpression(node) && typeof literal(node) === 'number';
 
     /** A declaration's copy: by its name, else, at top level, by its value. */
@@ -839,6 +994,89 @@ describe('the configuration checks (PLAN §7.4)', () => {
     expect(botBarks(planted({ barkMaxPerSecond: 0.25 })).join('\n')).toMatch(/two bark gaps of 4 s/);
   });
 
+  it("holds a TICK's input history to the 16 ticks its u16 masks hold (M3)", () => {
+    expect(tickHistory(config)).toEqual([]);
+    expect(tickHistory(planted({ inputHistoryTicks: 32 }))).toEqual(["a TICK's input history is 32 ticks, and its u16 masks hold 16"]);
+    // 14 still covers d + w, which the windows' check asks, and is still caught here.
+    expect(history(planted({ inputHistoryTicks: 14 }))).toEqual([]);
+    expect(tickHistory(planted({ inputHistoryTicks: 14 }))).toHaveLength(1);
+  });
+
+  it("sends every message in one of Trystero 0.26.0's frames (D-18, M3)", () => {
+    expect(trysteroFrame(config)).toEqual([]);
+    // 16,348 bytes and the 36-byte header fill a frame exactly; a byte more would be chunked.
+    expect(trysteroFrame(planted({ messageMaxBytes: 16348 }))).toEqual([]);
+    expect(trysteroFrame(planted({ messageMaxBytes: 16349 })).join('\n')).toMatch(/make 16385 bytes, past its 16384-byte frame/);
+    expect(trysteroFrame(planted({ maxReceiveBytes: 16383 }))).toEqual(["maxReceiveBytes, 16383, is under Trystero's 16384-byte frame"]);
+    expect(trysteroFrame(planted({ maxReceiveBytes: 16384 }))).toEqual([]);
+    // The two numbers are the installed Trystero's, and a message within the
+    // frame goes inline, with no metadata, as the transport sends it.
+    const core = 'node_modules/@trystero-p2p/core';
+    expect((JSON.parse(read(`${core}/package.json`)) as { version: string }).version).toBe('0.26.0');
+    expect(read(`${core}/dist/data-limits.mjs`)).toContain(`const maxActionFrameBytes = ${TRYSTERO_FRAME_BYTES};`);
+    const wire = read(`${core}/dist/action-wire.mjs`);
+    expect(wire).toContain(`const inlineHeaderSize = ${TRYSTERO_INLINE_HEADER_BYTES};`);
+    expect(wire).toContain('const small = inlineHeaderSize + meta.length + size <= maxActionFrameBytes;');
+  });
+
+  it("keeps the spread's cap at least a normal tick's worst, w + 1 steps (D-11, M3)", () => {
+    expect(spreadCap(config)).toEqual([]);
+    expect(spreadCap(planted({ spreadMaxStepsPerTick: 13 }))).toEqual([]);
+    expect(spreadCap(planted({ spreadMaxStepsPerTick: 12 }))).toEqual(["the spread's cap, 12 steps a tick, is under a normal tick's worst, w + 1 = 13 steps"]);
+    expect(spreadCap(planted({ lateWindowTicks: 42 })).join('\n')).toMatch(/w \+ 1 = 43 steps/);
+  });
+
+  it("sends a bot's READY again before its Ready expires, in time to land (C-41, M3)", () => {
+    expect(botsReady(config)).toEqual([]);
+    expect(botsReady(planted({ botReadyRenewSeconds: 60 }))).toEqual(["a bot's READY goes again with 60 s of its Ready left, not under the 60 s expiry"]);
+    expect(botsReady(planted({ readyExpirySeconds: 5 })).join('\n')).toMatch(/not under the 5 s expiry/);
+    // 2d + 2w + 30 + 1 = 59 ticks to land: 1 s is 60 ticks, and 0.75 s only 45.
+    expect(botsReady(planted({ botReadyRenewSeconds: 1 }))).toEqual([]);
+    expect(botsReady(planted({ botReadyRenewSeconds: 0.75 }))).toEqual([
+      "a bot's READY goes again with 0.75 s of its Ready left, under the 59 ticks, 2d + 2w + eventRetryTicks + 1, one lost once takes to land",
+    ]);
+    // At the bound, 60 ticks with a retry of 31, it lands on the expiry's tick, in time; with 32, a tick late.
+    expect(botsReady(planted({ botReadyRenewSeconds: 1, eventRetryTicks: 31 }))).toEqual([]);
+    expect(botsReady(planted({ botReadyRenewSeconds: 1, eventRetryTicks: 32 }))).toHaveLength(1);
+    expect(botsReady(planted({ eventRetryTicks: 600 })).join('\n')).toMatch(/under the 629 ticks/);
+  });
+
+  it('keeps a leaving page in its room until its LEAVE is final (M3)', () => {
+    expect(leaving(config)).toEqual([]);
+    // d + w = 14 ticks: 0.25 s covers them, and 0.2 s, 12 ticks, doesn't.
+    expect(leaving(planted({ leaveGraceSeconds: 0.25 }))).toEqual([]);
+    expect(leaving(planted({ leaveGraceSeconds: 0.2 }))).toEqual(['a leaving page keeps its room for 0.2 s, 12 ticks, under the 14 ticks, d + w, its LEAVE takes to be final']);
+    expect(leaving(planted({ lateWindowTicks: 30 })).join('\n')).toMatch(/24 ticks, under the 32 ticks/);
+    // Exactly d + w covers them: 15 ticks against w = 13, and not against 14.
+    expect(leaving(planted({ leaveGraceSeconds: 0.25, lateWindowTicks: 13 }))).toEqual([]);
+    expect(leaving(planted({ leaveGraceSeconds: 0.25, lateWindowTicks: 14 }))).toHaveLength(1);
+  });
+
+  it("sends from 1 to w of a catch-up's newest ticks after a stall (M3)", () => {
+    expect(afterStall(config)).toEqual([]);
+    for (const n of [1, 12]) expect(afterStall(planted({ stallSendTicks: n })), `${n}`).toEqual([]);
+    for (const n of [0, 2.5, -1, NaN, Infinity]) expect(afterStall(planted({ stallSendTicks: n })), `${n}`).toHaveLength(1);
+    expect(afterStall(planted({ stallSendTicks: 13 }))).toEqual(["after a stall a page sends its newest 13 ticks' inputs, not a whole number from 1 to the late window's 12"]);
+  });
+
+  it("pings at most half C-12's silence apart, so a live connection is never silent (M3)", () => {
+    expect(liveness(config)).toEqual([]);
+    expect(liveness(planted({ pingEverySeconds: 1.5 }))).toEqual(['pings every 1.5 s, over half the 2 s silence that lets a duplicate ID replace a connection (C-12)']);
+    expect(liveness(planted({ duplicateIdSilentSeconds: 1.5 }))).toHaveLength(1);
+    expect(liveness(planted({ pingEverySeconds: 0.5 }))).toEqual([]);
+  });
+
+  it("fits the counts on the wire in the protocol's u8s (M3)", () => {
+    expect(wireCounts(config)).toEqual([]);
+    expect(wireCounts(planted({ displayNameMaxBytes: 256 }))).toEqual(["a name of 256 bytes doesn't fit a wire string's u8 length"]);
+    expect(wireCounts(planted({ displayNameMaxBytes: 255 }))).toEqual([]);
+    // PEERS lists every browser of the mesh but its sender: 250 + 6 − 1 fits, and one more spectator doesn't.
+    expect(wireCounts(planted({ meshPlayersMax: 250, spectatorsMax: 6 }))).toEqual([]);
+    expect(wireCounts(planted({ meshPlayersMax: 250, spectatorsMax: 7 })).join('\n')).toMatch(/PEERS lists up to 256 IDs/);
+    expect(wireCounts(config, 256)).toEqual(['a TICK carries up to 256 bots, BOT_SLOTS, past its u8 count']);
+    expect(wireCounts(config, 255)).toEqual([]);
+  });
+
   it('has every setting of the Configuration table, A.4 and A.5, with their values', () => {
     const requirements = read('REQUIREMENTS.md');
     const plan = read('PLAN.md');
@@ -921,7 +1159,8 @@ describe('the configuration checks (PLAN §7.4)', () => {
       'src/core/sim/e.ts:2: celebrationTicks: 204 is the value of derived.celebrationTicks',
       'src/core/sim/e.ts:2: guardTicks: 90 copies tumbleGuardSeconds',
       'src/core/sim/e.ts:2: cuts: [4, 4, 4, 4] is the value of pitch.cornerCutsMetres',
-      'src/core/sim/e.ts:3: passes = 2; is the value of packSizeDefault, pitch.goalDepthMetres, ballMassKg and 11 more',
+      // M3's clockSettleSeconds and floodSeconds are 2 s too: 13 more, where M2 had 11.
+      'src/core/sim/e.ts:3: passes = 2; is the value of packSizeDefault, pitch.goalDepthMetres, ballMassKg and 13 more',
       'src/core/sim/e.ts:4: SPOTS = [ is the value of kickoffSpotsMetres, derived.kickoffSpots[0]',
     ]);
     // Counters, halves, locals, reads of the configuration and marked lines pass.
@@ -937,6 +1176,95 @@ describe('the configuration checks (PLAN §7.4)', () => {
       'export function f(): number { const steps = 12; return steps * ticks; }',
     ].join('\n');
     expect(copies([{ path: 'src/core/sim/d.ts', text: fine }], config)).toEqual([]);
+  });
+
+  it("finds M3's settings copied by name outside the simulation, as the timeline and the session would port them (M3)", () => {
+    // Outside src/core/sim and src/core/bot only names are scanned, under
+    // their own name or a group's: roslambo's RESYNC_RETRY_MS, or a clock's
+    // rebalanceMs (M3's design §0).
+    const port = [
+      'const RESYNC_RETRY_MS = 500;',
+      'const PING_EVERY_MS = 2000;',
+      'const LEAVE_GRACE_MS = 400;',
+      'export const cfg = { stallSendTicks: 3, clock: { rebalanceMs: 1000 }, room: { floodTicksPerTick: 3 } };',
+      // Reads of the settings pass.
+      'export const read = { stallSendTicks: net.timeline.stallSendTicks, rebalanceMs: 1000 * config.clockRebalanceSeconds };',
+    ].join('\n');
+    expect(copies([{ path: 'src/core/timeline/f.ts', text: port }], config)).toEqual([
+      'src/core/timeline/f.ts:1: RESYNC_RETRY_MS = 500 copies resyncRetrySeconds',
+      'src/core/timeline/f.ts:2: PING_EVERY_MS = 2000 copies pingEverySeconds',
+      'src/core/timeline/f.ts:3: LEAVE_GRACE_MS = 400 copies leaveGraceSeconds',
+      'src/core/timeline/f.ts:4: stallSendTicks: 3 copies stallSendTicks',
+      'src/core/timeline/f.ts:4: rebalanceMs: 1000 copies clockRebalanceSeconds',
+      'src/core/timeline/f.ts:4: floodTicksPerTick: 3 copies floodTicksPerTick, floodSeconds',
+    ]);
+  });
+
+  it("finds M3's settings under netSettings' and roslambo's names, and roslambo's inline clock gains (M3)", () => {
+    const port = [
+      'export const cfg = { delay: 2, window: 12, history: 256, spreadCap: 42, inputSpan: 1024, warmupMs: 500, duplicateSilentMs: 2000 };',
+      'export const clock = { settleMs: 2000, smoothing: 0.1, gainPerTick: 0.005, rateMax: 0.02, deadbandTicks: 1, sampleMaxTicks: 742 };',
+      'export const net = { timerMs: 4, stallMs: 2000, floodTicksMax: 360 };',
+      'const SEND_BEHIND = 3;',
+      'const JOIN_RETRY_MS = 1000;',
+      'const INVALID_LIMIT = 20;',
+      'const EWMA = 0.1;',
+      'const FLOOD_WINDOW_MS = 2000;',
+      'const ADVANCE_EVERY_MS = 4;',
+      'const STALLED_MS = 2000;',
+      'const STATE_RING = 256;',
+      'const INPUT_RING = 1024;',
+      'const HISTORY = 16;',
+      'const MAX_STRING = 32;',
+      'const FAIL_AFTER_MS = 20_000;',
+      'export const adj = (med: number): number => Math.max(-0.02, Math.min(0.02, med * 0.005));',
+      // A marked line, and a read of the settings, pass.
+      'export const shade = 0.02; // not a setting: a colour',
+      'export const read = { window: net.timeline.window, delay: cfg2.delay };',
+    ].join('\n');
+    const at = (line: number, what: string): string => `src/core/timeline/g.ts:${line}: ${what}`;
+    expect(copies([{ path: 'src/core/timeline/g.ts', text: port }], config)).toEqual([
+      at(1, 'delay: 2 copies inputDelayTicks'),
+      at(1, 'window: 12 copies lateWindowTicks'),
+      at(1, 'history: 256 copies stateHistoryTicks, inputHistoryTicks'),
+      at(1, 'spreadCap: 42 copies spreadMaxStepsPerTick'),
+      at(1, 'inputSpan: 1024 copies stateHistoryTicks, lateWindowTicks, inputDelayTicks'),
+      at(1, 'warmupMs: 500 copies joinWarmupSeconds'),
+      at(1, 'duplicateSilentMs: 2000 copies duplicateIdSilentSeconds'),
+      at(2, 'settleMs: 2000 copies clockSettleSeconds'),
+      at(2, 'smoothing: 0.1 copies smoothingMs, clockSmoothing'),
+      at(2, '0.1 is the value of pitch.postRadiusMetres, clockSmoothing'),
+      at(2, 'gainPerTick: 0.005 copies clockGainPerTick'),
+      at(2, '0.005 is the value of clockGainPerTick'),
+      at(2, 'rateMax: 0.02 copies clockRateMax'),
+      at(2, '0.02 is the value of clockRateMax'),
+      at(2, 'deadbandTicks: 1 copies clockDeadbandTicks'),
+      at(2, 'sampleMaxTicks: 742 copies stateHistoryTicks, lateWindowTicks, inputDelayTicks'),
+      at(3, 'timerMs: 4 copies timelineTimerMs'),
+      at(3, 'stallMs: 2000 copies timerStallSeconds'),
+      at(3, 'floodTicksMax: 360 copies floodTicksPerTick, floodSeconds'),
+      at(4, 'SEND_BEHIND = 3 copies stallSendTicks'),
+      at(5, 'JOIN_RETRY_MS = 1000 copies stateRequestRetrySeconds'),
+      at(6, 'INVALID_LIMIT = 20 copies invalidMessagesMax'),
+      at(7, 'EWMA = 0.1 copies clockSmoothing'),
+      at(7, '0.1 is the value of pitch.postRadiusMetres, clockSmoothing'),
+      at(8, 'FLOOD_WINDOW_MS = 2000 copies floodSeconds'),
+      at(9, 'ADVANCE_EVERY_MS = 4 copies timelineTimerMs'),
+      at(10, 'STALLED_MS = 2000 copies timerStallSeconds'),
+      at(11, 'STATE_RING = 256 copies stateHistoryTicks'),
+      at(12, 'INPUT_RING = 1024 copies stateHistoryTicks, lateWindowTicks, inputDelayTicks'),
+      at(13, 'HISTORY = 16 copies stateHistoryTicks, inputHistoryTicks'),
+      at(14, 'MAX_STRING = 32 copies displayNameMaxBytes'),
+      at(15, 'FAIL_AFTER_MS = 20_000 copies connectionFailureSeconds'),
+      // roslambo's rebalance: the limit either way, and the gain.
+      at(16, '0.02 is the value of clockRateMax'),
+      at(16, '0.02 is the value of clockRateMax'),
+      at(16, '0.005 is the value of clockGainPerTick'),
+    ]);
+    // Values are scanned in M3's core folders, not in the transports' or the glue's.
+    expect(copies([{ path: 'src/net/g.ts', text: 'export const adj = (med: number): number => med * 0.005;' }], config)).toEqual([]);
+    expect(copies(['session', 'protocol'].map((dir) => ({ path: `src/core/${dir}/g.ts`, text: 'export const adj = (med: number): number => med * 0.005;' })), config))
+      .toEqual(['src/core/session/g.ts:1: 0.005 is the value of clockGainPerTick', 'src/core/protocol/g.ts:1: 0.005 is the value of clockGainPerTick']);
   });
 });
 
