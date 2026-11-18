@@ -6,17 +6,17 @@
 // placements through mix(). The measures don't depend on the brain
 // (design §8.6): they read the state alone.
 
-import { encodeInput, FRAME_BALL, heldDirection, JOIN, READY, type TickInput } from '../sim/input';
-import { mix, TURN } from '../sim/math';
+import { encodeInput, FRAME_BALL, HELD, heldDirection, JOIN, READY, STEP_MASK, STEP_UNITS, type TickInput } from '../sim/input';
+import { datan2, mix, TURN } from '../sim/math';
 import { defaultParams, type SimParams } from '../sim/params';
 import { insideFloorPlan } from '../sim/pitch';
-import { place, placeBall, placedMatch } from '../sim/scenes';
+import { place, placeBall, placedMatch, touchReach } from '../sim/scenes';
 import {
-  ENDED, findTerrier, genesis, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, type Pack, START_COUNTDOWN, type Terrier, WARM_UP,
+  ENDED, findTerrier, genesis, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, NEVER, type Pack, START_COUNTDOWN, type Terrier, WARM_UP,
 } from '../sim/state';
 import { makeSim, step } from '../sim/step';
 import { botCoat, botIds, botName } from './bot-id';
-import { type BotParams, type Brain, defaultBotParams, newBrain, think } from './brain';
+import { type BotParams, type Brain, CHASE, defaultBotParams, FALL_BACK, newBrain, type Role, think } from './brain';
 
 // §16's and §8.6's measures, which define the marks rather than tune the
 // brain: settle records them in §16 (Q-9, design §9.6).
@@ -25,10 +25,22 @@ const STUCK_METRES = 0.5; // not a setting: §16's never-stuck mark, "within 0.5
 const EMPTY_GOAL_SECONDS = 20; // not a setting: §16's empty-goal mark
 const PLACE_MARGIN = 2; // not a setting: §16's empty-goal mark, "at least 2 m from any wall"
 const FALL_BACK_AFTER_SECONDS = 0.5; // not a setting: §16's fall-back mark, after the reaction delay
-const FALL_BACK_METRES = 3; // not a setting: §8.6's Q, from the ball toward its own goal
-const FALL_BACK_NEAR = 1.5; // not a setting: §8.6's measure, within this of Q
-const FALL_BACK_SPEED = 1; // not a setting: §8.6's measure, m/s
-const FALL_BACK_COS = 0.7071067811865476; // not a setting: §8.6's measure, cos 45°
+const FALL_BACK_METRES = 3; // not a setting: §8.6's Q, from the ball toward its own goal's centre
+const FALL_BACK_NEAR = 1.5; // not a setting: §8.6's measure, within this of Q, it's there
+const FALL_BACK_SPEED = 1; // not a setting: §8.6's measure, or on its way: at least 1 m/s …
+const FALL_BACK_COS = 0.7071067811865476; // not a setting: … within 45° of Q
+// The fall-back's setups (bots-F1).
+const FB_BALL_FROM_WALL = 3; // not a setting: the ball's surface at least this from any wall, …
+const FB_FROM_WALL = 1; // not a setting: … each terrier's at least this
+const FB_BOT_NEAR = 1.25; // not a setting: the bot's centre 1.25–3.5 m from the ball's, …
+const FB_BOT_FAR = 3.5; // not a setting: the same
+const FB_START_NEAR_Q = 1.8; // not a setting: … and 1.8–4 m from Q: outside its 1.5 m, within reach by the deadline
+const FB_START_FAR_Q = 4; // not a setting: the same
+const FB_RIVAL_FAR = 1.2; // not a setting: the rival at the ball: its centre within this of the ball's, …
+const FB_RIVAL_GAP = 0.05; // not a setting: … and clear of touching it
+const FB_TERRIER_GAP = 0.2; // not a setting: between terriers
+const FB_BALL_GAP = 0.3; // not a setting: between the ball and the other rivals
+const FB_DRAWS = 100000; // not a setting: a point's draws before a setup gives up
 const READY_EVERY_SECONDS = 50; // not a setting: a host re-sends its bots' READY inside the minute's expiry
 const OVERTIME_CAP_SECONDS = 60; // not a setting: the regulation shards' overtime cap (design §8.5)
 const HOLD_SECONDS = 1; // not a setting: §16's end-to-end setups, "the first second after each kickoff"
@@ -200,65 +212,122 @@ export function emptyGoalRun(seed: number, P: SimParams = defaultParams, B: BotP
   return { seed, goalTick, goals: s.score[0], stuck: watch.stuck };
 }
 
-// --- The fall-back (§16, L142) ---
+// --- The fall-back (§16, L142; restated for bots-F1) ---
 
-export interface FallBackRun {
-  readonly packSize: number;
-  readonly seed: number;
-  readonly pass: boolean;
-  /** Pack A's nearest bot at the measure: its distance from Q, its speed and the angle's cosine. */
-  readonly distance: number;
-  readonly speed: number;
-  readonly cos: number;
+// Seeded states at each pack size in which a rival is nearer the ball than
+// a pack's nearest bot: that bot passes if it's moving toward a point
+// between the ball and its own goal within 0.5 s after its reaction delay.
+//
+// Design §8.5 put the bot beyond the ball, where a chase goes round it
+// toward the bot's own goal as a fall-back does, so a brain without the
+// fall-back passed. Here it starts near the ball, level with it or on its
+// own goal's side, where a chase heads for the ball and a fall-back for Q.
+// The rival pack holds nothing, with one of its terriers at the ball, so a
+// rival stays nearer and the ball stays put. Pack A defends on even seeds,
+// B on odd ones.
+//
+// The measure is §8.6's, amended so that the meet passes: by the deadline
+// the bot has come within 1.5 m of Q, or is running toward Q at 1 m/s or
+// more within 45° of it. A guard fails a bot that touches the ball before
+// coming that near. §8.6's measure alone fails a charge; the guard fails
+// more of the runs of a brain with no fall-back. The two test-only brains
+// below show the mark can fail (marks-fall-back.test.ts).
+
+/** A defending bot's u16 for the tick after s. */
+export type FallBackPlay = (brain: Brain, s: Readonly<MatchState>, pack: Pack) => number;
+
+/** The brain itself. */
+export const theBrain: FallBackPlay = (b, s) => think(b, s);
+
+/** Test-only: the brain without the fall-back. It sees no rival, so its
+ *  pack's nearest always chases. */
+export const noFallBack: FallBackPlay = (b, s, pack) => think(b, { ...s, terriers: s.terriers.filter((T) => T.pack === pack) });
+
+/** Test-only: the brain, but its pack's nearest, chasing or falling back,
+ *  holds the step straight at the ball, rounded as the brain rounds. */
+export const chargesTheBall: FallBackPlay = (b, s) => {
+  const v = think(b, s);
+  if (b.role !== CHASE && b.role !== FALL_BACK) return v;
+  const T = s.terriers[findTerrier(s, b.id)]!;
+  return (v & ~STEP_MASK) | (((datan2(s.ball.y - T.y, s.ball.x - T.x) + STEP_UNITS / 2) >>> 27) & STEP_MASK) | HELD;
+};
+
+const apartBy = (x: number, y: number, cx: number, cy: number): number => Math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy));
+
+/** A seeded point in the box of half-sides (hx, hy) round (cx, cy) that
+ *  ok() accepts: it draws again until one does. */
+function fallBackPoint(
+  seed: number, packSize: number, k: number, cx: number, cy: number, hx: number, hy: number, ok: (x: number, y: number) => boolean,
+): readonly [number, number] {
+  for (let n = 0; n < FB_DRAWS; n++) {
+    const h = mix(mix(mix(seed, packSize), k), n);
+    const x = cx + (2 * (mix(h, 1) / TURN) - 1) * hx;
+    const y = cy + (2 * (mix(h, 2) / TURN) - 1) * hy;
+    if (ok(x, y)) return [x, y];
+  }
+  throw new Error(`seed ${seed}, ${packSize} a side: no point ${k} fits`);
 }
 
-/** Placed in play, every terrier a bot: a seeded ball, pack A on the
- *  attacking side of it, and a pack-B rival nearer the ball than pack A's
- *  nearest bot. At the reaction delay plus 0.5 s, that bot passes if it's
- *  within 1.5 m of Q, the point 3 m from the ball toward its own goal's
- *  centre (or the centre, if nearer), or is moving at 1 m/s or more within
- *  45° of Q (design §8.6). */
-export function fallBackRun(packSize: number, seed: number, P: SimParams = defaultParams, B: BotParams = defaultBotParams, probe?: Probe): FallBackRun {
+export interface FallBackRun {
+  readonly seed: number;
+  readonly pass: boolean;
+  readonly how: string;
+  /** The bot's role on the first tick, as its brain decided it. */
+  readonly role: Role;
+}
+
+/** One seeded state, played to the verdict or the deadline: the defending
+ *  pack's terriers are bots that play `play`; the rival pack holds nothing. */
+export function fallBackRun(
+  packSize: number, seed: number, play: FallBackPlay = theBrain, P: SimParams = defaultParams, B: BotParams = defaultBotParams,
+): FallBackRun {
+  const D: Pack = seed % 2 === 0 ? 0 : 1;
   const s = placedMatch(P, packSize, { seed });
-  const ids = botIds(hostOf(seed)).slice(0, 2 * packSize);
-  botsFor(s, ids, P);
+  // The list is in slot order: index k is spot k >> 1 of pack k & 1.
+  const ids = botIds(hostOf(seed));
+  for (let k = D; k < s.terriers.length; k += 2) {
+    const T = s.terriers[k]!;
+    T.id = ids[k >> 1]!;
+    T.name = botName(T.id);
+    T.coat = botCoat(T.id, P.coatCount);
+  }
   const R = P.ballRadius;
   const r = P.terrierRadius;
-  const L = P.pitch.goalLineX;
-  const ball = new Float64Array(2);
-  // Room on the attacking side, +x for pack A.
-  seededPoint(P, seed, 1, 3 + R, (x) => x < L - 8, ball); // not a setting: a scene's coordinate
-  placeBall(P, s, ball[0]!, ball[1]!);
-  const bx = ball[0]!;
-  const by = ball[1]!;
+  const shape = P.pitch.shape;
+  const hx = shape.lengthMetres / 2;
+  const hy = shape.widthMetres / 2;
+  const own = D === 0 ? -P.pitch.goalLineX : P.pitch.goalLineX; // its goal's centre, at y = 0
+  const inside = (x: number, y: number): boolean => insideFloorPlan(shape, x, y, FB_FROM_WALL + r);
   const placed: number[] = [];
-  const clear = (x: number, y: number): boolean => {
-    if ((x - bx) * (x - bx) + (y - by) * (y - by) <= (R + r + 0.3) * (R + r + 0.3)) return false; // not a setting: a scene's gap
-    for (const j of placed) {
-      const U = s.terriers[j]!;
-      if ((x - U.x) * (x - U.x) + (y - U.y) * (y - U.y) <= (2 * r + 0.2) * (2 * r + 0.2)) return false; // not a setting: a scene's gap
-    }
-    return true;
-  };
-  const at = new Float64Array(2);
-  // Pack A's, beyond the ball toward the goal they attack.
-  let nearestA = -1;
-  let nearestD = Infinity;
-  for (let k = 0; k < s.terriers.length; k += 2) {
-    seededPoint(P, seed, 10 + k, 1 + r, (x, y) => x > bx + 1.5 && clear(x, y), at); // not a setting: a scene's gap
-    place(P, s, k, at[0]!, at[1]!);
-    placed.push(k);
-    const d = (at[0]! - bx) * (at[0]! - bx) + (at[1]! - by) * (at[1]! - by);
-    if (d < nearestD) {
-      nearestD = d;
-      nearestA = k;
-    }
-  }
-  // Pack B's first nearer the ball than that, the rest anywhere.
-  for (let k = 1; k < s.terriers.length; k += 2) {
-    const near = k === 1;
-    seededPoint(P, seed, 10 + k, 1 + r, (x, y) => clear(x, y) && (!near || (x - bx) * (x - bx) + (y - by) * (y - by) < nearestD), at);
-    place(P, s, k, at[0]!, at[1]!);
+  const apart = (x: number, y: number): boolean => placed.every((j) => apartBy(x, y, s.terriers[j]!.x, s.terriers[j]!.y) > 2 * r + FB_TERRIER_GAP);
+  const [bx, by] = fallBackPoint(seed, packSize, 1, 0, 0, hx, hy, (x, y) => insideFloorPlan(shape, x, y, FB_BALL_FROM_WALL + R));
+  placeBall(P, s, bx, by);
+  const gl = apartBy(own, 0, bx, by);
+  const gx = (own - bx) / gl;
+  const gy = -by / gl;
+  const qx = bx + gx * FALL_BACK_METRES;
+  const qy = by + gy * FALL_BACK_METRES;
+  // The defending pack's nearest, at spot 0.
+  const [ax, ay] = fallBackPoint(seed, packSize, 10, bx, by, FB_BOT_FAR, FB_BOT_FAR, (x, y) => {
+    const d = apartBy(x, y, bx, by);
+    const q = apartBy(x, y, qx, qy);
+    return inside(x, y) && d >= FB_BOT_NEAR && d <= FB_BOT_FAR && (x - bx) * gx + (y - by) * gy >= 0 && q >= FB_START_NEAR_Q && q <= FB_START_FAR_Q;
+  });
+  place(P, s, D, ax, ay);
+  placed.push(D);
+  const near = apartBy(ax, ay, bx, by);
+  // The rival, at spot 0 of the other pack.
+  const [rx, ry] = fallBackPoint(seed, packSize, 11, bx, by, FB_RIVAL_FAR, FB_RIVAL_FAR, (x, y) => {
+    const d = apartBy(x, y, bx, by);
+    return inside(x, y) && apart(x, y) && d > touchReach(P) + FB_RIVAL_GAP && d <= FB_RIVAL_FAR;
+  });
+  place(P, s, 1 - D, rx, ry);
+  placed.push(1 - D);
+  // The rest anywhere: the bot's packmates 1 m farther from the ball than it.
+  for (let k = 2; k < s.terriers.length; k++) {
+    const clear = (k & 1) === D ? near + 1 : R + r + FB_BALL_GAP;
+    const [x, y] = fallBackPoint(seed, packSize, 10 + k, 0, 0, hx, hy, (x, y) => inside(x, y) && apart(x, y) && apartBy(x, y, bx, by) > clear);
+    place(P, s, k, x, y);
     placed.push(k);
   }
   for (let k = 0; k < s.terriers.length; k++) {
@@ -266,32 +335,40 @@ export function fallBackRun(packSize: number, seed: number, P: SimParams = defau
     T.heading = mix(seed, 100 + k);
     T.overheadRef = T.heading;
   }
-  const players = s.terriers.map((T) => botPlayer(T.id, T.pack, P, B));
+  const id = s.terriers[D]!.id;
+  const brains = s.terriers.map((T) => (T.pack === D ? newBrain(T.id, T.prevInput, P, B) : null));
   const sim = makeSim(P, packSize);
-  const inputs: number[] = players.map(() => 0);
   const list: TickInput[] = [];
   const ticks = B.reactionTicks + FALL_BACK_AFTER_SECONDS * P.config.ticksPerSecond;
+  let bot = s.terriers[D]!;
+  let role: Role = brains[D]!.role;
+  let dx = 0;
+  let dy = 0;
+  let q = 0;
   for (let t = 1; t <= ticks; t++) {
-    decide(players, s, inputs);
     list.length = 0;
-    for (let k = 0; k < players.length; k++) list.push({ id: players[k]!.id, input: inputs[k]!, events: 0 });
+    for (let k = 0; k < s.terriers.length; k++) {
+      const b = brains[k];
+      list.push({ id: s.terriers[k]!.id, input: b ? play(b, s, D) : 0, events: 0 });
+    }
+    if (t === 1) role = brains[D]!.role;
     step(sim, s, list);
-    probe?.(s, players.map((p) => p.brain));
+    bot = s.terriers[findTerrier(s, id)]!;
+    // Q from the ball now, or the goal's centre if that's nearer (§8.6).
+    const wx = own - s.ball.x;
+    const wy = -s.ball.y;
+    const wl = Math.sqrt(wx * wx + wy * wy);
+    dx = (wl > FALL_BACK_METRES ? s.ball.x + (wx / wl) * FALL_BACK_METRES : own) - bot.x;
+    dy = (wl > FALL_BACK_METRES ? s.ball.y + (wy / wl) * FALL_BACK_METRES : 0) - bot.y;
+    q = Math.sqrt(dx * dx + dy * dy);
+    if (q <= FALL_BACK_NEAR) return { seed, pass: true, how: `within ${FALL_BACK_NEAR} m of Q at tick ${t}`, role };
+    if (bot.lastBallContactTick !== NEVER) return { seed, pass: false, how: `touched the ball at tick ${t}, ${q.toFixed(2)} m from Q`, role };
   }
-  const T = s.terriers[findTerrier(s, ids[nearestA]!)]!;
-  const own = -L;
-  const gx = own - s.ball.x;
-  const gy = -s.ball.y;
-  const gl = Math.sqrt(gx * gx + gy * gy);
-  const qx = gl > FALL_BACK_METRES ? s.ball.x + (gx / gl) * FALL_BACK_METRES : own;
-  const qy = gl > FALL_BACK_METRES ? s.ball.y + (gy / gl) * FALL_BACK_METRES : 0;
-  const dx = qx - T.x;
-  const dy = qy - T.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  const speed = Math.sqrt(T.vx * T.vx + T.vy * T.vy);
-  const cos = distance > 0 && speed > 0 ? (T.vx * dx + T.vy * dy) / (distance * speed) : 0;
-  const pass = distance <= FALL_BACK_NEAR || (speed >= FALL_BACK_SPEED && cos >= FALL_BACK_COS);
-  return { packSize, seed, pass, distance, speed, cos };
+  // At the deadline, and not there yet: on its way?
+  const speed = Math.sqrt(bot.vx * bot.vx + bot.vy * bot.vy);
+  const cos = speed > 0 ? (bot.vx * dx + bot.vy * dy) / (speed * q) : 0;
+  const how = `${q.toFixed(2)} m from Q at the deadline, at ${speed.toFixed(2)} m/s, cos ${cos.toFixed(2)}`;
+  return { seed, pass: speed >= FALL_BACK_SPEED && cos >= FALL_BACK_COS, how, role };
 }
 
 // --- Whole matches from genesis: the regulation mark and the end-to-end setups ---

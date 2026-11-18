@@ -568,7 +568,8 @@ const pinch = (name: string, scene: Scene, more: Coverage = {}): ScriptSpec =>
 export const GOLDEN_SCRIPTS: readonly ScriptSpec[] = [
   // A kickoff after a goal, not the overtime kickoff's countdown, which sets the same phase.
   seededMatch('match 1', 1, 1, 4500, 1, { goals: 1, phases: SCORING_MATCH, overtime: false }), // not a setting: the run's shape
-  seededMatch('match 4', 4, 1, 4500, 1, { goals: 1, pounces: 1, tumbles: 1, zooms: 1, phases: SCORING_MATCH, overtime: false }), // not a setting: the run's shape
+  // Seed 9 since M2's slip release (bots-F4): at seed 1 it no longer scored.
+  seededMatch('match 4', 4, 1, 4500, 9, { goals: 1, pounces: 1, tumbles: 1, zooms: 1, phases: SCORING_MATCH, overtime: false }), // not a setting: the run's shape
   REGULATION_END,
   OVERTIME,
   ROSTER,

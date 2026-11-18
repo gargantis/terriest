@@ -5,7 +5,8 @@
 // now (rules.ts), its timers block, animate(), endLunge(), tumble() and
 // push(). Intents go to sim.intents by terrier slot, not into the state
 // (A.1); the phases are A.1's, with the start countdown; the gait divides
-// by the ticks a second and its running threshold is a setting.
+// by the ticks a second and its running threshold is a setting. New at M2:
+// C-18's ball-frame push assist (design §4.4), off by default.
 // Exact operations only (D-1).
 
 import {
@@ -124,7 +125,7 @@ function resolveOne(sim: Sim, s: MatchState, T: Terrier, t: number): void {
     T.vy = P.pounceSpeed * d[1]!;
     T.lunge = P.lungeTicks;
   }
-  // The drive's target (D-6, D-7's nose throttle).
+  // The drive's target (D-6, D-7's nose throttle, C-18's push assist).
   const driveOn = run && held;
   intents.driveOn[slot] = driveOn ? 1 : 0;
   let speed = 0;
@@ -134,6 +135,28 @@ function resolveOne(sim: Sim, s: MatchState, T: Terrier, t: number): void {
       else if (speedScale < 0) speed = speedScale * P.noseReverse;
     } else {
       speed = zooming ? P.zoomiesSpeed : P.runSpeed;
+      // C-18's ball-frame push assist (design §4.4). A pusher holding within
+      // a step of forward (steps 31, 0 and 1) and touching a ball that moves
+      // faster than the restitution threshold, 0.3 m/s, drives along its
+      // direction d at base / cos φ, where cos φ = d·u and u is the ball's
+      // direction, capped: so its speed along the ball's travel is its base
+      // speed until the cap binds. A cap of 0 is off and skips it all, so
+      // nothing changes. One square root and one division (D-1).
+      if (P.pushAssistCap > 0 && frame === FRAME_BALL && T.touchingBall && ((cur + 1) & STEP_MASK) <= 2) {
+        const vx = ball.vx;
+        const vy = ball.vy;
+        const along = tx * vx + ty * vy; // |v| cos φ, d = (tx, ty) a unit vector
+        if (along > 0) {
+          const sp = Math.sqrt(vx * vx + vy * vy);
+          // cos φ < 1: a pusher on the ball's travel keeps its base speed,
+          // bit for bit on an axis, where dir() is exact; off the axes cos φ
+          // can round just under 1, and its speed gains an ulp.
+          if (along < sp && sp > P.restitutionThreshold) {
+            const assisted = (speed * sp) / along;
+            if (assisted > speed) speed = assisted < P.pushAssistCap ? assisted : P.pushAssistCap;
+          }
+        }
+      }
     }
   }
   intents.targetVx[slot] = speed * tx;

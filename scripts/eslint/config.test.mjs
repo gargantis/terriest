@@ -17,7 +17,7 @@ const eslint = new ESLint({ cwd: root });
 const LINT_TIMEOUT_MS = 60_000;
 
 // A file in each group, and core's tests, which take the rest of src/core's
-// rules and may read the environment.
+// rules and may read the environment; dev/ takes the rest of src's (M2).
 const AT = {
   sim: 'src/core/sim/a.ts',
   'sim test': 'src/core/sim/a.test.ts',
@@ -32,6 +32,7 @@ const AT = {
   trystero: 'src/net/trystero.ts',
   storage: 'src/storage/a.ts',
   main: 'src/main.ts',
+  dev: 'dev/tuning/a.ts',
 };
 const ALL = Object.keys(AT);
 const EXACT = ['sim', 'bot'];
@@ -142,7 +143,8 @@ const EXPECT = {
   "src/render's types": { [IMPORTS]: CORE },
   'src/ui imported dynamically': { [SYNTAX]: CORE },
   'src/render in an import type': { [SYNTAX]: CORE },
-  'src/render by a path through src/': { [IMPORTS]: CORE },
+  // From dev/, {{src}} is ../../src, so its path detours through '..' as well.
+  'src/render by a path through src/': { [IMPORTS]: [...CORE, 'dev'] },
   'src/ui from the root': { [IMPORTS]: CORE },
   "a module by a detour through '..'": { [IMPORTS]: ALL },
   "a module by a detour through '.'": { [IMPORTS]: ALL },

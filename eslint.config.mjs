@@ -6,8 +6,9 @@
 // separate objects would silently cancel each other. groupRules() builds
 // each rule's options once for each of six disjoint groups: src/core/sim
 // and src/core/bot; the rest of src/core, with the simulation's and bots'
-// tests; src/render; src/net/trystero.ts; src/storage; the rest of src.
-// scripts/eslint/config.test.mjs lints every ban in each group.
+// tests; src/render; src/net/trystero.ts; src/storage; the rest of src,
+// with dev/, the tuning page (M2). scripts/eslint/config.test.mjs lints
+// every ban in each group.
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import { baseConfig } from './vendor/hermet/eslint/base.mjs';
@@ -17,6 +18,10 @@ import exactOps from './vendor/hermet/eslint/exact-ops.mjs';
 // (D-38, M0). The groups cover all of src this way, not only the simulation.
 const EXT = '{ts,tsx,mts,cts,js,jsx,mjs,cjs}';
 const SRC = [`src/**/*.${EXT}`];
+// The tuning page and its metrics (design §9): never built, but kept to the
+// rest of src's bans, so three stays in src/render and storage in
+// src/storage there too (D-26, D-38, M2).
+const DEV = [`dev/**/*.${EXT}`];
 const under = (...dirs) => dirs.map((d) => `src/${d}/**/*.${EXT}`);
 const testsOf = (globs) => globs.map((p) => p.replace('/**/*.', '/**/*.test.'));
 const SIM = under('core/sim', 'core/bot');
@@ -236,8 +241,8 @@ const SRC_NOT_TS = ['src/**/*.{tsx,mts,cts,js,jsx,mjs,cjs}'];
 export default defineConfig(
   ...baseConfig(),
   {
-    // The TypeScript parser for every script in src, whatever its extension.
-    files: SRC,
+    // The TypeScript parser for every script in src and dev, whatever its extension.
+    files: [...SRC, ...DEV],
     languageOptions: { parser: tseslint.parser },
     plugins: { '@typescript-eslint': tseslint.plugin, hermet: { rules: { 'exact-ops': exactOps } } },
     rules: {
@@ -265,7 +270,7 @@ export default defineConfig(
   { files: under('render'), rules: groupRules({ render: true }) },
   { files: [TRYSTERO_FILE], rules: groupRules({ trystero: true }) },
   { files: under('storage'), rules: groupRules({ storage: true }) },
-  { files: SRC, ignores: [...under('core', 'render', 'storage'), TRYSTERO_FILE], rules: groupRules({}) },
+  { files: [...SRC, ...DEV], ignores: [...under('core', 'render', 'storage'), TRYSTERO_FILE], rules: groupRules({}) },
   {
     // boot.js is a classic script that runs before the module, browser only
     // (D-30, as amorfus's), and is served from the same subpath.

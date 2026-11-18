@@ -59,30 +59,45 @@ const M0: Config = {
  *  under the spike's kept settings (42° with the flag, 8 iterations, 2
  *  passes), and hashed the spike's own state in bodyBits's format. The two
  *  matched every tick to 600, and on every field the states share. A
- *  mismatch is a port bug: never fixed by re-pinning. */
-const PINS: [scene: Scene, hashes: [string, string, string], chain: string][] = [
+ *  mismatch is a port bug: never fixed by re-pinning.
+ *
+ *  Re-pinned once, deliberately, for M2's slip release (bots-F4): the
+ *  slipping flag's hold-off acts only while the terrier is within the
+ *  re-arm gap of the body it slipped from, surface to surface in plan view
+ *  (physics.ts's drive()), where M0's acted at any distance. Four scenes
+ *  slip out and then drive toward the body from farther out, so they leave
+ *  M0's bits at the tick the release first acts: the push at 323, the pinch
+ *  at 396, the wall scrum at 104 and the dribble at 462. Until then each
+ *  still moves by the spike's bits, which `spike` holds: the spike's own
+ *  chain to the tick before, recorded the same way. Their other values are
+ *  the port's, recorded with the release under this M0 copy. The resting
+ *  and rolling balls never slip out and keep the spike's pins. */
+const PINS: [scene: Scene, hashes: [string, string, string], chain: string, spike?: [tick: number, chain: string]][] = [
   [RESTING_BALL, ['86a13468df457878', '86a13468df457878', '86a13468df457878'], '63c7e6295a6b96f3'],
   [ROLLING_BALL, ['430b22f26b318cc7', 'a66c47768eaf6ae4', 'acf3e6f6dcb53c08'], '555db0d7f8feb176'],
-  [pushScene('train', 1, 'pitch'), ['5ae363dc88638ff8', '78848aa555750373', '0748d64010422fc4'], 'e3851102dca59e83'],
-  [pinchScene(2), ['2bd3f6bd18811486', '2bd3f6bd18811486', '08c45d45c47bcd6d'], '44fc920eb957eda7'],
-  [WALL_SCRUM, ['216a7b3b5c37c4c4', '1943d48609cd55ac', 'c394a9df0e9980b5'], '2710549191eeb69f'],
-  [dribbleScene('ball', false), ['09b107e2c7011af4', '4431fb7e2fab6a60', '0748d64010422fc4'], '6307741512a692ad'],
+  [pushScene('train', 1, 'pitch'), ['5ae363dc88638ff8', '78848aa555750373', '0748d64010422fc4'], '0cc658e59c947bee', [322, '87411fd2fe7b63f8']],
+  [pinchScene(2), ['2bd3f6bd18811486', '2bd3f6bd18811486', '354ef82ed79d67db'], '541bb59af26de350', [395, '0009a752bfd83934']],
+  [WALL_SCRUM, ['216a7b3b5c37c4c4', '1943d48609cd55ac', '25d678c8d4553fd5'], 'ae15f90715a69405', [103, 'e90f73cd6cd7dbd1']],
+  [dribbleScene('ball', false), ['09b107e2c7011af4', '4431fb7e2fab6a60', '0748d64010422fc4'], '171774d597df6109', [461, '580658e3cf5837c1']],
 ];
 
-describe("the bit pins: the port moves M0's bodies by M0's bits (design §4.1)", () => {
+describe("the bit pins: the port moves M0's bodies by M0's bits, and by the slip release's once it acts (design §4.1, bots-F4)", () => {
   const P = simParams(M0);
   const utf8 = new TextEncoder();
-  for (const [scene, want, wantChain] of PINS) {
+  for (const [scene, want, wantChain, spike] of PINS) {
     it(scene.name, () => {
       const sim = makeSim(P, scene.packSize);
       const s = sceneStart(scene, P);
       const got: string[] = [];
       let chain = '';
+      let spikeChain = '';
       for (let t = 1; t <= 600; t++) {
         step(sim, s, sceneInputs(scene, s, t));
         if (t === 1 || t === 60 || t === 600) got.push(bodyHash(s));
         chain = hash64(utf8.encode(chain + bodyBits(s)));
+        if (spike && t === spike[0]) spikeChain = chain;
       }
+      if (spike) expect(spikeChain, `the spike's chain to tick ${spike[0]}, before the slip release acts`).toBe(spike[1]);
       expect(got).toEqual(want);
       expect(chain, 'the chain over every tick').toBe(wantChain);
     });

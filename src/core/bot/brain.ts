@@ -82,6 +82,8 @@ const KEEP_OUT = 0.15; // not a setting: the brain's geometry, its berth round t
 const ALIGNED = 0.4; // not a setting: the brain's geometry, |side| / behind under which it pushes, about 22°
 const PUSH_ACROSS = 1; // not a setting: the brain's geometry, how far across the line it aims, per metre off it
 const PUSH_LEAD = 0.25; // not a setting: the brain's geometry, the goalward velocity it pushes for, past run speed, as a fraction
+// §16's fall-back mark measures the way to its own Q, 3 m from the ball
+// (marks.ts's fallBackRun), so the brain's Q stays near it (bots-F1).
 const FALL_BACK_METRES = 3; // not a setting: the brain's geometry, Q's distance from the ball
 const MEET_METRES = 1.5; // not a setting: the brain's geometry, it meets the ball from within this of Q
 const HOLD_METRES = 0.5; // not a setting: the brain's geometry, a support or defence target it holds at

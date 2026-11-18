@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ballOnTerriers, dribble, kickoffPinch, type SlipResult } from './cases';
-import type { RestCase } from './scenes';
+import { defaultParams } from './params';
+import { park, pitchDir, place, placeBall, placedMatch, type RestCase } from './scenes';
+import { ballSlot } from './state';
+import { makeSim, step } from './step';
 
 // PLAN §16 "A ball on terriers" (D-5 step 7, C-21) under M0's rule, 42° with
-// the slipping flag, on the M0 spike's own subset of each case. M0 compared
+// the slipping flag, on the M0 spike's own subset of each case, with M2's
+// slip release (bots-F4): the flag's hold-off acts only within the re-arm
+// gap of the body slipped from, surface to surface in plan view. M0 compared
 // 16 candidates; the gate runs only the chosen one, and the window's bounds,
 // which are measurements, are the metrics' (design §12). "Comes down" and
 // "reaches the floor" are the ball's centre within 1 cm of its resting
@@ -73,7 +78,7 @@ describe("§16's slip-out cases under 42° with the flag (D-5 step 7)", () => {
     expect(swept.hopAngles[0].toFixed(2)).toBe('43.53');
   });
 
-  it('a kickoff pinch, its fall and the slip-out land mirrored at every pack size, down in 0.433–1.650 s', () => {
+  it('a kickoff pinch, its fall and the slip-out land mirrored at every pack size, down in 0.433–1.962 s', () => {
     const downs: number[] = [];
     for (let packSize = 1; packSize <= 4; packSize++) {
       for (const zoomies of [false, true]) {
@@ -85,7 +90,63 @@ describe("§16's slip-out cases under 42° with the flag (D-5 step 7)", () => {
         downs.push(r.down!);
       }
     }
+    // M0's rule took 0.433–1.650 s. With the slip release (bots-F4) the
+    // terriers come back sooner, and 2 and 4 a side at zoomies speed take
+    // 1.604 and 1.962 s, from 1.229 and 1.650.
     expect(Math.min(...downs).toFixed(3)).toBe('0.433');
-    expect(Math.max(...downs).toFixed(3)).toBe('1.650');
+    expect(Math.max(...downs).toFixed(3)).toBe('1.962');
+  });
+});
+
+// bots-F4: M0's flag held a slipping terrier's drive off toward the body at
+// any distance until that body was down, so it couldn't brake: in the first
+// scene below it coasted away at 3 m/s for 3.6 s, 11 m, until the bouncing
+// ball was down. M2's slip release, chosen by a measured experiment (the
+// flag cleared 0, 0.1, 0.25, 0.6 or 1 m clear of the body, or its hold-off
+// kept to within 0 or 0.6 m): the hold-off acts only while the terrier is
+// within the re-arm gap of the body, surface to surface in plan view. The
+// flag itself still clears once the body is down.
+describe('the slip release (D-5 step 7, bots-F4)', () => {
+  const P = defaultParams;
+  /** 1 a side: A slipping from the ball, on the floor at (x, 0) facing it at
+   *  vx, holding toward it in the pitch frame (+x), with the ball's centre
+   *  3 m up over the centre spot; B parked, sending nothing. */
+  function slipped(x: number, vx: number): (ticks: number) => { vx: number; slipping: boolean }[] {
+    const s = placedMatch(P, 1, {});
+    park(P, s, 1);
+    place(P, s, 0, x, 0);
+    const A = s.terriers[0]!;
+    A.vx = vx;
+    A.heading = 0;
+    A.slipping = true;
+    A.slipFrom = ballSlot(1);
+    placeBall(P, s, 0, 0, 3);
+    const sim = makeSim(P, 1);
+    return (ticks) => {
+      const seen: { vx: number; slipping: boolean }[] = [];
+      for (let t = 1; t <= ticks; t++) {
+        step(sim, s, [{ id: A.id, input: pitchDir(0), events: 0 }, { id: s.terriers[1]!.id, input: 0, events: 0 }]);
+        seen.push({ vx: A.vx, slipping: A.slipping });
+      }
+      return seen;
+    };
+  }
+  const reach = P.terrierRadius + P.ballRadius;
+
+  it('lets a terrier 9 m clear of the ball brake and turn back toward it within 0.5 s, its flag still set', () => {
+    const seen = slipped(-10, -3)(60);
+    const turned = seen.findIndex((x) => x.vx > 0) + 1;
+    expect(turned, 'ticks until it moves toward the ball').toBeGreaterThan(0);
+    expect(turned).toBeLessThanOrEqual(30);
+    // A run speed's braking: 3 m/s at 15 m/s² is 12 ticks, and the ball is up throughout.
+    expect(turned).toBe(13);
+    expect(seen.every((x) => x.slipping)).toBe(true);
+  });
+
+  it('still holds the drive off toward the body within the re-arm gap, and from the gap out lets it go', () => {
+    const inside = slipped(-(reach + 0.9 * P.rearmGap), 0)(10);
+    expect(Math.max(...inside.map((x) => Math.abs(x.vx))), 'just inside the gap: no speed gained toward the ball').toBeLessThan(1e-12);
+    const outside = slipped(-(reach + 1.1 * P.rearmGap), 0)(1);
+    expect(outside[0]!.vx, 'just outside: the drive acts').toBeGreaterThan(0);
   });
 });

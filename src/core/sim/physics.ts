@@ -12,7 +12,8 @@
 //      mirror pairs, forward and back sweeps, restitution as a target
 //      separating speed, no friction;
 //   6. positions: in the same mirror pairs, without touching velocities;
-//   7. slip-out: M0's rule, a 42° cone with the slipping flag;
+//   7. slip-out: M0's rule, a 42° cone with the slipping flag, whose hold-off
+//      acts only within the re-arm gap of the body slipped from (M2, bots-F4);
 //   8. touches, tumbles and the goal test are step.ts's, from the contact
 //      list this module leaves.
 // The M0 spike's research/spike/src/sim/physics.ts, ported line for line, in
@@ -23,7 +24,8 @@
 // drive reads the Sim's intents, not terrier fields; the fixed warm-up ball
 // (ballFixed); values come from SimParams; the bounce and push counters;
 // the rejected slip-out rules' branches are gone; and the piece tests'
-// first lines read the body in place (touch), for speed alone.
+// first lines read the body in place (touch), for speed alone. One rule
+// changed, by measurement: the slip release (drive(); bots-F4).
 // Exact operations only (D-1).
 //
 // Mirror pairs. Slots are terriers in (spot, pack) order, A1, B1, A2, B2 …,
@@ -301,7 +303,12 @@ export class Physics {
    *  accel × dt. A slipping terrier's drive is held off toward the body it
    *  slips from (D-5 step 7's flag), when that slot isn't empty: vacate
    *  keeps every slipFrom naming a present body, so the test is a backstop
-   *  (design §4.2). */
+   *  (design §4.2). M2's slip release (bots-F4): the hold-off acts only
+   *  while the terrier is within the re-arm gap of that body, surface to
+   *  surface in plan view. Farther out it brakes and turns as it likes;
+   *  back within the gap, while the body is still up, the hold-off acts
+   *  again. M0's rule held it off at any distance, so a terrier that
+   *  slipped out coasted away until the body landed, unable to brake. */
   private drive(k: number, t: Terrier, bodies: readonly (Body | null)[], intents: Intents): void {
     let dx = intents.targetVx[k]! - t.vx;
     let dy = intents.targetVy[k]! - t.vy;
@@ -319,7 +326,7 @@ export class Physics {
         const uy = above.y - t.y;
         const u2 = ux * ux + uy * uy;
         const along = dx * ux + dy * uy;
-        if (u2 > 0 && along > 0) {
+        if (u2 > 0 && along > 0 && Math.sqrt(u2) - this.radius[k]! - this.radius[t.slipFrom]! < this.P.rearmGap) {
           const f = along / u2;
           dx -= f * ux;
           dy -= f * uy;
