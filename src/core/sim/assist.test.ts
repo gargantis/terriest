@@ -2,14 +2,14 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
 import { config, type Config } from '../../config';
-import { pushTime } from './cases';
+import { lonePush, pushTime } from './cases';
 import { hashState } from './codec';
 import { type GoldenResult, type Goldens, replay } from './golden';
 import { mirrorInput, STEP_MASK } from './input';
 import { dir, fractionOfTurn, HALF_TURN } from './math';
 import { defaultParams, type SimParams } from './params';
 import {
-  ballDir, chasey, NOTHING, park, pinchScene, place, placeBall, pushScene, type Scene, sceneInputs, sceneStart, touchReach,
+  ballDir, chasey, NOTHING, ONE_PUSHER_DEGREES, park, pinchScene, place, placeBall, pushScene, type Scene, sceneInputs, sceneStart,
 } from './scenes';
 import { GOLDEN_SCRIPTS } from './scripts';
 import { cloneState, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, slotOf, type Terrier } from './state';
@@ -73,7 +73,7 @@ describe('the push assist on (design §4.4, C-18)', () => {
 
   // On an axis, dir() is exact, so cos φ is exactly 1 there. Off the axes it
   // can round just under 1, and a lone pusher is then assisted by an ulp:
-  // its bits change, but not its push time (below).
+  // its bits change, but not its drive's target beyond rounding (below).
   it('leaves one pusher and the trains on an axis, and the pitch frame, alone, bit for bit', () => {
     const scenes = [pushScene('train', 1, 'ball'), pushScene('train', 2, 'ball'), pushScene('train', 4, 'ball'), pushScene('round', 2, 'pitch'), pushScene('line', 4, 'pitch')];
     const on = paramsWith(at(20));
@@ -89,40 +89,19 @@ describe('the push assist on (design §4.4, C-18)', () => {
     }
   });
 
-  it("leaves one pusher's push time alone off the axes too: 1.225 s from 7° to 200°", () => {
-    const reach = touchReach(defaultParams);
-    const d = new Float64Array(2);
-    for (const deg of [7, 30, 45, 61, 135, 200]) {
-      dir((HALF_TURN + fractionOfTurn(deg, 360)) >>> 0, d);
-      const scene: Scene = {
-        name: `one pusher at ${deg}°`, packSize: 1, phase: IN_PLAY, mirrored: false,
-        setup: (s, P) => {
-          park(P, s, 0);
-          park(P, s, 1);
-          placeBall(P, s, 0, 0);
-          place(P, s, 0, reach * d[0]!, reach * d[1]!);
-        },
-        input: (pack, rank) => (pack === 0 && rank === 0 ? ballDir(0) : NOTHING),
-      };
-      for (const cap of [0, ON, 20]) expect(seconds(pushSeconds(scene, paramsWith(at(cap)))), `${scene.name}, cap ${cap}`).toBe('1.225');
+  // The push time alone can't show the assist acting on a lone pusher: the
+  // drive's 15 m/s² sets it whatever the target, so a pusher driving at the
+  // 9 m/s cap still takes 1.225 s (M2's review). Its drive's target can.
+  it("leaves a lone pusher's push alone off the axes too: its drive's target stays its base speed, and its time 1.225 s, from 7° to 200°", () => {
+    for (const deg of ONE_PUSHER_DEGREES) {
+      for (const cap of [0, ON, 20]) {
+        const r = lonePush(deg, at(cap));
+        expect(seconds(r.seconds), `one pusher at ${deg}°, cap ${cap}`).toBe('1.225');
+        expect(r.excess, `one pusher at ${deg}°, cap ${cap}: its drive's target over its base speed`).toBeLessThan(1e-12);
+      }
     }
   });
 });
-
-/** pushTime's measure (cases.ts) for any scene: seconds, by substeps, for
- *  the ball to reach 95% of run speed, or null within 600 ticks. */
-function pushSeconds(scene: Scene, P: SimParams): number | null {
-  const sim = makeSim(P, scene.packSize);
-  const s = sceneStart(scene, P);
-  let sub = 0;
-  let reached: number | null = null;
-  sim.probe = (st) => {
-    sub++;
-    if (reached === null && Math.hypot(st.ball.vx, st.ball.vy) >= 0.95 * P.runSpeed) reached = sub / (P.config.ticksPerSecond * P.substeps);
-  };
-  for (let t = 1; t <= 600 && reached === null; t++) step(sim, s, sceneInputs(scene, s, t));
-  return reached;
-}
 
 /** A scene whose pack A holds `stepOf(rank)` in place of its scene's step. */
 function holding(scene: Scene, stepOf: (rank: number) => number): Scene {

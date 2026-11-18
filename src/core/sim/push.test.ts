@@ -6,8 +6,9 @@ import { type PushResult, pushTime } from './cases';
 // run speed. §16's marks, and M0's times pinned to the digits
 // research/spike/REPORT.md §5.2 prints. C-18's side-by-side marks were set at
 // M2, provisionally by measurement, with the push assist on at its settled
-// 9 m/s cap (research/tuning/REPORT.md): each measured time ± 10%, as §16's
-// own push marks are.
+// 9 m/s cap (research/tuning/REPORT.md): each time within ± 10% of its mark,
+// as §16's own push marks are, and pinned to the millisecond, so a change to
+// the drive or the assist sets the marks again on purpose.
 vi.setConfig({ testTimeout: 120_000 });
 
 const fmt = (r: PushResult): string =>

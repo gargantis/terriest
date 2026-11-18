@@ -106,8 +106,8 @@ describe('the ball never leaves the second shape (fuzzed, D-8)', () => {
     expect(escaped).toBe('');
     // Substeps with the ball wholly behind a goal line, all inside a goal:
     // M0's 1,449 at A.5's starting netting bounce of 0.3
-    // (research/spike/REPORT.md §5.2), and 16,214 at M2's settled 0, which
-    // keeps a goal in the net through its celebration.
+    // (research/spike/REPORT.md §5.2), and 16,214 at M2's settled 0, at
+    // which the netting bounces nothing back.
     expect(behind).toBe(16214);
     expect(worst).toBeLessThan(0.11 * SUBSTEP_SCALE);
   });

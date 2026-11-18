@@ -610,6 +610,19 @@ export const ROWS: readonly Row[] = [
 /** Slider settings in no table, as src/config.test.ts's ELSEWHERE has them. */
 export const NO_ROW: readonly string[] = ['coatCount', 'zoomiesMeterUnitsPerTick'];
 
+/** What A.4's and A.5's rows say after a value M2 settled by measurement,
+ *  "(M2, provisional by measurement)", owner-pending (A.5's note, §17). */
+export const PROVISIONAL_MARK = ', provisional by measurement';
+
+/** The settings M2 settled so (research/tuning/REPORT.md §2.4). A value set
+ *  on the page is the owner's (Q-10), so the table snippet drops the mark
+ *  from the row of one it changes. model.test.ts checks the list against
+ *  the plan's rows. */
+export const PROVISIONAL: readonly string[] = [
+  'kickoffSpotsMetres', 'rollingSlowdownMetresPerSecond2', 'terrierRestitution', 'goalNetRestitution', 'rearmGapMetres',
+  'slipHoldOffMetres', 'tumbleGuardSeconds', 'terrierRadiusMetres', 'idleFrictionMetresPerSecond2', 'pushAssistCapMetresPerSecond',
+];
+
 const HEADINGS: Readonly<Record<Row['where'], string>> = { Configuration: '## Configuration', 'A.4': '### A.4', 'A.5': '### A.5' };
 
 /** A table row as written, and its cells with Markdown's bold and code marks
@@ -708,9 +721,11 @@ export interface Docs {
 }
 
 /** The table rows that name a changed setting, in their wording, with the
- *  tuned values: the plan's A.4 and A.5, which settle writes, and the
- *  requirements' Configuration table, which changes only with the owner's
- *  sign-off (Q-1, Q-10). A TBD there leaves A.5's value standing. */
+ *  tuned values: the plan's A.4 and A.5, and the requirements'
+ *  Configuration table, which changes only with the owner's sign-off (PLAN
+ *  §2, Q-10). A TBD there leaves A.5's value standing. A row loses M2's
+ *  provisional mark once a value M2 settled changes, since a value set on
+ *  the page is the owner's (A.5's note). */
 export function tableSnippet(changes: Changes, docs: Docs, base: Config = config): string {
   const keys = Object.keys(changes);
   if (keys.length === 0) return 'No setting differs from src/config.ts, so no row changes.\n';
@@ -720,8 +735,8 @@ export function tableSnippet(changes: Changes, docs: Docs, base: Config = config
     const rows = ROWS.filter((r) => r.where === where && r.keys.some((k) => keys.includes(k)));
     if (rows.length === 0) continue;
     out.push(where === 'Configuration'
-      ? "REQUIREMENTS.md's Configuration table, only with the owner's sign-off (Q-1):"
-      : `PLAN.md's ${where}, marked M2 by settle:`);
+      ? "REQUIREMENTS.md's Configuration table, only with the owner's sign-off (PLAN §2, Q-10):"
+      : `PLAN.md's ${where}:`);
     for (const row of rows) {
       const found = findRow(where === 'Configuration' ? docs.requirements : docs.plan, row);
       if (!found) {
@@ -734,12 +749,14 @@ export function tableSnippet(changes: Changes, docs: Docs, base: Config = config
         out.push(`${found.line}\n  (TBD there: A.5's row holds the tuned value until the owner signs it off)`);
         continue;
       }
+      const theirs = cell.includes(PROVISIONAL_MARK) && row.keys.some((k) => PROVISIONAL.includes(k) && !sameValue(valueAt(c, k), valueAt(base, k)));
       const moved = rewrite(cell, row, base, c);
       if (moved === null) {
-        out.push(`${found.line}\n  (its wording needs the new values by hand: ${row.keys.filter((k) => keys.includes(k)).map((k) => `${k} ${formatValue(valueAt(c, k))}`).join(', ')})`);
+        const by = row.keys.filter((k) => keys.includes(k)).map((k) => `${k} ${formatValue(valueAt(c, k))}`).join(', ');
+        out.push(`${found.line}\n  (its wording needs the new values by hand: ${by}${theirs ? `; and drop "${PROVISIONAL_MARK.slice(2)}"` : ''})`);
         continue;
       }
-      parts[2] = moved;
+      parts[2] = theirs ? moved.replace(PROVISIONAL_MARK, '') : moved;
       out.push(parts.join('|'));
     }
   }

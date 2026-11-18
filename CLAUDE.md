@@ -16,6 +16,7 @@ That is lint, public-scan, typecheck, unit tests (`vendor/hermet`'s included), t
 - PLAN.md is the implementation contract. A Q, C, D or M number is never reused; a settled item records what settled it. Check it before reopening a decision.
 - REQUIREMENTS.md belongs to the owner. Change it only as the plan records, citing the Q- or C-number.
 - The plan's L-numbers are REQUIREMENTS.md's lines at commit 6254a1d. Since then one line was added after L286, so from L287 on, today's file runs one line later.
+- M2's design is kept as `research/m2/DESIGN.md`. The code's and the report's "design §…" cite it, and its §14 numbers its questions apart from the plan's. "bots-F1" and "bots-F4" in comments are findings of M2's review, which §16's fall-back mark and D-5's slip release record.
 
 **Code boundaries** (most are D-38's lint, which `scripts/eslint/config.test.mjs` tests)
 - `src/core/**` is pure: no DOM, timers, clocks, storage or network, and no global object. The caller passes time in (§6).
@@ -61,7 +62,7 @@ That is lint, public-scan, typecheck, unit tests (`vendor/hermet`'s included), t
 **Tooling**
 - `vendor/hermet` is the gate tooling shared with roslambo and amorfus (D-37): public-scan, the dist audit, the licence notices, the exact-ops rule, the local Nostr relay, the ESLint and tsconfig bases, and the room-config builder. It is a submodule pinned at 11283ca; terriest's own policy stays in `scripts/` and the configs. Change shared code in hermet, then move the pin. Never edit `vendor/hermet` in place.
 - `research/spike/` is the throwaway M0 spike (D-36), with its own toolchain. Nothing outside it imports it, and the gate doesn't lint, typecheck or test it.
-- The tuning page, `dev/tuning.html` (§15, Q-10), is dev only: `npm run dev` serves it at `/dev/tuning.html`, and the build never takes it. It runs the real simulation and the bot brain, with a slider for every setting they read. `dev/tuning/model.test.ts`, in the gate, fails a setting that's neither a slider nor in `NOT_TUNED` with its reason, so a new setting the simulation reads needs its slider. The page's metrics, `dev/tuning.metrics.ts`, run off the gate, with `npx vitest run --config dev/vitest.config.ts`. They write `research/tuning/results.json`, and refuse to overwrite it unless `TERRIEST_TUNING_OUT` names the file. `dev/` takes the rest of `src`'s lint (D-38).
+- The tuning page, `dev/tuning.html` (§15, Q-10), is dev only: `npm run dev` serves it at `/dev/tuning.html`, and the build never takes it. It runs the real simulation and the bot brain, with a slider for every setting they read. `dev/tuning/model.test.ts`, in the gate, fails a setting that's neither a slider nor in `NOT_TUNED` with its reason, so a new setting the simulation reads needs its slider. The page's metrics, `dev/tuning.metrics.ts`, run off the gate, with `TERRIEST_TUNING_OUT=research/tuning/results.json npx vitest run --config dev/vitest.config.ts`. `TERRIEST_TUNING_OUT` names the file they write; without it they refuse to overwrite the committed `research/tuning/results.json`, so a bare run stops at once. `dev/` takes the rest of `src`'s lint (D-38).
 - A change of dependencies resolves with `npm install --before=<the date a week ago>`, so the lockfile takes only releases at least a week old. That matters most for wrangler, which holds the deploy login.
 
 ## Owner-only steps

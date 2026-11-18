@@ -1,5 +1,5 @@
 {
- "utc": "2026-11-18T05:52:26.991Z",
+ "utc": "2026-11-18T07:52:32.368Z",
  "node": "v22.23.4",
  "base": "src/config.ts",
  "configuration": {
@@ -678,10 +678,10 @@
   ],
   "fails": [],
   "window": {
-   "dribbles": 2880,
+   "dribbles": 2882,
    "slipOuts": 0,
-   "lowestHop": 43.529,
-   "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+   "lowestHop": 43.229,
+   "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
    "sittingByCone": [
     {
      "cone": 40,
@@ -2050,14 +2050,14 @@
  ],
  "timing": {
   "wallScrumStepMicroseconds": {
-   "median": 53.9,
-   "least": 41.3,
-   "most": 72.4
+   "median": 37.2,
+   "least": 30.9,
+   "most": 49
   },
   "againstM0": "27.8–31.2",
   "think": {
    "calls": 370896,
-   "microsecondsABot": 0.65
+   "microsecondsABot": 0.58
   }
  },
  "values": [
@@ -2236,9 +2236,9 @@
       "scrumMostContacts": 19
      },
      "timing": {
-      "median": 53,
-      "least": 39.7,
-      "most": 64.2
+      "median": 38.2,
+      "least": 29.1,
+      "most": 44.4
      },
      "slipOut": {
       "restCases": {
@@ -2336,9 +2336,9 @@
          "scrumMostContacts": 19
         },
         "timing": {
-         "median": 53,
-         "least": 39.7,
-         "most": 64.2
+         "median": 38.2,
+         "least": 29.1,
+         "most": 44.4
         },
         "slipOut": {
          "restCases": {
@@ -2431,9 +2431,9 @@
          "scrumMostContacts": 19
         },
         "timing": {
-         "median": 59.5,
-         "least": 45.4,
-         "most": 111.1
+         "median": 38.5,
+         "least": 33.5,
+         "most": 46.1
         },
         "slipOut": {
          "restCases": {
@@ -2526,9 +2526,9 @@
          "scrumMostContacts": 17
         },
         "timing": {
-         "median": 52.3,
-         "least": 39.4,
-         "most": 57.4
+         "median": 41.3,
+         "least": 33.7,
+         "most": 52.4
         },
         "slipOut": {
          "restCases": {
@@ -2621,9 +2621,9 @@
          "scrumMostContacts": 18
         },
         "timing": {
-         "median": 44.8,
-         "least": 34.5,
-         "most": 55.6
+         "median": 48,
+         "least": 33.8,
+         "most": 68.3
         },
         "slipOut": {
          "restCases": {
@@ -2716,9 +2716,9 @@
          "scrumMostContacts": 17
         },
         "timing": {
-         "median": 49.6,
-         "least": 42.7,
-         "most": 54.7
+         "median": 49.2,
+         "least": 38.7,
+         "most": 51.4
         },
         "slipOut": {
          "restCases": {
@@ -2811,9 +2811,9 @@
          "scrumMostContacts": 18
         },
         "timing": {
-         "median": 60.8,
-         "least": 48.4,
-         "most": 69.6
+         "median": 39.2,
+         "least": 29.2,
+         "most": 52.8
         },
         "slipOut": {
          "restCases": {
@@ -3871,10 +3871,10 @@
       ],
       "fails": [],
       "window": {
-       "dribbles": 2880,
+       "dribbles": 2882,
        "slipOuts": 0,
-       "lowestHop": 43.529,
-       "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+       "lowestHop": 43.229,
+       "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
        "sittingByCone": [
         {
          "cone": 40,
@@ -3993,10 +3993,10 @@
          ],
          "fails": [],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 0,
-          "lowestHop": 43.529,
-          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "lowestHop": 43.229,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
           "sittingByCone": [
            {
             "cone": 40,
@@ -4027,7 +4027,7 @@
        "fails": [
         "case 1: the worst comes down in 2.442 s, over 1.5 s (4 a side at 15°, ball frame, off mirror)",
         "case 3: 34 slip-outs in 336 dribbles",
-        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 36.148°, and 100 slip-outs fire in the 2880 dribbles"
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 36.148°, and 100 slip-outs fire in the 2882 dribbles"
        ],
        "metrics": {
         "collider": {
@@ -4117,7 +4117,7 @@
           "case 3: 34 slip-outs in 336 dribbles"
          ],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 100,
           "lowestHop": 36.148,
           "lowestAt": "ball frame, 0 steps off, zoomies from 9 m/s, run-up 0.1128 m",
@@ -4141,7 +4141,7 @@
           ],
           "narrowestConeTried": 41,
           "shut": [
-           "the cone, 42°, isn't under the dribbles' lowest hop, 36.148°, and 100 slip-outs fire in the 2880 dribbles"
+           "the cone, 42°, isn't under the dribbles' lowest hop, 36.148°, and 100 slip-outs fire in the 2882 dribbles"
           ]
          }
         }
@@ -4151,7 +4151,7 @@
        "value": 0.27,
        "pass": false,
        "fails": [
-        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 40.862°, and 15 slip-outs fire in the 2880 dribbles"
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 40.862°, and 15 slip-outs fire in the 2882 dribbles"
        ],
        "metrics": {
         "collider": {
@@ -4238,7 +4238,7 @@
          ],
          "fails": [],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 15,
           "lowestHop": 40.862,
           "lowestAt": "ball frame, 2 steps off, zoomies from 9 m/s, run-up 0.3797 m",
@@ -4262,7 +4262,7 @@
           ],
           "narrowestConeTried": 42,
           "shut": [
-           "the cone, 42°, isn't under the dribbles' lowest hop, 40.862°, and 15 slip-outs fire in the 2880 dribbles"
+           "the cone, 42°, isn't under the dribbles' lowest hop, 40.862°, and 15 slip-outs fire in the 2882 dribbles"
           ]
          }
         }
@@ -4273,7 +4273,7 @@
        "pass": false,
        "fails": [
         "case 3: 82 slip-outs in 336 dribbles",
-        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 17.814°, and 379 slip-outs fire in the 2880 dribbles"
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 17.814°, and 383 slip-outs fire in the 2882 dribbles"
        ],
        "metrics": {
         "collider": {
@@ -4362,8 +4362,8 @@
           "case 3: 82 slip-outs in 336 dribbles"
          ],
          "window": {
-          "dribbles": 2880,
-          "slipOuts": 379,
+          "dribbles": 2882,
+          "slipOuts": 383,
           "lowestHop": 17.814,
           "lowestAt": "ball frame, 0 steps off, zoomies from 9 m/s, run-up 0.1128 m",
           "sittingByCone": [
@@ -4386,7 +4386,7 @@
           ],
           "narrowestConeTried": 40,
           "shut": [
-           "the cone, 42°, isn't under the dribbles' lowest hop, 17.814°, and 379 slip-outs fire in the 2880 dribbles"
+           "the cone, 42°, isn't under the dribbles' lowest hop, 17.814°, and 383 slip-outs fire in the 2882 dribbles"
           ]
          }
         }
@@ -4400,7 +4400,7 @@
         "case 1: the worst comes down in 2.271 s, over 1.5 s (4 a side at 19°, ball frame)",
         "case 2: two sitting terriers take 0.542 s, over 0.5 s",
         "case 3: 8 slip-outs in 336 dribbles",
-        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 41.939°, and 12 slip-outs fire in the 2880 dribbles"
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 41.939°, and 12 slip-outs fire in the 2882 dribbles"
        ],
        "metrics": {
         "collider": {
@@ -4492,7 +4492,7 @@
           "case 3: 8 slip-outs in 336 dribbles"
          ],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 12,
           "lowestHop": 41.939,
           "lowestAt": "ball frame, 0 steps off, zoomies from 9 m/s, run-up 0.3483 m",
@@ -4516,7 +4516,7 @@
           ],
           "narrowestConeTried": null,
           "shut": [
-           "the cone, 42°, isn't under the dribbles' lowest hop, 41.939°, and 12 slip-outs fire in the 2880 dribbles"
+           "the cone, 42°, isn't under the dribbles' lowest hop, 41.939°, and 12 slip-outs fire in the 2882 dribbles"
           ]
          }
         }
@@ -4530,7 +4530,7 @@
   {
    "value": "Drive and idle friction",
    "rule": "keep",
-   "note": "keep both: the acceleration is REQUIREMENTS', so it changes only with the owner (Q-1)",
+   "note": "keep both: the acceleration is REQUIREMENTS', so it changes only with the owner (design §14 Q-1)",
    "atTheBase": {
     "pass": true,
     "fails": [],
@@ -4615,10 +4615,10 @@
       ],
       "fails": [],
       "window": {
-       "dribbles": 2880,
+       "dribbles": 2882,
        "slipOuts": 0,
-       "lowestHop": 43.529,
-       "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+       "lowestHop": 43.229,
+       "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
        "sittingByCone": [
         {
          "cone": 40,
@@ -4733,10 +4733,10 @@
          ],
          "fails": [],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 0,
-          "lowestHop": 43.529,
-          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "lowestHop": 43.229,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
           "sittingByCone": [
            {
             "cone": 40,
@@ -4846,10 +4846,10 @@
          ],
          "fails": [],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 0,
-          "lowestHop": 43.529,
-          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "lowestHop": 43.229,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
           "sittingByCone": [
            {
             "cone": 40,
@@ -4963,10 +4963,10 @@
           "case 2: two sitting terriers take 0.887 s, over 0.5 s"
          ],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 0,
-          "lowestHop": 43.529,
-          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "lowestHop": 43.229,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
           "sittingByCone": [
            {
             "cone": 40,
@@ -5076,10 +5076,10 @@
          ],
          "fails": [],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 0,
-          "lowestHop": 43.529,
-          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "lowestHop": 43.229,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
           "sittingByCone": [
            {
             "cone": 40,
@@ -5193,10 +5193,10 @@
           "case 2: two sitting terriers take 2.979 s, over 0.5 s"
          ],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 0,
-          "lowestHop": 43.529,
-          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "lowestHop": 43.229,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
           "sittingByCone": [
            {
             "cone": 40,
@@ -5313,10 +5313,10 @@
          ],
          "fails": [],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 0,
-          "lowestHop": 43.529,
-          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "lowestHop": 43.229,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.1125 m",
           "sittingByCone": [
            {
             "cone": 40,
@@ -5346,7 +5346,7 @@
        "pass": false,
        "fails": [
         "case 1: the worst comes down in 1.504 s, over 1.5 s (1 a side at 50°, ball frame, off mirror)",
-        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 36.842°, and 36 slip-outs fire in the 2880 dribbles",
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 36.842°, and 36 slip-outs fire in the 2882 dribbles",
         "one pusher takes 1.558 s, outside 1.2 s ± 10%",
         "four in a train take 0.725 s, outside 0.6 s ± 10%"
        ],
@@ -5433,7 +5433,7 @@
           "case 1: the worst comes down in 1.504 s, over 1.5 s (1 a side at 50°, ball frame, off mirror)"
          ],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 36,
           "lowestHop": 36.842,
           "lowestAt": "ball frame, 1 steps off, zoomies from 9 m/s, run-up 0.2855 m",
@@ -5457,7 +5457,7 @@
           ],
           "narrowestConeTried": 41.5,
           "shut": [
-           "the cone, 42°, isn't under the dribbles' lowest hop, 36.842°, and 36 slip-outs fire in the 2880 dribbles"
+           "the cone, 42°, isn't under the dribbles' lowest hop, 36.842°, and 36 slip-outs fire in the 2882 dribbles"
           ]
          }
         }
@@ -5469,7 +5469,7 @@
        "fails": [
         "case 1: the worst comes down in 1.563 s, over 1.5 s (4 a side at 13°, ball frame, off mirror)",
         "case 3: 20 slip-outs in 336 dribbles",
-        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 39.681°, and 43 slip-outs fire in the 2880 dribbles",
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 39.681°, and 43 slip-outs fire in the 2882 dribbles",
         "one pusher takes 1.008 s, outside 1.2 s ± 10%",
         "four in a train take 0.479 s, outside 0.6 s ± 10%"
        ],
@@ -5557,7 +5557,7 @@
           "case 3: 20 slip-outs in 336 dribbles"
          ],
          "window": {
-          "dribbles": 2880,
+          "dribbles": 2882,
           "slipOuts": 43,
           "lowestHop": 39.681,
           "lowestAt": "ball frame, 0 steps off, zoomies from 9 m/s, run-up 0.1128 m",
@@ -5581,7 +5581,7 @@
           ],
           "narrowestConeTried": 41.5,
           "shut": [
-           "the cone, 42°, isn't under the dribbles' lowest hop, 39.681°, and 43 slip-outs fire in the 2880 dribbles"
+           "the cone, 42°, isn't under the dribbles' lowest hop, 39.681°, and 43 slip-outs fire in the 2882 dribbles"
           ]
          }
         }
@@ -6940,7 +6940,7 @@
   {
    "value": "Bowling speed",
    "rule": "keep",
-   "note": "REQUIREMENTS' value, so a change goes to the owner (Q-1)",
+   "note": "REQUIREMENTS' value, so a change goes to the owner (design §14 Q-1)",
    "atTheBase": {
     "pass": true,
     "fails": [],
@@ -7161,7 +7161,7 @@
   {
    "value": "Side-by-side pushers, and the remedy",
    "rule": "smallest",
-   "note": "the assist at the smallest cap that passes, and the marks at the measured times plus 10%; if none passes, the assist goes and C-18 goes to the owner (Q-13)",
+   "note": "the assist at the smallest cap that passes, and the marks at the measured times plus 10%; if none passes, the assist goes and C-18 goes to the owner (design §14 Q-13)",
    "atTheBase": {
     "pass": true,
     "fails": [],
@@ -7310,6 +7310,38 @@
        "frame": "ball",
        "seconds": 0.854,
        "mark": 0.939
+      }
+     ],
+     "lone": [
+      {
+       "deg": 7,
+       "seconds": 1.225,
+       "excess": 2.220446049250313e-16
+      },
+      {
+       "deg": 30,
+       "seconds": 1.225,
+       "excess": 2.220446049250313e-16
+      },
+      {
+       "deg": 45,
+       "seconds": 1.225,
+       "excess": 2.220446049250313e-16
+      },
+      {
+       "deg": 61,
+       "seconds": 1.225,
+       "excess": 2.220446049250313e-16
+      },
+      {
+       "deg": 135,
+       "seconds": 1.225,
+       "excess": 2.220446049250313e-16
+      },
+      {
+       "deg": 200,
+       "seconds": 1.225,
+       "excess": 2.220446049250313e-16
       }
      ]
     }
@@ -7469,6 +7501,38 @@
           "seconds": 0.854,
           "mark": 0.939
          }
+        ],
+        "lone": [
+         {
+          "deg": 7,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 30,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 45,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 61,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 135,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 200,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         }
         ]
        }
       },
@@ -7622,6 +7686,38 @@
           "seconds": 0.854,
           "mark": 0.939
          }
+        ],
+        "lone": [
+         {
+          "deg": 7,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 30,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 45,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 61,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 135,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 200,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         }
         ]
        }
       },
@@ -7774,6 +7870,38 @@
           "frame": "ball",
           "seconds": 0.854,
           "mark": 0.939
+         }
+        ],
+        "lone": [
+         {
+          "deg": 7,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 30,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 45,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 61,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 135,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
+         },
+         {
+          "deg": 200,
+          "seconds": 1.225,
+          "excess": 2.220446049250313e-16
          }
         ]
        }

@@ -117,6 +117,39 @@ describe('no tunnelling at 25 m/s, main pitch', () => {
     expect(nearest).toBeGreaterThan(1.05 - 0.21 * SUBSTEP_SCALE);
     expect([...crossed]).toEqual([]);
   });
+
+  it('terriers closing on each other at 50 m/s head on, or at 25 m/s on one standing, never pass through (D-3)', () => {
+    // D-3's bound for a pair is their closing speed: 50 m/s is 0.21 m a
+    // substep, under the 0.5 m their radii sum to (M2's review).
+    const sc = scenario(2, { accelerationMetresPerSecond2: 0, idleFrictionMetresPerSecond2: 0 }, (s, P) => {
+      placeBall(P, s, -10, 10);
+      place(P, s, 0, -5, -5); s.terriers[0]!.vx = BOUND; // head on …
+      place(P, s, 1, 5, -5); s.terriers[1]!.vx = -BOUND; // … with this one
+      place(P, s, 2, -5, 5); s.terriers[2]!.vx = BOUND; // into …
+      place(P, s, 3, 0, 5); // … this one, standing
+    });
+    const pairs: [number, number][] = [[0, 1], [2, 3]];
+    let nearest = Infinity;
+    let met = 0;
+    const crossed: string[] = [];
+    const sideOf = ([a, b]: [number, number]): number => Math.sign(sc.s.terriers[a]!.x - sc.s.terriers[b]!.x);
+    let prev = pairs.map(sideOf);
+    sc.sim.probe = (s) => {
+      pairs.forEach(([a, b], k) => {
+        const A = s.terriers[a]!, B = s.terriers[b]!;
+        const d = Math.hypot(A.x - B.x, A.y - B.y, A.z - B.z);
+        nearest = Math.min(nearest, d);
+        if (d < 0.5 + 1e-9) met |= 1 << k;
+        const side = sideOf([a, b]);
+        if (side !== prev[k]) crossed.push(`terriers ${a} and ${b} at tick ${s.tick + 1}`);
+      });
+      prev = pairs.map(sideOf);
+    };
+    run(sc, 60);
+    expect(met, 'both pairs met').toBe(3);
+    expect(crossed).toEqual([]);
+    expect(nearest).toBeGreaterThan(0.5 - 0.21 * SUBSTEP_SCALE);
+  });
 });
 
 describe('the ball never leaves the main pitch (fuzzed, D-8)', () => {
@@ -161,8 +194,8 @@ describe('the ball never leaves the main pitch (fuzzed, D-8)', () => {
     expect(escaped).toBe('');
     // Substeps with the ball wholly behind a goal line, all inside a goal:
     // M0's 1,101 at A.5's starting netting bounce of 0.3
-    // (research/spike/REPORT.md §5.2), and 15,051 at M2's settled 0, which
-    // keeps a goal in the net through its celebration.
+    // (research/spike/REPORT.md §5.2), and 15,051 at M2's settled 0, at
+    // which the netting bounces nothing back.
     expect(behind).toBe(15051);
     expect(worst).toBeLessThan(0.11 * SUBSTEP_SCALE);
   });

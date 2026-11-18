@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { hashState } from './codec';
 import { encodeInput, FRAME_BALL, FRAME_NOSE, FRAME_PITCH, STEP_UNITS } from './input';
-import { datan2, dir, HALF_TURN, QUARTER_TURN } from './math';
+import { datan2, dir, HALF_TURN, QUARTER_TURN, TURN } from './math';
 import { defaultParams } from './params';
 import { park, place, placeBall, placedMatch, touchReach } from './scenes';
-import { CELEBRATION, GETTING_UP, IN_PLAY, KICKOFF_COUNTDOWN, NEVER, SITTING, TUMBLED } from './state';
+import {
+  AIRBORNE, type AnimPhase, CELEBRATION, GETTING_UP, IN_PLAY, KICKOFF_COUNTDOWN, LUNGING, NEVER, RUNNING, SITTING, STANDING, type Terrier, TUMBLED,
+  ZOOMING,
+} from './state';
 import { run, type Scenario, scenario } from './testing';
 
 // PLAN §16 Movement, Steering, Presses and Rules, as far as M0's runs need
@@ -632,5 +635,126 @@ describe('kickoffs and goals (D-8)', () => {
       run(sc, 30, (k) => (k === 0 ? pitch(0) : 0));
       expect(T.touches, `backed off to ${gap} m`).toBe(touches);
     }
+  });
+});
+
+describe("the animation's fields (D-9)", () => {
+  // Without these, only the goldens pinned them, and M2 re-emits those on
+  // purpose (M2's review).
+
+  it('turns the gait a cycle per 0.6 m run on the floor, and holds it in the air (A.4: Gait and running)', () => {
+    const sc = alone(-18, -8);
+    const T = sc.s.terriers[0]!;
+    run(sc, 54, (k) => (k === 0 ? pitch(0) : 0));
+    expect(T.vx).toBe(6);
+    // At 6 m/s, 0.3 m is 3 ticks: half a cycle, to the rounding of a unit a tick.
+    let g = T.gait;
+    let x = T.x;
+    run(sc, 3, (k) => (k === 0 ? pitch(0) : 0));
+    expect(T.x - x).toBeCloseTo(0.3, 12);
+    expect(Math.abs(((T.gait - g) >>> 0) - HALF_TURN)).toBeLessThanOrEqual(3);
+    // 6 m is 10 cycles: back where it was, to 60 units.
+    g = T.gait;
+    x = T.x;
+    run(sc, 60, (k) => (k === 0 ? pitch(0) : 0));
+    expect(T.x - x).toBeCloseTo(6, 12);
+    const off = (T.gait - g) >>> 0;
+    expect(Math.min(off, TURN - off)).toBeLessThanOrEqual(60);
+    // A jump at a run: still running at 6 m/s in the air, its gait held.
+    run(sc, 1, (k) => (k === 0 ? pitch(0, false, 1) : 0));
+    expect(T.onFloor).toBe(false);
+    g = T.gait;
+    let airborne = 0;
+    for (; !T.onFloor && airborne < 120; airborne++) {
+      expect(T.gait, `${airborne} ticks into the jump`).toBe(g);
+      run(sc, 1, (k) => (k === 0 ? pitch(0, false, 1) : 0));
+    }
+    expect(airborne).toBeGreaterThan(40);
+    run(sc, 1, (k) => (k === 0 ? pitch(0, false, 1) : 0));
+    expect(T.gait).not.toBe(g);
+  });
+
+  it("draws each phase from its condition, in M0's order, and starts its tick only when the phase changes", () => {
+    // Standing; running, then coasting while above 0.2 m/s (A.4); zooming;
+    // airborne, a jump at zoomies speed; lunging, a pounce from the floor;
+    // sitting, after 2 s silent; tumbled, then getting up. Each press's
+    // counter is held after it, so nothing else is a press (D-10).
+    const sc = alone(-18, -8);
+    const T = sc.s.terriers[0]!;
+    const want = (): AnimPhase => {
+      if (T.tumble > 0) return T.tumble > P.getUpTicks ? TUMBLED : GETTING_UP;
+      if (T.sitting) return SITTING;
+      if (T.lunge > 0) return LUNGING;
+      if (!T.onFloor) return AIRBORNE;
+      if (sc.sim.intents.zooming[0] === 1) return ZOOMING;
+      if (sc.sim.intents.driveOn[0] === 1 || speed(T) > 0.2) return RUNNING;
+      return STANDING;
+    };
+    const seen = new Set<AnimPhase>();
+    let changes = 0;
+    const tick = (input: number | null): void => {
+      const was = T.anim;
+      const since = T.animStart;
+      run(sc, 1, (k) => (k === 0 ? input : 0));
+      expect(T.anim, `tick ${sc.s.tick}`).toBe(want());
+      if (T.anim === was) expect(T.animStart, `tick ${sc.s.tick}`).toBe(since);
+      else {
+        expect(T.animStart, `tick ${sc.s.tick}`).toBe(sc.s.tick);
+        changes++;
+      }
+      seen.add(T.anim);
+    };
+    const ticks = (n: number, input: number | null): void => {
+      for (let i = 0; i < n; i++) tick(input);
+    };
+    ticks(5, 0);
+    ticks(30, pitch(0));
+    let coasting = 0;
+    for (; T.anim === RUNNING && coasting < 120; coasting++) tick(0);
+    expect(T.anim).toBe(STANDING);
+    expect(speed(T)).toBeLessThanOrEqual(0.2);
+    expect(coasting / 60, 'coasting from 6 m/s to 0.2 m/s at 8 m/s²').toBeCloseTo(5.8 / 8, 1);
+    ticks(60, pitch(0, true));
+    ticks(1, pitch(0, true, 1));
+    ticks(70, pitch(0, true, 1));
+    ticks(30, encodeInput({ jump: 1 }));
+    ticks(1, pitch(0, false, 1, 1));
+    const held = encodeInput({ jump: 1, pounce: 1 });
+    ticks(60, held);
+    ticks(P.sitAfterTicks + 5, null);
+    ticks(5, held);
+    T.tumble = P.tumbleTicks;
+    ticks(P.tumbleTicks + 5, held);
+    expect([...seen].sort()).toEqual([STANDING, RUNNING, ZOOMING, AIRBORNE, LUNGING, TUMBLED, GETTING_UP, SITTING]);
+    expect(changes).toBeGreaterThanOrEqual(10);
+  });
+
+  it('records the last push a terrier receives, its direction in plan and its tick, and none for a push straight down', () => {
+    // A runs at B standing, along +y: B is pushed +y, and A back, −y.
+    const pair = scenario(1, {}, (s, P) => { placeBall(P, s, 10, 10); place(P, s, 0, -5, -2); place(P, s, 1, -5, 0); });
+    const [A, B] = pair.s.terriers as [Terrier, Terrier];
+    while (B.lastPushTick === NEVER && pair.s.tick < 60) run(pair, 1, (k) => (k === 0 ? pitch(8) : 0));
+    expect([A.lastPushTick, B.lastPushTick]).toEqual([pair.s.tick, pair.s.tick]);
+    expect([A.lastPushDir, B.lastPushDir]).toEqual([3 * QUARTER_TURN, QUARTER_TURN]);
+    // A wall pushes back along its normal: the +y side wall, −y.
+    const wall = alone(-5, 13.5);
+    run(wall, 30, (k) => (k === 0 ? pitch(8) : 0));
+    expect(wall.s.terriers[0]!.lastPushTick).toBe(wall.s.tick);
+    expect(wall.s.terriers[0]!.lastPushDir).toBe(3 * QUARTER_TURN);
+    // The ball dropped straight onto a terrier's top pushes it straight down:
+    // nothing is recorded until the slip-out moves it from under the ball.
+    const under = alone(5, 5);
+    const T = under.s.terriers[0]!;
+    placeBall(P, under.s, 5, 5, 2 * P.terrierRadius + P.ballRadius + 0.01);
+    let first: number | null = null;
+    under.sim.probe = (s) => {
+      if (first === null && s.terriers[0]!.lastBallContactTick !== NEVER) first = s.terriers[0]!.lastPushTick;
+    };
+    run(under, 30);
+    expect(first, 'the push of the first contact').toBe(NEVER);
+    // Then the slip-out moves it +x, along its heading, and the ball's push
+    // on it has a part along +x.
+    expect(T.lastPushTick).not.toBe(NEVER);
+    expect(T.lastPushDir).toBe(0);
   });
 });

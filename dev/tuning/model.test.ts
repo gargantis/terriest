@@ -8,8 +8,9 @@ import { hashState } from '../../src/core/sim/codec';
 import { canonicalInputs } from '../../src/core/sim/input';
 import { defaultParams, simParams } from '../../src/core/sim/params';
 import {
-  build, changesOf, configSnippet, configWith, findRow, fragmentOf, NO_ROW, NOT_TUNED, parseFragment, parseSnippet, parseValue, ROWS,
-  rowNumbers, settingPaths, SLIDERS, sliderOf, spotProblems, tableSnippet, takeEach, tokensIn, tryChanges, valueAt, withValue,
+  build, changesOf, configSnippet, configWith, findRow, fragmentOf, NO_ROW, NOT_TUNED, parseFragment, parseSnippet, parseValue, PROVISIONAL,
+  PROVISIONAL_MARK, ROWS, rowNumbers, settingPaths, SLIDERS, sliderOf, spotProblems, tableSnippet, takeEach, tokensIn, tryChanges, valueAt,
+  withValue,
 } from './model';
 import { parseRecording, replay, startRecording } from './recording';
 import { Run, SCENARIOS, scenarioOf } from './scenarios';
@@ -164,18 +165,38 @@ describe('the tuning page model (design §9.5)', () => {
   });
 
   it('writes the changed rows in their own wording', () => {
+    // A value M2 settled, changed on the page, is the owner's: its row loses
+    // "provisional by measurement" (A.5's note). Another value in the row
+    // leaves the mark alone.
     const text = tableSnippet({ rearmGapMetres: 0.5, rollingSlowdownMetresPerSecond2: 1, ballRestitution: 0.65, runSpeedMetresPerSecond: 7 }, docs);
-    expect(text).toContain('| Re-arm gap | 0.5 m surface to surface (M2, provisional by measurement) |');
-    expect(text).toContain('| Ball rolling slowdown | 1 m/s² on the floor, to exactly 0; no air drag. A 3 m/s ball rolls 4.5 m (M2, provisional by measurement) |');
-    expect(text).toContain('| Goal netting bounce | 0, so a goal stays in the net through its celebration (M2, provisional by measurement); walls, overhead net and goal frame 0.65 |');
+    expect(text).toContain('| Re-arm gap | 0.5 m surface to surface (M2) |');
+    expect(text).toContain('| Ball rolling slowdown | 1 m/s² on the floor, to exactly 0; no air drag. A 3 m/s ball rolls 4.5 m (M2) |');
+    expect(text).toContain('| Goal netting bounce | 0 (M2, provisional by measurement, C-48); walls, overhead net and goal frame 0.65 |');
     expect(text).toMatch(/\| Run speed \| 7 m\/s \|/);
     expect(text).toMatch(/Keeps 65% of its speed into the surface/);
     expect(text).toMatch(/\| Re-arm gap \| \*\*TBD\*\* \|.*\n {2}\(TBD there/);
-    // The slip release's reach, apart from the re-arm gap, in A.4's Slip-out row (M2).
-    expect(tableSnippet({ slipHoldOffMetres: 0.5 }, docs)).toContain('toward the body slipped from only within 0.5 m of it, surface to surface in plan view (M2, provisional by measurement) |');
+    // The slip release's reach, apart from the re-arm gap, in A.4's Slip-out
+    // row (M2); the cone is M0's, so changing it alone keeps the reach's mark.
+    expect(tableSnippet({ slipHoldOffMetres: 0.5 }, docs)).toContain('toward the body slipped from only within 0.5 m of it, surface to surface in plan view (M2) |');
+    expect(tableSnippet({ slipOutConeDegrees: 43 }, docs)).toContain('| Slip-out | 43° from vertical, 2 m/s sideways, with the slipping flag (M0 chose it, D-5); the flag holds the drive off toward the body slipped from only within 0.6 m of it, surface to surface in plan view (M2, provisional by measurement) |');
     const spots = tableSnippet({ kickoffSpotsMetres: [[], [[-11, 0]], [[-9, 4.5], [-9, -4.5]], ...config.kickoffSpotsMetres.slice(3)] }, docs);
-    expect(spots).toContain('1 a side: (−11, 0). 2: (−9, ±4.5). 3: (−9, ±5), (−15, 0). 4: (−8, ±6), (−14, ±3). Everyone faces the ball');
+    expect(spots).toContain('1 a side: (−11, 0). 2: (−9, ±4.5). 3: (−9, ±5), (−15, 0). 4: (−8, ±6), (−14, ±3). Everyone faces the ball (M2) |');
     expect(tableSnippet({ coatCount: 9 }, docs)).toMatch(/In no table .*: coatCount/);
+  });
+
+  it("writes the netting's and the push assist's rows true at any value: nothing in them holds only at M2's (M2's review)", () => {
+    expect(tableSnippet({ goalNetRestitution: 0.3 }, docs)).toContain('| Goal netting bounce | 0.3 (M2, C-48); walls, overhead net and goal frame 0.7 |');
+    expect(tableSnippet({ pushAssistCapMetresPerSecond: 0 }, docs))
+      .toContain("| Ball-frame push assist (C-18) | a speed cap of 0 m/s (M2); a cap of 0 turns it off, and a cap that's on is at least the zoomies speed |");
+    expect(tableSnippet({ pushAssistCapMetresPerSecond: 12 }, docs)).toContain('| Ball-frame push assist (C-18) | a speed cap of 12 m/s (M2); a cap of 0');
+  });
+
+  it("marks provisional exactly the rows of the values M2 settled by measurement (A.5's note)", () => {
+    const marked = ROWS.filter((r) => r.where !== 'Configuration' && findRow(docs.plan, r)!.line.includes(PROVISIONAL_MARK));
+    for (const row of marked) expect(row.keys.filter((k) => PROVISIONAL.includes(k)), `${row.where} "${row.name}"`).not.toEqual([]);
+    const keysMarked = marked.flatMap((r) => r.keys);
+    expect(PROVISIONAL.filter((k) => !keysMarked.includes(k))).toEqual([]);
+    for (const key of PROVISIONAL) expect(sliderOf(key), key).toBeDefined();
   });
 
   it('starts and steps every scenario', () => {

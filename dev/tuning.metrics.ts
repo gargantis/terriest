@@ -2,11 +2,12 @@
 // by when the owner isn't free (§17), and the evidence for
 // research/tuning/REPORT.md, which settle writes. Off the gate:
 //
-//   npx vitest run --config dev/vitest.config.ts
+//   TERRIEST_TUNING_OUT=research/tuning/results.json npx vitest run --config dev/vitest.config.ts
 //
-// It writes research/tuning/results.json, and refuses to overwrite it
-// unless TERRIEST_TUNING_OUT names the file to write: that one, to rewrite
-// it on purpose, or another. Its other options:
+// Without TERRIEST_TUNING_OUT it writes research/tuning/results.json, and
+// refuses to overwrite it, so while that file is committed a bare run stops
+// at once: name it to rewrite it on purpose, or name another file. Its
+// other options:
 //   TERRIEST_TUNING_ONLY=netting,touches   only these sections (SECTIONS);
 //   TERRIEST_TUNING_BASE='{"rearmGapMetres":0.5}'   measure from these
 //     settings, by key path, instead of src/config.ts's, such as the
@@ -31,10 +32,10 @@ import { config, type Config } from '../src/config';
 import { type BotParams, botParams, newBrain, think } from '../src/core/bot/brain';
 import { botCoat, botIds, botName } from '../src/core/bot/bot-id';
 import { e2eMatch, emptyGoalRun, fallBackRun, hostOf, regulationMatch, theBrain } from '../src/core/bot/marks';
-import { ballOnTerriers, dribble, kickoffPinch, pushTime } from '../src/core/sim/cases';
+import { ballOnTerriers, dribble, kickoffPinch, lonePush, pushTime } from '../src/core/sim/cases';
 import { JOIN, READY, type TickInput } from '../src/core/sim/input';
 import { simParams, type SimParams } from '../src/core/sim/params';
-import { NETTING_SHOTS, type RestCase, sceneInputs, sceneStart, WALL_SCRUM } from '../src/core/sim/scenes';
+import { NETTING_SHOTS, ONE_PUSHER_DEGREES, type RestCase, sceneInputs, sceneStart, WALL_SCRUM } from '../src/core/sim/scenes';
 import { ENDED, genesis, IN_PLAY } from '../src/core/sim/state';
 import { makeSim, step } from '../src/core/sim/step';
 import { BOX_SIDE_METRES, build, findRow, parseValue, ROWS, sliderOf, spotProblems, valueAt, withValue } from './tuning/model';
@@ -218,30 +219,35 @@ function sittingWorst(c: Config): { worst: number | null; at: number } {
  *  hop onto the dribbler, and the sitting pair needs it wide enough to get
  *  down within 0.5 s. M0's 2,880-dribble sweep, run here under the
  *  configured slip-out (M0's ran with none), so a hop under the cone shows
- *  as a slip-out too; and the sitting pair at cones from 2° under it. */
+ *  as a slip-out too, and slipout.test.ts's two dribbles off its grid, which
+ *  hop lower (M2's review); and the sitting pair at cones from 2° under it. */
 function slipWindow(c: Config): Record<string, unknown> {
   let lowest = 180;
   let at = '';
   let n = 0;
   let slips = 0;
+  const dribbled = (frame: 'ball' | 'pitch', zoomies: boolean, runUp: number, v: number, stepOff: number): void => {
+    const d = dribble(frame, zoomies, runUp, c, v, stepOff);
+    n++;
+    slips += d.slipOuts;
+    if (d.hopAngles[0] < lowest) {
+      lowest = d.hopAngles[0];
+      at = `${frame} frame, ${stepOff} steps off, ${zoomies ? 'zoomies' : 'run'} from ${v} m/s, run-up ${runUp.toFixed(4)} m`;
+    }
+  };
   for (const frame of ['ball', 'pitch'] as const) {
     for (const zoomies of [false, true]) {
       for (let v = 0; v <= (zoomies ? 9 : 6); v += 1.5) {
         for (let i = 0; i < 24; i++) {
-          for (let stepOff = 0; stepOff <= (frame === 'ball' ? 8 : 0); stepOff++) {
-            const runUp = 0.05 + i * 0.0157;
-            const d = dribble(frame, zoomies, runUp, c, v, stepOff);
-            n++;
-            slips += d.slipOuts;
-            if (d.hopAngles[0] < lowest) {
-              lowest = d.hopAngles[0];
-              at = `${frame} frame, ${stepOff} steps off, ${zoomies ? 'zoomies' : 'run'} from ${v} m/s, run-up ${runUp.toFixed(4)} m`;
-            }
-          }
+          for (let stepOff = 0; stepOff <= (frame === 'ball' ? 8 : 0); stepOff++) dribbled(frame, zoomies, 0.05 + i * 0.0157, v, stepOff);
         }
       }
     }
   }
+  // slipout.test.ts's lowest hops: a 0.1125 m run-up, 3 and 29 steps off in
+  // ball view, at zoomies from 9 m/s; the first hops at 43.23°, under the
+  // grid's lowest, 43.53° (a 0.3012 m run-up, 3 steps off), which it holds.
+  for (const stepOff of [3, 29]) dribbled('ball', true, 0.1125, 9, stepOff);
   const cone = c.slipOutConeDegrees;
   const cones = [cone - 2, cone - 1, cone - 0.5, cone].map((x) => ({ cone: x, sittingWorst: sittingWorst(withValue(c, 'slipOutConeDegrees', x)).worst }));
   const narrowest = cones.find((x) => x.sittingWorst !== null && x.sittingWorst <= 0.5)?.cone ?? null;
@@ -611,7 +617,7 @@ function valuesTable(base: Config): Value[] {
     {
       name: 'Drive and idle friction', rule: 'keep',
       candidates: [candidatesFor('idleFrictionMetresPerSecond2', [8, 6, 10, 4, 12]), candidatesFor('accelerationMetresPerSecond2', [15, 12, 18])],
-      note: "keep both: the acceleration is REQUIREMENTS', so it changes only with the owner (Q-1)",
+      note: "keep both: the acceleration is REQUIREMENTS', so it changes only with the owner (design §14 Q-1)",
       measure: (c) => {
         const s = slipChecks(c, true);
         const p = pushChecks(c);
@@ -627,7 +633,7 @@ function valuesTable(base: Config): Value[] {
     },
     {
       name: 'Bowling speed', rule: 'keep', candidates: [candidatesFor('bowlingSpeedMetresPerSecond', [4, 3.5, 4.5, 3, 5])],
-      note: "REQUIREMENTS' value, so a change goes to the owner (Q-1)",
+      note: "REQUIREMENTS' value, so a change goes to the owner (design §14 Q-1)",
       measure: (c) => {
         const m = bowlingExamples(c);
         return { metrics: { ...m, botMatches2: botTumbles(c, 2, 10), botMatches4: botTumbles(c, 4, 10) }, fails: failsOf(m) };
@@ -636,19 +642,30 @@ function valuesTable(base: Config): Value[] {
     {
       name: 'Side-by-side pushers, and the remedy', rule: 'smallest',
       candidates: [candidatesFor('pushAssistCapMetresPerSecond', [zoomies, zoomies + 3, zoomies + 6])],
-      note: 'the assist at the smallest cap that passes, and the marks at the measured times plus 10%; if none passes, the assist goes and C-18 goes to the owner (Q-13)',
+      note: 'the assist at the smallest cap that passes, and the marks at the measured times plus 10%; if none passes, the assist goes and C-18 goes to the owner (design §14 Q-13)',
       measure: (c) => {
         const off = pushRows(withValue(c, 'pushAssistCapMetresPerSecond', 0));
         const on = pushRows(c);
         const one = pushOf(off, 'one pusher', 'ball');
         const fails: string[] = [];
         if (pushOf(on, 'one pusher', 'ball') !== one) fails.push(`one pusher's time moves, from ${one} to ${pushOf(on, 'one pusher', 'ball')} s`);
+        // The time can't show the assist acting on a lone pusher, since the
+        // drive's acceleration sets it, and on an axis dir() is exact, so
+        // the assist never acts there: off the axes, its drive's target must
+        // stay its base speed through the push (M2's review).
+        const lone = ONE_PUSHER_DEGREES.map((deg) => {
+          const r = lonePush(deg, c);
+          return { deg, seconds: round(r.seconds), excess: r.excess };
+        });
+        for (const r of lone) {
+          if (!(r.excess < 1e-12)) fails.push(`a lone pusher at ${r.deg}° drives at ${(1 + r.excess).toFixed(6)} × its base speed in its push`);
+        }
         for (const name of ['two round the ball', 'two on a line', 'four round the ball', 'four on a line']) {
           const v = pushOf(on, name, 'ball');
           if (v === null || one === null || !(v < one)) fails.push(`${name} in ball view take ${v ?? 'over 10'} s, not under one pusher's ${one} s`);
         }
         const marks = on.filter((r) => r.name.startsWith('two ') || r.name.startsWith('four ')).map((r) => ({ name: r.name, frame: r.frame, seconds: r.seconds, mark: r.seconds === null ? null : round(r.seconds * 1.1) }));
-        return { metrics: { off: off.map((r) => ({ name: r.name, frame: r.frame, seconds: r.seconds })), on: marks }, fails };
+        return { metrics: { off: off.map((r) => ({ name: r.name, frame: r.frame, seconds: r.seconds })), on: marks, lone }, fails };
       },
     },
   ];

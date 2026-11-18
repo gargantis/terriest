@@ -6,8 +6,8 @@
 // setups). The spike's literal radii are read from SimParams; its
 // coordinates and inputs stay, each marked where the configuration scan
 // would read one as a setting. M2 adds design §9.6's shots into the
-// netting. It ships in the determinism chunk, so it keeps to exact
-// operations (D-1).
+// netting, and C-18's lone pusher off the axes. It ships in the
+// determinism chunk, so it keeps to exact operations (D-1).
 //
 // A placed state may hold fewer terriers than its pack size (members):
 // warm-up has holes anyway, and in play it's a test-only state, the
@@ -250,6 +250,32 @@ export function pushScene(layout: 'train' | 'line' | 'round', m: number, frame: 
   };
 }
 
+/** C-18's lone pusher off the axes, where dir() rounds: the angles round
+ *  the back of the ball at which assist.test.ts and the metrics push. */
+export const ONE_PUSHER_DEGREES: readonly number[] = [7, 30, 45, 61, 135, 200]; // not a setting: a scene's angles
+
+/** Pack A's first terrier alone pushes the ball from rest at the centre
+ *  spot, touching it from deg° round from −x, holding at it in the ball
+ *  frame (C-18). Everyone else is parked. */
+export function onePusherScene(deg: number): Scene {
+  return {
+    name: `one pusher at ${deg}°, ball frame`,
+    packSize: 1, // not a setting
+    phase: IN_PLAY,
+    mirrored: false,
+    setup: (s, P) => {
+      park(P, s, 0);
+      park(P, s, 1);
+      placeBall(P, s, 0, 0);
+      const reach = touchReach(P);
+      const d = new Float64Array(2);
+      dir((HALF_TURN + fractionOfTurn(deg, 360)) >>> 0, d);
+      place(P, s, 0, reach * d[0]!, reach * d[1]!);
+    },
+    input: (pack, rank) => (pack === 0 && rank === 0 ? ballDir(0) : NOTHING),
+  };
+}
+
 /** The kickoff pinch (C-21), from its countdown: everyone holds at the ball
  *  from the whistle, mirrored. */
 export function pinchScene(packSize: number, zoomies = false): Scene {
@@ -423,8 +449,8 @@ export interface NettingShot {
 
 /** Design §9.6's 18 shots: at 5 and 10 m/s, at 0°, 20° and 35°, each
  *  rolling, high and lobbed. The tuning page and its metrics run them, and
- *  so will netting.test.ts, which holds the settled value in the gate
- *  (design §11). */
+ *  netting.test.ts holds the settled value with them in the gate (design
+ *  §11). */
 export const NETTING_SHOTS: readonly NettingShot[] = [5, 10].flatMap((speed) =>
   [0, 20, 35].flatMap((angleDeg) => (['rolling', 'high', 'lobbed'] as const).map((kind) => ({ speed, angleDeg, kind }))),
 );

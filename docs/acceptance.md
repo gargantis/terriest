@@ -53,11 +53,11 @@ The owner's own loads still land before M5's deploy, and replace these.
 
 ### M2's tuning, settled provisionally (owner-pending)
 
-The owner chose "settle" for Q-10 on 2026-11-17, so Claude set M2's values by measurement, under §17's rule for attended steps, by the method of [research/tuning/REPORT.md](../research/tuning/REPORT.md), committed at e1a4c99 before anything was measured. Each value's candidates ran alone from the starting values, and a fixed rule picked: the start stays unless a check fails, the netting takes its largest passing bounce, and the push assist its smallest passing cap. Then the picks ran together, and every check and bot mark passed. The values are in `src/config.ts` and PLAN's A.4 and A.5, marked provisional. REQUIREMENTS.md's TBDs wait for the owner's sign-off (PLAN §2).
+The owner chose "settle" for Q-10 on 2026-11-17, so Claude set M2's values by measurement, under §17's rule for attended steps, by the method of [research/tuning/REPORT.md](../research/tuning/REPORT.md), committed at e1a4c99 before anything was measured. Each value's candidates ran alone from the starting values, and a fixed rule picked: the start stays unless a check fails, the netting takes its largest passing bounce, and the push assist its smallest passing cap. Then the picks ran together, and every check and bot mark passed. The values are in `src/config.ts` and PLAN's A.4 and A.5, marked provisional. REQUIREMENTS.md's TBDs wait for the owner's sign-off (PLAN §2), and so do its two lines on the netting: at 0 the netting no longer bounces the ball, so both the Ball bounce row and L58, "It bounces off … the goal's netting. Each bounce keeps part of its speed into the surface", need the wording PLAN §2 proposes.
 
 | Value | Settled | Start | What decided it |
 |---|---|---|---|
-| Goal netting bounce | **0** | 0.3 | The largest bounce at which all 18 test shots stay wholly behind the goal line through their celebration. At 0.3 every one comes back out, a 10 m/s high shot 8.5 m onto the pitch. |
+| Goal netting bounce | **0** | 0.3 | The largest bounce at which all 18 test shots, with nobody near, stay wholly behind the goal line through their celebration. At 0.3 every one comes back out, a 10 m/s high shot 8.5 m onto the pitch. Pushers that follow the ball in can still bring it back out, less than at 0.3 (REPORT §2.7). |
 | Push assist (C-18) | **on, a 9 m/s cap** | off | The smallest cap at which two and four side by side in ball view beat one pusher's 1.225 s. |
 | Kickoff spots | A.5's | A.5's | The spots' checks pass; at 1 to 4 a side, with and without zoomies, each kickoff pinch comes down, mirrored, in 0.433 to 1.962 s; and the bot marks and the end-to-end setups pass. |
 | Ball rolling slowdown | 0.5 m/s² | the same | §16's push marks pass at every candidate, 0.3 to 1 m/s². |
@@ -70,7 +70,7 @@ The owner chose "settle" for Q-10 on 2026-11-17, so Claude set M2's values by me
 
 REQUIREMENTS' acceleration, 15 m/s², and bowling speed, 4 m/s, passed their checks, so the method proposed no change to either.
 
-**C-18's marks,** set at M2 at the 9 m/s cap, to 95% of run speed from rest in contact. `push.test.ts` holds each ± 10%, and in ball view each must beat one pusher too.
+**C-18's marks,** set at M2 at the 9 m/s cap, to 95% of run speed from rest in contact. `push.test.ts` holds each time within ± 10% of its mark and pins it to the millisecond, so a change to the drive or the assist sets the marks again on purpose; in ball view each must beat one pusher too.
 
 | Pushers side by side | Pitch frame | Ball view | Ball view, assist off |
 |---|---|---|---|
@@ -79,7 +79,7 @@ REQUIREMENTS' acceleration, 15 m/s², and bowling speed, 4 m/s, passed their che
 | four round the ball | 0.721 s | 0.983 s | 1.313 s |
 | four on a line | 0.758 s | 0.854 s | 0.921 s |
 
-One pusher takes 1.225 s in both frames, with the assist on or off.
+One pusher takes 1.225 s in both frames, with the assist on or off. The drive's acceleration sets that time whatever its target, so the time can't show the assist acting on a lone pusher; its drive's target can, and stays its base speed through the push off the axes too (`assist.test.ts`, the metrics).
 
 **For the owner, with the bowling speed (Q-8, C-5):** in seeded bot matches the ball bowls terriers over 5.2 times a minute of play at 2 a side and 6.5 at 4 a side, against 0.3 pounce tumbles a minute. At 4.5 m/s it's 3.3 and 4.2 a minute. At 5 m/s it's 2.2 and 2.1, but then a pounce from the air, which sends the ball off at 4.57 m/s, no longer bowls, against REQUIREMENTS' note. At 3.5 m/s it's 9.0 and 10.1, and at 3 m/s 12.2 and 13.3. 4 m/s is REQUIREMENTS' value and passes its checks, so it stays. Whether the ball should tumble terriers this much more often than pounces do is the owner's call.
 
@@ -98,8 +98,8 @@ One pusher takes 1.225 s in both frames, with the assist on or off.
 | The Pixel 8a runs: the frame-time run at the render quality phones start with (D-33), and real touch. Firefox and Edge for Android each play a Practice match with real touch, and Firefox joins one networked match (L236). | M5 | not yet run |
 | The relay check, which writes to the public relays, with the owner's go-ahead (Q-14). | before the first deploy, at M5 | not yet run |
 | Real Safari: the determinism page and one match, if the device round before M5 names a Mac or an iPhone (Q-4, Q-12). | M5 | waits for the device round |
-| The tuning metrics (PLAN §15, §16), which settled M2's values and recheck C-21's window: `npx vitest run --config dev/vitest.config.ts`. | M2, and whenever the collider, the drive or friction changes | Run on 2026-11-17 by [research/tuning/REPORT.md](../research/tuning/REPORT.md)'s method, which holds the results: rounds 1 and 2 at e1a4c99, in 535 and 517 s, then once more at the settled values, in 508 s. |
-| The step's cost against the M0 spike's (PLAN C-2): the wall scrum with 8 inputs a tick, both steps timed tick by tick in one process. | M2 | At a9aca0a, from 5.0% less to 0.4% more than the spike's, inside M2's 5% budget. Not re-timed since: the comparison needs both simulations' bodies equal tick by tick, and in the scrum the slip release moves them off the spike's from tick 104, and at the settled values the push assist from tick 29. |
+| The tuning metrics (PLAN §15, §16), which settled M2's values and recheck C-21's window: `TERRIEST_TUNING_OUT=research/tuning/results.json npx vitest run --config dev/vitest.config.ts`, which rewrites the committed results. A bare run stops at once, since it won't overwrite them. | M2, and whenever the collider, the drive or friction changes | Run on 2026-11-17 by [research/tuning/REPORT.md](../research/tuning/REPORT.md)'s method, which holds the results: rounds 1 and 2 at e1a4c99, in 535 and 517 s, then once more at the settled values, in 508 s. Run again at M2's review, with its two stronger checks, in 416 s: every verdict stands (REPORT §2.8). |
+| The step's cost against the M0 spike's (PLAN C-2): the wall scrum with 8 inputs a tick, both steps timed tick by tick in one process. | M2 | At a9aca0a, from 5.0% less to 0.4% more than the spike's, inside M2's 5% budget. Re-timed at M2's review, after the slip release and the settled values: from 0.3% to 2.3% less by the per-tick medians, and 1.3% to 3.6% less by the means, three runs on one core. The comparison needs both simulations' bodies equal tick by tick, which the slip release and the push assist break in the scrum, so it ran at M0's values, the assist off and the netting at 0.3, with the slip hold-off's reach at 10⁹ m, M0's any-distance rule: there the bodies match the spike's for all 3,600 ticks. |
 
 ## Log
 
@@ -110,7 +110,7 @@ One pusher takes 1.225 s in both frames, with the assist on or off.
 | Milestone | Date | Commit | Wall time | Where and how |
 |---|---|---|---|---|
 | M1 | 2026-11-17 | the commit that adds this row | 76.4 s, the median of three consecutive green runs, which took 76.0 to 77.5 s | The development machine: WSL2 with 12 threads, on WSLg's display. GL in software: SwiftShader in Chromium, llvmpipe in Firefox and WebKit. The end-to-end tests took about 60 s of it, 12 in each engine. On the GPU path (`GALLIUM_DRIVER=d3d12`), it took 93 to 94 s. While the machine was busy with other work, an earlier tree took 171 s. |
-| M2 | 2026-11-17 | the commit that adds this row | 138.2 s and 138.3 s, two consecutive green runs | The development machine, in software GL, as for M1. The unit stage took 37 to 38 s, 49 files and 575 tests, most of it the bot marks' whole matches; the end-to-end tests 1.3 minutes, 14 in each engine. Through M2 the gate took 114.5 and 114.3 s once the bot marks arrived (a9aca0a), 131.2 and 123.1 s with the tuning page (ccf92c8), and 129.4, 137.4, 141.2 and 131.1 s at the commits that settled the values (c429814, e1a4c99, c82c3e8). M2's design had estimated 97 to 105 s. |
+| M2 | 2026-11-18 | the commit that applies M2's review | 124.0 s and 122.6 s, two consecutive green runs | The development machine, in software GL, as for M1. The unit stage took 34 s, 50 files and 584 tests, most of it the bot marks' whole matches; the end-to-end tests 1.2 minutes, 14 in each engine. Through M2 the gate took 114.5 and 114.3 s once the bot marks arrived (a9aca0a), 131.2 and 123.1 s with the tuning page (ccf92c8), 129.4, 137.4, 141.2 and 131.1 s at the commits that settled the values (c429814, e1a4c99, c82c3e8), and 138.2 and 138.3 s at the plan's amendments (2443fa5). The review's 9 tests and one file cost less than the runs vary. M2's design (research/m2/DESIGN.md §12) had estimated 97 to 105 s. |
 
 ### CI runs (PLAN §15)
 

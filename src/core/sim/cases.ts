@@ -4,14 +4,17 @@
 // spike's cases.ts for the chosen rule alone: ballOnTerriers and
 // kickoffPinch lose their rule argument, the scenes come from scenes.ts, and
 // a dribble counts its touches, for the re-arm gap's metric (design §9.6).
-// Test support, not shipped: nothing in the simulation imports it. Exact
-// operations, like the rest of src/core/sim (D-1).
+// M2 adds a lone pusher's drive target, for C-18's assist. Test support,
+// not shipped: nothing in the simulation imports it. Exact operations,
+// like the rest of src/core/sim (D-1).
 
 import type { Config } from '../../config';
 import { datan2 } from './math';
 import type { SimParams } from './params';
-import { dribbleScene, pinchScene, pushScene, type RestCase, restScene, type Scene, sceneInputs, sceneStart } from './scenes';
-import type { MatchState } from './state';
+import {
+  dribbleScene, onePusherScene, pinchScene, pushScene, type RestCase, restScene, type Scene, sceneInputs, sceneStart,
+} from './scenes';
+import { type MatchState, slotOf } from './state';
 import { makeSim, step } from './step';
 import { mirrorMismatches, paramsWith } from './testing';
 
@@ -209,4 +212,46 @@ export function pushTime(
   };
   for (let t = 1; t <= limitTicks && reached === null; t++) step(sim, s, sceneInputs(scene, s, t));
   return { name: scene.name, seconds: reached, top, slipOuts: sim.physics.stats.slipOuts, airborneShare: air / (subs > 0 ? subs : 1) };
+}
+
+export interface LonePushResult {
+  /** pushTime's measure: seconds to 95% of run speed; null if not reached. */
+  seconds: number | null;
+  /** The most the pusher's drive target exceeds its base speed over that
+   *  push, ticks 1 to the one the ball reaches 95% in, as a fraction of
+   *  the base. */
+  excess: number;
+}
+
+/** C-18's push assist and a lone pusher (onePusherScene): its push time,
+ *  and its drive's target speed against its base. The time can't show the
+ *  assist acting: the drive's acceleration sets it whatever the target, so
+ *  a lone pusher at a 9 m/s target still takes 1.225 s (M2's review). */
+export function lonePush(deg: number, over: Partial<Config> = {}, limitTicks = 360): LonePushResult {
+  const P = paramsWith(over);
+  const scene = onePusherScene(deg);
+  const sim = makeSim(P, scene.packSize);
+  const s = sceneStart(scene, P);
+  const slot = slotOf(s.terriers[0]!);
+  let reached: number | null = null;
+  let sub = 0;
+  let excess = 0;
+  const target = 0.95 * P.runSpeed;
+  const perSecond = P.config.ticksPerSecond * P.substeps;
+  sim.probe = (st) => {
+    sub++;
+    if (reached !== null) return;
+    if (Math.sqrt(st.ball.vx * st.ball.vx + st.ball.vy * st.ball.vy) >= target) reached = sub / perSecond;
+  };
+  const intents = sim.intents;
+  for (let t = 1; t <= limitTicks && reached === null; t++) {
+    step(sim, s, sceneInputs(scene, s, t));
+    if (intents.driveOn[slot] !== 1) continue;
+    const tvx = intents.targetVx[slot]!;
+    const tvy = intents.targetVy[slot]!;
+    const base = intents.zooming[slot] === 1 ? P.zoomiesSpeed : P.runSpeed;
+    const e = Math.sqrt(tvx * tvx + tvy * tvy) / base - 1;
+    if (e > excess) excess = e;
+  }
+  return { seconds: reached, excess };
 }
