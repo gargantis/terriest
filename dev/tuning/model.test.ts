@@ -76,13 +76,14 @@ describe('the tuning page model (design §9.5)', () => {
       const steps = (v - s.min) / s.step;
       expect(v >= s.min && v <= s.max && Math.abs(steps - Math.round(steps)) < 1e-9, `${s.key} = ${v} on ${s.min} to ${s.max} by ${s.step}`).toBe(true);
     }
-    expect(valueAt(config, 'pushAssistCapMetresPerSecond')).toBe(0);
+    // On, at the cap M2 settled by measurement (research/tuning/REPORT.md).
+    expect(valueAt(config, 'pushAssistCapMetresPerSecond')).toBe(9);
   });
 
   it('round-trips Copy settings\' snippet into a configuration simParams accepts', () => {
     const changes = {
       rearmGapMetres: 0.5,
-      goalNetRestitution: 0,
+      goalNetRestitution: 0.3,
       floorContactsInSolve: false,
       pushAssistCapMetresPerSecond: 10.5,
       'pitch.mouthWidthMetres': 9,
@@ -164,14 +165,14 @@ describe('the tuning page model (design §9.5)', () => {
 
   it('writes the changed rows in their own wording', () => {
     const text = tableSnippet({ rearmGapMetres: 0.5, rollingSlowdownMetresPerSecond2: 1, ballRestitution: 0.65, runSpeedMetresPerSecond: 7 }, docs);
-    expect(text).toContain('| Re-arm gap | 0.5 m surface to surface |');
-    expect(text).toContain('| Ball rolling slowdown | 1 m/s² on the floor, to exactly 0; no air drag. A 3 m/s ball rolls 4.5 m |');
-    expect(text).toContain('| Goal netting bounce | 0.3; walls, overhead net and goal frame 0.65 |');
+    expect(text).toContain('| Re-arm gap | 0.5 m surface to surface (M2, provisional by measurement) |');
+    expect(text).toContain('| Ball rolling slowdown | 1 m/s² on the floor, to exactly 0; no air drag. A 3 m/s ball rolls 4.5 m (M2, provisional by measurement) |');
+    expect(text).toContain('| Goal netting bounce | 0, so a goal stays in the net through its celebration (M2, provisional by measurement); walls, overhead net and goal frame 0.65 |');
     expect(text).toMatch(/\| Run speed \| 7 m\/s \|/);
     expect(text).toMatch(/Keeps 65% of its speed into the surface/);
     expect(text).toMatch(/\| Re-arm gap \| \*\*TBD\*\* \|.*\n {2}\(TBD there/);
     // The slip release's reach, apart from the re-arm gap, in A.4's Slip-out row (M2).
-    expect(tableSnippet({ slipHoldOffMetres: 0.5 }, docs)).toContain('toward the body slipped from only within 0.5 m of it, surface to surface in plan view (M2) |');
+    expect(tableSnippet({ slipHoldOffMetres: 0.5 }, docs)).toContain('toward the body slipped from only within 0.5 m of it, surface to surface in plan view (M2, provisional by measurement) |');
     const spots = tableSnippet({ kickoffSpotsMetres: [[], [[-11, 0]], [[-9, 4.5], [-9, -4.5]], ...config.kickoffSpotsMetres.slice(3)] }, docs);
     expect(spots).toContain('1 a side: (−11, 0). 2: (−9, ±4.5). 3: (−9, ±5), (−15, 0). 4: (−8, ±6), (−14, ±3). Everyone faces the ball');
     expect(tableSnippet({ coatCount: 9 }, docs)).toMatch(/In no table .*: coatCount/);

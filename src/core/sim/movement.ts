@@ -6,7 +6,7 @@
 // push(). Intents go to sim.intents by terrier slot, not into the state
 // (A.1); the phases are A.1's, with the start countdown; the gait divides
 // by the ticks a second and its running threshold is a setting. New at M2:
-// C-18's ball-frame push assist (design §4.4), off by default.
+// C-18's ball-frame push assist (design §4.4), on at the cap M2 settled.
 // Exact operations only (D-1).
 
 import {

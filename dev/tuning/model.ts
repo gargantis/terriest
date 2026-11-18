@@ -603,7 +603,8 @@ export const ROWS: readonly Row[] = [
   cfg('A.5', 'Get-up', 'getUpSeconds', 'tumbleSeconds'),
   cfg('A.5', 'Nose turn rate (vehicle-style)', 'noseTurnRateTurnsPerSecond', 'noseReverseMetresPerSecond'),
   cfg('A.5', 'Posts and crossbar', 'pitch.postRadiusMetres'),
-  cfg('A.5', 'Ball-frame push assist (C-18)', 'pushAssistCapMetresPerSecond'),
+  // The settled cap, then "a cap of 0 turns it off".
+  { where: 'A.5', name: 'Ball-frame push assist (C-18)', keys: ['pushAssistCapMetresPerSecond'], numbers: (c) => [c.pushAssistCapMetresPerSecond, 0] },
 ];
 
 /** Slider settings in no table, as src/config.test.ts's ELSEWHERE has them. */

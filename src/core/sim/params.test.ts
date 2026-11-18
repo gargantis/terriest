@@ -59,9 +59,9 @@ describe('SimParams (design §1.5)', () => {
     expect([P.startCountdownTicks, P.kickoffCountdownTicks, P.ticksPerMinute]).toEqual([300, 180, 3600]);
     expect([P.ballRadius, P.ballInvMass, P.terrierRadius, P.terrierInvMass]).toEqual([0.8, 1 / 2, 0.25, 1]);
     expect([P.runSpeed, P.zoomiesSpeed, P.noseReverse, P.pounceSpeed]).toEqual([6, 9, 3, 10]);
-    expect([P.restitutionThreshold, P.ballSurface, P.ballGoalNet, P.terrierBall, P.terrierRestitution]).toEqual([0.3, 0.7, 0.3, 0.5, 0.3]);
+    expect([P.restitutionThreshold, P.ballSurface, P.ballGoalNet, P.terrierBall, P.terrierRestitution]).toEqual([0.3, 0.7, 0, 0.5, 0.3]);
     expect([P.iterations, P.positionPasses, P.floorInSolve, P.slipSpeed, P.slipHoldOff]).toEqual([8, 2, true, 2, 0.6]);
-    expect([P.bowlingSpeed, P.rearmGap, P.arrivalStep, P.runningMinSpeed, P.pushAssistCap]).toEqual([4, 0.6, 1, 0.2, 0]);
+    expect([P.bowlingSpeed, P.rearmGap, P.arrivalStep, P.runningMinSpeed, P.pushAssistCap]).toEqual([4, 0.6, 1, 0.2, 9]);
     expect([P.coatCount, P.nameMaxChars, P.nameMaxBytes]).toEqual([8, 20, 32]);
     expect([P.packSizeMin, P.packSizeMax, P.matchMinutesMin, P.matchMinutesMax]).toEqual([1, 4, 1, 10]);
     expect(P.kickoffSpots).toEqual(derive(config).kickoffSpots);
@@ -84,8 +84,8 @@ describe('SimParams (design §1.5)', () => {
       [{ substepsPerTick: 5 }, ['driveCapDt', 'dt', 'gravityDt', 'idleFrictionDt', 'rollingSlowdownDt', 'substeps']],
       [{ tumbleSeconds: 2 }, ['tumbleTicks']],
       [{ gaitCycleMetres: 0.5 }, ['gaitUnitsPerMetre']],
-      [{ pushAssistCapMetresPerSecond: 9 }, ['pushAssistCap']],
-      [{ goalNetRestitution: 0 }, ['ballGoalNet']],
+      [{ pushAssistCapMetresPerSecond: 12 }, ['pushAssistCap']],
+      [{ goalNetRestitution: 0.3 }, ['ballGoalNet']],
       [{ pitch: { ...config.pitch, lengthMetres: 50 } }, ['pitch']],
       [{ kickoffSpotsMetres: [[], [[-11, 0]], ...config.kickoffSpotsMetres.slice(2)] }, ['kickoffSpots']],
     ];

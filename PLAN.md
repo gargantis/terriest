@@ -1652,7 +1652,7 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Worst-tick spread | at most 42 steps a tick to start, so a 270-step repair takes 7 ticks; M3 checks the cap (D-11) |
 | Solver iterations (forward and back sweeps over mirror pairs), position passes (also in mirror pairs) | 8, 2, with the floor's contacts in both (M0 kept them, D-5) |
 | Restitution threshold | 0.3 m/s |
-| Slip-out | 42° from vertical, 2 m/s sideways, with the slipping flag (M0 chose it, D-5); the flag holds the drive off toward the body slipped from only within 0.6 m of it, surface to surface in plan view (M2) |
+| Slip-out | 42° from vertical, 2 m/s sideways, with the slipping flag (M0 chose it, D-5); the flag holds the drive off toward the body slipped from only within 0.6 m of it, surface to surface in plan view (M2, provisional by measurement) |
 | Ball overhead | enter under 0.3 m, leave above 0.4 m (horizontal centre distance) |
 | Gait and running | the gait turns a cycle per 0.6 m run on the floor; a terrier draws as running above 0.2 m/s, or while its drive is on (M2, from M0, D-9) |
 | Stick | 32 steps, half-step hysteresis, 0.2 dead zone; chase view re-reads at 45° |
@@ -1680,21 +1680,23 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Setting | Value |
 |---|---|
 | Pitch, goal mouth, ball, run, acceleration, turn rate, zoomies, meter, jump, gravity, pounce, bowling speed, tumble, bark, countdowns, celebration, ready expiry | as REQUIREMENTS' Configuration table (celebration: 3 s seen, Q-7) |
-| Kickoff spots, pack A (pack B is the point mirror) | 1 a side: (−10, 0). 2: (−9, ±4). 3: (−9, ±5), (−15, 0). 4: (−8, ±6), (−14, ±3). Everyone faces the ball |
-| Ball rolling slowdown | 0.5 m/s² on the floor, to exactly 0; no air drag. A 3 m/s ball rolls 9 m |
-| Terrier bounce | 0.3 off terriers and walls |
+| Kickoff spots, pack A (pack B is the point mirror) | 1 a side: (−10, 0). 2: (−9, ±4). 3: (−9, ±5), (−15, 0). 4: (−8, ±6), (−14, ±3). Everyone faces the ball (M2, provisional by measurement) |
+| Ball rolling slowdown | 0.5 m/s² on the floor, to exactly 0; no air drag. A 3 m/s ball rolls 9 m (M2, provisional by measurement) |
+| Terrier bounce | 0.3 off terriers and walls (M2, provisional by measurement) |
 | Terrier against the floor | 0: a landing terrier doesn't bounce (L312) |
-| Goal netting bounce | 0.3; walls, overhead net and goal frame 0.7 |
-| Re-arm gap | 0.6 m surface to surface |
+| Goal netting bounce | 0, so a goal stays in the net through its celebration (M2, provisional by measurement); walls, overhead net and goal frame 0.7 |
+| Re-arm gap | 0.6 m surface to surface (M2, provisional by measurement) |
 | Chase view swing | 0.3 s time constant, at most 1 turn/s; calmer camera 0.6 s and 0.5 turn/s (tuned at M4 with the cameras, Q-10) |
 | Ball view swing | at most 1 turn/s, calmer camera 0.5 turn/s, with no lag below the cap; toward the overhead reference while the ball is overhead (D-28; tuned at M4) |
-| Tumble guard | 1.5 s |
-| Terrier collider | sphere, radius 0.25 m, mass 1 (ball 2) |
-| Idle friction | 8 m/s² |
+| Tumble guard | 1.5 s (M2, provisional by measurement) |
+| Terrier collider | sphere, radius 0.25 m (M2, provisional by measurement), mass 1 (ball 2) |
+| Idle friction | 8 m/s² (M2, provisional by measurement) |
 | Get-up | the last 0.5 s of the 1.5 s tumble |
 | Nose turn rate (vehicle-style) | 1 turn/s; reverse at up to 3 m/s |
 | Posts and crossbar | capsules, radius 0.1 m |
-| Ball-frame push assist (C-18) | off: its speed cap is 0 m/s, which turns it off; on, the cap is at least the zoomies speed; compared on the tuning page (M2) |
+| Ball-frame push assist (C-18) | on: its speed cap is 9 m/s, so two and four side by side in ball view beat a lone pusher (M2, provisional by measurement); a cap of 0 turns it off, and a cap that's on is at least the zoomies speed |
+
+**M2:** a row marked *provisional by measurement* here or in A.4 holds the value M2 settled by the method of `research/tuning/REPORT.md`, as the owner chose for Q-10 on 2026-11-17. Each is owner-pending: the owner confirms or changes it before M5's deploy (§17), and REQUIREMENTS' TBDs stay until the owner signs the values off.
 
 ### A.6 Toolchain pins
 

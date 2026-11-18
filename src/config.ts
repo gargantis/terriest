@@ -5,10 +5,12 @@
 // checks.
 //
 // Each name carries its unit. The values are REQUIREMENTS' and the plan's,
-// exactly: the table's TBDs take A.5's starting values, tuned at M2, and
-// the cameras' at M4 (Q-10). Table rows are cited by name, since the plan's
-// L-numbers count lines of REQUIREMENTS at 6254a1d: from L287 on, today's
-// are one further on (the plan's L306, Goal mouth, is now line 307).
+// exactly: the table's TBDs take A.5's values, which M2 settled
+// provisionally by measurement for the owner to confirm
+// (research/tuning/REPORT.md), and the cameras' are tuned at M4 (Q-10).
+// Table rows are cited by name, since the plan's L-numbers count lines of
+// REQUIREMENTS at 6254a1d: from L287 on, today's are one further on (the
+// plan's L306, Goal mouth, is now line 307).
 //
 // The simulation reads this from M2, through src/core/sim/params.ts, so its
 // arithmetic is exact operations only (D-1): + − × ÷, Math.sqrt and
@@ -79,7 +81,10 @@ export const config = deepFreeze({
   // bounce; A.5; D-5): the fraction of the closing speed a contact keeps,
   // above the restitution threshold.
   ballRestitution: 0.7, // off the floor, the walls, the overhead net and the goal frame
-  goalNetRestitution: 0.3, // the ball off the goal's netting, so a goal bulges it (C-48)
+  // The ball off the goal's netting, so a goal bulges it (C-48). M2 settled
+  // 0, provisionally: A.5's starting 0.3 let every one of design §9.6's
+  // netting shots come back out, and 0 alone kept them all in.
+  goalNetRestitution: 0,
   terrierBallRestitution: 0.5,
   terrierRestitution: 0.3, // terriers off each other and the walls
   terrierFloorRestitution: 0, // a landing terrier doesn't bounce (L312)
@@ -114,8 +119,10 @@ export const config = deepFreeze({
   ballOverheadEnterMetres: 0.3, // horizontal centre distance (D-7)
   ballOverheadLeaveMetres: 0.4,
   // The ball-frame push assist's speed cap: 0 turns it off, and on it's at
-  // least the zoomies speed (A.5; C-18).
-  pushAssistCapMetresPerSecond: 0,
+  // least the zoomies speed (A.5; C-18). M2 settled it on at the zoomies
+  // speed, provisionally: the smallest cap at which two and four side by
+  // side in ball view beat one pusher.
+  pushAssistCapMetresPerSecond: 9,
 
   // Animation (A.4: Gait and running; D-9), from M0's animate().
   gaitCycleMetres: 0.6, // run on the floor in a gait cycle

@@ -1,7 +1,7 @@
 # M2 tuning: report
 
 **Answers:** PLAN.md Q-10, M2's values, and C-18, pushers side by side. The owner chose on 2026-11-17 to have them settled by measurement, so Claude sets them by the method below, provisionally, as §17's rule for attended steps says, and the owner confirms or changes them before M5's deploy (section 1.7).
-**Status:** the method alone, committed before any value is measured under it. The results, and the values they settle, come in later sections.
+**Status:** the method (section 1), committed at e1a4c99 before any value was measured under it and unchanged since, and the results (section 2), measured under it at that commit. Two values change, and the owner confirms or changes all of them (section 2.7).
 **Sources:** M2's design §9.6, which fixes each value's metric, check and rule; section 1.8 lists what this method makes precise. `dev/tuning.metrics.ts` measures, on the tuning page's scenarios (`dev/tuning/scenarios.ts`), built on `src/core/sim/scenes.ts` and `cases.ts`, which the gate's tests run too.
 **Known before it:** a run of the metrics at phase 4 (ccf92c8), before this method was fixed, doesn't count as the measurement. Its picks were known when the method was written.
 
@@ -103,3 +103,105 @@ TERRIEST_TUNING_OUT=research/tuning/round-2.json npx vitest run --config dev/vit
 9. **Rounds:** design §9.6 tunes each value alone. Section 1.2's second round and its put-back order settle what happens when picks interact.
 10. **REQUIREMENTS' values** are proposals only (design §14 Q-1).
 11. **The push assist's moving ball:** design §4.4's assist acts on a ball moving above 0.3 m/s. It reads that from the restitution threshold, A.4's 0.3 m/s, not from a key of its own, so tuning the threshold moves both. The threshold isn't tuned here.
+
+## 2. Results
+
+**Run** by section 1.6's commands at e1a4c99, this method's commit, with the tree clean, in Node 22.23.4 and vitest 4.1.12 on the development machine: round 1 from 05:25 UTC on 2026-11-18, in 535 s, and round 2 from 05:35, in 517 s. `round-1.json` and `round-2.json` are committed here. Round 2 stood, so no put-back ran. `results.json` is the metrics run once more after the adoption, at this commit's `src/config.ts` with no variable set (section 2.6).
+
+### 2.1 Round 1: each value alone, from the base
+
+| Value | Start | Candidates measured | Checks | Picked, and why |
+|---|---|---|---|---|
+| Kickoff spots | A.5's table | none | pass at the start: the spots' checks; the pinch comes down, mirrored, at 1 to 4 a side, with and without zoomies, in 0.433 to 1.962 s; the 1-a-side spot is on y = 0; the bot marks and setups (section 2.3) | kept: its checks pass |
+| Rolling slowdown | 0.5 m/s² | 0.5, 0.4, 0.6, 0.3, 0.75, 1 | all pass: one pusher in 1.192 to 1.317 s, four in a train in 0.575 to 0.579 s; at 0.5, 1.225 and 0.575 s | kept |
+| Terrier bounce | 0.3 | 0.3, 0.2, 0.4, 0.1, 0.5, 0 | all pass: case 1's worst down in 1.383 to 1.404 s, none held up; the sitting pair 0.471 s; no slip-out in the 336 dribbles; every pinch down, mirrored | kept |
+| Re-arm gap | 0.6 m | 0.6, 0.5, 0.7, 0.4, 0.8, 0.3, 1 | all pass: a push from contact counts 1 touch in both frames, at a run and at zoomies speed, and the rebound met again 2 | kept |
+| Slip hold-off | 0.6 m | 0.6, 0.5, 0.7, 0.4, 0.8, 0.3, 1 | 0.6, 0.5, 0.7, 0.8 and 1 pass. 0.4 and 0.3 fail case 1: the worst comes down in 1.721 s (4 a side at 15°, ball frame, off mirror) and 2.000 s (4 a side at 17°) | kept |
+| Tumble guard | 1.5 s | 1.5, 1, 2, 0.5, 2.5 | all pass: the shortest time up after a get-up is the guard and a tick, 1.517 s at 1.5 | kept |
+| Collider size: the radius | 0.25 m | 0.25, 0.23, 0.27, 0.2, 0.3 | only 0.25 passes. Every other radius shuts C-21's window, the dribbles' lowest hop falling under the 42° cone: to 36.1° at 0.23, 40.9° at 0.27, 17.8° at 0.2 and 41.9° at 0.3. 0.23, 0.2 and 0.3 also slip out in 34, 82 and 8 of the 336 dribbles, and 0.3 holds 5 rest cases up and takes 0.542 s for the sitting pair | kept |
+| Drive and idle friction: idle friction | 8 m/s² | 8, 6, 10, 4, 12 | 8, 6 and 4 pass; 10 and 12 fail case 2, the sitting pair taking 0.887 and 2.979 s | kept |
+| Drive and idle friction: the acceleration | 15 m/s², REQUIREMENTS' | 15, 12, 18 | 15 passes. 12 and 18 miss both push marks (one pusher 1.558 and 1.008 s, four in a train 0.725 and 0.479 s), fail case 1 and shut the window (36.8° and 39.7°); 18 slips out in 20 of the dribbles too | kept, so no proposal |
+| Goal netting | 0.3 | 0.3, 0.2, 0.15, 0.1, 0.05, 0.02, 0 | all 18 shots score at each. Not wholly behind the line: 18, 18, 18, 17, 11 and 4 of them, and at 0 none | 0: the largest that passes |
+| Bowling speed | 4 m/s, REQUIREMENTS' | 4, 3.5, 4.5, 3, 5 | 4, 3.5, 4.5 and 3 pass. At 5, a pounce from the air, sending the ball off at 4.57 m/s, no longer bowls | kept, so no proposal |
+| Side-by-side pushers: the push assist (C-18) | off: a cap of 0 | caps of 9, 12 and 15 m/s | off fails: in ball view, two round the ball and two on a line take 2.033 s and four round the ball 1.313 s, against one pusher's 1.225 s (four on a line beat it, at 0.921 s). Every cap passes, one pusher's time unchanged | 9 m/s: the smallest that passes |
+
+So round 1 picks the netting at 0 and the assist at 9 m/s, and proposes nothing.
+
+### 2.2 Round 2: the picks together
+
+From `{"goalNetRestitution":0,"pushAssistCapMetresPerSecond":9}`, every value's checks pass, and the rules pick nothing more and propose nothing. Every candidate passes or fails as it did in round 1, and the bot marks pass (section 2.3). So the combination stands.
+
+What it moves at the base, against round 1, is small:
+- case 1's worst over the 864 rest cases, from 1.383 to 1.387 s, still 1 a side at 56° in the ball frame, off mirror: the assist acts in the cases off mirror;
+- the wall scrum's contacts a substep, from 11.01 to 11.44, and its most from 18 to 19;
+- in the 2-a-side bot matches, tumbles a minute by bowling from 5.37 to 5.17, and by pouncing from 0.367 to 0.300. At 4 a side they're 6.465 and 0.312 in both rounds.
+
+The netting's figures are now those of 0 (section 2.5). The push times, the hits, the touches and the guard's figures don't move.
+
+### 2.3 The bot marks and the end-to-end setups
+
+At the settled values, from the metrics' 'bots' section in round 2, and again from `marks.ts`'s runs at this commit's configuration:
+- **the empty goal:** 100 of 100 score within 20 s, the slowest in 11.3 s, never stuck;
+- **the fall-back:** 100 of 100 at each of 1 to 4 a side. The brain with no fall-back gets 21, 26, 29 and 31, and the one that charges 0 at each size, so the mark can fail;
+- **a goal in regulation:** 100 of 100;
+- **never stuck** in the 100 whole matches, 17 of which go to overtime;
+- **the three-engine setup:** 25 of 25 end at 0:00 with the bot's pack ahead, the slowest first goal after 11.1 s of play. **Practice:** 25 of 25, the slowest after 5.7 s;
+- **at reactions of 0.15 and 0.35 s and aim noise of 5° and 15°,** for M4's play test (Q-9): every mark passes, the empty goal at 99 of 100 with 0.15 s.
+
+Round 1 gives the same counts at the start. The bot keys stay A.4's, and design §8.6's mark values stand.
+
+### 2.4 Adopted
+
+| Setting | Value | Was |
+|---|---|---|
+| `goalNetRestitution` | 0 | 0.3 |
+| `pushAssistCapMetresPerSecond` | 9 m/s | 0, off |
+
+The other eight values keep their starts: the kickoff spots, the rolling slowdown, the terrier bounce, the re-arm gap, the slip hold-off, the tumble guard, the collider's radius and idle friction. All ten are in `src/config.ts`, and in A.4 and A.5, marked provisional by measurement. REQUIREMENTS' acceleration and bowling speed aren't M2's to settle, and stay.
+
+**C-18's marks,** at the 9 m/s cap, in seconds to 95% of run speed:
+
+| Pushers | Pitch frame | Ball view | Ball view, assist off |
+|---|---|---|---|
+| two round the ball | 0.829 | 1.175 | 2.033 |
+| two on a line | 0.833 | 1.175 | 2.033 |
+| four round the ball | 0.721 | 0.983 | 1.313 |
+| four on a line | 0.758 | 0.854 | 0.921 |
+
+- One pusher takes 1.225 s in both frames, with the assist on or off.
+- The assist acts only in ball view, so the pitch frame keeps M0's times.
+- `push.test.ts` holds each time ± 10%, and in ball view each must also beat one pusher. Section 1.3 said "plus 10%"; the marks take −10% as well, as §16's own push marks do, which only narrows them.
+- Caps of 12 and 15 m/s give the same times, but for four round the ball's 0.979 s.
+
+### 2.5 Reported, never checked
+
+At the settled values, unless said:
+- **The roll:** a 3 m/s ball rolls 8.981 m (A.5: 9 m).
+- **The netting:** at 0, each shot's least |x| is where it scored, 20.801 to 20.837 m, so the ball never comes back toward the line. At 0.3, the worst shot at 5 m/s ends at 16.84 m and the worst at 10 m/s at 11.51 m, 8.5 m out onto the pitch, as the design's scratch run found. Across the rolling slowdown's candidates they move less than 0.6 m from 0.5's: 16.60 to 17.36 m, and 11.37 to 11.85 m.
+- **The terrier bounce:** terriers meeting head-on at run speed, closing at 12 m/s, separate at 3.6, the bounce's 0.3 exactly.
+- **The wall scrum:** 11.44 contacts a substep, at most 19.
+- **The guard:** the still terrier is tumbled for 0.494 of the 30 s at 1.5 s, in 10 tumbles, against 0.742 at 0.5 s and 0.396 at 2.5 s.
+- **D-4:** the drawn box overhangs the sphere by 0.05 m, and reaches 0.137 m past it toward a floor push's contact, which is 31.59° up (D-4: 14 cm).
+- **The drive:** run speed from rest in 0.4 s (REQUIREMENTS: 0.4 s); a pusher moves an idle terrier at 3.5 m/s² (D-6: 3.5).
+- **C-5:** a push at zoomies speed sends the ball off at 3.968 m/s, and a pounce from the air at 4.57 m/s. A ball dribbled at a run bowls the rival it meets, coming at it at 5.995 m/s. A ball rolled at a terrier at 5 m/s bowls it, at 4.679 m/s by then; at 3 m/s it doesn't (2.429 m/s).
+- **Tumbles a minute,** in 10 seeded bot matches at each size: by bowling 5.17 and by pouncing 0.300 at 2 a side, and 6.465 and 0.312 at 4.
+- **Hits:** the ball's speed 30 ticks after 1 to 4 terriers hit it at once, from the floor in parallel 2.656, 3.571, 3.810 and 3.685 m/s, and at the centre 2.656, 3.690, 4.300 and 4.477; level in parallel 3.000, 4.354, 4.999 and 5.213, and at the centre 3.000, 4.478, 5.469 and 6.157. These are M0's.
+- **C-21's window:** no slip-out in the 2,880 dribbles, whose lowest hop is 43.529° (ball frame, 3 steps off, zoomies from 9 m/s, a 0.3012 m run-up), above the 42° cone. The sitting pair gets down in 0.471 s at 42°, 0.483 at 41.5°, 0.508 at 41° and 0.558 at 40°. So the window runs from about 41.5° to 43.5°.
+- **Timings,** which depend on the machine: the step on the wall scrum took medians of 39.9 to 69.4 µs over the three runs, against M0's 27.8 to 31.2 µs, and `think()` 0.57 to 0.69 µs a bot. These single runs aren't the tick-by-tick comparison with the spike that phases 2 and 3 made.
+
+### 2.6 What changes with them
+
+- **The goldens** are re-emitted on purpose, with `TERRIEST_EMIT_GOLDENS=1 npm run emit-goldens`, every run covering its spec. 14 of the 25 runs change, and the canary goes from de2bb0d7a95ae1e7 to eea91a8dd7ba3cf4. The warm-up, the four mirrored kickoffs, the resting and rolling balls, the squeeze, both pinches and the nose frame don't: neither the netting's bounce nor the assist acts in them. In a mirrored state the ball has no horizontal speed for the assist to act on. With the ball held in the net, four in a train press it there through the celebration, and that run's slip-outs go from 1 to 92, all in the celebration.
+- **The bit pins** in `step.test.ts` don't move: they run at M0's values, a cap of 0 and a netting of 0.3 among them.
+- **Re-pinned:** the tunnelling fuzz's count of substeps with the ball wholly behind a goal line, inside a goal, from M0's 1,101 to 15,051 on the main pitch, and from 1,449 to 16,214 on D-4's second shape. The netting alone moves them: a scratch run gives M0's counts with the assist on and the netting at 0.3. The ball still never leaves the pitch.
+- **New:** `src/core/sim/netting.test.ts` holds the netting in the gate. At the settled value all 18 shots stay wholly behind the line through the celebration, and at 0.3 every one comes back out.
+- **Changed:** `push.test.ts`, C-18's marks; `assist.test.ts`, the assist on by default, compared with a cap of 0 explicitly, with M0's times off pinned there; `params.test.ts`; `contacts.test.ts`, which checks the netting at 0.3 as well, so a net that keeps some speed is still tested; `config.test.ts` and `model.test.ts`, for the rows' wording.
+- **`results.json`** is the metrics at this commit's `src/config.ts`, run from 05:52 UTC in 508 s. Every figure in it is round 2's: only the time and the timings differ, so `src/config.ts` holds round 2's base.
+
+### 2.7 For the owner
+
+- **To confirm or change before M5's deploy** (§17, section 1.7): the ten values settled here, with their figures above. That's the netting at 0 (Q-21), the push assist on at 9 m/s with C-18's marks (Q-13), and the eight kept at their starts.
+- **REQUIREMENTS.md is unchanged.** Its five TBDs stay, and so does the Ball bounce row's "The goal's netting keeps less, tuned at M2". With the owner's sign-off, Q-21's wording replaces that: "the goal's netting keeps none of its speed into it, and all of its speed along it".
+- **No proposals:** the acceleration and the bowling speed pass at REQUIREMENTS' values. No value failed every candidate, and no pick was put back.
+- **Bowling (Q-8, C-5):** in the bot matches, terriers are bowled over by the ball 5.2 times a minute of play at 2 a side and 6.5 at 4, against 0.3 pounce tumbles a minute. The bowling speed sets that. Measured at the settled values: at 4.5 m/s, 3.3 and 4.2 a minute; at 5, 2.2 and 2.1, but then a pounce from the air no longer bowls, against REQUIREMENTS' note; at 3.5, 9.0 and 10.1; and at 3, 12.2 and 13.3. 4 m/s is REQUIREMENTS' and passes its checks, so it stays. Whether tumbles should come this much more often from the ball than from pounces is the owner's call.
+- **The slip hold-off is bounded from below only:** 0.4 m fails case 1. A longer reach keeps a slipped terrier from braking toward the ball for longer (bots-F4), and nothing here measures that.

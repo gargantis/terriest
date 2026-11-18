@@ -7,7 +7,7 @@ import { hashState } from './codec';
 import { type GoldenResult, type Goldens, replay } from './golden';
 import { mirrorInput, STEP_MASK } from './input';
 import { dir, fractionOfTurn, HALF_TURN } from './math';
-import { defaultParams, type SimParams, simParams } from './params';
+import { defaultParams, type SimParams } from './params';
 import {
   ballDir, chasey, NOTHING, park, pinchScene, place, placeBall, pushScene, type Scene, sceneInputs, sceneStart, touchReach,
 } from './scenes';
@@ -19,38 +19,47 @@ import { kineticEnergy, mirrorMismatches, momentum, paramsWith, run, scenario } 
 // C-18's ball-frame push assist (design §4.4; movement.ts): a pusher touching
 // a moving ball, holding within a step of forward in the ball frame, drives
 // at base / cos φ, capped, so its speed along the ball's travel is its base
-// speed. Off by default (a cap of 0), and then skipped entirely. On, its cap
-// is at least the zoomies speed (a configuration check, src/config.test.ts).
+// speed. M2 settled it on, at a cap of 9 m/s, provisionally by measurement
+// (research/tuning/REPORT.md). A cap of 0 turns it off and skips it
+// entirely; on, its cap is at least the zoomies speed (a configuration
+// check, src/config.test.ts).
 vi.setConfig({ testTimeout: 120_000 });
 
-const ON = 9; // the smallest cap that's on: the zoomies speed
+const ON = 9; // the settled cap: the zoomies speed, the smallest that's on
 const at = (cap: number): Partial<Config> => ({ pushAssistCapMetresPerSecond: cap });
+const OFF = paramsWith(at(0));
 const seconds = (s: number | null): string => (s === null ? 'not reached' : s.toFixed(3));
 
-describe('the push assist off (design §4.4)', () => {
-  it('is off by default, and off changes no golden: runs it moves when on replay to goldens.json', () => {
-    expect(config.pushAssistCapMetresPerSecond).toBe(0);
-    expect(defaultParams.pushAssistCap).toBe(0);
+describe('the push assist on by default, and off (design §4.4)', () => {
+  it('is on at its settled cap, which the goldens were emitted at: runs it moves replay to goldens.json, and off they differ', () => {
+    expect(config.pushAssistCapMetresPerSecond).toBe(ON);
+    expect(defaultParams.pushAssistCap).toBe(ON);
+    expect(OFF.pushAssistCap).toBe(0);
     const want = JSON.parse(readFileSync(fileURLToPath(new URL('./goldens.json', import.meta.url)), 'utf8')) as Goldens;
-    const on = simParams({ ...config, ...at(ON) });
-    // Seeded play in all three frames, from genesis: the assist on moves both.
+    // Seeded play in all three frames, from genesis: the assist moves both.
+    // Off, the rule is skipped: step.test.ts's bit pins run at M0's values,
+    // a cap of 0 among them, and still match the spike's bits.
     for (const name of ['match 1', 'roster']) {
       const k = GOLDEN_SCRIPTS.findIndex((r) => r.name === name);
       const golden: GoldenResult = want.runs[k]!;
-      expect(replay(GOLDEN_SCRIPTS[k]!), `${name}, off`).toEqual(golden);
-      expect(replay(GOLDEN_SCRIPTS[k]!, on).final, `${name}, on`).not.toBe(golden.final);
+      expect(replay(GOLDEN_SCRIPTS[k]!), `${name}, on`).toEqual(golden);
+      expect(replay(GOLDEN_SCRIPTS[k]!, OFF).final, `${name}, off`).not.toBe(golden.final);
     }
   });
 });
 
 describe('the push assist on (design §4.4, C-18)', () => {
   it('pushes two and four abreast in ball view faster than off, and than one pusher: 1.175, 1.175, 0.983 and 0.854 s at 9 m/s', () => {
-    // Off they're M0's 2.033, 2.033, 1.313 and 0.921 s (push.test.ts).
-    const want: [layout: 'round' | 'line', m: number, on: string][] = [['round', 2, '1.175'], ['line', 2, '1.175'], ['round', 4, '0.983'], ['line', 4, '0.854']];
+    // Off they're M0's times, slower than one pusher's 1.225 s.
+    const want: [layout: 'round' | 'line', m: number, off: string, on: string][] = [
+      ['round', 2, '2.033', '1.175'], ['line', 2, '2.033', '1.175'], ['round', 4, '1.313', '0.983'], ['line', 4, '0.921', '0.854'],
+    ];
     const one = pushTime('train', 1, 'ball', at(ON)).seconds!;
     expect(seconds(one)).toBe('1.225');
-    for (const [layout, m, onTime] of want) {
-      const off = pushTime(layout, m, 'ball', {}, 600);
+    expect(seconds(pushTime('train', 1, 'ball', at(0)).seconds)).toBe('1.225');
+    for (const [layout, m, offTime, onTime] of want) {
+      const off = pushTime(layout, m, 'ball', at(0), 600);
+      expect(seconds(off.seconds), `${m} ${layout}, off`).toBe(offTime);
       for (const cap of [ON, 12, 20]) {
         const r = pushTime(layout, m, 'ball', at(cap), 600);
         expect(r.seconds, `${m} ${layout}, cap ${cap}`).not.toBeNull();
@@ -69,7 +78,7 @@ describe('the push assist on (design §4.4, C-18)', () => {
     const scenes = [pushScene('train', 1, 'ball'), pushScene('train', 2, 'ball'), pushScene('train', 4, 'ball'), pushScene('round', 2, 'pitch'), pushScene('line', 4, 'pitch')];
     const on = paramsWith(at(20));
     for (const scene of scenes) {
-      const a = { sim: makeSim(defaultParams, scene.packSize), s: sceneStart(scene, defaultParams) };
+      const a = { sim: makeSim(OFF, scene.packSize), s: sceneStart(scene, OFF) };
       const b = { sim: makeSim(on, scene.packSize), s: sceneStart(scene, on) };
       for (let t = 1; t <= 120; t++) {
         step(a.sim, a.s, sceneInputs(scene, a.s, t));
@@ -185,7 +194,7 @@ describe("the push assist's rule (design §4.4)", () => {
     for (const [steps, acts] of [[[1, 31], true], [[31, 1], true], [[2, 30], false], [[30, 2], false]] as const) {
       const turned = holding(scene, (rank) => steps[rank]!);
       const a = { sim: makeSim(on, scene.packSize), s: cloneState(s) };
-      const b = { sim: makeSim(defaultParams, scene.packSize), s: cloneState(s) };
+      const b = { sim: makeSim(OFF, scene.packSize), s: cloneState(s) };
       let differs = 0;
       let could = 0; // ticks where only the step keeps it from acting: touching a moving ball, cos φ in (0, 1)
       for (let t = 46; t <= 90; t++) {
@@ -216,7 +225,7 @@ describe("the push assist's rule (design §4.4)", () => {
     for (const [layout, m] of [['round', 2], ['line', 2], ['round', 4], ['line', 4]] as const) {
       const scene = pushScene(layout, m, 'ball');
       const a = { sim: makeSim(on, scene.packSize), s: sceneStart(scene, on) };
-      const b = { sim: makeSim(defaultParams, scene.packSize), s: sceneStart(scene, defaultParams) };
+      const b = { sim: makeSim(OFF, scene.packSize), s: sceneStart(scene, OFF) };
       let slow = 0; // ticks touching a ball that moves, slower than the threshold, cos φ in (0, 1)
       for (let t = 1; t <= 60 && Math.hypot(b.s.ball.vx, b.s.ball.vy) <= on.restitutionThreshold; t++) {
         const vx = b.s.ball.vx;
@@ -345,7 +354,7 @@ describe('P8 with the push assist on (design §4.4)', () => {
       ];
       for (const scene of scenes) {
         const a = { sim: makeSim(on, packSize), s: sceneStart(scene, on) };
-        const b = { sim: makeSim(defaultParams, packSize), s: sceneStart(scene, defaultParams) };
+        const b = { sim: makeSim(OFF, packSize), s: sceneStart(scene, OFF) };
         let first: string | null = null;
         a.sim.probe = (st, sub) => {
           if (first !== null) return;
@@ -412,7 +421,7 @@ describe('P8 with the push assist on (design §4.4)', () => {
     const runOf = (P: SimParams, scene: Scene): { sim: Sim; s: MatchState } => ({ sim: makeSim(P, scene.packSize), s: sceneStart(scene, P) });
     for (const scene of [pushScene('train', 1, 'ball'), pushScene('round', 2, 'ball'), pushScene('line', 2, 'ball'), pushScene('round', 4, 'ball'), pushScene('line', 4, 'ball')]) {
       const twin = mirrorOf(scene);
-      const a = runOf(on, scene), b = runOf(on, twin), off = runOf(defaultParams, scene);
+      const a = runOf(on, scene), b = runOf(on, twin), off = runOf(OFF, scene);
       expect(unmirrored(a.s, b.s), `${scene.name}: placed`).toEqual([]);
       for (let t = 1; t <= 180; t++) {
         step(a.sim, a.s, sceneInputs(scene, a.s, t));

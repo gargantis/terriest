@@ -4,8 +4,10 @@ import { type PushResult, pushTime } from './cases';
 // PLAN §16 "Pushes", C-18, M0 run 2 (D-6 as M0 amended it): from rest, in
 // contact, with the rolling slowdown, the time for the ball to reach 95% of
 // run speed. §16's marks, and M0's times pinned to the digits
-// research/spike/REPORT.md §5.2 prints. The side-by-side marks are set with
-// the owner at M2 (settle adds them).
+// research/spike/REPORT.md §5.2 prints. C-18's side-by-side marks were set at
+// M2, provisionally by measurement, with the push assist on at its settled
+// 9 m/s cap (research/tuning/REPORT.md): each measured time ± 10%, as §16's
+// own push marks are.
 vi.setConfig({ testTimeout: 120_000 });
 
 const fmt = (r: PushResult): string =>
@@ -34,19 +36,31 @@ describe('push times to 95% of run speed (§16, C-18)', () => {
     expect(seconds(pushTime('train', 2, 'pitch'))).toBe('0.779');
   });
 
-  it("two and four side by side, in the pitch frame and then the ball frame, take M0's times", () => {
-    // Round the ball, touching it 33° apart, and on a line abreast 0.52 m apart.
-    const want: [layout: 'round' | 'line', m: number, pitch: string, ball: string][] = [
-      ['round', 2, '0.829', '2.033'],
-      ['line', 2, '0.833', '2.033'],
-      ['round', 4, '0.721', '1.313'],
-      ['line', 4, '0.758', '0.921'],
+  it("two and four side by side reach C-18's marks in both frames, and in ball view beat one pusher", () => {
+    // Round the ball, touching it 33° apart, and on a line abreast 0.52 m
+    // apart. The assist acts only in ball view, so the pitch frame keeps M0's
+    // times; without it, ball view took M0's 2.033, 2.033, 1.313 and 0.921 s
+    // (assist.test.ts), all slower than one pusher's 1.225 s.
+    const marks: [layout: 'round' | 'line', m: number, frame: 'pitch' | 'ball', mark: number][] = [
+      ['round', 2, 'pitch', 0.829],
+      ['line', 2, 'pitch', 0.833],
+      ['round', 4, 'pitch', 0.721],
+      ['line', 4, 'pitch', 0.758],
+      ['round', 2, 'ball', 1.175],
+      ['line', 2, 'ball', 1.175],
+      ['round', 4, 'ball', 0.983],
+      ['line', 4, 'ball', 0.854],
     ];
-    for (const [layout, m, pitch, ball] of want) {
-      const p = pushTime(layout, m, 'pitch', {}, 600);
-      const b = pushTime(layout, m, 'ball', {}, 600);
-      expect([seconds(p), seconds(b)], `${fmt(p)}; ${fmt(b)}`).toEqual([pitch, ball]);
-      expect(p.slipOuts + b.slipOuts).toBe(0);
+    const one = pushTime('train', 1, 'ball');
+    expect(seconds(one)).toBe('1.225');
+    for (const [layout, m, frame, mark] of marks) {
+      const r = pushTime(layout, m, frame, {}, 600);
+      expect(r.seconds, fmt(r)).not.toBeNull();
+      expect(r.seconds!, `${fmt(r)}: ${mark} s - 10%`).toBeGreaterThanOrEqual(0.9 * mark);
+      expect(r.seconds!, `${fmt(r)}: ${mark} s + 10%`).toBeLessThanOrEqual(1.1 * mark);
+      expect(seconds(r), fmt(r)).toBe(mark.toFixed(3));
+      if (frame === 'ball') expect(r.seconds!, `${fmt(r)}: quicker than one pusher`).toBeLessThan(one.seconds!);
+      expect(r.slipOuts, fmt(r)).toBe(0);
     }
   });
 });

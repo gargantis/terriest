@@ -150,8 +150,10 @@ describe('bounces keep their fraction above 0.3 m/s (D-5, L308, L311)', () => {
       { name: 'back netting', ball: [-20.6, 0, 0.8], v: [-3, 0, 0], net: true, axis: 0 },
     ];
     // The netting at its configured fraction, read from SimParams so a tuned
-    // value moves the test with it, and at 0, which keeps none (C-48).
-    for (const netting of [undefined, 0]) {
+    // value moves the test with it; at 0, which keeps none (C-48), and M2
+    // settled; and at A.5's starting 0.3, so a fraction that keeps some is
+    // checked too.
+    for (const netting of [undefined, 0, 0.3]) {
       for (const c of cases) {
         const sc = scenario(1, { rollingSlowdownMetresPerSecond2: 0, gravityMetresPerSecond2: 0, ...(netting === undefined ? {} : { goalNetRestitution: netting }) }, (s, P) => {
           park(P, s, 0);

@@ -1,0 +1,7816 @@
+{
+ "utc": "2026-11-18T05:25:42.742Z",
+ "node": "v22.23.4",
+ "base": "src/config.ts",
+ "configuration": {
+  "packSizeMin": 1,
+  "packSizeMax": 4,
+  "packSizeDefault": 2,
+  "matchLengthMinMinutes": 1,
+  "matchLengthMaxMinutes": 10,
+  "matchLengthDefaultMinutes": 3,
+  "readyExpirySeconds": 60,
+  "startCountdownSeconds": 5,
+  "kickoffCountdownSeconds": 3,
+  "celebrationSeenSeconds": 3,
+  "kickoffSpotsMetres": [
+   [],
+   [
+    [
+     -10,
+     0
+    ]
+   ],
+   [
+    [
+     -9,
+     4
+    ],
+    [
+     -9,
+     -4
+    ]
+   ],
+   [
+    [
+     -9,
+     5
+    ],
+    [
+     -9,
+     -5
+    ],
+    [
+     -15,
+     0
+    ]
+   ],
+   [
+    [
+     -8,
+     6
+    ],
+    [
+     -8,
+     -6
+    ],
+    [
+     -14,
+     3
+    ],
+    [
+     -14,
+     -3
+    ]
+   ]
+  ],
+  "warmUpArrivalStepMetres": 1,
+  "pitch": {
+   "lengthMetres": 40,
+   "widthMetres": 28,
+   "heightMetres": 6,
+   "cornerCutsMetres": [
+    4,
+    4,
+    4,
+    4
+   ],
+   "mouthWidthMetres": 8,
+   "mouthHeightMetres": 3,
+   "goalDepthMetres": 2,
+   "postRadiusMetres": 0.1
+  },
+  "ballRadiusMetres": 0.8,
+  "ballMassKg": 2,
+  "terrierRadiusMetres": 0.25,
+  "terrierMassKg": 1,
+  "terrierShoulderHeightMetres": 0.3,
+  "terrierLengthMetres": 0.6,
+  "ballRestitution": 0.7,
+  "goalNetRestitution": 0.3,
+  "terrierBallRestitution": 0.5,
+  "terrierRestitution": 0.3,
+  "terrierFloorRestitution": 0,
+  "gravityMetresPerSecond2": 9.8,
+  "accelerationMetresPerSecond2": 15,
+  "idleFrictionMetresPerSecond2": 8,
+  "rollingSlowdownMetresPerSecond2": 0.5,
+  "runSpeedMetresPerSecond": 6,
+  "zoomiesSpeedMetresPerSecond": 9,
+  "turnRateTurnsPerSecond": 2,
+  "noseTurnRateTurnsPerSecond": 1,
+  "noseReverseMetresPerSecond": 3,
+  "steering": "anchored",
+  "zoomiesFullSeconds": 3,
+  "zoomiesRefillSeconds": 6,
+  "zoomiesMeterUnitsPerTick": 2,
+  "jumpHeightMetres": 1,
+  "pounceSpeedMetresPerSecond": 10,
+  "lungeSeconds": 0.3,
+  "pounceWaitSeconds": 1.5,
+  "bowlingSpeedMetresPerSecond": 4,
+  "tumbleSeconds": 1.5,
+  "getUpSeconds": 0.5,
+  "tumbleGuardSeconds": 1.5,
+  "rearmGapMetres": 0.6,
+  "barkMaxPerSecond": 1,
+  "ballOverheadEnterMetres": 0.3,
+  "ballOverheadLeaveMetres": 0.4,
+  "pushAssistCapMetresPerSecond": 0,
+  "gaitCycleMetres": 0.6,
+  "runningMinSpeedMetresPerSecond": 0.2,
+  "chaseSwingTimeConstantSeconds": 0.3,
+  "chaseSwingMaxTurnsPerSecond": 1,
+  "chaseCalmerTimeConstantSeconds": 0.6,
+  "chaseCalmerMaxTurnsPerSecond": 0.5,
+  "ballViewSwingMaxTurnsPerSecond": 1,
+  "ballViewCalmerMaxTurnsPerSecond": 0.5,
+  "ticksPerSecond": 60,
+  "substepsPerTick": 4,
+  "inputDelayTicks": 2,
+  "lateWindowTicks": 12,
+  "voteWindowTicks": 12,
+  "stateHistoryTicks": 256,
+  "inputHistoryTicks": 16,
+  "spreadMaxStepsPerTick": 42,
+  "speedBoundMetresPerSecond": 25,
+  "solverIterations": 8,
+  "positionPasses": 2,
+  "floorContactsInSolve": true,
+  "restitutionThresholdMetresPerSecond": 0.3,
+  "slipOutConeDegrees": 42,
+  "slipOutSpeedMetresPerSecond": 2,
+  "slipHoldOffMetres": 0.6,
+  "removalSilentTicks": 180,
+  "sittingSilentTicks": 120,
+  "abandonedSeconds": 30,
+  "duplicateIdSilentSeconds": 2,
+  "handshakeTimeoutSeconds": 10,
+  "connectionFailureSeconds": 20,
+  "meshPlayersMax": 8,
+  "spectatorsMax": 4,
+  "messageMaxBytes": 16000,
+  "maxReceiveBytes": 1048576,
+  "displayNameMaxChars": 20,
+  "displayNameMaxBytes": 32,
+  "stickSteps": 32,
+  "stickHysteresisSteps": 0.5,
+  "stickDeadZoneFraction": 0.2,
+  "chaseRereadDegrees": 45,
+  "touchEdgeMarginCssPx": 32,
+  "smoothingMs": 100,
+  "ownSmoothingMs": 50,
+  "timerStallSeconds": 2,
+  "phoneShortSideCssPx": 600,
+  "resultsPressGuardSeconds": 0.5,
+  "lostGraphicsSeconds": 5,
+  "renderQualityDefault": "high",
+  "renderQuality": {
+   "high": {
+    "pixelRatioMax": 2,
+    "msaa": true
+   },
+   "low": {
+    "pixelRatioMax": 1,
+    "msaa": false
+   }
+  },
+  "soundShiftTicksMax": 3,
+  "coatCount": 8,
+  "botReactionSeconds": 0.25,
+  "botAimNoiseDegrees": 10,
+  "botZoomiesBeyondMetres": 5,
+  "botPounceWithinMetres": 2,
+  "botPounceAlignDegrees": 20,
+  "botSupportMetres": 5,
+  "botDefendMetres": 6,
+  "botBarkEverySeconds": 5,
+  "botStuckSeconds": 2,
+  "botStuckMetres": 0.5
+ },
+ "pushes": [
+  {
+   "cap": 0,
+   "rows": [
+    {
+     "name": "one pusher",
+     "frame": "pitch",
+     "seconds": 1.225,
+     "top": 5.715,
+     "slipOuts": 0
+    },
+    {
+     "name": "one pusher",
+     "frame": "ball",
+     "seconds": 1.225,
+     "top": 5.715,
+     "slipOuts": 0
+    },
+    {
+     "name": "two in a train",
+     "frame": "pitch",
+     "seconds": 0.779,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "two in a train",
+     "frame": "ball",
+     "seconds": 0.779,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "four in a train",
+     "frame": "pitch",
+     "seconds": 0.575,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "four in a train",
+     "frame": "ball",
+     "seconds": 0.575,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "two round the ball",
+     "frame": "pitch",
+     "seconds": 0.829,
+     "top": 5.704,
+     "slipOuts": 0
+    },
+    {
+     "name": "two round the ball",
+     "frame": "ball",
+     "seconds": 2.033,
+     "top": 5.7,
+     "slipOuts": 0
+    },
+    {
+     "name": "two on a line",
+     "frame": "pitch",
+     "seconds": 0.833,
+     "top": 5.706,
+     "slipOuts": 0
+    },
+    {
+     "name": "two on a line",
+     "frame": "ball",
+     "seconds": 2.033,
+     "top": 5.7,
+     "slipOuts": 0
+    },
+    {
+     "name": "four round the ball",
+     "frame": "pitch",
+     "seconds": 0.721,
+     "top": 5.709,
+     "slipOuts": 0
+    },
+    {
+     "name": "four round the ball",
+     "frame": "ball",
+     "seconds": 1.313,
+     "top": 5.714,
+     "slipOuts": 0
+    },
+    {
+     "name": "four on a line",
+     "frame": "pitch",
+     "seconds": 0.758,
+     "top": 5.755,
+     "slipOuts": 0
+    },
+    {
+     "name": "four on a line",
+     "frame": "ball",
+     "seconds": 0.921,
+     "top": 5.716,
+     "slipOuts": 0
+    }
+   ]
+  },
+  {
+   "cap": 9,
+   "rows": [
+    {
+     "name": "one pusher",
+     "frame": "pitch",
+     "seconds": 1.225,
+     "top": 5.715,
+     "slipOuts": 0
+    },
+    {
+     "name": "one pusher",
+     "frame": "ball",
+     "seconds": 1.225,
+     "top": 5.715,
+     "slipOuts": 0
+    },
+    {
+     "name": "two in a train",
+     "frame": "pitch",
+     "seconds": 0.779,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "two in a train",
+     "frame": "ball",
+     "seconds": 0.779,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "four in a train",
+     "frame": "pitch",
+     "seconds": 0.575,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "four in a train",
+     "frame": "ball",
+     "seconds": 0.575,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "two round the ball",
+     "frame": "pitch",
+     "seconds": 0.829,
+     "top": 5.704,
+     "slipOuts": 0
+    },
+    {
+     "name": "two round the ball",
+     "frame": "ball",
+     "seconds": 1.175,
+     "top": 5.702,
+     "slipOuts": 0
+    },
+    {
+     "name": "two on a line",
+     "frame": "pitch",
+     "seconds": 0.833,
+     "top": 5.706,
+     "slipOuts": 0
+    },
+    {
+     "name": "two on a line",
+     "frame": "ball",
+     "seconds": 1.175,
+     "top": 5.702,
+     "slipOuts": 0
+    },
+    {
+     "name": "four round the ball",
+     "frame": "pitch",
+     "seconds": 0.721,
+     "top": 5.709,
+     "slipOuts": 0
+    },
+    {
+     "name": "four round the ball",
+     "frame": "ball",
+     "seconds": 0.983,
+     "top": 5.708,
+     "slipOuts": 0
+    },
+    {
+     "name": "four on a line",
+     "frame": "pitch",
+     "seconds": 0.758,
+     "top": 5.755,
+     "slipOuts": 0
+    },
+    {
+     "name": "four on a line",
+     "frame": "ball",
+     "seconds": 0.854,
+     "top": 5.728,
+     "slipOuts": 0
+    }
+   ]
+  },
+  {
+   "cap": 12,
+   "rows": [
+    {
+     "name": "one pusher",
+     "frame": "pitch",
+     "seconds": 1.225,
+     "top": 5.715,
+     "slipOuts": 0
+    },
+    {
+     "name": "one pusher",
+     "frame": "ball",
+     "seconds": 1.225,
+     "top": 5.715,
+     "slipOuts": 0
+    },
+    {
+     "name": "two in a train",
+     "frame": "pitch",
+     "seconds": 0.779,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "two in a train",
+     "frame": "ball",
+     "seconds": 0.779,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "four in a train",
+     "frame": "pitch",
+     "seconds": 0.575,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "four in a train",
+     "frame": "ball",
+     "seconds": 0.575,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "two round the ball",
+     "frame": "pitch",
+     "seconds": 0.829,
+     "top": 5.704,
+     "slipOuts": 0
+    },
+    {
+     "name": "two round the ball",
+     "frame": "ball",
+     "seconds": 1.175,
+     "top": 5.702,
+     "slipOuts": 0
+    },
+    {
+     "name": "two on a line",
+     "frame": "pitch",
+     "seconds": 0.833,
+     "top": 5.706,
+     "slipOuts": 0
+    },
+    {
+     "name": "two on a line",
+     "frame": "ball",
+     "seconds": 1.175,
+     "top": 5.702,
+     "slipOuts": 0
+    },
+    {
+     "name": "four round the ball",
+     "frame": "pitch",
+     "seconds": 0.721,
+     "top": 5.709,
+     "slipOuts": 0
+    },
+    {
+     "name": "four round the ball",
+     "frame": "ball",
+     "seconds": 0.979,
+     "top": 5.704,
+     "slipOuts": 0
+    },
+    {
+     "name": "four on a line",
+     "frame": "pitch",
+     "seconds": 0.758,
+     "top": 5.755,
+     "slipOuts": 0
+    },
+    {
+     "name": "four on a line",
+     "frame": "ball",
+     "seconds": 0.854,
+     "top": 5.728,
+     "slipOuts": 0
+    }
+   ]
+  },
+  {
+   "cap": 15,
+   "rows": [
+    {
+     "name": "one pusher",
+     "frame": "pitch",
+     "seconds": 1.225,
+     "top": 5.715,
+     "slipOuts": 0
+    },
+    {
+     "name": "one pusher",
+     "frame": "ball",
+     "seconds": 1.225,
+     "top": 5.715,
+     "slipOuts": 0
+    },
+    {
+     "name": "two in a train",
+     "frame": "pitch",
+     "seconds": 0.779,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "two in a train",
+     "frame": "ball",
+     "seconds": 0.779,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "four in a train",
+     "frame": "pitch",
+     "seconds": 0.575,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "four in a train",
+     "frame": "ball",
+     "seconds": 0.575,
+     "top": 5.713,
+     "slipOuts": 0
+    },
+    {
+     "name": "two round the ball",
+     "frame": "pitch",
+     "seconds": 0.829,
+     "top": 5.704,
+     "slipOuts": 0
+    },
+    {
+     "name": "two round the ball",
+     "frame": "ball",
+     "seconds": 1.175,
+     "top": 5.702,
+     "slipOuts": 0
+    },
+    {
+     "name": "two on a line",
+     "frame": "pitch",
+     "seconds": 0.833,
+     "top": 5.706,
+     "slipOuts": 0
+    },
+    {
+     "name": "two on a line",
+     "frame": "ball",
+     "seconds": 1.175,
+     "top": 5.702,
+     "slipOuts": 0
+    },
+    {
+     "name": "four round the ball",
+     "frame": "pitch",
+     "seconds": 0.721,
+     "top": 5.709,
+     "slipOuts": 0
+    },
+    {
+     "name": "four round the ball",
+     "frame": "ball",
+     "seconds": 0.979,
+     "top": 5.704,
+     "slipOuts": 0
+    },
+    {
+     "name": "four on a line",
+     "frame": "pitch",
+     "seconds": 0.758,
+     "top": 5.755,
+     "slipOuts": 0
+    },
+    {
+     "name": "four on a line",
+     "frame": "ball",
+     "seconds": 0.854,
+     "top": 5.728,
+     "slipOuts": 0
+    }
+   ]
+  }
+ ],
+ "slipOut": {
+  "restCases": {
+   "landed": 864,
+   "held": 0,
+   "worst": 1.383,
+   "worstAt": "1 a side at 56°, ball frame, off mirror",
+   "mismatches": 0
+  },
+  "sitting": {
+   "worst": 0.471,
+   "at": 4
+  },
+  "dribbles": {
+   "runs": 336,
+   "slipOuts": 0
+  },
+  "pinches": [
+   {
+    "packSize": 1,
+    "zoomies": false,
+    "down": 0.433,
+    "mirrored": true,
+    "slipOuts": 2
+   },
+   {
+    "packSize": 1,
+    "zoomies": true,
+    "down": 0.6,
+    "mirrored": true,
+    "slipOuts": 2
+   },
+   {
+    "packSize": 2,
+    "zoomies": false,
+    "down": 0.871,
+    "mirrored": true,
+    "slipOuts": 6
+   },
+   {
+    "packSize": 2,
+    "zoomies": true,
+    "down": 1.604,
+    "mirrored": true,
+    "slipOuts": 4
+   },
+   {
+    "packSize": 3,
+    "zoomies": false,
+    "down": 0.854,
+    "mirrored": true,
+    "slipOuts": 6
+   },
+   {
+    "packSize": 3,
+    "zoomies": true,
+    "down": 1.413,
+    "mirrored": true,
+    "slipOuts": 6
+   },
+   {
+    "packSize": 4,
+    "zoomies": false,
+    "down": 1.346,
+    "mirrored": true,
+    "slipOuts": 10
+   },
+   {
+    "packSize": 4,
+    "zoomies": true,
+    "down": 1.962,
+    "mirrored": true,
+    "slipOuts": 16
+   }
+  ],
+  "fails": [],
+  "window": {
+   "dribbles": 2880,
+   "slipOuts": 0,
+   "lowestHop": 43.529,
+   "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+   "sittingByCone": [
+    {
+     "cone": 40,
+     "sittingWorst": 0.558
+    },
+    {
+     "cone": 41,
+     "sittingWorst": 0.508
+    },
+    {
+     "cone": 41.5,
+     "sittingWorst": 0.483
+    },
+    {
+     "cone": 42,
+     "sittingWorst": 0.471
+    }
+   ],
+   "narrowestConeTried": 41.5,
+   "shut": []
+  }
+ },
+ "hits": {
+  "from the floor, parallel": [
+   2.656,
+   3.571,
+   3.81,
+   3.685
+  ],
+  "from the floor, centre": [
+   2.656,
+   3.69,
+   4.3,
+   4.477
+  ],
+  "level, parallel": [
+   3,
+   4.354,
+   4.999,
+   5.213
+  ],
+  "level, centre": [
+   3,
+   4.478,
+   5.469,
+   6.157
+  ]
+ },
+ "bowling": {
+  "zoomiesPushLeaving": 3.968,
+  "dribbleAtARun": {
+   "tumbled": true,
+   "approach": 5.995
+  },
+  "pounceFromAirLeaving": 4.57,
+  "rolledAt5": {
+   "tumbled": true,
+   "approach": 4.679
+  },
+  "rolledAt3": {
+   "tumbled": false,
+   "approach": 2.429
+  },
+  "fails": [],
+  "botMatches2": {
+   "matches": 10,
+   "minutes": 30,
+   "bowledAMinute": 5.37,
+   "pouncedAMinute": 0.367
+  },
+  "botMatches4": {
+   "matches": 10,
+   "minutes": 32,
+   "bowledAMinute": 6.465,
+   "pouncedAMinute": 0.312
+  }
+ },
+ "netting": [
+  {
+   "goalNetRestitution": 0.3,
+   "shots": [
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 19.329,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 16.843,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 16.941,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 18.721,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 16.953,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 17.017,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 19.211,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 17.768,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 17.857,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 14.16,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 11.506,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 11.581,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 13.763,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 11.987,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 12.036,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 15.2,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 13.332,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 13.397,
+     "wholly": false
+    }
+   ],
+   "worstAt5": 16.843,
+   "worstAt10": 11.506,
+   "whollyBehind": 20.8,
+   "fails": [
+    "rolling at 5 m/s, 0°: least |x| 19.329",
+    "high at 5 m/s, 0°: least |x| 16.843",
+    "lobbed at 5 m/s, 0°: least |x| 16.941",
+    "rolling at 5 m/s, 20°: least |x| 18.721",
+    "high at 5 m/s, 20°: least |x| 16.953",
+    "lobbed at 5 m/s, 20°: least |x| 17.017",
+    "rolling at 5 m/s, 35°: least |x| 19.211",
+    "high at 5 m/s, 35°: least |x| 17.768",
+    "lobbed at 5 m/s, 35°: least |x| 17.857",
+    "rolling at 10 m/s, 0°: least |x| 14.16",
+    "high at 10 m/s, 0°: least |x| 11.506",
+    "lobbed at 10 m/s, 0°: least |x| 11.581",
+    "rolling at 10 m/s, 20°: least |x| 13.763",
+    "high at 10 m/s, 20°: least |x| 11.987",
+    "lobbed at 10 m/s, 20°: least |x| 12.036",
+    "rolling at 10 m/s, 35°: least |x| 15.2",
+    "high at 10 m/s, 35°: least |x| 13.332",
+    "lobbed at 10 m/s, 35°: least |x| 13.397"
+   ]
+  },
+  {
+   "goalNetRestitution": 0.2,
+   "shots": [
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.369,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 18.497,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 18.595,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 19.703,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 17.406,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 17.5,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.102,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 19.115,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 19.203,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 17.448,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 14.852,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 14.927,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 13.775,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 11.171,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 11.248,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 17.789,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 16.062,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 16.127,
+     "wholly": false
+    }
+   ],
+   "worstAt5": 17.406,
+   "worstAt10": 11.171,
+   "whollyBehind": 20.8,
+   "fails": [
+    "rolling at 5 m/s, 0°: least |x| 20.369",
+    "high at 5 m/s, 0°: least |x| 18.497",
+    "lobbed at 5 m/s, 0°: least |x| 18.595",
+    "rolling at 5 m/s, 20°: least |x| 19.703",
+    "high at 5 m/s, 20°: least |x| 17.406",
+    "lobbed at 5 m/s, 20°: least |x| 17.5",
+    "rolling at 5 m/s, 35°: least |x| 20.102",
+    "high at 5 m/s, 35°: least |x| 19.115",
+    "lobbed at 5 m/s, 35°: least |x| 19.203",
+    "rolling at 10 m/s, 0°: least |x| 17.448",
+    "high at 10 m/s, 0°: least |x| 14.852",
+    "lobbed at 10 m/s, 0°: least |x| 14.927",
+    "rolling at 10 m/s, 20°: least |x| 13.775",
+    "high at 10 m/s, 20°: least |x| 11.171",
+    "lobbed at 10 m/s, 20°: least |x| 11.248",
+    "rolling at 10 m/s, 35°: least |x| 17.789",
+    "high at 10 m/s, 35°: least |x| 16.062",
+    "lobbed at 10 m/s, 35°: least |x| 16.127"
+   ]
+  },
+  {
+   "goalNetRestitution": 0.15,
+   "shots": [
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.733,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 19.323,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 19.414,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.131,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 19.45,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 19.484,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.459,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 19.778,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 19.852,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 19.047,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 16.525,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 16.6,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 18.514,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 17.644,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 17.673,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 19.075,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 17.427,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 17.493,
+     "wholly": false
+    }
+   ],
+   "worstAt5": 19.323,
+   "worstAt10": 16.525,
+   "whollyBehind": 20.8,
+   "fails": [
+    "rolling at 5 m/s, 0°: least |x| 20.733",
+    "high at 5 m/s, 0°: least |x| 19.323",
+    "lobbed at 5 m/s, 0°: least |x| 19.414",
+    "rolling at 5 m/s, 20°: least |x| 20.131",
+    "high at 5 m/s, 20°: least |x| 19.45",
+    "lobbed at 5 m/s, 20°: least |x| 19.484",
+    "rolling at 5 m/s, 35°: least |x| 20.459",
+    "high at 5 m/s, 35°: least |x| 19.778",
+    "lobbed at 5 m/s, 35°: least |x| 19.852",
+    "rolling at 10 m/s, 0°: least |x| 19.047",
+    "high at 10 m/s, 0°: least |x| 16.525",
+    "lobbed at 10 m/s, 0°: least |x| 16.6",
+    "rolling at 10 m/s, 20°: least |x| 18.514",
+    "high at 10 m/s, 20°: least |x| 17.644",
+    "lobbed at 10 m/s, 20°: least |x| 17.673",
+    "rolling at 10 m/s, 35°: least |x| 19.075",
+    "high at 10 m/s, 35°: least |x| 17.427",
+    "lobbed at 10 m/s, 35°: least |x| 17.493"
+   ]
+  },
+  {
+   "goalNetRestitution": 0.1,
+   "shots": [
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.801,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.074,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.134,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.517,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.167,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.211,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.759,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.354,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.404,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.244,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 18.198,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 18.273,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 19.759,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 18.394,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 18.466,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.144,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 18.793,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 18.858,
+     "wholly": false
+    }
+   ],
+   "worstAt5": 20.074,
+   "worstAt10": 18.198,
+   "whollyBehind": 20.8,
+   "fails": [
+    "high at 5 m/s, 0°: least |x| 20.074",
+    "lobbed at 5 m/s, 0°: least |x| 20.134",
+    "rolling at 5 m/s, 20°: least |x| 20.517",
+    "high at 5 m/s, 20°: least |x| 20.167",
+    "lobbed at 5 m/s, 20°: least |x| 20.211",
+    "rolling at 5 m/s, 35°: least |x| 20.759",
+    "high at 5 m/s, 35°: least |x| 20.354",
+    "lobbed at 5 m/s, 35°: least |x| 20.404",
+    "rolling at 10 m/s, 0°: least |x| 20.244",
+    "high at 10 m/s, 0°: least |x| 18.198",
+    "lobbed at 10 m/s, 0°: least |x| 18.273",
+    "rolling at 10 m/s, 20°: least |x| 19.759",
+    "high at 10 m/s, 20°: least |x| 18.394",
+    "lobbed at 10 m/s, 20°: least |x| 18.466",
+    "rolling at 10 m/s, 35°: least |x| 20.144",
+    "high at 10 m/s, 35°: least |x| 18.793",
+    "lobbed at 10 m/s, 35°: least |x| 18.858"
+   ]
+  },
+  {
+   "goalNetRestitution": 0.05,
+   "shots": [
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.801,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.699,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.73,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.805,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.742,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.763,
+     "wholly": false
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.813,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.806,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.806,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.837,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 19.864,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 19.924,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.652,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 19.958,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.015,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.811,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.144,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.194,
+     "wholly": false
+    }
+   ],
+   "worstAt5": 20.699,
+   "worstAt10": 19.864,
+   "whollyBehind": 20.8,
+   "fails": [
+    "high at 5 m/s, 0°: least |x| 20.699",
+    "lobbed at 5 m/s, 0°: least |x| 20.73",
+    "high at 5 m/s, 20°: least |x| 20.742",
+    "lobbed at 5 m/s, 20°: least |x| 20.763",
+    "high at 10 m/s, 0°: least |x| 19.864",
+    "lobbed at 10 m/s, 0°: least |x| 19.924",
+    "rolling at 10 m/s, 20°: least |x| 20.652",
+    "high at 10 m/s, 20°: least |x| 19.958",
+    "lobbed at 10 m/s, 20°: least |x| 20.015",
+    "high at 10 m/s, 35°: least |x| 20.144",
+    "lobbed at 10 m/s, 35°: least |x| 20.194"
+   ]
+  },
+  {
+   "goalNetRestitution": 0.02,
+   "shots": [
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.801,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.812,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.812,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.805,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.818,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.818,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.813,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.806,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.806,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.837,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.725,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.75,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.836,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.76,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.782,
+     "wholly": false
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.811,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.823,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.823,
+     "wholly": true
+    }
+   ],
+   "worstAt5": 20.801,
+   "worstAt10": 20.725,
+   "whollyBehind": 20.8,
+   "fails": [
+    "high at 10 m/s, 0°: least |x| 20.725",
+    "lobbed at 10 m/s, 0°: least |x| 20.75",
+    "high at 10 m/s, 20°: least |x| 20.76",
+    "lobbed at 10 m/s, 20°: least |x| 20.782"
+   ]
+  },
+  {
+   "goalNetRestitution": 0,
+   "shots": [
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.801,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.812,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.812,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.805,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.818,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.818,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.813,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.806,
+     "wholly": true
+    },
+    {
+     "speed": 5,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.806,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.837,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.833,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 0,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.833,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.836,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.837,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 20,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.837,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "rolling",
+     "goal": true,
+     "leastX": 20.811,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "high",
+     "goal": true,
+     "leastX": 20.823,
+     "wholly": true
+    },
+    {
+     "speed": 10,
+     "angle": 35,
+     "kind": "lobbed",
+     "goal": true,
+     "leastX": 20.823,
+     "wholly": true
+    }
+   ],
+   "worstAt5": 20.801,
+   "worstAt10": 20.811,
+   "whollyBehind": 20.8,
+   "fails": []
+  }
+ ],
+ "touches": {
+  "pushes": {
+   "ball frame, run": 1,
+   "ball frame, zoomies": 1,
+   "pitch frame, run": 1,
+   "pitch frame, zoomies": 1
+  },
+  "rebound": 2,
+  "fails": []
+ },
+ "guard": {
+  "share": 0.494,
+  "tumbles": 10,
+  "shortestUp": 1.517,
+  "fails": []
+ },
+ "roll": {
+  "metres": 8.981
+ },
+ "headOn": {
+  "closing": 12,
+  "separating": 3.6,
+  "ratio": 0.3,
+  "scrumContactsASubstep": 11.01,
+  "scrumMostContacts": 18
+ },
+ "collider": {
+  "radius": 0.25,
+  "overhang": 0.05,
+  "contactDegreesUp": 31.59,
+  "boxReachPastTheSphere": 0.137
+ },
+ "drive": {
+  "runSpeedFromRest": 0.4,
+  "pushedAcceleration": 3.5
+ },
+ "bots": [
+  {
+   "settings": "the base",
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "settings": "botReactionSeconds 0.15",
+   "emptyGoal": 99,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "fails": []
+  },
+  {
+   "settings": "botReactionSeconds 0.35",
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "fails": []
+  },
+  {
+   "settings": "botAimNoiseDegrees 5",
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "fails": []
+  },
+  {
+   "settings": "botAimNoiseDegrees 15",
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "fails": []
+  }
+ ],
+ "timing": {
+  "wallScrumStepMicroseconds": {
+   "median": 58.6,
+   "least": 40.4,
+   "most": 68.4
+  },
+  "againstM0": "27.8–31.2",
+  "think": {
+   "calls": 370896,
+   "microsecondsABot": 0.57
+  }
+ },
+ "values": [
+  {
+   "value": "Kickoff spots",
+   "rule": "keep",
+   "note": "kept (§9.6): the configuration's checks, the pinches and the 1-a-side spot on y = 0 are reported; the regulation mark and the end-to-end setups are the 'bots' section's",
+   "atTheBase": {
+    "pass": true,
+    "fails": [],
+    "metrics": {
+     "pinches": [
+      {
+       "packSize": 1,
+       "zoomies": false,
+       "down": 0.433,
+       "mirrored": true
+      },
+      {
+       "packSize": 1,
+       "zoomies": true,
+       "down": 0.6,
+       "mirrored": true
+      },
+      {
+       "packSize": 2,
+       "zoomies": false,
+       "down": 0.871,
+       "mirrored": true
+      },
+      {
+       "packSize": 2,
+       "zoomies": true,
+       "down": 1.604,
+       "mirrored": true
+      },
+      {
+       "packSize": 3,
+       "zoomies": false,
+       "down": 0.854,
+       "mirrored": true
+      },
+      {
+       "packSize": 3,
+       "zoomies": true,
+       "down": 1.413,
+       "mirrored": true
+      },
+      {
+       "packSize": 4,
+       "zoomies": false,
+       "down": 1.346,
+       "mirrored": true
+      },
+      {
+       "packSize": 4,
+       "zoomies": true,
+       "down": 1.962,
+       "mirrored": true
+      }
+     ]
+    }
+   },
+   "candidates": []
+  },
+  {
+   "value": "Rolling slowdown",
+   "rule": "keep",
+   "note": null,
+   "atTheBase": {
+    "pass": true,
+    "fails": [],
+    "metrics": {
+     "onePusher": 1.225,
+     "fourInATrain": 0.575,
+     "roll3": 8.981,
+     "nettingWorstAt5": 16.843,
+     "nettingWorstAt10": 11.506
+    }
+   },
+   "candidates": [
+    {
+     "key": "rollingSlowdownMetresPerSecond2",
+     "start": 0.5,
+     "trials": [
+      {
+       "value": 0.5,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "roll3": 8.981,
+        "nettingWorstAt5": 16.843,
+        "nettingWorstAt10": 11.506
+       }
+      },
+      {
+       "value": 0.4,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "onePusher": 1.208,
+        "fourInATrain": 0.575,
+        "roll3": 11.231,
+        "nettingWorstAt5": 16.722,
+        "nettingWorstAt10": 11.438
+       }
+      },
+      {
+       "value": 0.6,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "onePusher": 1.242,
+        "fourInATrain": 0.575,
+        "roll3": 7.481,
+        "nettingWorstAt5": 16.964,
+        "nettingWorstAt10": 11.575
+       }
+      },
+      {
+       "value": 0.3,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "onePusher": 1.192,
+        "fourInATrain": 0.575,
+        "roll3": 14.981,
+        "nettingWorstAt5": 16.601,
+        "nettingWorstAt10": 11.369
+       }
+      },
+      {
+       "value": 0.75,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "onePusher": 1.271,
+        "fourInATrain": 0.579,
+        "roll3": 5.981,
+        "nettingWorstAt5": 17.146,
+        "nettingWorstAt10": 11.678
+       }
+      },
+      {
+       "value": 1,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "onePusher": 1.317,
+        "fourInATrain": 0.579,
+        "roll3": 4.481,
+        "nettingWorstAt5": 17.363,
+        "nettingWorstAt10": 11.85
+       }
+      }
+     ],
+     "pick": 0.5
+    }
+   ]
+  },
+  {
+   "value": "Terrier bounce",
+   "rule": "keep",
+   "note": null,
+   "atTheBase": {
+    "pass": true,
+    "fails": [],
+    "metrics": {
+     "headOn": {
+      "closing": 12,
+      "separating": 3.6,
+      "ratio": 0.3,
+      "scrumContactsASubstep": 11.01,
+      "scrumMostContacts": 18
+     },
+     "timing": {
+      "median": 41.7,
+      "least": 34.4,
+      "most": 53.4
+     },
+     "slipOut": {
+      "restCases": {
+       "landed": 864,
+       "held": 0,
+       "worst": 1.383,
+       "worstAt": "1 a side at 56°, ball frame, off mirror",
+       "mismatches": 0
+      },
+      "sitting": {
+       "worst": 0.471,
+       "at": 4
+      },
+      "dribbles": {
+       "runs": 336,
+       "slipOuts": 0
+      },
+      "pinches": [
+       {
+        "packSize": 1,
+        "zoomies": false,
+        "down": 0.433,
+        "mirrored": true,
+        "slipOuts": 2
+       },
+       {
+        "packSize": 1,
+        "zoomies": true,
+        "down": 0.6,
+        "mirrored": true,
+        "slipOuts": 2
+       },
+       {
+        "packSize": 2,
+        "zoomies": false,
+        "down": 0.871,
+        "mirrored": true,
+        "slipOuts": 6
+       },
+       {
+        "packSize": 2,
+        "zoomies": true,
+        "down": 1.604,
+        "mirrored": true,
+        "slipOuts": 4
+       },
+       {
+        "packSize": 3,
+        "zoomies": false,
+        "down": 0.854,
+        "mirrored": true,
+        "slipOuts": 6
+       },
+       {
+        "packSize": 3,
+        "zoomies": true,
+        "down": 1.413,
+        "mirrored": true,
+        "slipOuts": 6
+       },
+       {
+        "packSize": 4,
+        "zoomies": false,
+        "down": 1.346,
+        "mirrored": true,
+        "slipOuts": 10
+       },
+       {
+        "packSize": 4,
+        "zoomies": true,
+        "down": 1.962,
+        "mirrored": true,
+        "slipOuts": 16
+       }
+      ],
+      "fails": []
+     }
+    }
+   },
+   "candidates": [
+    {
+     "key": "terrierRestitution",
+     "start": 0.3,
+     "trials": [
+      {
+       "value": 0.3,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "headOn": {
+         "closing": 12,
+         "separating": 3.6,
+         "ratio": 0.3,
+         "scrumContactsASubstep": 11.01,
+         "scrumMostContacts": 18
+        },
+        "timing": {
+         "median": 41.7,
+         "least": 34.4,
+         "most": 53.4
+        },
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.854,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.413,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.346,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.962,
+           "mirrored": true,
+           "slipOuts": 16
+          }
+         ],
+         "fails": []
+        }
+       }
+      },
+      {
+       "value": 0.2,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "headOn": {
+         "closing": 12,
+         "separating": 2.4,
+         "ratio": 0.2,
+         "scrumContactsASubstep": 11.57,
+         "scrumMostContacts": 19
+        },
+        "timing": {
+         "median": 45.4,
+         "least": 34.1,
+         "most": 50.7
+        },
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 1.129,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.896,
+           "mirrored": true,
+           "slipOuts": 14
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.421,
+           "mirrored": true,
+           "slipOuts": 14
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.8,
+           "mirrored": true,
+           "slipOuts": 10
+          }
+         ],
+         "fails": []
+        }
+       }
+      },
+      {
+       "value": 0.4,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "headOn": {
+         "closing": 12,
+         "separating": 4.8,
+         "ratio": 0.4,
+         "scrumContactsASubstep": 11.04,
+         "scrumMostContacts": 19
+        },
+        "timing": {
+         "median": 39.9,
+         "least": 34.2,
+         "most": 46.3
+        },
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.917,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.554,
+           "mirrored": true,
+           "slipOuts": 8
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.329,
+           "mirrored": true,
+           "slipOuts": 8
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.804,
+           "mirrored": true,
+           "slipOuts": 10
+          }
+         ],
+         "fails": []
+        }
+       }
+      },
+      {
+       "value": 0.1,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "headOn": {
+         "closing": 12,
+         "separating": 1.2,
+         "ratio": 0.1,
+         "scrumContactsASubstep": 12.53,
+         "scrumMostContacts": 18
+        },
+        "timing": {
+         "median": 52.1,
+         "least": 36.6,
+         "most": 61.8
+        },
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.392,
+          "worstAt": "4 a side at 15°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 1.133,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.804,
+           "mirrored": true,
+           "slipOuts": 12
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.596,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.804,
+           "mirrored": true,
+           "slipOuts": 10
+          }
+         ],
+         "fails": []
+        }
+       }
+      },
+      {
+       "value": 0.5,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "headOn": {
+         "closing": 12,
+         "separating": 6,
+         "ratio": 0.5,
+         "scrumContactsASubstep": 10.06,
+         "scrumMostContacts": 17
+        },
+        "timing": {
+         "median": 52.1,
+         "least": 32.9,
+         "most": 59.9
+        },
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.421,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 1.142,
+           "mirrored": true,
+           "slipOuts": 8
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.688,
+           "mirrored": true,
+           "slipOuts": 16
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.925,
+           "mirrored": true,
+           "slipOuts": 8
+          }
+         ],
+         "fails": []
+        }
+       }
+      },
+      {
+       "value": 0,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "headOn": {
+         "closing": 12,
+         "separating": 0,
+         "ratio": 0,
+         "scrumContactsASubstep": 12.51,
+         "scrumMostContacts": 18
+        },
+        "timing": {
+         "median": 41.9,
+         "least": 31.9,
+         "most": 55.4
+        },
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.404,
+          "worstAt": "4 a side at 15°, ball frame",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 1.083,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.6,
+           "mirrored": true,
+           "slipOuts": 8
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.646,
+           "mirrored": true,
+           "slipOuts": 14
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.858,
+           "mirrored": true,
+           "slipOuts": 10
+          }
+         ],
+         "fails": []
+        }
+       }
+      }
+     ],
+     "pick": 0.3
+    }
+   ]
+  },
+  {
+   "value": "Re-arm gap",
+   "rule": "keep",
+   "note": null,
+   "atTheBase": {
+    "pass": true,
+    "fails": [],
+    "metrics": {
+     "pushes": {
+      "ball frame, run": 1,
+      "ball frame, zoomies": 1,
+      "pitch frame, run": 1,
+      "pitch frame, zoomies": 1
+     },
+     "rebound": 2,
+     "fails": []
+    }
+   },
+   "candidates": [
+    {
+     "key": "rearmGapMetres",
+     "start": 0.6,
+     "trials": [
+      {
+       "value": 0.6,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "pushes": {
+         "ball frame, run": 1,
+         "ball frame, zoomies": 1,
+         "pitch frame, run": 1,
+         "pitch frame, zoomies": 1
+        },
+        "rebound": 2,
+        "fails": []
+       }
+      },
+      {
+       "value": 0.5,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "pushes": {
+         "ball frame, run": 1,
+         "ball frame, zoomies": 1,
+         "pitch frame, run": 1,
+         "pitch frame, zoomies": 1
+        },
+        "rebound": 2,
+        "fails": []
+       }
+      },
+      {
+       "value": 0.7,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "pushes": {
+         "ball frame, run": 1,
+         "ball frame, zoomies": 1,
+         "pitch frame, run": 1,
+         "pitch frame, zoomies": 1
+        },
+        "rebound": 2,
+        "fails": []
+       }
+      },
+      {
+       "value": 0.4,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "pushes": {
+         "ball frame, run": 1,
+         "ball frame, zoomies": 1,
+         "pitch frame, run": 1,
+         "pitch frame, zoomies": 1
+        },
+        "rebound": 2,
+        "fails": []
+       }
+      },
+      {
+       "value": 0.8,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "pushes": {
+         "ball frame, run": 1,
+         "ball frame, zoomies": 1,
+         "pitch frame, run": 1,
+         "pitch frame, zoomies": 1
+        },
+        "rebound": 2,
+        "fails": []
+       }
+      },
+      {
+       "value": 0.3,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "pushes": {
+         "ball frame, run": 1,
+         "ball frame, zoomies": 1,
+         "pitch frame, run": 1,
+         "pitch frame, zoomies": 1
+        },
+        "rebound": 2,
+        "fails": []
+       }
+      },
+      {
+       "value": 1,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "pushes": {
+         "ball frame, run": 1,
+         "ball frame, zoomies": 1,
+         "pitch frame, run": 1,
+         "pitch frame, zoomies": 1
+        },
+        "rebound": 2,
+        "fails": []
+       }
+      }
+     ],
+     "pick": 0.6
+    }
+   ]
+  },
+  {
+   "value": "Slip hold-off",
+   "rule": "keep",
+   "note": "§16's slip-out cases bound it from below (C-21): as the re-arm gap, at phase 4, 0.5 m passed and 0.4 m failed case 1; no check bounds it from above",
+   "atTheBase": {
+    "pass": true,
+    "fails": [],
+    "metrics": {
+     "restCases": {
+      "landed": 864,
+      "held": 0,
+      "worst": 1.383,
+      "worstAt": "1 a side at 56°, ball frame, off mirror",
+      "mismatches": 0
+     },
+     "sitting": {
+      "worst": 0.471,
+      "at": 4
+     },
+     "dribbles": {
+      "runs": 336,
+      "slipOuts": 0
+     },
+     "pinches": [
+      {
+       "packSize": 1,
+       "zoomies": false,
+       "down": 0.433,
+       "mirrored": true,
+       "slipOuts": 2
+      },
+      {
+       "packSize": 1,
+       "zoomies": true,
+       "down": 0.6,
+       "mirrored": true,
+       "slipOuts": 2
+      },
+      {
+       "packSize": 2,
+       "zoomies": false,
+       "down": 0.871,
+       "mirrored": true,
+       "slipOuts": 6
+      },
+      {
+       "packSize": 2,
+       "zoomies": true,
+       "down": 1.604,
+       "mirrored": true,
+       "slipOuts": 4
+      },
+      {
+       "packSize": 3,
+       "zoomies": false,
+       "down": 0.854,
+       "mirrored": true,
+       "slipOuts": 6
+      },
+      {
+       "packSize": 3,
+       "zoomies": true,
+       "down": 1.413,
+       "mirrored": true,
+       "slipOuts": 6
+      },
+      {
+       "packSize": 4,
+       "zoomies": false,
+       "down": 1.346,
+       "mirrored": true,
+       "slipOuts": 10
+      },
+      {
+       "packSize": 4,
+       "zoomies": true,
+       "down": 1.962,
+       "mirrored": true,
+       "slipOuts": 16
+      }
+     ],
+     "fails": []
+    }
+   },
+   "candidates": [
+    {
+     "key": "slipHoldOffMetres",
+     "start": 0.6,
+     "trials": [
+      {
+       "value": 0.6,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "restCases": {
+         "landed": 864,
+         "held": 0,
+         "worst": 1.383,
+         "worstAt": "1 a side at 56°, ball frame, off mirror",
+         "mismatches": 0
+        },
+        "sitting": {
+         "worst": 0.471,
+         "at": 4
+        },
+        "dribbles": {
+         "runs": 336,
+         "slipOuts": 0
+        },
+        "pinches": [
+         {
+          "packSize": 1,
+          "zoomies": false,
+          "down": 0.433,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 1,
+          "zoomies": true,
+          "down": 0.6,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 2,
+          "zoomies": false,
+          "down": 0.871,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 2,
+          "zoomies": true,
+          "down": 1.604,
+          "mirrored": true,
+          "slipOuts": 4
+         },
+         {
+          "packSize": 3,
+          "zoomies": false,
+          "down": 0.854,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 3,
+          "zoomies": true,
+          "down": 1.413,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 4,
+          "zoomies": false,
+          "down": 1.346,
+          "mirrored": true,
+          "slipOuts": 10
+         },
+         {
+          "packSize": 4,
+          "zoomies": true,
+          "down": 1.962,
+          "mirrored": true,
+          "slipOuts": 16
+         }
+        ],
+        "fails": []
+       }
+      },
+      {
+       "value": 0.5,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "restCases": {
+         "landed": 864,
+         "held": 0,
+         "worst": 1.467,
+         "worstAt": "4 a side at 15°, ball frame, off mirror",
+         "mismatches": 0
+        },
+        "sitting": {
+         "worst": 0.471,
+         "at": 4
+        },
+        "dribbles": {
+         "runs": 336,
+         "slipOuts": 0
+        },
+        "pinches": [
+         {
+          "packSize": 1,
+          "zoomies": false,
+          "down": 0.433,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 1,
+          "zoomies": true,
+          "down": 0.6,
+          "mirrored": true,
+          "slipOuts": 4
+         },
+         {
+          "packSize": 2,
+          "zoomies": false,
+          "down": 0.871,
+          "mirrored": true,
+          "slipOuts": 4
+         },
+         {
+          "packSize": 2,
+          "zoomies": true,
+          "down": 1.671,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 3,
+          "zoomies": false,
+          "down": 0.854,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 3,
+          "zoomies": true,
+          "down": 1.413,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 4,
+          "zoomies": false,
+          "down": 1.346,
+          "mirrored": true,
+          "slipOuts": 10
+         },
+         {
+          "packSize": 4,
+          "zoomies": true,
+          "down": 1.954,
+          "mirrored": true,
+          "slipOuts": 16
+         }
+        ],
+        "fails": []
+       }
+      },
+      {
+       "value": 0.7,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "restCases": {
+         "landed": 864,
+         "held": 0,
+         "worst": 1.383,
+         "worstAt": "1 a side at 56°, ball frame, off mirror",
+         "mismatches": 0
+        },
+        "sitting": {
+         "worst": 0.471,
+         "at": 4
+        },
+        "dribbles": {
+         "runs": 336,
+         "slipOuts": 0
+        },
+        "pinches": [
+         {
+          "packSize": 1,
+          "zoomies": false,
+          "down": 0.433,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 1,
+          "zoomies": true,
+          "down": 0.6,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 2,
+          "zoomies": false,
+          "down": 0.871,
+          "mirrored": true,
+          "slipOuts": 4
+         },
+         {
+          "packSize": 2,
+          "zoomies": true,
+          "down": 1.467,
+          "mirrored": true,
+          "slipOuts": 4
+         },
+         {
+          "packSize": 3,
+          "zoomies": false,
+          "down": 0.854,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 3,
+          "zoomies": true,
+          "down": 1.413,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 4,
+          "zoomies": false,
+          "down": 1.346,
+          "mirrored": true,
+          "slipOuts": 8
+         },
+         {
+          "packSize": 4,
+          "zoomies": true,
+          "down": 1.887,
+          "mirrored": true,
+          "slipOuts": 8
+         }
+        ],
+        "fails": []
+       }
+      },
+      {
+       "value": 0.4,
+       "pass": false,
+       "fails": [
+        "case 1: the worst comes down in 1.721 s, over 1.5 s (4 a side at 15°, ball frame, off mirror)"
+       ],
+       "metrics": {
+        "restCases": {
+         "landed": 864,
+         "held": 0,
+         "worst": 1.721,
+         "worstAt": "4 a side at 15°, ball frame, off mirror",
+         "mismatches": 0
+        },
+        "sitting": {
+         "worst": 0.471,
+         "at": 4
+        },
+        "dribbles": {
+         "runs": 336,
+         "slipOuts": 0
+        },
+        "pinches": [
+         {
+          "packSize": 1,
+          "zoomies": false,
+          "down": 0.433,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 1,
+          "zoomies": true,
+          "down": 0.6,
+          "mirrored": true,
+          "slipOuts": 4
+         },
+         {
+          "packSize": 2,
+          "zoomies": false,
+          "down": 0.871,
+          "mirrored": true,
+          "slipOuts": 4
+         },
+         {
+          "packSize": 2,
+          "zoomies": true,
+          "down": 1.675,
+          "mirrored": true,
+          "slipOuts": 10
+         },
+         {
+          "packSize": 3,
+          "zoomies": false,
+          "down": 0.854,
+          "mirrored": true,
+          "slipOuts": 10
+         },
+         {
+          "packSize": 3,
+          "zoomies": true,
+          "down": 1.413,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 4,
+          "zoomies": false,
+          "down": 1.346,
+          "mirrored": true,
+          "slipOuts": 8
+         },
+         {
+          "packSize": 4,
+          "zoomies": true,
+          "down": 1.85,
+          "mirrored": true,
+          "slipOuts": 12
+         }
+        ],
+        "fails": [
+         "case 1: the worst comes down in 1.721 s, over 1.5 s (4 a side at 15°, ball frame, off mirror)"
+        ]
+       }
+      },
+      {
+       "value": 0.8,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "restCases": {
+         "landed": 864,
+         "held": 0,
+         "worst": 1.383,
+         "worstAt": "1 a side at 56°, ball frame, off mirror",
+         "mismatches": 0
+        },
+        "sitting": {
+         "worst": 0.471,
+         "at": 4
+        },
+        "dribbles": {
+         "runs": 336,
+         "slipOuts": 0
+        },
+        "pinches": [
+         {
+          "packSize": 1,
+          "zoomies": false,
+          "down": 0.433,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 1,
+          "zoomies": true,
+          "down": 0.6,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 2,
+          "zoomies": false,
+          "down": 0.871,
+          "mirrored": true,
+          "slipOuts": 4
+         },
+         {
+          "packSize": 2,
+          "zoomies": true,
+          "down": 1.229,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 3,
+          "zoomies": false,
+          "down": 0.854,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 3,
+          "zoomies": true,
+          "down": 1.413,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 4,
+          "zoomies": false,
+          "down": 1.346,
+          "mirrored": true,
+          "slipOuts": 8
+         },
+         {
+          "packSize": 4,
+          "zoomies": true,
+          "down": 1.779,
+          "mirrored": true,
+          "slipOuts": 10
+         }
+        ],
+        "fails": []
+       }
+      },
+      {
+       "value": 0.3,
+       "pass": false,
+       "fails": [
+        "case 1: the worst comes down in 2 s, over 1.5 s (4 a side at 17°, ball frame)"
+       ],
+       "metrics": {
+        "restCases": {
+         "landed": 864,
+         "held": 0,
+         "worst": 2,
+         "worstAt": "4 a side at 17°, ball frame",
+         "mismatches": 0
+        },
+        "sitting": {
+         "worst": 0.471,
+         "at": 4
+        },
+        "dribbles": {
+         "runs": 336,
+         "slipOuts": 0
+        },
+        "pinches": [
+         {
+          "packSize": 1,
+          "zoomies": false,
+          "down": 0.433,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 1,
+          "zoomies": true,
+          "down": 0.6,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 2,
+          "zoomies": false,
+          "down": 0.871,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 2,
+          "zoomies": true,
+          "down": 1.65,
+          "mirrored": true,
+          "slipOuts": 10
+         },
+         {
+          "packSize": 3,
+          "zoomies": false,
+          "down": 0.854,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 3,
+          "zoomies": true,
+          "down": 1.462,
+          "mirrored": true,
+          "slipOuts": 8
+         },
+         {
+          "packSize": 4,
+          "zoomies": false,
+          "down": 1.346,
+          "mirrored": true,
+          "slipOuts": 12
+         },
+         {
+          "packSize": 4,
+          "zoomies": true,
+          "down": 1.642,
+          "mirrored": true,
+          "slipOuts": 8
+         }
+        ],
+        "fails": [
+         "case 1: the worst comes down in 2 s, over 1.5 s (4 a side at 17°, ball frame)"
+        ]
+       }
+      },
+      {
+       "value": 1,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "restCases": {
+         "landed": 864,
+         "held": 0,
+         "worst": 1.383,
+         "worstAt": "1 a side at 56°, ball frame, off mirror",
+         "mismatches": 0
+        },
+        "sitting": {
+         "worst": 0.471,
+         "at": 4
+        },
+        "dribbles": {
+         "runs": 336,
+         "slipOuts": 0
+        },
+        "pinches": [
+         {
+          "packSize": 1,
+          "zoomies": false,
+          "down": 0.433,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 1,
+          "zoomies": true,
+          "down": 0.6,
+          "mirrored": true,
+          "slipOuts": 2
+         },
+         {
+          "packSize": 2,
+          "zoomies": false,
+          "down": 0.871,
+          "mirrored": true,
+          "slipOuts": 4
+         },
+         {
+          "packSize": 2,
+          "zoomies": true,
+          "down": 1.229,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 3,
+          "zoomies": false,
+          "down": 0.854,
+          "mirrored": true,
+          "slipOuts": 6
+         },
+         {
+          "packSize": 3,
+          "zoomies": true,
+          "down": 1.413,
+          "mirrored": true,
+          "slipOuts": 8
+         },
+         {
+          "packSize": 4,
+          "zoomies": false,
+          "down": 1.346,
+          "mirrored": true,
+          "slipOuts": 8
+         },
+         {
+          "packSize": 4,
+          "zoomies": true,
+          "down": 1.65,
+          "mirrored": true,
+          "slipOuts": 10
+         }
+        ],
+        "fails": []
+       }
+      }
+     ],
+     "pick": 0.6
+    }
+   ]
+  },
+  {
+   "value": "Tumble guard",
+   "rule": "keep",
+   "note": null,
+   "atTheBase": {
+    "pass": true,
+    "fails": [],
+    "metrics": {
+     "share": 0.494,
+     "tumbles": 10,
+     "shortestUp": 1.517,
+     "fails": []
+    }
+   },
+   "candidates": [
+    {
+     "key": "tumbleGuardSeconds",
+     "start": 1.5,
+     "trials": [
+      {
+       "value": 1.5,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "share": 0.494,
+        "tumbles": 10,
+        "shortestUp": 1.517,
+        "fails": []
+       }
+      },
+      {
+       "value": 1,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "share": 0.593,
+        "tumbles": 12,
+        "shortestUp": 1.017,
+        "fails": []
+       }
+      },
+      {
+       "value": 2,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "share": 0.445,
+        "tumbles": 9,
+        "shortestUp": 2.017,
+        "fails": []
+       }
+      },
+      {
+       "value": 0.5,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "share": 0.742,
+        "tumbles": 15,
+        "shortestUp": 0.517,
+        "fails": []
+       }
+      },
+      {
+       "value": 2.5,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "share": 0.396,
+        "tumbles": 8,
+        "shortestUp": 2.517,
+        "fails": []
+       }
+      }
+     ],
+     "pick": 1.5
+    }
+   ]
+  },
+  {
+   "value": "Collider size",
+   "rule": "keep",
+   "note": "a change is reported for M4's pushing pose (D-27)",
+   "atTheBase": {
+    "pass": true,
+    "fails": [],
+    "metrics": {
+     "collider": {
+      "radius": 0.25,
+      "overhang": 0.05,
+      "contactDegreesUp": 31.59,
+      "boxReachPastTheSphere": 0.137
+     },
+     "onePusher": 1.225,
+     "fourInATrain": 0.575,
+     "slipOut": {
+      "restCases": {
+       "landed": 864,
+       "held": 0,
+       "worst": 1.383,
+       "worstAt": "1 a side at 56°, ball frame, off mirror",
+       "mismatches": 0
+      },
+      "sitting": {
+       "worst": 0.471,
+       "at": 4
+      },
+      "dribbles": {
+       "runs": 336,
+       "slipOuts": 0
+      },
+      "pinches": [
+       {
+        "packSize": 1,
+        "zoomies": false,
+        "down": 0.433,
+        "mirrored": true,
+        "slipOuts": 2
+       },
+       {
+        "packSize": 1,
+        "zoomies": true,
+        "down": 0.6,
+        "mirrored": true,
+        "slipOuts": 2
+       },
+       {
+        "packSize": 2,
+        "zoomies": false,
+        "down": 0.871,
+        "mirrored": true,
+        "slipOuts": 6
+       },
+       {
+        "packSize": 2,
+        "zoomies": true,
+        "down": 1.604,
+        "mirrored": true,
+        "slipOuts": 4
+       },
+       {
+        "packSize": 3,
+        "zoomies": false,
+        "down": 0.854,
+        "mirrored": true,
+        "slipOuts": 6
+       },
+       {
+        "packSize": 3,
+        "zoomies": true,
+        "down": 1.413,
+        "mirrored": true,
+        "slipOuts": 6
+       },
+       {
+        "packSize": 4,
+        "zoomies": false,
+        "down": 1.346,
+        "mirrored": true,
+        "slipOuts": 10
+       },
+       {
+        "packSize": 4,
+        "zoomies": true,
+        "down": 1.962,
+        "mirrored": true,
+        "slipOuts": 16
+       }
+      ],
+      "fails": [],
+      "window": {
+       "dribbles": 2880,
+       "slipOuts": 0,
+       "lowestHop": 43.529,
+       "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+       "sittingByCone": [
+        {
+         "cone": 40,
+         "sittingWorst": 0.558
+        },
+        {
+         "cone": 41,
+         "sittingWorst": 0.508
+        },
+        {
+         "cone": 41.5,
+         "sittingWorst": 0.483
+        },
+        {
+         "cone": 42,
+         "sittingWorst": 0.471
+        }
+       ],
+       "narrowestConeTried": 41.5,
+       "shut": []
+      }
+     }
+    }
+   },
+   "candidates": [
+    {
+     "key": "terrierRadiusMetres",
+     "start": 0.25,
+     "trials": [
+      {
+       "value": 0.25,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "collider": {
+         "radius": 0.25,
+         "overhang": 0.05,
+         "contactDegreesUp": 31.59,
+         "boxReachPastTheSphere": 0.137
+        },
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.854,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.413,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.346,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.962,
+           "mirrored": true,
+           "slipOuts": 16
+          }
+         ],
+         "fails": [],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 0,
+          "lowestHop": 43.529,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.558
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.508
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.483
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.471
+           }
+          ],
+          "narrowestConeTried": 41.5,
+          "shut": []
+         }
+        }
+       }
+      },
+      {
+       "value": 0.23,
+       "pass": false,
+       "fails": [
+        "case 1: the worst comes down in 2.271 s, over 1.5 s (4 a side at 15°, ball frame, off mirror)",
+        "case 3: 34 slip-outs in 336 dribbles",
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 36.148°, and 100 slip-outs fire in the 2880 dribbles"
+       ],
+       "metrics": {
+        "collider": {
+         "radius": 0.23,
+         "overhang": 0.07,
+         "contactDegreesUp": 33.6,
+         "boxReachPastTheSphere": 0.169
+        },
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 859,
+          "held": 0,
+          "worst": 2.271,
+          "worstAt": "4 a side at 15°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.454,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 34
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.45,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.617,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.896,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.629,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.775,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.767,
+           "mirrored": true,
+           "slipOuts": 14
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.608,
+           "mirrored": true,
+           "slipOuts": 16
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.575,
+           "mirrored": true,
+           "slipOuts": 12
+          }
+         ],
+         "fails": [
+          "case 1: the worst comes down in 2.271 s, over 1.5 s (4 a side at 15°, ball frame, off mirror)",
+          "case 3: 34 slip-outs in 336 dribbles"
+         ],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 100,
+          "lowestHop": 36.148,
+          "lowestAt": "ball frame, 0 steps off, zoomies from 9 m/s, run-up 0.1128 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.521
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.467
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.454
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.454
+           }
+          ],
+          "narrowestConeTried": 41,
+          "shut": [
+           "the cone, 42°, isn't under the dribbles' lowest hop, 36.148°, and 100 slip-outs fire in the 2880 dribbles"
+          ]
+         }
+        }
+       }
+      },
+      {
+       "value": 0.27,
+       "pass": false,
+       "fails": [
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 40.862°, and 15 slip-outs fire in the 2880 dribbles"
+       ],
+       "metrics": {
+        "collider": {
+         "radius": 0.27,
+         "overhang": 0.03,
+         "contactDegreesUp": 29.69,
+         "boxReachPastTheSphere": 0.105
+        },
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.454,
+          "worstAt": "4 a side at 16°, ball frame",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.496,
+          "at": 42
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.425,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.579,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.854,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.542,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.867,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.821,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.313,
+           "mirrored": true,
+           "slipOuts": 12
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.671,
+           "mirrored": true,
+           "slipOuts": 8
+          }
+         ],
+         "fails": [],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 15,
+          "lowestHop": 40.862,
+          "lowestAt": "ball frame, 2 steps off, zoomies from 9 m/s, run-up 0.3797 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.596
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.542
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.517
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.496
+           }
+          ],
+          "narrowestConeTried": 42,
+          "shut": [
+           "the cone, 42°, isn't under the dribbles' lowest hop, 40.862°, and 15 slip-outs fire in the 2880 dribbles"
+          ]
+         }
+        }
+       }
+      },
+      {
+       "value": 0.2,
+       "pass": false,
+       "fails": [
+        "case 3: 82 slip-outs in 336 dribbles",
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 17.814°, and 379 slip-outs fire in the 2880 dribbles"
+       ],
+       "metrics": {
+        "collider": {
+         "radius": 0.2,
+         "overhang": 0.1,
+         "contactDegreesUp": 36.87,
+         "boxReachPastTheSphere": 0.22
+        },
+        "onePusher": 1.225,
+        "fourInATrain": 0.567,
+        "slipOut": {
+         "restCases": {
+          "landed": 853,
+          "held": 0,
+          "worst": 1.308,
+          "worstAt": "4 a side at 6°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.425,
+          "at": 5.25
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 82
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.463,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.637,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.671,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.008,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 1.179,
+           "mirrored": true,
+           "slipOuts": 8
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.708,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.354,
+           "mirrored": true,
+           "slipOuts": 12
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.55,
+           "mirrored": true,
+           "slipOuts": 8
+          }
+         ],
+         "fails": [
+          "case 3: 82 slip-outs in 336 dribbles"
+         ],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 379,
+          "lowestHop": 17.814,
+          "lowestAt": "ball frame, 0 steps off, zoomies from 9 m/s, run-up 0.1128 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.45
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.425
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.425
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.425
+           }
+          ],
+          "narrowestConeTried": 40,
+          "shut": [
+           "the cone, 42°, isn't under the dribbles' lowest hop, 17.814°, and 379 slip-outs fire in the 2880 dribbles"
+          ]
+         }
+        }
+       }
+      },
+      {
+       "value": 0.3,
+       "pass": false,
+       "fails": [
+        "case 1: 5 of 864 rest cases held up for 8 s",
+        "case 1: the worst comes down in 2.271 s, over 1.5 s (4 a side at 19°, ball frame)",
+        "case 2: two sitting terriers take 0.542 s, over 0.5 s",
+        "case 3: 8 slip-outs in 336 dribbles",
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 41.939°, and 12 slip-outs fire in the 2880 dribbles"
+       ],
+       "metrics": {
+        "collider": {
+         "radius": 0.3,
+         "overhang": 0,
+         "contactDegreesUp": 27.04,
+         "boxReachPastTheSphere": 0.058
+        },
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 5,
+          "worst": 2.271,
+          "worstAt": "4 a side at 19°, ball frame",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.542,
+          "at": 42
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 8
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.454,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.554,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.808,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.379,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.971,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.283,
+           "mirrored": true,
+           "slipOuts": 8
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.546,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.887,
+           "mirrored": true,
+           "slipOuts": 10
+          }
+         ],
+         "fails": [
+          "case 1: 5 of 864 rest cases held up for 8 s",
+          "case 1: the worst comes down in 2.271 s, over 1.5 s (4 a side at 19°, ball frame)",
+          "case 2: two sitting terriers take 0.542 s, over 0.5 s",
+          "case 3: 8 slip-outs in 336 dribbles"
+         ],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 12,
+          "lowestHop": 41.939,
+          "lowestAt": "ball frame, 0 steps off, zoomies from 9 m/s, run-up 0.3483 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.642
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.588
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.563
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.542
+           }
+          ],
+          "narrowestConeTried": null,
+          "shut": [
+           "the cone, 42°, isn't under the dribbles' lowest hop, 41.939°, and 12 slip-outs fire in the 2880 dribbles"
+          ]
+         }
+        }
+       }
+      }
+     ],
+     "pick": 0.25
+    }
+   ]
+  },
+  {
+   "value": "Drive and idle friction",
+   "rule": "keep",
+   "note": "keep both: the acceleration is REQUIREMENTS', so it changes only with the owner (Q-1)",
+   "atTheBase": {
+    "pass": true,
+    "fails": [],
+    "metrics": {
+     "runSpeedFromRest": 0.4,
+     "pushedAcceleration": 3.5,
+     "onePusher": 1.225,
+     "fourInATrain": 0.575,
+     "slipOut": {
+      "restCases": {
+       "landed": 864,
+       "held": 0,
+       "worst": 1.383,
+       "worstAt": "1 a side at 56°, ball frame, off mirror",
+       "mismatches": 0
+      },
+      "sitting": {
+       "worst": 0.471,
+       "at": 4
+      },
+      "dribbles": {
+       "runs": 336,
+       "slipOuts": 0
+      },
+      "pinches": [
+       {
+        "packSize": 1,
+        "zoomies": false,
+        "down": 0.433,
+        "mirrored": true,
+        "slipOuts": 2
+       },
+       {
+        "packSize": 1,
+        "zoomies": true,
+        "down": 0.6,
+        "mirrored": true,
+        "slipOuts": 2
+       },
+       {
+        "packSize": 2,
+        "zoomies": false,
+        "down": 0.871,
+        "mirrored": true,
+        "slipOuts": 6
+       },
+       {
+        "packSize": 2,
+        "zoomies": true,
+        "down": 1.604,
+        "mirrored": true,
+        "slipOuts": 4
+       },
+       {
+        "packSize": 3,
+        "zoomies": false,
+        "down": 0.854,
+        "mirrored": true,
+        "slipOuts": 6
+       },
+       {
+        "packSize": 3,
+        "zoomies": true,
+        "down": 1.413,
+        "mirrored": true,
+        "slipOuts": 6
+       },
+       {
+        "packSize": 4,
+        "zoomies": false,
+        "down": 1.346,
+        "mirrored": true,
+        "slipOuts": 10
+       },
+       {
+        "packSize": 4,
+        "zoomies": true,
+        "down": 1.962,
+        "mirrored": true,
+        "slipOuts": 16
+       }
+      ],
+      "fails": [],
+      "window": {
+       "dribbles": 2880,
+       "slipOuts": 0,
+       "lowestHop": 43.529,
+       "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+       "sittingByCone": [
+        {
+         "cone": 40,
+         "sittingWorst": 0.558
+        },
+        {
+         "cone": 41,
+         "sittingWorst": 0.508
+        },
+        {
+         "cone": 41.5,
+         "sittingWorst": 0.483
+        },
+        {
+         "cone": 42,
+         "sittingWorst": 0.471
+        }
+       ],
+       "narrowestConeTried": 41.5,
+       "shut": []
+      }
+     }
+    }
+   },
+   "candidates": [
+    {
+     "key": "idleFrictionMetresPerSecond2",
+     "start": 8,
+     "trials": [
+      {
+       "value": 8,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "runSpeedFromRest": 0.4,
+        "pushedAcceleration": 3.5,
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.854,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.413,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.346,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.962,
+           "mirrored": true,
+           "slipOuts": 16
+          }
+         ],
+         "fails": [],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 0,
+          "lowestHop": 43.529,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.558
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.508
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.483
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.471
+           }
+          ],
+          "narrowestConeTried": 41.5,
+          "shut": []
+         }
+        }
+       }
+      },
+      {
+       "value": 6,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "runSpeedFromRest": 0.4,
+        "pushedAcceleration": 4.5,
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.438,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.854,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.413,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.346,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.962,
+           "mirrored": true,
+           "slipOuts": 16
+          }
+         ],
+         "fails": [],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 0,
+          "lowestHop": 43.529,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.438
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.438
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.438
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.438
+           }
+          ],
+          "narrowestConeTried": 40,
+          "shut": []
+         }
+        }
+       }
+      },
+      {
+       "value": 10,
+       "pass": false,
+       "fails": [
+        "case 2: two sitting terriers take 0.887 s, over 0.5 s"
+       ],
+       "metrics": {
+        "runSpeedFromRest": 0.4,
+        "pushedAcceleration": 2.5,
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.887,
+          "at": 42
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.854,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.413,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.346,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.962,
+           "mirrored": true,
+           "slipOuts": 16
+          }
+         ],
+         "fails": [
+          "case 2: two sitting terriers take 0.887 s, over 0.5 s"
+         ],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 0,
+          "lowestHop": 43.529,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 2.342
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 1.729
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 1.117
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.887
+           }
+          ],
+          "narrowestConeTried": null,
+          "shut": []
+         }
+        }
+       }
+      },
+      {
+       "value": 4,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "runSpeedFromRest": 0.4,
+        "pushedAcceleration": 5.5,
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.4,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.854,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.413,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.346,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.962,
+           "mirrored": true,
+           "slipOuts": 16
+          }
+         ],
+         "fails": [],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 0,
+          "lowestHop": 43.529,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.4
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.4
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.4
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.4
+           }
+          ],
+          "narrowestConeTried": 40,
+          "shut": []
+         }
+        }
+       }
+      },
+      {
+       "value": 12,
+       "pass": false,
+       "fails": [
+        "case 2: two sitting terriers take 2.979 s, over 0.5 s"
+       ],
+       "metrics": {
+        "runSpeedFromRest": 0.4,
+        "pushedAcceleration": 1.5,
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 2.979,
+          "at": 42
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.854,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.413,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.346,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.962,
+           "mirrored": true,
+           "slipOuts": 16
+          }
+         ],
+         "fails": [
+          "case 2: two sitting terriers take 2.979 s, over 0.5 s"
+         ],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 0,
+          "lowestHop": 43.529,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 3.804
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 3.383
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 3.179
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 2.979
+           }
+          ],
+          "narrowestConeTried": null,
+          "shut": []
+         }
+        }
+       }
+      }
+     ],
+     "pick": 8
+    },
+    {
+     "key": "accelerationMetresPerSecond2",
+     "start": 15,
+     "trials": [
+      {
+       "value": 15,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "runSpeedFromRest": 0.4,
+        "pushedAcceleration": 3.5,
+        "onePusher": 1.225,
+        "fourInATrain": 0.575,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.383,
+          "worstAt": "1 a side at 56°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.604,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.854,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.413,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.346,
+           "mirrored": true,
+           "slipOuts": 10
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.962,
+           "mirrored": true,
+           "slipOuts": 16
+          }
+         ],
+         "fails": [],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 0,
+          "lowestHop": 43.529,
+          "lowestAt": "ball frame, 3 steps off, zoomies from 9 m/s, run-up 0.3012 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.558
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.508
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.483
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.471
+           }
+          ],
+          "narrowestConeTried": 41.5,
+          "shut": []
+         }
+        }
+       }
+      },
+      {
+       "value": 12,
+       "pass": false,
+       "fails": [
+        "case 1: the worst comes down in 1.508 s, over 1.5 s (1 a side at 50°, ball frame, off mirror)",
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 36.842°, and 36 slip-outs fire in the 2880 dribbles",
+        "one pusher takes 1.558 s, outside 1.2 s ± 10%",
+        "four in a train take 0.725 s, outside 0.6 s ± 10%"
+       ],
+       "metrics": {
+        "runSpeedFromRest": 0.5,
+        "pushedAcceleration": 2,
+        "onePusher": 1.558,
+        "fourInATrain": 0.725,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.508,
+          "worstAt": "1 a side at 50°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 0
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.596,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.883,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.329,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 0.967,
+           "mirrored": true,
+           "slipOuts": 8
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.858,
+           "mirrored": true,
+           "slipOuts": 14
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.454,
+           "mirrored": true,
+           "slipOuts": 12
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.637,
+           "mirrored": true,
+           "slipOuts": 8
+          }
+         ],
+         "fails": [
+          "case 1: the worst comes down in 1.508 s, over 1.5 s (1 a side at 50°, ball frame, off mirror)"
+         ],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 36,
+          "lowestHop": 36.842,
+          "lowestAt": "ball frame, 1 steps off, zoomies from 9 m/s, run-up 0.2855 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.558
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.508
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.483
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.471
+           }
+          ],
+          "narrowestConeTried": 41.5,
+          "shut": [
+           "the cone, 42°, isn't under the dribbles' lowest hop, 36.842°, and 36 slip-outs fire in the 2880 dribbles"
+          ]
+         }
+        }
+       }
+      },
+      {
+       "value": 18,
+       "pass": false,
+       "fails": [
+        "case 1: the worst comes down in 1.575 s, over 1.5 s (4 a side at 13°, ball frame, off mirror)",
+        "case 3: 20 slip-outs in 336 dribbles",
+        "C-21's window is shut: the cone, 42°, isn't under the dribbles' lowest hop, 39.681°, and 43 slip-outs fire in the 2880 dribbles",
+        "one pusher takes 1.008 s, outside 1.2 s ± 10%",
+        "four in a train take 0.479 s, outside 0.6 s ± 10%"
+       ],
+       "metrics": {
+        "runSpeedFromRest": 0.333,
+        "pushedAcceleration": 5,
+        "onePusher": 1.008,
+        "fourInATrain": 0.479,
+        "slipOut": {
+         "restCases": {
+          "landed": 864,
+          "held": 0,
+          "worst": 1.575,
+          "worstAt": "4 a side at 13°, ball frame, off mirror",
+          "mismatches": 0
+         },
+         "sitting": {
+          "worst": 0.471,
+          "at": 4
+         },
+         "dribbles": {
+          "runs": 336,
+          "slipOuts": 20
+         },
+         "pinches": [
+          {
+           "packSize": 1,
+           "zoomies": false,
+           "down": 0.433,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 1,
+           "zoomies": true,
+           "down": 0.6,
+           "mirrored": true,
+           "slipOuts": 2
+          },
+          {
+           "packSize": 2,
+           "zoomies": false,
+           "down": 0.871,
+           "mirrored": true,
+           "slipOuts": 4
+          },
+          {
+           "packSize": 2,
+           "zoomies": true,
+           "down": 1.671,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": false,
+           "down": 1.075,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 3,
+           "zoomies": true,
+           "down": 1.438,
+           "mirrored": true,
+           "slipOuts": 6
+          },
+          {
+           "packSize": 4,
+           "zoomies": false,
+           "down": 1.183,
+           "mirrored": true,
+           "slipOuts": 28
+          },
+          {
+           "packSize": 4,
+           "zoomies": true,
+           "down": 1.721,
+           "mirrored": true,
+           "slipOuts": 8
+          }
+         ],
+         "fails": [
+          "case 1: the worst comes down in 1.575 s, over 1.5 s (4 a side at 13°, ball frame, off mirror)",
+          "case 3: 20 slip-outs in 336 dribbles"
+         ],
+         "window": {
+          "dribbles": 2880,
+          "slipOuts": 43,
+          "lowestHop": 39.681,
+          "lowestAt": "ball frame, 0 steps off, zoomies from 9 m/s, run-up 0.1128 m",
+          "sittingByCone": [
+           {
+            "cone": 40,
+            "sittingWorst": 0.558
+           },
+           {
+            "cone": 41,
+            "sittingWorst": 0.508
+           },
+           {
+            "cone": 41.5,
+            "sittingWorst": 0.483
+           },
+           {
+            "cone": 42,
+            "sittingWorst": 0.471
+           }
+          ],
+          "narrowestConeTried": 41.5,
+          "shut": [
+           "the cone, 42°, isn't under the dribbles' lowest hop, 39.681°, and 43 slip-outs fire in the 2880 dribbles"
+          ]
+         }
+        }
+       }
+      }
+     ],
+     "pick": 15
+    }
+   ]
+  },
+  {
+   "value": "Goal netting",
+   "rule": "largest",
+   "note": null,
+   "atTheBase": {
+    "pass": false,
+    "fails": [
+     "rolling at 5 m/s, 0°: least |x| 19.329",
+     "high at 5 m/s, 0°: least |x| 16.843",
+     "lobbed at 5 m/s, 0°: least |x| 16.941",
+     "rolling at 5 m/s, 20°: least |x| 18.721",
+     "high at 5 m/s, 20°: least |x| 16.953",
+     "lobbed at 5 m/s, 20°: least |x| 17.017",
+     "rolling at 5 m/s, 35°: least |x| 19.211",
+     "high at 5 m/s, 35°: least |x| 17.768",
+     "lobbed at 5 m/s, 35°: least |x| 17.857",
+     "rolling at 10 m/s, 0°: least |x| 14.16",
+     "high at 10 m/s, 0°: least |x| 11.506",
+     "lobbed at 10 m/s, 0°: least |x| 11.581",
+     "rolling at 10 m/s, 20°: least |x| 13.763",
+     "high at 10 m/s, 20°: least |x| 11.987",
+     "lobbed at 10 m/s, 20°: least |x| 12.036",
+     "rolling at 10 m/s, 35°: least |x| 15.2",
+     "high at 10 m/s, 35°: least |x| 13.332",
+     "lobbed at 10 m/s, 35°: least |x| 13.397"
+    ],
+    "metrics": {
+     "worstAt5": 16.843,
+     "worstAt10": 11.506,
+     "shots": [
+      {
+       "speed": 5,
+       "angle": 0,
+       "kind": "rolling",
+       "goal": true,
+       "leastX": 19.329,
+       "wholly": false
+      },
+      {
+       "speed": 5,
+       "angle": 0,
+       "kind": "high",
+       "goal": true,
+       "leastX": 16.843,
+       "wholly": false
+      },
+      {
+       "speed": 5,
+       "angle": 0,
+       "kind": "lobbed",
+       "goal": true,
+       "leastX": 16.941,
+       "wholly": false
+      },
+      {
+       "speed": 5,
+       "angle": 20,
+       "kind": "rolling",
+       "goal": true,
+       "leastX": 18.721,
+       "wholly": false
+      },
+      {
+       "speed": 5,
+       "angle": 20,
+       "kind": "high",
+       "goal": true,
+       "leastX": 16.953,
+       "wholly": false
+      },
+      {
+       "speed": 5,
+       "angle": 20,
+       "kind": "lobbed",
+       "goal": true,
+       "leastX": 17.017,
+       "wholly": false
+      },
+      {
+       "speed": 5,
+       "angle": 35,
+       "kind": "rolling",
+       "goal": true,
+       "leastX": 19.211,
+       "wholly": false
+      },
+      {
+       "speed": 5,
+       "angle": 35,
+       "kind": "high",
+       "goal": true,
+       "leastX": 17.768,
+       "wholly": false
+      },
+      {
+       "speed": 5,
+       "angle": 35,
+       "kind": "lobbed",
+       "goal": true,
+       "leastX": 17.857,
+       "wholly": false
+      },
+      {
+       "speed": 10,
+       "angle": 0,
+       "kind": "rolling",
+       "goal": true,
+       "leastX": 14.16,
+       "wholly": false
+      },
+      {
+       "speed": 10,
+       "angle": 0,
+       "kind": "high",
+       "goal": true,
+       "leastX": 11.506,
+       "wholly": false
+      },
+      {
+       "speed": 10,
+       "angle": 0,
+       "kind": "lobbed",
+       "goal": true,
+       "leastX": 11.581,
+       "wholly": false
+      },
+      {
+       "speed": 10,
+       "angle": 20,
+       "kind": "rolling",
+       "goal": true,
+       "leastX": 13.763,
+       "wholly": false
+      },
+      {
+       "speed": 10,
+       "angle": 20,
+       "kind": "high",
+       "goal": true,
+       "leastX": 11.987,
+       "wholly": false
+      },
+      {
+       "speed": 10,
+       "angle": 20,
+       "kind": "lobbed",
+       "goal": true,
+       "leastX": 12.036,
+       "wholly": false
+      },
+      {
+       "speed": 10,
+       "angle": 35,
+       "kind": "rolling",
+       "goal": true,
+       "leastX": 15.2,
+       "wholly": false
+      },
+      {
+       "speed": 10,
+       "angle": 35,
+       "kind": "high",
+       "goal": true,
+       "leastX": 13.332,
+       "wholly": false
+      },
+      {
+       "speed": 10,
+       "angle": 35,
+       "kind": "lobbed",
+       "goal": true,
+       "leastX": 13.397,
+       "wholly": false
+      }
+     ]
+    }
+   },
+   "candidates": [
+    {
+     "key": "goalNetRestitution",
+     "start": 0.3,
+     "trials": [
+      {
+       "value": 0.3,
+       "pass": false,
+       "fails": [
+        "rolling at 5 m/s, 0°: least |x| 19.329",
+        "high at 5 m/s, 0°: least |x| 16.843",
+        "lobbed at 5 m/s, 0°: least |x| 16.941",
+        "rolling at 5 m/s, 20°: least |x| 18.721",
+        "high at 5 m/s, 20°: least |x| 16.953",
+        "lobbed at 5 m/s, 20°: least |x| 17.017",
+        "rolling at 5 m/s, 35°: least |x| 19.211",
+        "high at 5 m/s, 35°: least |x| 17.768",
+        "lobbed at 5 m/s, 35°: least |x| 17.857",
+        "rolling at 10 m/s, 0°: least |x| 14.16",
+        "high at 10 m/s, 0°: least |x| 11.506",
+        "lobbed at 10 m/s, 0°: least |x| 11.581",
+        "rolling at 10 m/s, 20°: least |x| 13.763",
+        "high at 10 m/s, 20°: least |x| 11.987",
+        "lobbed at 10 m/s, 20°: least |x| 12.036",
+        "rolling at 10 m/s, 35°: least |x| 15.2",
+        "high at 10 m/s, 35°: least |x| 13.332",
+        "lobbed at 10 m/s, 35°: least |x| 13.397"
+       ],
+       "metrics": {
+        "worstAt5": 16.843,
+        "worstAt10": 11.506,
+        "shots": [
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 19.329,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 16.843,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 16.941,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 18.721,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 16.953,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 17.017,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 19.211,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 17.768,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 17.857,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 14.16,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 11.506,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 11.581,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 13.763,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 11.987,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 12.036,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 15.2,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 13.332,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 13.397,
+          "wholly": false
+         }
+        ]
+       }
+      },
+      {
+       "value": 0.2,
+       "pass": false,
+       "fails": [
+        "rolling at 5 m/s, 0°: least |x| 20.369",
+        "high at 5 m/s, 0°: least |x| 18.497",
+        "lobbed at 5 m/s, 0°: least |x| 18.595",
+        "rolling at 5 m/s, 20°: least |x| 19.703",
+        "high at 5 m/s, 20°: least |x| 17.406",
+        "lobbed at 5 m/s, 20°: least |x| 17.5",
+        "rolling at 5 m/s, 35°: least |x| 20.102",
+        "high at 5 m/s, 35°: least |x| 19.115",
+        "lobbed at 5 m/s, 35°: least |x| 19.203",
+        "rolling at 10 m/s, 0°: least |x| 17.448",
+        "high at 10 m/s, 0°: least |x| 14.852",
+        "lobbed at 10 m/s, 0°: least |x| 14.927",
+        "rolling at 10 m/s, 20°: least |x| 13.775",
+        "high at 10 m/s, 20°: least |x| 11.171",
+        "lobbed at 10 m/s, 20°: least |x| 11.248",
+        "rolling at 10 m/s, 35°: least |x| 17.789",
+        "high at 10 m/s, 35°: least |x| 16.062",
+        "lobbed at 10 m/s, 35°: least |x| 16.127"
+       ],
+       "metrics": {
+        "worstAt5": 17.406,
+        "worstAt10": 11.171,
+        "shots": [
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.369,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 18.497,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 18.595,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 19.703,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 17.406,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 17.5,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.102,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 19.115,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 19.203,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 17.448,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 14.852,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 14.927,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 13.775,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 11.171,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 11.248,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 17.789,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 16.062,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 16.127,
+          "wholly": false
+         }
+        ]
+       }
+      },
+      {
+       "value": 0.15,
+       "pass": false,
+       "fails": [
+        "rolling at 5 m/s, 0°: least |x| 20.733",
+        "high at 5 m/s, 0°: least |x| 19.323",
+        "lobbed at 5 m/s, 0°: least |x| 19.414",
+        "rolling at 5 m/s, 20°: least |x| 20.131",
+        "high at 5 m/s, 20°: least |x| 19.45",
+        "lobbed at 5 m/s, 20°: least |x| 19.484",
+        "rolling at 5 m/s, 35°: least |x| 20.459",
+        "high at 5 m/s, 35°: least |x| 19.778",
+        "lobbed at 5 m/s, 35°: least |x| 19.852",
+        "rolling at 10 m/s, 0°: least |x| 19.047",
+        "high at 10 m/s, 0°: least |x| 16.525",
+        "lobbed at 10 m/s, 0°: least |x| 16.6",
+        "rolling at 10 m/s, 20°: least |x| 18.514",
+        "high at 10 m/s, 20°: least |x| 17.644",
+        "lobbed at 10 m/s, 20°: least |x| 17.673",
+        "rolling at 10 m/s, 35°: least |x| 19.075",
+        "high at 10 m/s, 35°: least |x| 17.427",
+        "lobbed at 10 m/s, 35°: least |x| 17.493"
+       ],
+       "metrics": {
+        "worstAt5": 19.323,
+        "worstAt10": 16.525,
+        "shots": [
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.733,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 19.323,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 19.414,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.131,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 19.45,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 19.484,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.459,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 19.778,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 19.852,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 19.047,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 16.525,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 16.6,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 18.514,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 17.644,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 17.673,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 19.075,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 17.427,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 17.493,
+          "wholly": false
+         }
+        ]
+       }
+      },
+      {
+       "value": 0.1,
+       "pass": false,
+       "fails": [
+        "high at 5 m/s, 0°: least |x| 20.074",
+        "lobbed at 5 m/s, 0°: least |x| 20.134",
+        "rolling at 5 m/s, 20°: least |x| 20.517",
+        "high at 5 m/s, 20°: least |x| 20.167",
+        "lobbed at 5 m/s, 20°: least |x| 20.211",
+        "rolling at 5 m/s, 35°: least |x| 20.759",
+        "high at 5 m/s, 35°: least |x| 20.354",
+        "lobbed at 5 m/s, 35°: least |x| 20.404",
+        "rolling at 10 m/s, 0°: least |x| 20.244",
+        "high at 10 m/s, 0°: least |x| 18.198",
+        "lobbed at 10 m/s, 0°: least |x| 18.273",
+        "rolling at 10 m/s, 20°: least |x| 19.759",
+        "high at 10 m/s, 20°: least |x| 18.394",
+        "lobbed at 10 m/s, 20°: least |x| 18.466",
+        "rolling at 10 m/s, 35°: least |x| 20.144",
+        "high at 10 m/s, 35°: least |x| 18.793",
+        "lobbed at 10 m/s, 35°: least |x| 18.858"
+       ],
+       "metrics": {
+        "worstAt5": 20.074,
+        "worstAt10": 18.198,
+        "shots": [
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.801,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.074,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.134,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.517,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.167,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.211,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.759,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.354,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.404,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.244,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 18.198,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 18.273,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 19.759,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 18.394,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 18.466,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.144,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 18.793,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 18.858,
+          "wholly": false
+         }
+        ]
+       }
+      },
+      {
+       "value": 0.05,
+       "pass": false,
+       "fails": [
+        "high at 5 m/s, 0°: least |x| 20.699",
+        "lobbed at 5 m/s, 0°: least |x| 20.73",
+        "high at 5 m/s, 20°: least |x| 20.742",
+        "lobbed at 5 m/s, 20°: least |x| 20.763",
+        "high at 10 m/s, 0°: least |x| 19.864",
+        "lobbed at 10 m/s, 0°: least |x| 19.924",
+        "rolling at 10 m/s, 20°: least |x| 20.652",
+        "high at 10 m/s, 20°: least |x| 19.958",
+        "lobbed at 10 m/s, 20°: least |x| 20.015",
+        "high at 10 m/s, 35°: least |x| 20.144",
+        "lobbed at 10 m/s, 35°: least |x| 20.194"
+       ],
+       "metrics": {
+        "worstAt5": 20.699,
+        "worstAt10": 19.864,
+        "shots": [
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.801,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.699,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.73,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.805,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.742,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.763,
+          "wholly": false
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.813,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.806,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.806,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.837,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 19.864,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 19.924,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.652,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 19.958,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.015,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.811,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.144,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.194,
+          "wholly": false
+         }
+        ]
+       }
+      },
+      {
+       "value": 0.02,
+       "pass": false,
+       "fails": [
+        "high at 10 m/s, 0°: least |x| 20.725",
+        "lobbed at 10 m/s, 0°: least |x| 20.75",
+        "high at 10 m/s, 20°: least |x| 20.76",
+        "lobbed at 10 m/s, 20°: least |x| 20.782"
+       ],
+       "metrics": {
+        "worstAt5": 20.801,
+        "worstAt10": 20.725,
+        "shots": [
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.801,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.812,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.812,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.805,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.818,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.818,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.813,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.806,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.806,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.837,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.725,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.75,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.836,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.76,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.782,
+          "wholly": false
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.811,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.823,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.823,
+          "wholly": true
+         }
+        ]
+       }
+      },
+      {
+       "value": 0,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "worstAt5": 20.801,
+        "worstAt10": 20.811,
+        "shots": [
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.801,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.812,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.812,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.805,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.818,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.818,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.813,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.806,
+          "wholly": true
+         },
+         {
+          "speed": 5,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.806,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.837,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.833,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 0,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.833,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.836,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.837,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 20,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.837,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "rolling",
+          "goal": true,
+          "leastX": 20.811,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "high",
+          "goal": true,
+          "leastX": 20.823,
+          "wholly": true
+         },
+         {
+          "speed": 10,
+          "angle": 35,
+          "kind": "lobbed",
+          "goal": true,
+          "leastX": 20.823,
+          "wholly": true
+         }
+        ]
+       }
+      }
+     ],
+     "pick": 0
+    }
+   ]
+  },
+  {
+   "value": "Bowling speed",
+   "rule": "keep",
+   "note": "REQUIREMENTS' value, so a change goes to the owner (Q-1)",
+   "atTheBase": {
+    "pass": true,
+    "fails": [],
+    "metrics": {
+     "zoomiesPushLeaving": 3.968,
+     "dribbleAtARun": {
+      "tumbled": true,
+      "approach": 5.995
+     },
+     "pounceFromAirLeaving": 4.57,
+     "rolledAt5": {
+      "tumbled": true,
+      "approach": 4.679
+     },
+     "rolledAt3": {
+      "tumbled": false,
+      "approach": 2.429
+     },
+     "fails": [],
+     "botMatches2": {
+      "matches": 10,
+      "minutes": 30,
+      "bowledAMinute": 5.37,
+      "pouncedAMinute": 0.367
+     },
+     "botMatches4": {
+      "matches": 10,
+      "minutes": 32,
+      "bowledAMinute": 6.465,
+      "pouncedAMinute": 0.312
+     }
+    }
+   },
+   "candidates": [
+    {
+     "key": "bowlingSpeedMetresPerSecond",
+     "start": 4,
+     "trials": [
+      {
+       "value": 4,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "zoomiesPushLeaving": 3.968,
+        "dribbleAtARun": {
+         "tumbled": true,
+         "approach": 5.995
+        },
+        "pounceFromAirLeaving": 4.57,
+        "rolledAt5": {
+         "tumbled": true,
+         "approach": 4.679
+        },
+        "rolledAt3": {
+         "tumbled": false,
+         "approach": 2.429
+        },
+        "fails": [],
+        "botMatches2": {
+         "matches": 10,
+         "minutes": 30,
+         "bowledAMinute": 5.37,
+         "pouncedAMinute": 0.367
+        },
+        "botMatches4": {
+         "matches": 10,
+         "minutes": 32,
+         "bowledAMinute": 6.465,
+         "pouncedAMinute": 0.312
+        }
+       }
+      },
+      {
+       "value": 3.5,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "zoomiesPushLeaving": 3.968,
+        "dribbleAtARun": {
+         "tumbled": true,
+         "approach": 5.995
+        },
+        "pounceFromAirLeaving": 4.57,
+        "rolledAt5": {
+         "tumbled": true,
+         "approach": 4.679
+        },
+        "rolledAt3": {
+         "tumbled": false,
+         "approach": 2.429
+        },
+        "fails": [],
+        "botMatches2": {
+         "matches": 10,
+         "minutes": 30,
+         "bowledAMinute": 8.972,
+         "pouncedAMinute": 0.3
+        },
+        "botMatches4": {
+         "matches": 10,
+         "minutes": 31.5,
+         "bowledAMinute": 10.086,
+         "pouncedAMinute": 0.159
+        }
+       }
+      },
+      {
+       "value": 4.5,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "zoomiesPushLeaving": 3.968,
+        "dribbleAtARun": {
+         "tumbled": true,
+         "approach": 5.995
+        },
+        "pounceFromAirLeaving": 4.57,
+        "rolledAt5": {
+         "tumbled": true,
+         "approach": 4.679
+        },
+        "rolledAt3": {
+         "tumbled": false,
+         "approach": 2.429
+        },
+        "fails": [],
+        "botMatches2": {
+         "matches": 10,
+         "minutes": 30,
+         "bowledAMinute": 3.502,
+         "pouncedAMinute": 0.534
+        },
+        "botMatches4": {
+         "matches": 10,
+         "minutes": 30,
+         "bowledAMinute": 4.302,
+         "pouncedAMinute": 0.567
+        }
+       }
+      },
+      {
+       "value": 3,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "zoomiesPushLeaving": 3.968,
+        "dribbleAtARun": {
+         "tumbled": true,
+         "approach": 5.995
+        },
+        "pounceFromAirLeaving": 4.57,
+        "rolledAt5": {
+         "tumbled": true,
+         "approach": 4.679
+        },
+        "rolledAt3": {
+         "tumbled": false,
+         "approach": 2.429
+        },
+        "fails": [],
+        "botMatches2": {
+         "matches": 10,
+         "minutes": 30.4,
+         "bowledAMinute": 12.167,
+         "pouncedAMinute": 0.296
+        },
+        "botMatches4": {
+         "matches": 10,
+         "minutes": 30.9,
+         "bowledAMinute": 13.267,
+         "pouncedAMinute": 0.324
+        }
+       }
+      },
+      {
+       "value": 5,
+       "pass": false,
+       "fails": [
+        "a pounce from the air sends the ball off at 4.57 m/s, under the bowling speed"
+       ],
+       "metrics": {
+        "zoomiesPushLeaving": 3.968,
+        "dribbleAtARun": {
+         "tumbled": true,
+         "approach": 5.995
+        },
+        "pounceFromAirLeaving": 4.57,
+        "rolledAt5": {
+         "tumbled": false,
+         "approach": 4.679
+        },
+        "rolledAt3": {
+         "tumbled": false,
+         "approach": 2.429
+        },
+        "fails": [
+         "a pounce from the air sends the ball off at 4.57 m/s, under the bowling speed"
+        ],
+        "botMatches2": {
+         "matches": 10,
+         "minutes": 34.5,
+         "bowledAMinute": 2.347,
+         "pouncedAMinute": 0.377
+        },
+        "botMatches4": {
+         "matches": 10,
+         "minutes": 33.9,
+         "bowledAMinute": 2.092,
+         "pouncedAMinute": 0.413
+        }
+       }
+      }
+     ],
+     "pick": 4
+    }
+   ]
+  },
+  {
+   "value": "Side-by-side pushers, and the remedy",
+   "rule": "smallest",
+   "note": "the assist at the smallest cap that passes, and the marks at the measured times plus 10%; if none passes, the assist goes and C-18 goes to the owner (Q-13)",
+   "atTheBase": {
+    "pass": false,
+    "fails": [
+     "two round the ball in ball view take 2.033 s, not under one pusher's 1.225 s",
+     "two on a line in ball view take 2.033 s, not under one pusher's 1.225 s",
+     "four round the ball in ball view take 1.313 s, not under one pusher's 1.225 s"
+    ],
+    "metrics": {
+     "off": [
+      {
+       "name": "one pusher",
+       "frame": "pitch",
+       "seconds": 1.225
+      },
+      {
+       "name": "one pusher",
+       "frame": "ball",
+       "seconds": 1.225
+      },
+      {
+       "name": "two in a train",
+       "frame": "pitch",
+       "seconds": 0.779
+      },
+      {
+       "name": "two in a train",
+       "frame": "ball",
+       "seconds": 0.779
+      },
+      {
+       "name": "four in a train",
+       "frame": "pitch",
+       "seconds": 0.575
+      },
+      {
+       "name": "four in a train",
+       "frame": "ball",
+       "seconds": 0.575
+      },
+      {
+       "name": "two round the ball",
+       "frame": "pitch",
+       "seconds": 0.829
+      },
+      {
+       "name": "two round the ball",
+       "frame": "ball",
+       "seconds": 2.033
+      },
+      {
+       "name": "two on a line",
+       "frame": "pitch",
+       "seconds": 0.833
+      },
+      {
+       "name": "two on a line",
+       "frame": "ball",
+       "seconds": 2.033
+      },
+      {
+       "name": "four round the ball",
+       "frame": "pitch",
+       "seconds": 0.721
+      },
+      {
+       "name": "four round the ball",
+       "frame": "ball",
+       "seconds": 1.313
+      },
+      {
+       "name": "four on a line",
+       "frame": "pitch",
+       "seconds": 0.758
+      },
+      {
+       "name": "four on a line",
+       "frame": "ball",
+       "seconds": 0.921
+      }
+     ],
+     "on": [
+      {
+       "name": "two in a train",
+       "frame": "pitch",
+       "seconds": 0.779,
+       "mark": 0.857
+      },
+      {
+       "name": "two in a train",
+       "frame": "ball",
+       "seconds": 0.779,
+       "mark": 0.857
+      },
+      {
+       "name": "four in a train",
+       "frame": "pitch",
+       "seconds": 0.575,
+       "mark": 0.632
+      },
+      {
+       "name": "four in a train",
+       "frame": "ball",
+       "seconds": 0.575,
+       "mark": 0.632
+      },
+      {
+       "name": "two round the ball",
+       "frame": "pitch",
+       "seconds": 0.829,
+       "mark": 0.912
+      },
+      {
+       "name": "two round the ball",
+       "frame": "ball",
+       "seconds": 2.033,
+       "mark": 2.236
+      },
+      {
+       "name": "two on a line",
+       "frame": "pitch",
+       "seconds": 0.833,
+       "mark": 0.916
+      },
+      {
+       "name": "two on a line",
+       "frame": "ball",
+       "seconds": 2.033,
+       "mark": 2.236
+      },
+      {
+       "name": "four round the ball",
+       "frame": "pitch",
+       "seconds": 0.721,
+       "mark": 0.793
+      },
+      {
+       "name": "four round the ball",
+       "frame": "ball",
+       "seconds": 1.313,
+       "mark": 1.444
+      },
+      {
+       "name": "four on a line",
+       "frame": "pitch",
+       "seconds": 0.758,
+       "mark": 0.834
+      },
+      {
+       "name": "four on a line",
+       "frame": "ball",
+       "seconds": 0.921,
+       "mark": 1.013
+      }
+     ]
+    }
+   },
+   "candidates": [
+    {
+     "key": "pushAssistCapMetresPerSecond",
+     "start": 0,
+     "trials": [
+      {
+       "value": 9,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "off": [
+         {
+          "name": "one pusher",
+          "frame": "pitch",
+          "seconds": 1.225
+         },
+         {
+          "name": "one pusher",
+          "frame": "ball",
+          "seconds": 1.225
+         },
+         {
+          "name": "two in a train",
+          "frame": "pitch",
+          "seconds": 0.779
+         },
+         {
+          "name": "two in a train",
+          "frame": "ball",
+          "seconds": 0.779
+         },
+         {
+          "name": "four in a train",
+          "frame": "pitch",
+          "seconds": 0.575
+         },
+         {
+          "name": "four in a train",
+          "frame": "ball",
+          "seconds": 0.575
+         },
+         {
+          "name": "two round the ball",
+          "frame": "pitch",
+          "seconds": 0.829
+         },
+         {
+          "name": "two round the ball",
+          "frame": "ball",
+          "seconds": 2.033
+         },
+         {
+          "name": "two on a line",
+          "frame": "pitch",
+          "seconds": 0.833
+         },
+         {
+          "name": "two on a line",
+          "frame": "ball",
+          "seconds": 2.033
+         },
+         {
+          "name": "four round the ball",
+          "frame": "pitch",
+          "seconds": 0.721
+         },
+         {
+          "name": "four round the ball",
+          "frame": "ball",
+          "seconds": 1.313
+         },
+         {
+          "name": "four on a line",
+          "frame": "pitch",
+          "seconds": 0.758
+         },
+         {
+          "name": "four on a line",
+          "frame": "ball",
+          "seconds": 0.921
+         }
+        ],
+        "on": [
+         {
+          "name": "two in a train",
+          "frame": "pitch",
+          "seconds": 0.779,
+          "mark": 0.857
+         },
+         {
+          "name": "two in a train",
+          "frame": "ball",
+          "seconds": 0.779,
+          "mark": 0.857
+         },
+         {
+          "name": "four in a train",
+          "frame": "pitch",
+          "seconds": 0.575,
+          "mark": 0.632
+         },
+         {
+          "name": "four in a train",
+          "frame": "ball",
+          "seconds": 0.575,
+          "mark": 0.632
+         },
+         {
+          "name": "two round the ball",
+          "frame": "pitch",
+          "seconds": 0.829,
+          "mark": 0.912
+         },
+         {
+          "name": "two round the ball",
+          "frame": "ball",
+          "seconds": 1.175,
+          "mark": 1.293
+         },
+         {
+          "name": "two on a line",
+          "frame": "pitch",
+          "seconds": 0.833,
+          "mark": 0.916
+         },
+         {
+          "name": "two on a line",
+          "frame": "ball",
+          "seconds": 1.175,
+          "mark": 1.293
+         },
+         {
+          "name": "four round the ball",
+          "frame": "pitch",
+          "seconds": 0.721,
+          "mark": 0.793
+         },
+         {
+          "name": "four round the ball",
+          "frame": "ball",
+          "seconds": 0.983,
+          "mark": 1.081
+         },
+         {
+          "name": "four on a line",
+          "frame": "pitch",
+          "seconds": 0.758,
+          "mark": 0.834
+         },
+         {
+          "name": "four on a line",
+          "frame": "ball",
+          "seconds": 0.854,
+          "mark": 0.939
+         }
+        ]
+       }
+      },
+      {
+       "value": 12,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "off": [
+         {
+          "name": "one pusher",
+          "frame": "pitch",
+          "seconds": 1.225
+         },
+         {
+          "name": "one pusher",
+          "frame": "ball",
+          "seconds": 1.225
+         },
+         {
+          "name": "two in a train",
+          "frame": "pitch",
+          "seconds": 0.779
+         },
+         {
+          "name": "two in a train",
+          "frame": "ball",
+          "seconds": 0.779
+         },
+         {
+          "name": "four in a train",
+          "frame": "pitch",
+          "seconds": 0.575
+         },
+         {
+          "name": "four in a train",
+          "frame": "ball",
+          "seconds": 0.575
+         },
+         {
+          "name": "two round the ball",
+          "frame": "pitch",
+          "seconds": 0.829
+         },
+         {
+          "name": "two round the ball",
+          "frame": "ball",
+          "seconds": 2.033
+         },
+         {
+          "name": "two on a line",
+          "frame": "pitch",
+          "seconds": 0.833
+         },
+         {
+          "name": "two on a line",
+          "frame": "ball",
+          "seconds": 2.033
+         },
+         {
+          "name": "four round the ball",
+          "frame": "pitch",
+          "seconds": 0.721
+         },
+         {
+          "name": "four round the ball",
+          "frame": "ball",
+          "seconds": 1.313
+         },
+         {
+          "name": "four on a line",
+          "frame": "pitch",
+          "seconds": 0.758
+         },
+         {
+          "name": "four on a line",
+          "frame": "ball",
+          "seconds": 0.921
+         }
+        ],
+        "on": [
+         {
+          "name": "two in a train",
+          "frame": "pitch",
+          "seconds": 0.779,
+          "mark": 0.857
+         },
+         {
+          "name": "two in a train",
+          "frame": "ball",
+          "seconds": 0.779,
+          "mark": 0.857
+         },
+         {
+          "name": "four in a train",
+          "frame": "pitch",
+          "seconds": 0.575,
+          "mark": 0.632
+         },
+         {
+          "name": "four in a train",
+          "frame": "ball",
+          "seconds": 0.575,
+          "mark": 0.632
+         },
+         {
+          "name": "two round the ball",
+          "frame": "pitch",
+          "seconds": 0.829,
+          "mark": 0.912
+         },
+         {
+          "name": "two round the ball",
+          "frame": "ball",
+          "seconds": 1.175,
+          "mark": 1.293
+         },
+         {
+          "name": "two on a line",
+          "frame": "pitch",
+          "seconds": 0.833,
+          "mark": 0.916
+         },
+         {
+          "name": "two on a line",
+          "frame": "ball",
+          "seconds": 1.175,
+          "mark": 1.293
+         },
+         {
+          "name": "four round the ball",
+          "frame": "pitch",
+          "seconds": 0.721,
+          "mark": 0.793
+         },
+         {
+          "name": "four round the ball",
+          "frame": "ball",
+          "seconds": 0.979,
+          "mark": 1.077
+         },
+         {
+          "name": "four on a line",
+          "frame": "pitch",
+          "seconds": 0.758,
+          "mark": 0.834
+         },
+         {
+          "name": "four on a line",
+          "frame": "ball",
+          "seconds": 0.854,
+          "mark": 0.939
+         }
+        ]
+       }
+      },
+      {
+       "value": 15,
+       "pass": true,
+       "fails": [],
+       "metrics": {
+        "off": [
+         {
+          "name": "one pusher",
+          "frame": "pitch",
+          "seconds": 1.225
+         },
+         {
+          "name": "one pusher",
+          "frame": "ball",
+          "seconds": 1.225
+         },
+         {
+          "name": "two in a train",
+          "frame": "pitch",
+          "seconds": 0.779
+         },
+         {
+          "name": "two in a train",
+          "frame": "ball",
+          "seconds": 0.779
+         },
+         {
+          "name": "four in a train",
+          "frame": "pitch",
+          "seconds": 0.575
+         },
+         {
+          "name": "four in a train",
+          "frame": "ball",
+          "seconds": 0.575
+         },
+         {
+          "name": "two round the ball",
+          "frame": "pitch",
+          "seconds": 0.829
+         },
+         {
+          "name": "two round the ball",
+          "frame": "ball",
+          "seconds": 2.033
+         },
+         {
+          "name": "two on a line",
+          "frame": "pitch",
+          "seconds": 0.833
+         },
+         {
+          "name": "two on a line",
+          "frame": "ball",
+          "seconds": 2.033
+         },
+         {
+          "name": "four round the ball",
+          "frame": "pitch",
+          "seconds": 0.721
+         },
+         {
+          "name": "four round the ball",
+          "frame": "ball",
+          "seconds": 1.313
+         },
+         {
+          "name": "four on a line",
+          "frame": "pitch",
+          "seconds": 0.758
+         },
+         {
+          "name": "four on a line",
+          "frame": "ball",
+          "seconds": 0.921
+         }
+        ],
+        "on": [
+         {
+          "name": "two in a train",
+          "frame": "pitch",
+          "seconds": 0.779,
+          "mark": 0.857
+         },
+         {
+          "name": "two in a train",
+          "frame": "ball",
+          "seconds": 0.779,
+          "mark": 0.857
+         },
+         {
+          "name": "four in a train",
+          "frame": "pitch",
+          "seconds": 0.575,
+          "mark": 0.632
+         },
+         {
+          "name": "four in a train",
+          "frame": "ball",
+          "seconds": 0.575,
+          "mark": 0.632
+         },
+         {
+          "name": "two round the ball",
+          "frame": "pitch",
+          "seconds": 0.829,
+          "mark": 0.912
+         },
+         {
+          "name": "two round the ball",
+          "frame": "ball",
+          "seconds": 1.175,
+          "mark": 1.293
+         },
+         {
+          "name": "two on a line",
+          "frame": "pitch",
+          "seconds": 0.833,
+          "mark": 0.916
+         },
+         {
+          "name": "two on a line",
+          "frame": "ball",
+          "seconds": 1.175,
+          "mark": 1.293
+         },
+         {
+          "name": "four round the ball",
+          "frame": "pitch",
+          "seconds": 0.721,
+          "mark": 0.793
+         },
+         {
+          "name": "four round the ball",
+          "frame": "ball",
+          "seconds": 0.979,
+          "mark": 1.077
+         },
+         {
+          "name": "four on a line",
+          "frame": "pitch",
+          "seconds": 0.758,
+          "mark": 0.834
+         },
+         {
+          "name": "four on a line",
+          "frame": "ball",
+          "seconds": 0.854,
+          "mark": 0.939
+         }
+        ]
+       }
+      }
+     ],
+     "pick": 9
+    }
+   ]
+  }
+ ],
+ "allPassAtTheBase": false,
+ "picks": {
+  "goalNetRestitution": 0,
+  "pushAssistCapMetresPerSecond": 9
+ },
+ "proposals": {}
+}

@@ -402,8 +402,8 @@ const A5: Readonly<Record<string, Row>> = {
   'Get-up': { keys: ['getUpSeconds', 'tumbleSeconds'] },
   'Nose turn rate (vehicle-style)': { keys: ['noseTurnRateTurnsPerSecond', 'noseReverseMetresPerSecond'] },
   'Posts and crossbar': { keys: ['pitch.postRadiusMetres'] },
-  // M2's row (design §4.4, §10).
-  'Ball-frame push assist (C-18)': { keys: ['pushAssistCapMetresPerSecond'] },
+  // M2's row (design §4.4, §10): the settled cap, then "a cap of 0 turns it off".
+  'Ball-frame push assist (C-18)': { keys: ['pushAssistCapMetresPerSecond'], numbers: (c) => [c.pushAssistCapMetresPerSecond, 0] },
 };
 
 /** Settings in none of the tables, with their sources. */
@@ -861,9 +861,11 @@ describe('the configuration checks (PLAN §7.4)', () => {
     const spin = requirements.replace('| Spectators |', '| Ball spin | None | |\n| Spectators |');
     expect(documented(config, spin, plan)).toEqual(['the Configuration table "Ball spin" maps to no setting in src/config.ts']);
     expect(documented(config, requirements.replace(/^\| Jump \|.*\n/m, ''), plan).join('\n')).toMatch(/has no row "Jump"/);
-    const noGuard = plan.replace('| Tumble guard | 1.5 s |', '| Tumble cover | 1.5 s |');
+    const noGuard = plan.replace(/^\| Tumble guard \|/m, '| Tumble cover |');
+    expect(noGuard).not.toBe(plan);
     expect(documented(config, requirements, noGuard).join('\n')).toMatch(/"Tumble guard" is TBD, and A.5 has no starting value/);
-    const friction = plan.replace('| Idle friction | 8 m/s² |', '| Idle friction | 7 m/s² |');
+    const friction = plan.replace(/^\| Idle friction \| 8 /m, '| Idle friction | 7 ');
+    expect(friction).not.toBe(plan);
     expect(documented(config, requirements, friction)).toEqual(['A.5 "Idle friction" gives [7], and src/config.ts [8]']);
     // A value tuned at M2 and recorded in the table wins over A.5's start (Q-10).
     const tuned = requirements.replace(/^\| Re-arm gap \| \*\*TBD\*\* \|/m, '| Re-arm gap | 0.5 m |');
