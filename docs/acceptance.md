@@ -118,5 +118,7 @@ One pusher takes 1.225 s in both frames, with the assist on or off. The drive's 
 
 | Date | Commit | Job | WebGL 2: Chromium, Firefox, WebKit | Empty pitch, frames a second | Wall time | Result |
 |---|---|---|---|---|---|---|
+| 2026-11-18 | a4ead1a, M1 and M2 in the first push (run 44359207345) | `check`, ubuntu-24.04 | yes, yes, yes | Chromium 44.8, on ANGLE over SwiftShader; Firefox 59.9; WebKit 62.2. Low quality, 1280×720, `GALLIUM_DRIVER` unset | 26 min 2 s: 23 min 16 s to install the browsers and their system libraries, then the gate in 1 min 58 s (the unit stage 35.7 s, 50 files and 584 tests; the end-to-end tests 1.1 minutes, 42 passed) | green, the full gate |
+| 2026-11-18 | a4ead1a (the same run) | `unit-arm64`, ubuntu-24.04-arm | not run there | not run there | 1 min 18 s, `npm test` 38 s of it | green: the goldens hold on arm64 |
 
-None yet. The first push needs Actions enabled on the repository, and waits for the owner's go-ahead (§17).
+The first run settles §15's spike: every engine draws on the hosted runner, and the runner holds the real-page matches, so CI runs the full gate and there's no `check:ci`. Almost all the job's time was apt fetching the browsers' system libraries, 125 MB at 94 kB/s from the runner's Ubuntu mirror; the browsers themselves downloaded in 12 s. A later run will show whether that mirror is usually this slow.
