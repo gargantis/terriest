@@ -744,6 +744,20 @@ describe('the clock on timers (§2.4, §2.13)', () => {
     practice.t.advance(at(40));
     expect(practice.ticks.map((m) => m.t)).toEqual(Array.from({ length: 40 }, (_, k) => k + 1 + D));
   });
+
+  it('says a message handled now was held through a freeze of its timers, as its clock holds TICKs (M3 phase 5a)', () => {
+    // d + w ticks overdue, its messages taken first; then within d + w ticks after the late run.
+    const { t } = lone();
+    let now = 0;
+    for (; now <= 1000; now += NET.timerMs) t.advance(now);
+    now -= NET.timerMs;
+    const freeze = (D + W) * NET.tickMs;
+    expect([t.heldNow(now + freeze - 1), t.heldNow(now + freeze + 1)]).toEqual([false, true]);
+    t.advance(now + 600);
+    expect([t.heldNow(now + 600), t.heldNow(now + 600 + freeze - 1)]).toEqual([true, true]);
+    t.advance(now + 604);
+    expect(t.heldNow(now + 604)).toBe(false);
+  });
 });
 
 // --- Corrections (§2.11) ---

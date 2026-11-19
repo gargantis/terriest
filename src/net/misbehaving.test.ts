@@ -723,6 +723,53 @@ describe('forwarding (D-19)', () => {
     agree([f, b]);
   });
 
+  it("relays no burst after a silence that its receiver counts as a flood, whichever connection opened first (reviewer H3, flood-F1)", () => {
+    // A rogue blocked from b, listing f alone, silent from its connection on, bursts n TICKs for
+    // consecutive ticks at once, their phase at the cap, as no clock sample. f counts them on the
+    // rogue's connection, its first TICK counting the silence since it opened; b counts f's FWDs from
+    // when f's PEERS listed the rogue, at most since b's connection to f opened; and f counts what it
+    // relays b from when both its connections were open, relaying within half the limit.
+    const run = (order: 'b first' | 'r first', at: number, n: number): void => {
+      const room = new NetPump(new LoopbackNet(15, uniform(65, 30, 60, 10)));
+      const net = room.net;
+      const f = node(room, 0, { verify: 8 });
+      const b = node(room, 1);
+      const r = rogue(room, 'r', id(9));
+      net.block('r', b.id);
+      net.join(f, 0, (now) => {
+        f.session.propose(f.local(now), { packSize: 2, matchMinutes: 1 }, MATCH);
+        f.session.play(0);
+      });
+      net.join(b, order === 'b first' ? 200 : 6000, () => b.session.play(1 as Pack));
+      net.join(r, order === 'b first' ? 3000 : 200);
+      room.until(() => r.session.joined.has('n0'), 6000);
+      r.session.link.send('n0', encodePeers([f.session.cfg.me], ROLE.UNDECIDED));
+      let fwds = 0;
+      const onMessage = b.session.onMessage.bind(b.session);
+      b.session.onMessage = (peer, bytes, now) => {
+        const m = peer === f.id && bytes[0] === T.FWD ? decode(bytes) : null;
+        if (m?.type === T.FWD && m.origin === id(9)) fwds++;
+        onMessage(peer, bytes, now);
+      };
+      let sent = false;
+      r.session.each = (now) => {
+        if (sent || now < at || !r.session.joined.has('n0')) return;
+        sent = true;
+        const u = Math.floor(f.session.timeline.clock(f.local(net.now))) + D;
+        for (let k = 0; k < n; k++) r.session.link.send('n0', encodeTick({ ...tickFor(u + k, 0), phase: 1 }));
+      };
+      runTo(room, at + 3000);
+      r.session.each = null;
+      const label = `${order}, ${n} at ${at} ms: ${fwds} FWDs`;
+      expect(fwds, label).toBeGreaterThan(0);
+      expect([b.session.dropped, b.session.peerCount()], label).toEqual([[], 1]);
+      expectClean(room);
+      agree([f, b]);
+    };
+    run('b first', 13_000, 600);
+    run('r first', 10_000, 600);
+  });
+
   it('takes clock samples from direct TICKs only: a FWD says nothing of its origin\'s clock (design §4.10)', () => {
     const run = (direct: boolean): number => {
       const s = new Session({ P, B, net: NET, me: id(0), name: 'P0', coat: 0, build: TEST_BUILD, forwarding: false }, { send: () => undefined, broadcast: () => undefined });

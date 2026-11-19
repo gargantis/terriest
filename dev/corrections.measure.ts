@@ -376,9 +376,11 @@ export function addBins(a: readonly number[], b: readonly number[]): number[] {
 
 /** The longest one-way latency at which a message whose trip takes `legs` one-way latencies over
  *  `hops` links, each drawing its own jitter, still lands in time: legs × one-way + hops × jitter ≤
- *  (d + w) ticks, less the clocks' residual, which the deadband leaves at up to a tick of it. A
- *  retransmission's trip is 3 legs on its one link (§9.4: the model adds 2 × base to the message's
- *  own draw), a forwarded TICK's 2 legs over 2 links (the partial mesh, phase 4a's answers). */
+ *  (d + w) ticks, less the clocks' residual. A retransmission's trip is 3 legs on its one link (§9.4:
+ *  the model adds 2 × base to the message's own draw), whose ends sample each other's clocks, which
+ *  the deadband leaves up to a tick apart; a forwarded TICK's 2 legs over 2 links (the partial mesh,
+ *  phase 4a's answers), whose ends sample none of each other's, each within a deadband of the pages
+ *  between, so up to two apart (M3 phase 5a, mesh-F4). */
 export function reachMs(o: {
   readonly d: number; readonly w: number; readonly tickMs: number; readonly residualMs: number; readonly jitterMs: number; readonly legs: number; readonly hops: number;
 }): number {
@@ -392,9 +394,9 @@ export interface Reach {
   readonly inReach: boolean;
 }
 
-function reachOf(p: Profile, c: Config, legs: number, hops: number): Reach {
+function reachOf(p: Profile, c: Config, legs: number, hops: number, deadbands: number): Reach {
   const tickMs = 1000 / c.ticksPerSecond;
-  const r = reachMs({ d: p.d, w: c.lateWindowTicks, tickMs, residualMs: c.clockDeadbandTicks * tickMs, jitterMs: p.jitterMs, legs, hops });
+  const r = reachMs({ d: p.d, w: c.lateWindowTicks, tickMs, residualMs: deadbands * c.clockDeadbandTicks * tickMs, jitterMs: p.jitterMs, legs, hops });
   return { legs, hops, reachMs: r, inReach: p.oneWayMs <= r };
 }
 
@@ -402,8 +404,8 @@ function reachOf(p: Profile, c: Config, legs: number, hops: number): Reach {
  *  mesh's (§9.4); none beside a loss-free full mesh. */
 export function reachesOf(p: Profile, c: Config): { readonly loss?: Reach; readonly forwarding?: Reach } {
   return {
-    ...(p.loss > 0 ? { loss: reachOf(p, c, 3, 1) } : {}),
-    ...(p.blocked.length > 0 ? { forwarding: reachOf(p, c, 2, 2) } : {}),
+    ...(p.loss > 0 ? { loss: reachOf(p, c, 3, 1, 1) } : {}),
+    ...(p.blocked.length > 0 ? { forwarding: reachOf(p, c, 2, 2, 2) } : {}),
   };
 }
 

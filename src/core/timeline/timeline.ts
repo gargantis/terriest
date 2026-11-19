@@ -516,6 +516,12 @@ export class Timeline {
     this.oneWayMs.set(player, ms);
   }
 
+  /** A message handled now was held for this page through a freeze of its timers, as its clock takes
+   *  no TICK then as a sample (TickClock's): the session takes no round trip then (M3 phase 5a). */
+  heldNow(now: number): boolean {
+    return this.ticks.holding(now);
+  }
+
   /** A player whose connection went: its clock samples and its one-way delay (§4.4). */
   forget(player: string): void {
     this.ticks.forget(player);

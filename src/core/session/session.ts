@@ -38,6 +38,17 @@
 //   match's presses the earlier wins both ways, as the older past the tie
 //   and as the smaller ID within it, and every page ranks them alike at any
 //   spacing (P7's peer side, Q-7, §4.9, M3 phase 4);
+// - a page relays only the TICKs of the timeline it holds, none before it
+//   holds one, so a pair's forwarder is the page with the smallest player
+//   ID connected to both that holds it, as its announcements say: a joiner
+//   takes the duty once its PEERS announces the timeline (P5, P7's peer
+//   side, M3 phase 5a). That a page reaches the origin A is what A's PEERS
+//   says, behind the TICKs A sent before their link opened, where roslambo
+//   read the other end's or the candidate's, which may overtake them; and a
+//   FWD for an origin connected here whose connection has carried no TICK
+//   yet is taken from a forwarder that listed it before, so a pair whose
+//   link opens, or whose forwarder changes, loses none of the TICKs in
+//   flight (M3 phase 5a, mesh-F1, mesh-F3);
 // - a joiner's warm-up waits for every peer connected or still handshaking,
 //   each from when this side met it and for at most warmupMs, and only one
 //   met within warmupMs of the adoption (T6, M3 phase 4's fixes);
@@ -47,11 +58,20 @@
 //   bots, a FWD only for an origin with no direct connection here and only
 //   from a connection whose PEERS lists it, and for at most peersMax origins
 //   in any floodMs; floods counted per connection and per forwarded origin,
-//   a forwarder relaying only senders within half the limit; one STATE
-//   answer per connection per resyncRetryMs, the rest unanswered; and no
-//   STATE but one asked for;
-// - a one-way delay from the smaller of the last two round trips, so a
-//   freeze's pong doesn't move the clock (M3 phase 3's integration);
+//   by the ticks the TICKs carry on the sender's possible clock, where
+//   roslambo counted arrivals, so a backlog a freeze or a stalled link held
+//   closes nothing (M3 phase 5a, harness-F1), a new origin's count from when
+//   its forwarder's PEERS listed it, or from the start of the silence its
+//   backlog ends (flood-F2); a forwarder relaying only senders within half
+//   the limit, and to each receiver only within half of that receiver's
+//   count, as it reckons it, so none is closed over another's flood
+//   (reviewer H3, flood-F1); one STATE answer per connection per
+//   resyncRetryMs, the rest unanswered; and no STATE but one asked for;
+// - a one-way delay from the smaller of the last two round trips, and none
+//   from a round trip a freeze held: this page's, by its clock's held state,
+//   or its peer's, by a silence of its TICKs over d + w ticks that ends in a
+//   catch-up, where roslambo took every round trip (M3 phase 3's
+//   integration; M3 phase 5a, clock-F1, rtt-clock5a-F1, F3);
 // - the bots through BotHost (§4.8), the abandoned rule (Q-16, §4.7);
 // - a retry skips its re-send while its event is in flight, and goes once
 //   the event's tick is final without the state showing it (M3 phase 3's
@@ -71,6 +91,7 @@ import {
   ENDED, findTerrier, JOIN, KEPT_BITS, LEAVE, type MatchSettings, type MatchState, type Pack, packCount, READY, type SimParams, SWITCH,
   type Terrier, UNREADY, WARM_UP,
 } from '../sim/index';
+import { PHASE_CAP } from '../timeline/clock';
 import { Timeline, type TimelineConfig } from '../timeline/timeline';
 import { BotHost } from './bots';
 import { type Accepted, commonRefusal, type Link, type Refusal, type RoomPeer } from './room-peer';
@@ -113,25 +134,88 @@ export interface DuplicateHello {
   readonly oldLeftAt: number | null; // when its leave arrived, if it has
 }
 
-/** Arrival times over a sliding window, oldest first: a flood's count (§4.10). */
-class Arrivals {
-  private readonly at: number[] = [];
-  private head = 0;
+/** What a flood's count reads (§4.10), from the settings: its window, floodMs in ticks; the sender's
+ *  possible clock, (1 + rateMax) ticks a tick, in ticks a ms; and an input's time in flight, d + w
+ *  ticks, past which a gap between TICKs is a silence, with as many ticks of that clock banked. */
+interface FloodRule {
+  readonly windowTicks: number;
+  readonly perMs: number;
+  readonly quietMs: number;
+  readonly bankTicks: number;
+}
 
-  /** Adds now, forgets what's older than span, and returns how many are left. */
-  add(now: number, span: number): number {
-    this.at.push(now);
-    while (this.at[this.head]! < now - span) this.head++;
-    if (this.head * 2 >= this.at.length) {
-      this.at.splice(0, this.head);
-      this.head = 0;
-    }
-    return this.at.length - this.head;
+/** A flood's count, by the ticks the TICKs carry rather than by when they arrive (§4.10, M3 phase 5a,
+ *  harness-F1): a connection's own, or its FWDs for one origin. Each takes a slot on its sender's
+ *  possible clock: a TICK newer than the newest moves it toward its tick as far as that clock can have
+ *  moved since, and one no newer takes the slot it's at. More than floodTicksMax in the last floodMs of
+ *  slots is a flood. Through a silence the possible clock runs on, so a backlog, held for this page or
+ *  on the way, takes a slot a TICK however it bunches up on arrival; between silences it banks at most
+ *  d + w ticks, so TICKs that run ahead of any clock, old ticks sent again and bursts after silences
+ *  pile up, at floodTicksPerTick a tick of the possible clock (roslambo §9.3). A tick past what it can
+ *  have moved, a merge's or a jump's, moves it only that far, and its count goes on from there. */
+class Flood {
+  /** The last TICK's arrival, −Infinity before one. */
+  lastAt = -Infinity;
+  /** The TICK that ended the latest silence its sender's freeze explains, its arrival: −Infinity
+   *  before one (frozeSince). */
+  private quietTo = -Infinity;
+  private readonly since: number; // the count's start: the first TICK's silence runs from it
+  /** Its sender sends TICKs from the count's start, a player holding a timeline: the time before its
+   *  first is a silence too, for the round trips (rtt-clock5a-F3). */
+  private readonly sendsFromStart: boolean;
+  private readonly slots: number[] = []; // on the possible clock, in order, never decreasing
+  private head = 0;
+  private slot = 0; // the newest
+  private newest = -Infinity; // the newest tick a TICK carried
+  private budget = 0; // ticks the possible clock moved that no slot has taken
+
+  constructor(since: number, sendsFromStart = false) {
+    this.since = since;
+    this.sendsFromStart = sendsFromStart;
   }
 
-  /** The last arrival, −Infinity before one. */
-  get newest(): number {
-    return this.at.length > this.head ? this.at[this.at.length - 1]! : -Infinity;
+  /** A TICK for tick t, its phase, now: the slots left in the window. */
+  add(t: number, now: number, r: FloodRule, phase = 0): number {
+    const first = this.lastAt === -Infinity;
+    const gap = now - (first ? this.since : this.lastAt);
+    if (gap > r.quietMs) {
+      // A silence its sender's freeze explains ends in a catch-up: a TICK sent late for its tick, its
+      // phase at the cap, or one past ticks it skipped. One its own clock explains doesn't: after a
+      // jump back, or a step in latency, its next tick comes as the one before (rtt-clock5a-F1).
+      if ((first ? this.sendsFromStart : true) && (!(phase < PHASE_CAP) || (!first && t > this.newest + 1))) this.quietTo = now;
+      this.budget = Math.min(this.budget, r.bankTicks) + gap * r.perMs;
+    } else {
+      this.budget = Math.min(this.budget + gap * r.perMs, Math.max(this.budget, r.bankTicks));
+    }
+    this.lastAt = now;
+    if (first) this.newest = t;
+    if (t > this.newest) {
+      const step = Math.min(t - this.newest, this.budget);
+      this.budget -= step;
+      this.slot += step;
+      this.newest = t;
+    }
+    this.slots.push(this.slot);
+    while (this.slots[this.head]! <= this.slot - r.windowTicks) this.head++;
+    if (this.head * 2 >= this.slots.length) {
+      this.slots.splice(0, this.head);
+      this.head = 0;
+    }
+    return this.slots.length - this.head;
+  }
+
+  /** Its sender's TICKs came out of a silence in a catch-up after `from`: it was frozen then, and what
+   *  it sent meanwhile, a pong included, may have waited with them. */
+  frozeSince(from: number): boolean {
+    return this.quietTo > from;
+  }
+
+  /** Its sender's TICKs are silent now, past d + w ticks: whether it was frozen, its next TICK says
+   *  (frozeSince). Before its first TICK, only for a sender that sends from the start. */
+  silentNow(now: number, r: FloodRule): boolean {
+    const first = this.lastAt === -Infinity;
+    if (first && !this.sendsFromStart) return false;
+    return now - (first ? this.since : this.lastAt) > r.quietMs;
   }
 }
 
@@ -150,13 +234,22 @@ interface PeerInfo {
   readonly joinedAt: number;
   role: number; // announced: its HELLO's, then its PEERS' (§4.5)
   heardAt: number; // its last message or pong (C-12, M3-Q23)
-  oneWayMs: number | null; // half the smaller of its last two round trips, none before one
-  rttLast: number | null; // its last round trip under stallMs
+  oneWayMs: number | null; // half the smaller of its last two round trips taken, none before one
+  rttLast: number | null; // its last round trip taken (onRtt)
+  pendingRtt: { readonly ms: number; readonly at: number } | null; // one its next TICK decides (onRtt)
   live: boolean; // holds a running timeline: its HELLO said so, or it sent a TICK or a STATE
   newestTick: number; // the newest tick its own TICKs were for, −1 before one
   peers: ReadonlySet<string> | null; // the players its latest PEERS lists
-  readonly ticks: Arrivals; // its own TICKs
-  readonly fwd: Map<string, Arrivals>; // its FWDs, by origin
+  /** Each player its PEERS lists, since when without a break, or since a pruned count's last FWD for
+   *  it if later: when it could first have relayed that origin's TICKs here (onFwd). */
+  readonly listed: Map<string, number>;
+  msgAt: number; // its last message, or its joining
+  quietFrom: number; // its messages' latest silence, over d + w ticks: the message before it
+  quietTo: number; // and the one that ended it, −Infinity for none
+  readonly ticks: Flood; // its own TICKs
+  readonly fwd: Map<string, Flood>; // its FWDs, by origin
+  /** The FWDs this side sent it, by origin, counted as it counts them from this side (forward, H3). */
+  readonly relayed: Map<string, Flood>;
   invalid: number;
   asks: number; // STATE_REQs this side sent it and no STATE has answered yet
   askedAt: number; // when this side last sent it a STATE_REQ, from any of its timelines
@@ -277,6 +370,7 @@ export class Session implements RoomPeer {
    *  mesh's included, where an AGAIN doesn't reach every page: their IDs lead with the old timeline's
    *  tick at the press, so the earlier is both the older and the smaller ID (§4.9, M3 phase 4). */
   private readonly tieTicks: number;
+  private readonly flood: FloodRule;
   private openedAt = -1;
   private arrivedAt = 0;
   private lastNow = 0;
@@ -287,6 +381,10 @@ export class Session implements RoomPeer {
     this.room = cfg.net.room;
     this.tieTicks = cfg.net.stallMs / 2 / cfg.net.tickMs;
     const tl = cfg.net.timeline;
+    const perMs = (1 + tl.clock.rateMax) / tl.clock.tickMs;
+    const quietMs = (tl.delay + tl.window) * tl.clock.tickMs;
+    // floodTicksMax / floodTicksPerTick is floodMs in whole ticks, 120 at A.4's values.
+    this.flood = { windowTicks: this.room.floodTicksMax / this.room.floodTicksPerTick, perMs, quietMs, bankTicks: quietMs * perMs };
     this.L =
       cfg.wire ??
       wireLimits({ ...config, inputDelayTicks: tl.delay, lateWindowTicks: tl.window, stateHistoryTicks: tl.history, inputHistoryTicks: tl.inputHistory });
@@ -599,10 +697,13 @@ export class Session implements RoomPeer {
     this.lastNow = now;
     const metAt = this.handshakes.get(peer)?.at ?? now;
     this.handshakes.delete(peer);
+    const live = hello.timelineKind === TIMELINE_KIND.LIVE;
     this.peers.set(peer, {
       player: hello.player, hello, heard: announced(hello), heardWhen: metAt, told: sent.timeline, metAt, joinedAt: now, role: hello.role, heardAt: now,
-      oneWayMs: null, rttLast: null, live: hello.timelineKind === TIMELINE_KIND.LIVE, newestTick: NONE, peers: null, ticks: new Arrivals(),
-      fwd: new Map(), invalid: 0, asks: 0, askedAt: -Infinity, answeredAt: -Infinity,
+      oneWayMs: null, rttLast: null, pendingRtt: null, live, newestTick: NONE, peers: null, listed: new Map(), msgAt: now, quietFrom: -Infinity, quietTo: -Infinity,
+      // A player holding a timeline sends TICKs from the handshake on (rtt-clock5a-F3).
+      ticks: new Flood(now, live && hello.role === ROLE.PLAYER), fwd: new Map(), relayed: new Map(), invalid: 0, asks: 0, askedAt: -Infinity,
+      answeredAt: -Infinity,
     });
     this.byPlayer.set(hello.player, peer);
     this.peersDirty = true;
@@ -652,6 +753,8 @@ export class Session implements RoomPeer {
     if (info === undefined) return;
     this.peers.delete(peer);
     this.peersDirty = true;
+    // What this side relayed of it: a new connection's TICKs are counted from its own start (forward).
+    for (const x of this.peers.values()) x.relayed.delete(info.player);
     // ranOn stays whole: askToRejoin walks it by index, and passes over peers that have gone.
     for (const d of this.dupLog) if (d.oldPeer === peer && d.record.oldLeftAt === null) d.record.oldLeftAt = this.lastNow;
     if (this.byPlayer.get(info.player) !== peer) return;
@@ -659,16 +762,31 @@ export class Session implements RoomPeer {
     for (const t of this.timelines()) t.forget(info.player);
   }
 
-  /** A pong: the connection is alive (C-12). A round trip over the stall threshold is a freeze, not
-   *  the network, and is no sample (M3 phase 3's answers); and a shorter freeze, or a retransmission,
-   *  inflates one round trip, so the one-way delay is half the smaller of the last two (reviewer H6;
-   *  a transport has one ping out to a peer at a time). */
+  /** A pong: the connection is alive (C-12). A round trip that a freeze held measured the freeze, not
+   *  the network, and is no sample: one over the stall threshold (M3 phase 3's answers); one whose pong
+   *  was held for this page through a freeze of its timers, as its clock holds TICKs (clock-F1); and
+   *  one whose peer's own TICKs fell silent for d + w ticks while it was out and came back in a
+   *  catch-up, as a page frozen with the ping unanswered sends them, its connection's start counting
+   *  as a TICK for a player holding a timeline (clock-F1, rtt-clock5a-F1, F3). A silence its clock
+   *  explains, a jump back's, or the network's, a step in latency's, ends in its next tick, and the
+   *  round trip is taken. A held link's is the network's too. A retransmission inflates one round
+   *  trip, so the one-way delay is half the smaller of the last two taken (reviewer H6; a transport
+   *  has one ping out to a peer at a time). */
   onRtt(peer: string, ms: number, now: number): void {
     this.lastNow = now;
     const info = this.peers.get(peer);
     if (info === undefined) return;
     info.heardAt = now;
     if (!(ms >= 0 && ms <= this.cfg.net.stallMs) || this.byPlayer.get(info.player) !== peer) return;
+    if (this.current.heldNow(now) || info.ticks.frozeSince(now - ms)) return;
+    // Its TICKs silent now: a page frozen with the ping, which answers it as it thaws before its
+    // catch-up, or one whose clock jumped back and holds its ticks; its next TICK decides (onTick).
+    if (info.ticks.silentNow(now, this.flood)) info.pendingRtt = { ms, at: now };
+    else this.tookRtt(info, ms);
+  }
+
+  /** A round trip taken: the one-way delay is half the smaller of the last two taken. */
+  private tookRtt(info: PeerInfo, ms: number): void {
     const rtt = info.rttLast === null ? ms : Math.min(ms, info.rttLast);
     info.rttLast = ms;
     info.oneWayMs = rtt / 2;
@@ -684,6 +802,13 @@ export class Session implements RoomPeer {
     info.heardAt = now;
     // A connection its player no longer maps to, replaced (C-12): its messages stop with it.
     if (this.byPlayer.get(info.player) !== peer) return;
+    // Its messages' latest silence: one that ended just now came with what was held through it, for
+    // this page or on the way (onFwd).
+    if (now - info.msgAt > this.flood.quietMs) {
+      info.quietFrom = info.msgAt;
+      info.quietTo = now;
+    }
+    info.msgAt = now;
     const m = decode(bytes, this.cfg.P, this.L);
     if (m === null) {
       this.invalid(peer, info);
@@ -696,14 +821,18 @@ export class Session implements RoomPeer {
       case T.FWD:
         this.onFwd(peer, info, m, now);
         break;
-      case T.PEERS:
-        info.peers = new Set(m.players);
+      case T.PEERS: {
+        const players = new Set(m.players);
+        for (const x of info.listed.keys()) if (!players.has(x)) info.listed.delete(x);
+        for (const x of players) if (!info.listed.has(x)) info.listed.set(x, now);
+        info.peers = players;
         info.role = m.role;
-        // An origin's FWD count goes only once its window is empty, so a PEERS that drops an origin
-        // and lists it again never resets its flood count (reviewer H4).
-        this.pruneFwd(info, now);
+        // An origin's FWD count stays, whatever a PEERS lists, so one that drops an origin and lists
+        // it again never resets its flood count (reviewer H4), and a forwarder's backlog after a
+        // silence meets the silence's count (M3 phase 5a): onFwd prunes only to make room.
         this.heardAnnouncement(peer, info, m, now);
         break;
+      }
       case T.AGAIN:
         this.againSeenNow = true;
         break;
@@ -720,13 +849,18 @@ export class Session implements RoomPeer {
 
   /** A connection's own TICK: its input and vote are its player's, its bot entries only bots derived
    *  from it (the timeline's check), and only a direct TICK is a clock sample. More than
-   *  floodTicksMax in the last floodMs, from a connection open that long, closes it. */
+   *  floodTicksMax in the last floodMs of its sender's possible clock (Flood), from a connection open
+   *  floodMs, closes it. */
   private onTick(peer: string, info: PeerInfo, m: Tick, bytes: Uint8Array, now: number): void {
-    const count = info.ticks.add(now, this.room.floodMs);
+    const count = info.ticks.add(m.t, now, this.flood, m.phase);
     if (count > this.room.floodTicksMax && now - info.joinedAt >= this.room.floodMs) {
       this.drop(peer);
       return;
     }
+    // A round trip taken while its TICKs were silent: none if they came back in a catch-up (onRtt).
+    const p = info.pendingRtt;
+    info.pendingRtt = null;
+    if (p !== null && !info.ticks.frozeSince(p.at - p.ms)) this.tookRtt(info, p.ms);
     info.live = true;
     // Another timeline's TICK is for its ticks: its inputs, JOINs and votes would land on this one's,
     // where its holders couldn't agree on them, and its tick says nothing of this clock (P7's peer side).
@@ -737,35 +871,44 @@ export class Session implements RoomPeer {
       if (m.t > t.localTick + t.cfg.delay + t.cfg.window && !this.ranOn.includes(peer)) this.ranOn.push(peer);
     }
     this.current.onTick(info.player, m, now, true);
-    // Relayed only while its sender keeps within half the flood limit, however young its connection:
-    // a receiver counts a forwarder's FWDs for each origin against the forwarder, however they bunch
-    // up on the way, so an honest forwarder is never closed over another's flood (reviewer H3). An
-    // honest sender's TICKs are about a third of the limit. And only a TICK taken on the timeline held
-    // here: a page without one can't say which timeline a TICK is for (P7's peer side).
-    if (this.cfg.forwarding && this.current.started && count <= this.room.floodTicksMax / 2) this.forward(info.player, peer, bytes, now);
+    // Relayed only while its sender keeps within half the flood limit, however young its connection,
+    // and each receiver's count of what this side relays it does too (forward): so an honest forwarder
+    // is never closed over another's flood (reviewer H3). An honest sender's TICKs are about a third of
+    // the limit, a backlog's too, counted by their ticks, so its live TICKs go on being relayed after a
+    // thaw or a stalled link (M3 phase 5a). And only a TICK taken on the timeline held here: a page
+    // without one can't say which timeline a TICK is for (P7's peer side).
+    if (this.cfg.forwarding && this.current.started && count <= this.room.floodTicksMax / 2) this.forward(info.player, peer, m.t, bytes, now);
   }
 
-  /** A FWD only for an origin with no direct connection here, from a connection whose latest PEERS
-   *  lists it; never one speaking for this browser, its bots or any bot (an invalid message), and its
-   *  floods counted per origin, apart from the forwarder's own TICKs. A connection speaks for at most
-   *  peersMax origins in any floodMs, however often its PEERS lists new ones, so made-up origins can't
-   *  grow what the timeline keeps for each sender without bound (reviewer H5); a FWD past that is
-   *  dropped, never counted invalid, as churn in an honest room may bring one. */
+  /** A FWD only for an origin with no direct connection here, or none that has carried a TICK yet
+   *  (relayedHere), from a connection whose latest PEERS lists it; never one speaking for this browser,
+   *  its bots or any bot (an invalid message), and its floods counted per origin, apart from the
+   *  forwarder's own TICKs. A connection speaks for at most peersMax origins in any floodMs, however
+   *  often its PEERS lists new ones, so made-up origins can't grow what the timeline keeps for each
+   *  sender without bound (reviewer H5); a FWD past that is dropped, never counted invalid, as churn in
+   *  an honest room may bring one. */
   private onFwd(peer: string, info: PeerInfo, m: Fwd, now: number): void {
     const origin = m.origin;
     if (origin === this.cfg.me || isBot(origin)) {
       this.invalid(peer, info);
       return;
     }
-    if (this.byPlayer.has(origin) || info.peers === null || !info.peers.has(origin)) return;
+    if (info.peers === null || !info.peers.has(origin) || !this.relayedHere(origin, info)) return;
     let w = info.fwd.get(origin);
     if (w === undefined) {
       if (info.fwd.size >= this.L.peersMax) this.pruneFwd(info, now);
       if (info.fwd.size >= this.L.peersMax) return;
-      w = new Arrivals();
+      // From when it could first have relayed that origin's TICKs here: since its PEERS listed it, or
+      // since this connection's latest silence began, if that ended just now, as a PEERS held for this
+      // page or on the way comes with the backlog behind it; never before the connection opened. A
+      // forwarder counts what it relays here from then too (forward), so an honest one is never closed
+      // over another's burst after a silence (H3, flood-F1), nor over an honest backlog (flood-F2).
+      let since = info.listed.get(origin)!;
+      if (info.quietTo >= now - this.flood.quietMs) since = Math.min(since, info.quietFrom);
+      w = new Flood(Math.max(info.joinedAt, since));
       info.fwd.set(origin, w);
     }
-    if (this.flooding(w, info, now)) {
+    if (this.flooding(w, m.tick.t, info, now)) {
       this.drop(peer);
       return;
     }
@@ -775,6 +918,12 @@ export class Session implements RoomPeer {
     this.current.onTick(origin, m.tick, now, false);
   }
 
+  /** A peer whose latest announcement is the timeline held here: one that relays its TICKs (forward). */
+  private holdsHere(info: PeerInfo): boolean {
+    const a = info.heard;
+    return a.timelineKind === TIMELINE_KIND.LIVE && this.current.started && a.timeline === this.current.id;
+  }
+
   /** A peer whose latest announcement is a timeline other than the one held here (P7's peer side). */
   private elsewhere(info: PeerInfo): boolean {
     const a = info.heard;
@@ -782,9 +931,27 @@ export class Session implements RoomPeer {
     return a.timelineKind === TIMELINE_KIND.LIVE && t.started && a.timeline !== t.id;
   }
 
-  /** The origins whose FWDs from this connection all left the flood window: their counts are 0. */
+  /** A FWD for an origin with no connection here; or for one whose connection here has carried no TICK
+   *  yet, from a connection whose PEERS listed it before that connection opened: the TICKs the origin
+   *  sent before the link opened come only that way, or in its first TICK's history, a direct latency
+   *  later (mesh-F1). Otherwise one for a connected origin is redundant or forged (§4.10). */
+  private relayedHere(origin: string, info: PeerInfo): boolean {
+    const direct = this.byPlayer.get(origin);
+    if (direct === undefined) return true;
+    const d = this.peers.get(direct)!;
+    return d.ticks.lastAt === -Infinity && info.listed.get(origin)! < d.joinedAt;
+  }
+
+  /** Room for a new origin: those whose last FWD from this connection came more than floodMs ago go,
+   *  with their counts; one listed still is counted from its last FWD if it comes back, so a count
+   *  pruned gives back none of the allowance it spent (onFwd). */
   private pruneFwd(info: PeerInfo, now: number): void {
-    for (const [origin, w] of info.fwd) if (w.newest < now - this.room.floodMs) info.fwd.delete(origin);
+    for (const [origin, w] of info.fwd) {
+      if (w.lastAt >= now - this.room.floodMs) continue;
+      info.fwd.delete(origin);
+      const since = info.listed.get(origin);
+      if (since !== undefined && since < w.lastAt) info.listed.set(origin, w.lastAt);
+    }
   }
 
   /** A PEERS' announcement: the peer's latest, weighed as its HELLO's was, on every PEERS, so a merge
@@ -836,23 +1003,44 @@ export class Session implements RoomPeer {
   /** roslambo D-14: for each neighbour B that can't reach the TICK's origin A, the peer with the
    *  smallest player ID connected to both forwards it, inside a FWD, never forwarded again. A TICK
    *  too large for a FWD is skipped, so no honest forwarder is closed over it (M3 phase 3's answers).
-   *  Only the timeline held here's: onTick takes no other's (P7's peer side). */
-  private forward(origin: string, from: string, tick: Uint8Array, now: number): void {
-    const theirs = this.peers.get(from)?.peers ?? null;
-    if (theirs === null) return; // not known yet: a full mesh, as far as this side knows
+   *  Only the timeline held here's: onTick takes no other's (P7's peer side). So the duty passes
+   *  only to a peer that announces this timeline (holdsHere): a joiner relays nothing until it holds
+   *  it, and one that took the duty on its PEERS alone left the pair unforwarded through its join
+   *  (P5, M3 phase 5a). Each receiver counts what this side relays it for an origin against this
+   *  side (onFwd), from when it could first have had it; so this side counts it too, from when both
+   *  connections were open, and relays within half the limit (H3, flood-F1). */
+  private forward(origin: string, from: string, t: number, tick: Uint8Array, now: number): void {
+    const o = this.peers.get(from)!;
+    const theirs = o.peers;
     let fwd: Uint8Array | null = null;
     for (const [player, peer] of this.byPlayer) {
       if (peer === from) continue;
       const b = this.peers.get(peer)!;
-      if (b.peers === null || b.peers.has(origin) || theirs.has(player)) continue;
+      // B reaches A as A's PEERS says, which comes behind the TICKs A sent before their link opened,
+      // where B's may overtake them; as B's says before A's first, and as a full mesh before either's
+      // (mesh-F1). Before B's first, only a B holding this timeline is relayed to, as a pair's end
+      // whose link here just opened (mesh-F3).
+      if (b.peers === null && !this.holdsHere(b)) continue;
+      if (theirs !== null ? theirs.has(player) : b.peers === null || b.peers.has(origin)) continue;
+      // A candidate X reaches A as A's PEERS says, which comes behind the TICKs A sent before their link
+      // opened, which never reached X, so this side relays those (mesh-F3); as X's says before A's
+      // first. And B as X's PEERS says.
       let forwarder = this.cfg.me;
       for (const [x, p] of this.byPlayer) {
-        const xs = this.peers.get(p)!.peers;
-        if (x < forwarder && xs !== null && xs.has(origin) && xs.has(player)) forwarder = x;
+        const xi = this.peers.get(p)!;
+        const xs = xi.peers;
+        if (x >= forwarder || xs === null || !xs.has(player) || !this.holdsHere(xi)) continue;
+        if (theirs !== null ? theirs.has(x) : xs.has(origin)) forwarder = x;
       }
       if (forwarder !== this.cfg.me) continue;
       fwd ??= encodeFwd(origin, tick);
       if (fwd.length > this.L.messageMaxBytes) return;
+      let c = b.relayed.get(origin);
+      if (c === undefined) {
+        c = new Flood(Math.max(b.joinedAt, o.joinedAt));
+        b.relayed.set(origin, c);
+      }
+      if (c.add(t, now, this.flood) > this.room.floodTicksMax / 2) continue;
       // A FWD, as a TICK, goes only to a peer told of the timeline it's for: a PEERS first if not (P7).
       if (b.told !== this.current.id) {
         this.peersDirty = true;
@@ -862,8 +1050,8 @@ export class Session implements RoomPeer {
     }
   }
 
-  private flooding(w: Arrivals, info: PeerInfo, now: number): boolean {
-    return w.add(now, this.room.floodMs) > this.room.floodTicksMax && now - info.joinedAt >= this.room.floodMs;
+  private flooding(w: Flood, t: number, info: PeerInfo, now: number): boolean {
+    return w.add(t, now, this.flood) > this.room.floodTicksMax && now - info.joinedAt >= this.room.floodMs;
   }
 
   /** invalidMessagesMax of them close the connection (roslambo §9.3, §9.4). */

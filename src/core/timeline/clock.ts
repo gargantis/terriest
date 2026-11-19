@@ -124,6 +124,12 @@ export class TickClock {
     return this.thawed ? since <= this.freezeMs : this.lastGap <= this.freezeMs && since > this.freezeMs;
   }
 
+  /** held(now), for what else a freeze holds: a pong handled now measured the freeze (M3 phase 5a,
+   *  clock-F1). */
+  holding(now: number): boolean {
+    return this.held(now);
+  }
+
   /** A direct TICK's clock sample: the sender's t − d + phase, plus the one-way delay, against mine. A
    *  phase at its cap was sent catching up after a stall, and is no sample (roslambo, 2026-10-25); nor
    *  is one taken while paused, against a reading that doesn't move, nor one held for this page through

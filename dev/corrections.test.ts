@@ -289,16 +289,19 @@ describe("the model's reach (§9.4)", () => {
     expect(at(2, 12, 3, 1)).toBeCloseTo(65.56, 2); // design §9.5's "about 71 ms", less the residual
     expect(at(2, 14, 3, 1)).toBeCloseTo(76.67, 2);
     expect(at(3, 12, 3, 1)).toBeCloseTo(71.11, 2);
-    // Two links, two jitters (LoopbackNet draws one a message a link): 88.3 ms, not 98.3.
+    // Two links, two jitters (LoopbackNet draws one a message a link): 88.3 ms, not 98.3; and with
+    // the forwarded pair's two deadbands of residual, 80 ms (M3 phase 5a, mesh-F4).
     expect(at(2, 12, 2, 2)).toBeCloseTo((14 * TICK_MS - TICK_MS - 40) / 2, 9);
     expect(at(2, 12, 2, 2)).toBeCloseTo(88.33, 2);
+    expect(reachMs({ d: 2, w: 12, tickMs: TICK_MS, residualMs: 2 * TICK_MS, jitterMs: JITTER_MS, legs: 2, hops: 2 })).toBeCloseTo(80, 9);
   });
 
   it('is reported beside each lossy profile, the forwarding reach beside each partial mesh, and none beside a loss-free full mesh', () => {
     const all = profiles();
     const named = (name: string): Profile => all.find((p) => p.name === name)!;
-    const residual = config.clockDeadbandTicks * TICK_MS;
+    // A forwarded pair's ends sample none of each other's clocks: two deadbands of residual (mesh-F4).
     const reach = (d: number, legs: number, hops: number, oneWayMs: number): { legs: number; hops: number; reachMs: number; inReach: boolean } => {
+      const residual = (hops > 1 ? 2 : 1) * config.clockDeadbandTicks * TICK_MS;
       const ms = reachMs({ d, w: config.lateWindowTicks, tickMs: TICK_MS, residualMs: residual, jitterMs: JITTER_MS, legs, hops });
       return { legs, hops, reachMs: ms, inReach: oneWayMs <= ms };
     };
@@ -306,6 +309,7 @@ describe("the model's reach (§9.4)", () => {
     expect(reachesOf(named('pack3-80ms-d3-loss0.1'), config)).toEqual({ loss: reach(3, 3, 1, 80) });
     expect(reachesOf(named('pack3-80ms-d3-loss0.1'), config).loss!.inReach).toBe(false);
     expect(reachesOf(named('pack4-80ms-d2-blocked2'), config)).toEqual({ forwarding: reach(2, 2, 2, 80) });
+    expect(reachesOf(named('pack4-80ms-d2-blocked2'), config).forwarding!.reachMs).toBeCloseTo(80, 9);
     expect(reachesOf(named('pack1-80ms-d2-loss0'), config)).toEqual({});
   });
 });

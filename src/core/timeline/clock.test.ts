@@ -426,6 +426,31 @@ describe('a TICK held through a freeze of the page’s timers (M3 phase 5)', () 
     expect(third.every((x) => x)).toBe(true);
   });
 
+  it('reads as held, through holding(now), exactly where a TICK is no sample for it, for a pong the session takes no round trip from (M3 phase 5a)', () => {
+    // Messages first, the late run, the run after it; a hidden page's wakes; a clock whose timer never ran.
+    const c = running(1000);
+    const times = [1100, 1200, 1300, 1600];
+    const seen: [boolean, boolean][] = [];
+    const look = (now: number): void => {
+      seen.push([c.holding(now), !sampleAhead(c, 'p', 0, now)]);
+    };
+    for (const now of times) look(now);
+    c.ran(1600);
+    for (const now of [1600, 1700, 1600 + Math.ceil(FREEZE_MS)]) look(now);
+    c.ran(1604);
+    look(1604);
+    for (const now of [2604, 3604]) {
+      c.ran(now);
+      look(now);
+    }
+    for (const [held, refused] of seen) expect(held).toBe(refused);
+    // A hidden page's first wake ends a freeze; its second, a gap after a gap, doesn't.
+    expect(seen.map(([held]) => held)).toEqual([false, false, true, true, true, true, false, false, true, false]);
+    const fresh = new TickClock(M3);
+    fresh.set(0, 0);
+    expect(fresh.holding(5000)).toBe(false);
+  });
+
   it('takes its freeze, d + w ticks, from configuration, and sees none before the timer’s first run', () => {
     const cfg: ClockConfig = { ...M3, tickMs: 10, delay: 3, window: 20 }; // 230 ms
     const at = (gap: number): boolean => {
