@@ -79,6 +79,8 @@ class FakeTimeline implements BotTimeline {
   ahead = false;
   /** The people's inputs for a tick. */
   people: (t: number) => TickInput[] = () => [];
+  /** Each bot's newest input held, with its tick: its own as it sends, or a STATE's record, set by a test. */
+  readonly newest = new Map<string, { tick: number; input: number }>();
   private readonly outbox = new Map<string, EventPayload>();
   /** Each sender's events sent, by the tick they ride in. */
   private readonly flying = new Map<string, { t: number; events: number }[]>();
@@ -107,6 +109,10 @@ class FakeTimeline implements BotTimeline {
     return bits;
   }
 
+  newestInput(who: string): { readonly tick: number; readonly input: number } | undefined {
+    return this.newest.get(who);
+  }
+
   /** One timer run in which the clock moves `ticks` local ticks: each sends, all on the head as it
    *  stands (a catch-up's); then finalisation, and the head. */
   advance(ticks = 1): void {
@@ -117,6 +123,7 @@ class FakeTimeline implements BotTimeline {
       for (const [id, sample] of this.bots) {
         const input = sample();
         this.sent.push({ id, tick: t, input, headTick: this.headTick, head: this.head });
+        this.newest.set(id, { tick: t, input });
         const e = this.outbox.get(id);
         this.outbox.delete(id);
         if (e) this.flying.set(id, [...(this.flying.get(id) ?? []), { t, events: e.events }]);
@@ -347,6 +354,31 @@ describe('BotHost (PLAN §14, D-39)', () => {
     host.adopt(again);
     expect(host.hosted.map((b) => b.brain)).toEqual(brains);
     expect(host.hosted[0]!.brain).toBe(brains[0]);
+  });
+
+  it("bases an adopted brain on the newest input of the bot's the timeline holds past its final tick, as onControl does (D-10, M3 phase 4)", () => {
+    const t = new FakeTimeline({ packSize: 2, matchMinutes: 1 });
+    const first = new BotHost(me, P, B, ROOM);
+    first.add(0, t);
+    first.add(1, t);
+    run(t, first, 1 + D + W + 60);
+    const stored = encodeInput({ jump: 1 });
+    for (const id of ids.slice(0, 2)) t.terrier(id)!.prevInput = stored;
+    // A STATE from before the reload's last inputs: its records past g hold one bot's press after the
+    // stored input, bark bits and all, and the other's newest record is g's own, the stored input.
+    const again = new FakeTimeline(t.final);
+    const g = again.finalTick;
+    const newer = encodeInput({ jump: 2, pounce: 1, bark: 3 });
+    again.newest.set(ids[0]!, { tick: g + 4, input: newer });
+    again.newest.set(ids[1]!, { tick: g, input: encodeInput({ jump: 3 }) });
+    const host = new BotHost(me, P, B, ROOM);
+    host.adopt(again);
+    run(again, host, 30);
+    // In warm-up a brain presses nothing: each input carries the counters it was based on.
+    const counts = (id: string): [number, number][] => again.sent.filter((x) => x.id === id).map((x) => [jumpCount(x.input), pounceCount(x.input)]);
+    expect(new Set(counts(ids[0]!).map((c) => c.join()))).toEqual(new Set(['2,1']));
+    expect(new Set(counts(ids[1]!).map((c) => c.join()))).toEqual(new Set(['1,0']));
+    expect(counts(ids[0]!)).toHaveLength(30);
   });
 
   it('gives up a bot whose pack filled first: of two JOINs for its last place, the smaller ID wins (P4)', () => {
@@ -753,6 +785,78 @@ describe('BotHost over the real timeline (design §2.4, §4.8)', () => {
     const T = t.final.terriers[findTerrier(t.final, bot)];
     expect([T?.pack, T?.joinTick, findTerrier(t.final, x), shownUnhosted]).toEqual([1, RIDES, -1, []]);
     expect(host.hosted.map((b) => [b.id, b.wanted])).toEqual([[bot, true]]);
+  });
+
+  /** A host, sending nothing of its own, whose bot is for pack B, added at local tick 0, or at stallAt
+   *  if `addAt` says so, and a person x in pack A from tick 1 + d who never readies, whose TICKs the
+   *  test writes. After local tick stallAt's timer run, the host's next comes 60 ticks later, a
+   *  catch-up that sends only its newest stallSendTicks ticks, so what it queued at stallAt rides late
+   *  (design §2.4). Each timer run advances, then tends, as the session does. Returns the ticks the
+   *  bot's JOINs and READYs rode in, each once, in order, and `late`, the catch-up's first tick. */
+  const CATCH_UP = 60;
+  /** The tick a catch-up CATCH_UP ticks after local tick n sends first: its newest stallSendTicks. */
+  const lateAfter = (n: number): number => n + CATCH_UP - NET.timeline.stallSendTicks + 1 + D;
+  function queuedThenStalled(room: RoomSettings, stallAt: number, until: number, addAt: 'start' | 'stall') {
+    const rode = { join: [] as number[], ready: [] as number[] };
+    const t = new Timeline({ ...NET.timeline, P, me }, {
+      broadcast: (bytes) => {
+        const m = decode(bytes, P, WIRE) as Tick;
+        for (const e of m.bots.find((b) => b.id === bot)?.events ?? []) {
+          const u = m.t - e.back;
+          if ((e.events & JOIN) !== 0 && !rode.join.includes(u)) rode.join.push(u);
+          if ((e.events & READY) !== 0 && !rode.ready.includes(u)) rode.ready.push(u);
+        }
+      },
+      sendToPlayer: () => false,
+      sendToPeer: () => {},
+    });
+    t.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
+    const host = new BotHost(me, P, B, room);
+    if (addAt === 'start') host.add(1, t);
+    const x = personId(6, 0);
+    const xs = new Map<number, number>();
+    const fromX = (u: number, now: number): void => {
+      xs.set(u, 0);
+      const events: TickEvent[] = u === 1 + D ? [{ back: 0, events: JOIN, joinPack: 0, coat: 0, name: 'x' }] : [];
+      t.onTick(x, tickOf(xs, u, events), now, true);
+    };
+    const timer = (n: number): void => {
+      t.advance(at(n));
+      host.tend(t, false);
+    };
+    for (let n = 1; n <= stallAt; n++) {
+      timer(n);
+      fromX(n + D, at(n));
+    }
+    if (addAt === 'stall') host.add(1, t);
+    timer(stallAt + CATCH_UP);
+    for (let n = stallAt + 1; n <= stallAt + CATCH_UP; n++) fromX(n + D, at(stallAt + CATCH_UP));
+    for (let n = stallAt + CATCH_UP + 1; n <= until; n++) {
+      timer(n);
+      fromX(n + D, at(n));
+    }
+    return { t, rode, late: lateAfter(stallAt) };
+  }
+
+  it('sends a JOIN that a catch-up sent late once, not again while it rides though its retry is due (M3 phase 4)', () => {
+    // Added at local tick 40: the catch-up that follows sends its JOIN for 98 + d, when the final
+    // tick, 88, is past the retry's, 40 + d + eventRetryTicks.
+    const { t, rode, late } = queuedThenStalled(ROOM, 40, 200, 'stall');
+    expect(late - W).toBeGreaterThan(40 + D + E);
+    expect(rode.join).toEqual([late]);
+    const T = t.final.terriers[findTerrier(t.final, bot)];
+    expect([T?.pack, T?.joinTick]).toEqual([1, late]);
+  });
+
+  it('sends a READY renewal that a catch-up sent late once, not again while it rides though its retry is due (C-41, M3 phase 4)', () => {
+    // Renewed 40 ticks after the JOIN lands, at final tick 1 + d + 40, queued at local tick w later;
+    // the catch-up that follows sends it late, its retry due before it's final. Up to the next renewal.
+    const room: RoomSettings = { ...ROOM, botReadyRenewTicks: P.readyExpiryTicks - 40 };
+    const renewAt = 1 + D + 40 + W;
+    const { t, rode, late } = queuedThenStalled(room, renewAt, lateAfter(renewAt) + W + 30, 'start');
+    expect(late - W).toBeGreaterThan(renewAt + D + E);
+    expect(rode.ready).toEqual([1 + D, late]);
+    expect(t.final.terriers[findTerrier(t.final, bot)]!.readyUntil).toBe(late + P.readyExpiryTicks);
   });
 
   it("keeps a removed bot hosted until its LEAVE is final here, however late a catch-up sent it", () => {

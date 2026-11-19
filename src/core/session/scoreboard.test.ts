@@ -35,8 +35,12 @@ const goalOf = (g: ConfirmedGoal): string => `${g.tick} ${g.pack} ${g.ownGoal} [
 
 const IDS = [personId(9, 0), personId(9, 1), personId(9, 2), botId(personId(9, 3), 0)];
 
+/** Each hand-built state's lineage: the ticks of the goals it was built with (ByHand's hasGoalAt). */
+const lineages = new WeakMap<MatchState, readonly number[]>();
+
 /** A 2-a-side match in play at tick, four terriers in (spot, pack) order, and these goals: each
- *  [tick, pack, scorers bits], their celebration and kickoff countdown as the state holds them. */
+ *  [tick, pack, scorers bits], their celebration and kickoff countdown as the state holds them, and
+ *  their ticks its lineage's. */
 function matchAt(tick: number, goals: readonly (readonly [number, Pack, number])[] = []): MatchState {
   const s = genesis({ packSize: 2, matchMinutes: 1 }, P);
   IDS.forEach((id, k) => {
@@ -62,6 +66,7 @@ function matchAt(tick: number, goals: readonly (readonly [number, Pack, number])
     else if (tick < L + SPACING) [s.phase, s.phaseStart, s.scorers] = [KICKOFF_COUNTDOWN, L + P.celebrationTicks, 0];
     else [s.phase, s.phaseStart, s.scorers] = [IN_PLAY, L + SPACING, 0];
   }
+  lineages.set(s, goals.map(([L]) => L).filter((L) => L <= tick));
   return s;
 }
 
@@ -85,6 +90,11 @@ class ByHand implements ScoreTimeline {
 
   isConfirmed(t: number): boolean {
     return this.started && this.agreedTo >= t && !this.repairing;
+  }
+
+  /** The goals its state was built with: its lineage's. */
+  hasGoalAt(t: number): boolean {
+    return (lineages.get(this.final) ?? []).includes(t);
   }
 }
 
@@ -238,7 +248,7 @@ describe('the latch, on a hand-built timeline (§3.5)', () => {
       expect(sb.goals.map((g) => g.tick)).toEqual([653]);
     });
 
-    it('kept: the repaired state still has it, or a later goal at least a celebration and a kickoff countdown on', () => {
+    it('kept: the repaired lineage still has it, as its last goal or before a later one', () => {
       const { t, sb } = shown();
       t.repairing = true;
       sb.update(t);
@@ -256,6 +266,21 @@ describe('the latch, on a hand-built timeline (§3.5)', () => {
       t.agreedTo = later;
       expect(sb.update(t).added.map((g) => g.tick)).toEqual([later]);
       expect([sb.goals.map((g) => g.tick), sb.score]).toEqual([[650, later], [1, 1]]);
+    });
+
+    it('withdrawn though the repaired state has a later goal a celebration and a kickoff countdown on, which a far repair reaches (M3 phase 4)', () => {
+      const { t, sb } = shown();
+      // A repair from before 650, its lineage without that goal but with one a goal's spacing later: a
+      // STATE from the edge of its sender's history, a slow flight and a timer gap short of a stall.
+      const later = 650 + SPACING;
+      t.repairing = true;
+      sb.update(t);
+      t.final = matchAt(later + 15, [[later, 1, 0b0010]]);
+      t.repairing = false;
+      const { added, withdrawn } = sb.update(t);
+      expect([added, withdrawn.map((g) => g.tick), sb.goals, sb.score]).toEqual([[], [650], [], [0, 0]]);
+      t.agreedTo = later;
+      expect(sb.update(t).added.map(goalOf)).toEqual([`${later} 1 false [${IDS[1]}] 0-1`]);
     });
 
     it('withdraws every latched goal the repaired state has none of, the last first', () => {
@@ -533,6 +558,15 @@ describe('over real timelines (P9)', () => {
       expectOnTime(b);
       expect(b.sb.score).toEqual([2, 0]);
     }
+    // Each timeline knows its lineage's goals, which the withdrawal reads: from genesis, each it
+    // finalised; an arrival from its STATE's last goal on, taking those before as kept (M3 phase 4).
+    const [L1, L2] = players[0]!.added.map((e) => e.goal.tick) as [number, number];
+    for (const n of q.nodes) {
+      const at = [L1, L2, L1 + 1, L2 - 1, L2 + 1].map((u) => n.t.hasGoalAt(u));
+      expect(at, n.id).toEqual([true, true, false, false, false]);
+    }
+    for (const n of nodes) expect(n.t.hasGoalAt(L1 - 1), n.id).toBe(false);
+    for (const n of [late.during!, late.afterIt!]) expect(n.t.hasGoalAt(L1 - 1), n.id).toBe(true);
   });
 
   it('a resync crossing a goal: the dissenter latches it once, after its repair, as the others did', () => {

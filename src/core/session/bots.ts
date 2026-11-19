@@ -17,6 +17,12 @@
 //   a STATE put them, where roslambo unhosted it at the tick it worked out
 //   when the LEAVE was queued; a LEAVE a repair's lineage undid goes again
 //   (M3 phase 2's integration);
+// - a JOIN's retry and a READY's renewal skip their re-send while the event
+//   is in flight, and go once its tick is final without the state showing
+//   it, as the session's retries do (M3 phase 3's answers, phase 4);
+// - an adopted bot's brain starts from the newest input of its own that the
+//   timeline holds past the final tick, else its terrier's stored previous
+//   input, as the session's onControl does (D-10, M3 phase 4);
 // - a narrow timeline interface, BotTimeline, so this builds beside the
 //   timeline (design §0): timeline.ts's Timeline satisfies it, which the
 //   session's tests assert.
@@ -25,7 +31,7 @@
 import { botCoat, botIds, botName } from '../bot/bot-id';
 import { type BotParams, type Brain, newBrain, think } from '../bot/brain';
 import type { EventPayload } from '../protocol/messages';
-import { findTerrier, JOIN, LEAVE, type MatchState, type Pack, packCount, READY, type SimParams, WARM_UP } from '../sim/index';
+import { findTerrier, JOIN, KEPT_BITS, LEAVE, type MatchState, type Pack, packCount, READY, type SimParams, WARM_UP } from '../sim/index';
 import type { RoomSettings } from './settings';
 
 /** What BotHost needs of a timeline, declared here so bot-host builds beside the timeline (design §0);
@@ -46,6 +52,8 @@ export interface BotTimeline {
   queueEvent(who: string, e: EventPayload): void;
   /** The event bits of `who`'s events not yet final here: queued, or riding until their tick is final. */
   eventsInFlight(who: string): number;
+  /** The newest input held for `who`, with its tick: a bot's own record, or one a STATE brought. */
+  newestInput(who: string): { readonly tick: number; readonly input: number } | undefined;
 }
 
 /** A bot this browser hosts. */
@@ -144,9 +152,11 @@ export class BotHost {
   }
 
   /** A timeline is held (D-10, D-17, design §4.6): this host's bots in its final roster are hosted
-   *  again, each brain's counters from its terrier's stored previous input, so its first input presses
-   *  nothing. Once for each timeline: a brain based again mid-timeline would lag its own inputs in
-   *  flight, and a bot unhosted while still in the roster would come back. */
+   *  again, each brain's counters from the bot's newest input the timeline holds past its final tick,
+   *  which its terrier's stored previous input will become, or else from that stored input, as the
+   *  session's onControl does, so its first input presses nothing: a STATE's records past g carry the
+   *  inputs this host sent before a reload. Once for each timeline: a brain based again mid-timeline
+   *  would lag its own inputs in flight, and a bot unhosted while still in the roster would come back. */
   adopt(t: BotTimeline): void {
     if (!t.started || t === this.adoptedFor) return;
     this.adoptedFor = t;
@@ -160,8 +170,9 @@ export class BotHost {
         b = { id, pack: T.pack, brain: newBrain(id, 0, this.P, this.B), wanted: true, joinSentAt: NONE, readySentAt: NONE, leaveAt: NONE, triedOther: true, thought: NONE, input: 0 };
         this.list.push(b);
       }
+      const n = t.newestInput(id);
       b.pack = T.pack;
-      b.brain = newBrain(id, T.prevInput, this.P, this.B);
+      b.brain = newBrain(id, n !== undefined && n.tick > t.finalTick ? n.input & KEPT_BITS : T.prevInput, this.P, this.B);
       b.thought = NONE;
       b.joinSentAt = NONE;
       t.bots.set(id, this.sampler(b, t));
@@ -175,7 +186,9 @@ export class BotHost {
    *  again once its Ready has botReadyRenewTicks left, and again after eventRetryTicks if the state
    *  doesn't show it, so one lost once lands on its second sending (C-41, PLAN §7.4); a removed bot is
    *  unhosted once its LEAVE is final here, unless the roster locked first, when it plays on, hosted
-   *  again, but for a host that's leaving (hostLeft). */
+   *  again, but for a host that's leaving (hostLeft). A JOIN or a READY still in flight, which a
+   *  catch-up may send ticks after it was queued, isn't sent again until its tick is final without
+   *  the state showing it (M3 phase 4). */
   tend(t: BotTimeline, hostLeft: boolean): void {
     if (!t.started) return;
     const s = t.final;
@@ -188,9 +201,11 @@ export class BotHost {
         this.tendRemoved(b, t, T !== undefined, hostLeft);
         continue;
       }
+      const flying = t.eventsInFlight(b.id);
       if (T) {
         b.joinSentAt = NONE;
-        if (s.phase === WARM_UP && T.readyUntil - s.tick <= this.room.botReadyRenewTicks && (b.readySentAt === NONE || f > b.readySentAt + retry)) {
+        const renew = s.phase === WARM_UP && T.readyUntil - s.tick <= this.room.botReadyRenewTicks;
+        if (renew && (flying & READY) === 0 && (b.readySentAt === NONE || f > b.readySentAt + retry)) {
           t.queueEvent(b.id, { events: READY });
           b.readySentAt = t.localTick;
         }
@@ -199,7 +214,7 @@ export class BotHost {
       if (s.phase !== WARM_UP || packCount(s, b.pack) >= s.packSize) {
         // No JOIN can take this pack now; one in flight gets until it's final here, however late a
         // catch-up sent it.
-        if ((t.eventsInFlight(b.id) & JOIN) !== 0) continue;
+        if ((flying & JOIN) !== 0) continue;
         const other: Pack = b.pack === 0 ? 1 : 0;
         if (s.phase === WARM_UP && !b.triedOther && packCount(s, other) < s.packSize) {
           b.pack = other;
@@ -210,7 +225,7 @@ export class BotHost {
         }
         continue;
       }
-      if (b.joinSentAt === NONE || f > b.joinSentAt + retry) this.join(b, t);
+      if ((flying & JOIN) === 0 && (b.joinSentAt === NONE || f > b.joinSentAt + retry)) this.join(b, t);
     }
   }
 

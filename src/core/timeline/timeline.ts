@@ -36,8 +36,22 @@
 //   merge, less than resyncRetryMs ago, whose peer wouldn't answer (H2); the
 //   per-ID state of senders outside the roster with nothing in the stores'
 //   window is forgotten, and a STATE leaves out a sender outside the roster
-//   without a JOIN, so made-up IDs can't grow memory without bound (H5); and
-//   the inputs received are counted (SUM-1).
+//   without a JOIN, so made-up IDs can't grow memory without bound (H5); the
+//   inputs received are counted (SUM-1); and a voter a tally here saw lose,
+//   or a late vote's re-tally that every voter is in, isn't counted for the
+//   v − 1 ticks after, whose votes it sent before it knew, so two voters, or
+//   three that each lost a different tick, no longer cross their resyncs
+//   and fail them all (§3.6's crossing, the three-way livelock); two
+//   resyncs that cross anyway, each asking the other, as when the loser
+//   learns late over a slow link or a sleeping page's timers, end with one
+//   of them: the one asking for the earlier tick is answered (§3.6); a late
+//   vote re-tallies only a tick this timeline tallied itself, never one
+//   before a joiner's first; a STATE's records run to the clock's tick + d,
+//   past a sleeping page's stale localTick, so a joiner gets the events that
+//   went final at their senders meanwhile; the full replay's drawn head
+//   takes its tick's state as recomputed; and the final lineage's goal
+//   ticks are kept, so the scoreboard withdraws just the goals a repair
+//   took away (§3.5, C-4).
 // Pure: no DOM, timers or clocks. The caller passes `now` (ms, monotonic)
 // and routes messages in.
 
@@ -51,12 +65,12 @@ import {
 import type { TimelineSettings } from '../session/settings';
 import {
   canonicalInputs, cloneState, decodeState, encodeState, genesis, hash64, hashState, JOIN, KEPT_BITS, LEAVE, makeSim,
-  type MatchSettings, type MatchState, READY, sameInputs, type Sim, type SimParams, step, SWITCH, type TickInput, UNREADY,
+  type MatchSettings, type MatchState, NEVER, READY, sameInputs, type Sim, type SimParams, step, SWITCH, type TickInput, UNREADY,
 } from '../sim';
 import { TickClock } from './clock';
 import { FinalHistory } from './history';
 import { InputStore, type PutResult, type Recorded } from './inputs';
-import { VoteBook } from './votes';
+import { type TallyResult, VoteBook } from './votes';
 
 /** settings.ts's TimelineSettings: d, w and v (A.4), the 256-tick state history, the TICK's 16-tick
  *  history, the stores' span, the spread's cap (42), the joiner's warm-up, the resync's retry,
@@ -297,12 +311,22 @@ export class Timeline {
   /** The last work left the chain short of its target: a spread (§2.8). */
   private behind = false;
   private repairedFrom = 0;
+  /** The first tick this timeline tallied: a joiner's first after its STATE's (lateVote). */
+  private talliedFrom = 0;
   private confirmed = true;
   private quietUntil = 0;
   /** A tally with no counted vote confirms only a tick after this one: a joiner's joinedAt − w, since
    *  the votes for earlier ticks may have gone out before it held the timeline (§3.1, §3.4). */
   private trustAfter = -Infinity;
+  /** Each voter a tally here saw lose, by the tick it lost: its votes for the v − 1 ticks after it
+   *  went out before it tallied that tick, so before it knew it lost, and aren't counted here. Its
+   *  next votes are its repair's, or a failed resync's (M3 phase 4's three-way livelock). */
+  private readonly lostAt = new Map<string, number>();
   private warm: Warm | null = null;
+  /** The final lineage's goal ticks from goalsFrom on, in order: each final tick whose state's last
+   *  goal is itself, as finalisation takes them, a repair's again after its base (hasGoalAt). */
+  private readonly goalTicks: number[] = [];
+  private goalsFrom = 0;
   private readonly outbox = new Map<string, Outbox>(); // by local sender: me, or a hosted bot
   private readonly botIdsOf = new Map<string, ReadonlySet<string>>(); // host → the IDs its bots may have
   private readonly oneWayMs = new Map<string, number>();
@@ -415,7 +439,8 @@ export class Timeline {
     return this.resync !== null || this.repair !== null || this.behind || this.warm !== null;
   }
 
-  /** False while a resync is outstanding, or paused (§3.4, §4.12). */
+  /** False while a resync is outstanding, or paused (§3.4, §4.12); a crossing's ask is still answered
+   *  (onStateReq). */
   get answering(): boolean {
     return this.isStarted && this.resync === null && !this.ticks.paused;
   }
@@ -449,6 +474,15 @@ export class Timeline {
   /** The local time a TICK from id last arrived, direct or forwarded. */
   heardAt(id: string): number | undefined {
     return this.lastHeard.get(id);
+  }
+
+  /** Whether the final lineage held has a goal at tick t: as finalisation took each, from genesis or
+   *  the last goal of the state a joiner took, a repair's re-finalised from its base. Before that last
+   *  goal, which the state says nothing more of, a goal is taken as kept. So the scoreboard withdraws
+   *  just the goals a repair took away, however far it reached (§3.5, C-4; M3 phase 4's integration,
+   *  where a reach past a goal's spacing would have kept one). */
+  hasGoalAt(t: number): boolean {
+    return t < this.goalsFrom || this.goalTicks.includes(t);
   }
 
   // ---- The clock (D-15, D-22, §2.13) ----
@@ -873,6 +907,7 @@ export class Timeline {
       }
       this.chain[t % this.chain.length] = null;
       this.finalAt = t;
+      if (this.F.lastGoalTick === t) this.goalTicks.push(t);
       if (this.validTo < t) this.validTo = t;
       this.storeFinal(t);
       if (t === this.headAt && this.touchedFrom <= t) this.headRecomputed = cloneState(this.F);
@@ -907,6 +942,8 @@ export class Timeline {
     }
     // And the bot IDs cached for a sender or a voter not seen, by a tally's count.
     for (const host of this.botIdsOf.keys()) if (host !== this.cfg.me && !this.seen.has(host)) this.botIdsOf.delete(host);
+    // A loss whose uncounted ticks are all retired: no tally or late vote reads it again.
+    for (const [voter, g] of this.lostAt) if (g + this.cfg.voteWindow <= old) this.lostAt.delete(voter);
   }
 
   /** The roster's terriers with no record at t, before t is stepped: lateAbsent's candidates (§9.3). */
@@ -988,9 +1025,13 @@ export class Timeline {
         this.stats.corrections++;
         this.onCorrection?.(c);
       }
-    } else if (moved) {
-      this.stats.holds++;
+      return;
     }
+    // The full replay recomputes its window every advance, and an input that came while it was behind
+    // touched nothing: its drawn head takes the state as recomputed, so it never shows one the chain
+    // has since replaced (M3 phase 4's twin).
+    if (this.fullReplay && this.validTo === H) this.headState = this.stateAt(H);
+    if (moved) this.stats.holds++;
   }
 
   // ---- Votes and the tally (§3.1, §3.2) ----
@@ -1005,14 +1046,54 @@ export class Timeline {
     return false;
   }
 
-  /** Whether a voter's vote counts at g: it, or a bot derived from it, is in my roster there (D-13). */
+  /** Whether a voter's vote counts at g: it, or a bot derived from it, is in my roster there (D-13),
+   *  and it isn't one a tally here saw lose in the v − 1 ticks before g, whose vote at g went out
+   *  before it knew (lostAt). */
   private counter(g: number): (voter: string) => boolean {
     const roster = new Set(this.finals.roster(g));
+    const v = this.cfg.voteWindow;
     return (voter) => {
+      const lost = this.lostAt.get(voter);
+      if (lost !== undefined && g > lost && g < lost + v) return false;
       if (roster.has(voter)) return true;
       for (const b of this.botsOf(voter)) if (roster.has(b)) return true;
       return false;
     };
+  }
+
+  /** The voters a split tally of g saw lose: each counted voter for a hash other than the winner. It
+   *  stopped voting once it tallied g, so its votes for the v − 1 ticks after g, all sent before, are
+   *  its losing lineage's and aren't counted here (counter). Uncounted, they can't tie this page's
+   *  votes and win, which made it ask a voter that, resyncing, answers nothing, and refuse that
+   *  voter's own ask meanwhile: two voters, or three that each lost a different tick, went on
+   *  failing their resyncs; nor can they outvote this page's repaired votes once its own resync is
+   *  done (§3.6, M3 phase 4's three-way livelock). The winner is the tally's when this page won it
+   *  outside a resync or a repair, its own vote counted, as two voters' tie needs it; else the
+   *  others' alone, this page's own vote being of the lineage it lost. A voter whose resync failed
+   *  votes again from g + v, and is counted. */
+  private sawLose(g: number, r: TallyResult): void {
+    const counts = this.counter(g);
+    const me = this.cfg.me;
+    const others = (voter: string): boolean => voter !== me && counts(voter);
+    let win = r.win;
+    if (!(r.agree && this.resync === null && this.repair === null)) {
+      const o = this.book.tally(g, r.win, others);
+      if (o === null || !o.split) return;
+      win = o.win;
+    }
+    for (const voter of this.book.losers(g, win, others)) {
+      if (!((this.lostAt.get(voter) ?? -Infinity) >= g)) this.lostAt.set(voter, g);
+    }
+  }
+
+  /** Whether each terrier in the roster at g has a vote here for g: its player's, or its host's for a
+   *  bot, so none is still on its way (lateVote). */
+  private votedByAll(g: number): boolean {
+    const voters = this.book.votersAt(g);
+    for (const id of this.finals.roster(g)) {
+      if (!voters.includes(id) && !voters.some((v) => this.botsOf(v).has(id))) return false;
+    }
+    return true;
   }
 
   /** Another's vote, under its player ID, only for a tick in §2.12's window. */
@@ -1037,7 +1118,10 @@ export class Timeline {
         }
         continue;
       }
-      if (r.split) this.stats.split++;
+      if (r.split) {
+        this.stats.split++;
+        this.sawLose(g, r);
+      }
       if (r.agree) {
         this.stats.agree++;
         this.confirmed = true;
@@ -1050,16 +1134,24 @@ export class Timeline {
     }
   }
 
-  /** A vote that arrives after its tick's tally still counts (roslambo M0), but not during a repair
-   *  or for a tick before the last repair's. */
+  /** A vote that arrives after its tick's tally still counts (roslambo M0), but not during a repair,
+   *  for a tick before the last repair's, or for one a joiner never tallied: a joiner holds none of
+   *  the votes that went out before it held the timeline, so one that came later would decide alone
+   *  (M3 phase 4's consensus fixes). A split re-tally that every voter of the roster is in sees its
+   *  losers lose as a tally does (sawLose): a voter whose vote for g came late learns late that it
+   *  lost, so its votes for the ticks after went out before it knew, as a slow link or a sleeping
+   *  page's timers make it (§3.6). One with a vote still to come sees nobody lose, since it may yet
+   *  turn: the votes of a burst come a voter at a time, each first tying this page's alone (M3 phase
+   *  4's integration). */
   private lateVote(g: number, now: number): void {
-    if (this.repairing || g < this.repairedFrom) return;
+    if (this.repairing || g < this.repairedFrom || g < this.talliedFrom) return;
     const r = this.book.tally(g, this.hashAt(g), this.counter(g));
-    if (r !== null && !r.agree) {
-      this.stats.lateVoteFlips++;
-      this.note(`late vote flips ${g}`);
-      this.beginResync(g, r.win, now);
-    }
+    if (r === null) return;
+    if (r.split && this.votedByAll(g)) this.sawLose(g, r);
+    if (r.agree) return;
+    this.stats.lateVoteFlips++;
+    this.note(`late vote flips ${g}`);
+    this.beginResync(g, r.win, now);
   }
 
   // ---- The STATE resync (§3.4) ----
@@ -1107,10 +1199,18 @@ export class Timeline {
     this.resync = null;
   }
 
-  /** A STATE_REQ: answered only for (NO_TICK, zero), the newest final state, or a final tick the
-   *  history holds with the hash asked for, and never while a resync is outstanding (§3.4). */
-  onStateReq(peer: string, m: StateReq, now: number): boolean {
-    if (!this.answering) return this.refuse();
+  /** A STATE_REQ from player's connection peer: answered only for (NO_TICK, zero), the newest final
+   *  state, or a final tick the history holds with the hash asked for (§3.4); never while paused, nor
+   *  while a resync is outstanding but for a crossing's ask, which only the asker's player ID, the
+   *  session's attribution of the connection, tells apart. A crossing is a voter this resync asks
+   *  that is itself resyncing to this page's state: asked for a tick before the one this page lost,
+   *  whose history there is what won that voter's tally, this page answers. So of two resyncs that
+   *  cross, the one for the earlier tick is answered and the other refused, and one completes where
+   *  both failed (§3.6, M3 phase 4's integration). */
+  onStateReq(peer: string, m: StateReq, now: number, player?: string): boolean {
+    if (!this.isStarted || this.ticks.paused) return this.refuse();
+    const r = this.resync;
+    if (r !== null && !(m.tick !== NO_TICK && m.tick < r.g && player !== undefined && r.candidates.includes(player))) return this.refuse();
     let g: number;
     if (m.tick === NO_TICK) {
       g = this.finalAt;
@@ -1127,7 +1227,10 @@ export class Timeline {
     const most = stateRecordsMax(g, this.finalAt, senderTick, this.L);
     if (state === null || most < 0) return this.refuse();
     const inputs: InputRecord[][] = [];
-    const last = Math.min(this.local + this.cfg.delay, g + most);
+    // To the clock's tick + d, not localTick's: a page whose timers sleep takes TICKs past its stale
+    // localTick + d, whose events go final at their senders before the asker can hear them, a joiner's
+    // JOIN among them (M3 phase 4's hidden pages, §3.4).
+    const last = g + most;
     const members = new Set(this.finals.roster(g));
     for (let t = g + 1; t <= last; t++) inputs.push(this.recordsAt(t, members));
     const { bytes, kept } = encodeStateMessage(
@@ -1188,6 +1291,7 @@ export class Timeline {
     this.idValue = m.timeline;
     this.F = cloneState(m.decoded);
     this.finalAt = m.g;
+    this.tookGoals();
     this.validTo = m.g;
     const bytes = m.state.slice();
     this.finals.put(m.g, bytes, hash64(bytes), this.F.terriers.map((T) => T.id));
@@ -1199,6 +1303,7 @@ export class Timeline {
     this.quietUntil = target;
     this.trustAfter = target - this.cfg.window;
     this.lastTallied = Math.max(this.finalAt, target - this.cfg.window - this.cfg.voteWindow);
+    this.talliedFrom = this.lastTallied + 1;
     this.stats.joinedAt = target;
     // A host back from a reload hears nothing from its own bots (roslambo).
     const mine = this.botsOf(this.cfg.me);
@@ -1224,6 +1329,7 @@ export class Timeline {
     this.repair = { g: m.g, divergedAt: r.divergedAt };
     this.F = cloneState(m.decoded);
     this.finalAt = m.g;
+    this.tookGoals();
     const bytes = m.state.slice();
     this.finals.dropAfter(m.g);
     this.finals.put(m.g, bytes, r.hash, this.F.terriers.map((T) => T.id));
@@ -1258,6 +1364,16 @@ export class Timeline {
       if (now < Math.max(warm.from, met) + this.cfg.warmupMs) return false;
     }
     return true;
+  }
+
+  /** A STATE's state taken as F: its lineage's last goal at or before its tick is F's, so none of this
+   *  one's after it stands, and a joiner knows none before it (hasGoalAt). */
+  private tookGoals(): void {
+    const L = this.F.lastGoalTick;
+    const last = L === NEVER ? -1 : L;
+    while (this.goalTicks.length > 0 && this.goalTicks.at(-1)! > last) this.goalTicks.pop();
+    if (L !== NEVER && this.goalTicks.at(-1) !== L) this.goalTicks.push(L);
+    if (!this.isStarted) this.goalsFrom = last < 0 ? 0 : last;
   }
 
   /** Inputs up to the sender's final tick replace this browser's exactly, absences included; after

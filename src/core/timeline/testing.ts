@@ -21,6 +21,7 @@ import { BotHost } from '../session/bots';
 import { type Accepted, commonRefusal, type Link, type Refusal, type RoomPeer } from '../session/room-peer';
 import { netSettings, type TimelineSettings } from '../session/settings';
 import { cloneState, defaultParams, hash64, hashState, type MatchState, type SimParams, type TickInput } from '../sim';
+import type { FinalHistory } from './history';
 import type { InputStore } from './inputs';
 import { type Correction, Timeline, type TimelineConfig, type TimelineOut } from './timeline';
 import type { VoteBook } from './votes';
@@ -67,7 +68,8 @@ export interface ChainEntry {
 }
 
 /** What the inside of a timeline shows its tests, and what they spoil on purpose (§2.1, §2.7, §3.4):
- *  the chain and its watermark, the input store and the vote book, the repair under way, and F, for
+ *  the chain and its watermark, the input store, the vote book and the final history, the repair
+ *  under way, whether the last work left the chain short of its target (a spread, §2.8), and F, for
  *  the consensus tests' corruptions (design §0). */
 export interface Inside {
   validTo: number;
@@ -75,11 +77,23 @@ export interface Inside {
   entryAt(u: number): ChainEntry | null;
   readonly store: InputStore;
   readonly book: VoteBook;
+  readonly finals: FinalHistory;
   readonly repair: object | null;
+  readonly behind: boolean;
   readonly F: MatchState;
 }
 
 export const inside = (t: Timeline): Inside => t as unknown as Inside;
+
+/** Spoils t's final state on purpose, as a flipped bit would (P3, design §0): `change` writes F, and
+ *  the chain predicted from the old F goes, so the next final tick steps from the spoiled one rather
+ *  than reusing a prediction (§2.6). */
+export function spoil(t: Timeline, change: (F: MatchState) => void): void {
+  const x = inside(t);
+  change(x.F);
+  x.validTo = t.finalTick;
+  x.touchedFrom = Math.min(x.touchedFrom, t.finalTick + 1);
+}
 
 /** The input u's chain entry took for id, if any. */
 export const usedBy = (t: Timeline, u: number, id: string): TickInput | undefined => inside(t).entryAt(u)?.used.find((x) => x.id === id);
@@ -110,43 +124,67 @@ export interface Before {
   readonly calm: boolean;
 }
 
+/** An advance as twin compares it (§2.7): the drawn head after it, as `tick hash`; whether the chain
+ *  had caught up, no spread pending, as `behind` says (§2.8); and the corrections fired since the
+ *  advance before, as `tick from repair` (§2.11). */
+export interface Step {
+  readonly head: string;
+  readonly calm: boolean;
+  readonly corrections: readonly string[];
+}
+
 /** One node's timeline under §2.8's contract, checked after each advance and each message: an
  *  advance steps at most spreadCap for each tick the clock moved, at least one tick's, and a message
  *  one tick's; the full replay recomputes its whole window from F each advance outside a repair
  *  (D-11); the drawn head is never F, never moved back, shows its own tick with the one drawn before
- *  it no later, and neither is written while drawn. Problems go to the list it's given. It records
- *  each final tick taken, with its hash, the drawn heads, and the corrections, for twin. A new
- *  timeline object, a merge's or a rejoin's, starts its checks afresh. */
+ *  it no later, and neither is written while drawn. Problems go to the list it's given. For twin it
+ *  records every final state its timelines' histories take, the drawn head after each advance, and
+ *  the corrections. A new timeline object, a merge's or a rejoin's, starts its checks afresh. */
 export class Watch {
   readonly heads: Head[] = [];
+  /** Every final state the watched timelines' histories took, in order, as `epoch tick hash`: the
+   *  epoch counts the timeline objects watched, since a merge's ticks aren't the old match's. */
   readonly finals: string[] = [];
   readonly corrections: Correction[] = [];
+  /** One for each advance (Step). */
+  readonly steps: Step[] = [];
   /** The first final tick seen in its timeline, −1 before: where a full replay's stepping starts. */
   firstFinal = -1;
   private readonly problems: string[];
   private readonly opts: WatchOptions;
   private t: Timeline | null = null;
+  private epoch = -1;
   private lastHeadTick = -1;
-  private lastFinal = -1;
   private held: [Readonly<MatchState>, string][] = [];
+  /** The corrections fired since the last advance, as twin compares them. */
+  private fired: string[] = [];
 
   constructor(problems: string[], opts: WatchOptions = {}) {
     this.problems = problems;
     this.opts = opts;
   }
 
-  /** Watches t from here on: the node's timeline, or the one a merge or a rejoin put in its place. */
+  /** Watches t from here on: the node's timeline, or the one a merge or a rejoin put in its place. Its
+   *  history's writes and its corrections are recorded while it's the one watched. */
   adopt(t: Timeline): void {
     if (t === this.t) return;
     this.t = t;
+    const epoch = ++this.epoch;
     this.firstFinal = -1;
     this.lastHeadTick = -1;
-    this.lastFinal = -1;
     this.held = [];
-    if (!this.opts.corrections) return;
+    const history = inside(t).finals;
+    const put = history.put.bind(history);
+    history.put = (tick, bytes, hash, roster) => {
+      put(tick, bytes, hash, roster);
+      if (this.t === t) this.finals.push(`${epoch} ${tick} ${hash}`);
+    };
     const was = t.onCorrection;
     t.onCorrection = (c) => {
-      this.corrections.push({ ...c, before: cloneState(c.before), after: cloneState(c.after) });
+      if (this.t === t) {
+        this.fired.push(`${c.tick} ${c.from} ${c.repair}`);
+        if (this.opts.corrections) this.corrections.push({ ...c, before: cloneState(c.before), after: cloneState(c.after) });
+      }
       was?.(c);
     };
   }
@@ -170,7 +208,12 @@ export class Watch {
     } else {
       this.adopt(t);
     }
-    if (!t.started) return;
+    const corrections = this.fired;
+    this.fired = [];
+    if (!t.started) {
+      this.steps.push({ head: '', calm: false, corrections });
+      return;
+    }
     this.see(t);
     if (t.head === t.final || t.prevHead === t.final) this.problem(`${where}: the drawn head is F`);
     if (t.headTick < this.lastHeadTick) this.problem(`${where}: the head moved back from ${this.lastHeadTick} to ${t.headTick}`);
@@ -186,11 +229,8 @@ export class Watch {
       held.push([s, h]);
     }
     this.held = held;
-    if (t.finalTick !== this.lastFinal) {
-      this.finals.push(`${t.finalTick} ${t.hashAt(t.finalTick)}`);
-      this.lastFinal = t.finalTick;
-    }
     const hash = held[0]![1];
+    this.steps.push({ head: `${t.headTick} ${hash}`, calm: !inside(t).behind, corrections });
     const last = this.heads[this.heads.length - 1];
     if (this.opts.everyHead || (!t.repairing && (last === undefined || last.tick !== t.headTick || last.hash !== hash))) {
       this.heads.push(this.opts.keepStates ? { tick: t.headTick, hash, state: cloneState(t.head) } : { tick: t.headTick, hash });
@@ -244,11 +284,66 @@ export function heldFinals(t: Timeline): string[] {
   return out;
 }
 
+/** A watch's finals by timeline and tick: the hashes each final tick took, in order. */
+function finalsByTick(w: Watch): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const f of w.finals) {
+    const at = f.lastIndexOf(' ');
+    const key = f.slice(0, at);
+    const hashes = out.get(key);
+    if (hashes === undefined) out.set(key, [f.slice(at + 1)]);
+    else hashes.push(f.slice(at + 1));
+  }
+  return out;
+}
+
+/** What two runs of one node disagree on, the first few: twin's comparisons at their common ticks. */
+function differences(inc: Watched, full: Watched, strict: boolean): string[] {
+  const out: string[] = [];
+  const note = (d: string): void => {
+    if (out.length < 8) out.push(d);
+  };
+  // Every final tick both runs made, by tick: the same hashes there, in the order taken.
+  const a = finalsByTick(inc.watch);
+  for (const [key, hashes] of finalsByTick(full.watch)) {
+    const mine = a.get(key);
+    if (mine !== undefined && mine.join() !== hashes.join()) note(`final ${key}: ${mine.join()} incremental, ${hashes.join()} in full`);
+  }
+  // The drawn head after each advance, where neither run had a spread pending; and the corrections
+  // fired at an advance where neither had one pending then or at the advance before, which a spread's
+  // touches change. Where the spreads were the same throughout, at every advance.
+  const [x, y] = [inc.watch.steps, full.watch.steps];
+  if (x.length !== y.length) note(`${x.length} advances incremental, ${y.length} in full`);
+  for (let k = 0; k < Math.min(x.length, y.length); k++) {
+    const [p, q] = [x[k]!, y[k]!];
+    const calm = p.calm && q.calm;
+    if ((strict || calm) && p.head !== q.head) note(`advance ${k}: head ${p.head} incremental, ${q.head} in full`);
+    const settled = calm && k > 0 && x[k - 1]!.calm && y[k - 1]!.calm;
+    if ((strict || settled) && p.corrections.join() !== q.corrections.join()) {
+      note(`advance ${k}: corrections ${p.corrections.join(';')} incremental, ${q.corrections.join(';')} in full`);
+    }
+  }
+  // The finals each history holds at the end, at the ticks both hold.
+  const held = new Map(heldFinals(inc.t).map((f) => f.split(' ') as [string, string]));
+  for (const f of heldFinals(full.t)) {
+    const [tick, hash] = f.split(' ') as [string, string];
+    const mine = held.get(tick);
+    if (mine !== undefined && mine !== '' && hash !== '' && mine !== hash) note(`held ${tick}: ${mine} incremental, ${hash} in full`);
+  }
+  return out;
+}
+
 /** A scenario run twice, incremental and as a full replay, by runs make builds for each mode: neither
  *  run's watches found a problem, and every chain verified; the full replay reused no final and
- *  stepped each it took; and the two runs are the same: their messages, and each node's finals as it
- *  took them, its drawn heads, its corrections and the finals its history holds. The incremental
- *  run, for the test to read on. */
+ *  stepped each it took; and the two runs are the same at their common ticks (D-11, §2.7). The full
+ *  replay steps every final where the incremental run reuses predictions, so a catch-up longer than
+ *  the spread's cap, a warm-up's, spreads over more advances there, its finals coming later, its head
+ *  held longer, and its votes and announcements sent later. So twin compares every final tick both
+ *  runs made, by tick, each with the hashes it took in order; the drawn heads at each advance where
+ *  neither run had a spread pending, the corrections where neither had one then or the advance
+ *  before; and the finals both histories hold at the end. Where every node's spreads were the same
+ *  throughout, it compares the messages too, and every head and correction; else as many messages.
+ *  The incremental run, for the test to read on. */
 export function twin<R extends Twinned>(make: (mode: Mode) => R, scenario: (run: R) => void): R {
   const inc = make('incremental');
   scenario(inc);
@@ -264,18 +359,13 @@ export function twin<R extends Twinned>(make: (mode: Mode) => R, scenario: (run:
     const from = n.watch.firstFinal < 0 ? n.t.finalTick : n.watch.firstFinal;
     expect([s.reusedFinals, s.steppedFinals > 0, s.steppedFinals >= n.t.finalTick - from], `${k}`).toEqual([0, true, true]);
   });
+  expect(full.nodes.length).toBe(inc.nodes.length);
+  const spreads = (n: Watched): string => n.watch.steps.map((s) => (s.calm ? '.' : 's')).join('');
+  const strict = inc.nodes.every((n, k) => spreads(n) === spreads(full.nodes[k]!));
   const trace = (r: R): readonly string[] => r.trace ?? [];
   expect(trace(full).length).toBe(trace(inc).length);
-  expect(trace(full)).toEqual(trace(inc));
-  expect(full.nodes.length).toBe(inc.nodes.length);
-  const fired = (n: Watched): [number, number, boolean][] => n.watch.corrections.map((c) => [c.tick, c.from, c.repair]);
-  inc.nodes.forEach((n, k) => {
-    const f = full.nodes[k]!;
-    expect(f.watch.finals, `${k}`).toEqual(n.watch.finals);
-    expect(headKeys(f.watch.heads), `${k}`).toEqual(headKeys(n.watch.heads));
-    expect(fired(f), `${k}`).toEqual(fired(n));
-    expect(heldFinals(f.t), `${k}`).toEqual(heldFinals(n.t));
-  });
+  if (strict) expect(trace(full)).toEqual(trace(inc));
+  inc.nodes.forEach((n, k) => expect(differences(n, full.nodes[k]!, strict), `node ${k}`).toEqual([]));
   return inc;
 }
 
@@ -496,7 +586,7 @@ export class Pump implements Twinned {
     const t = q.to.t;
     const b = q.to.watch.before(t);
     if (m.type === T.TICK) t.onTick(q.from.id, m, this.now, true);
-    else if (m.type === T.STATE_REQ) t.onStateReq(q.from.peer, m, this.now);
+    else if (m.type === T.STATE_REQ) t.onStateReq(q.from.peer, m, this.now, q.from.id);
     else if (m.type === T.STATE) t.onState(q.from.peer, m, this.latency, this.now);
     q.to.watch.handled(t, `${q.to.k} at ${this.now}`, b);
   }
@@ -726,7 +816,7 @@ export class TimelinePeer implements RoomPeer {
     const m = decode(bytes, this.P, this.wire);
     if (player === undefined || m === null) return;
     if (m.type === T.TICK) this.t.onTick(player, m, now, true);
-    else if (m.type === T.STATE_REQ) this.t.onStateReq(peer, m, now);
+    else if (m.type === T.STATE_REQ) this.t.onStateReq(peer, m, now, player);
     else if (m.type === T.STATE) this.t.onState(peer, m, this.oneWayOf.get(peer) ?? 0, now);
   }
 

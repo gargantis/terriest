@@ -121,6 +121,21 @@ describe('a resync’s candidates (design §3.4)', () => {
   });
 });
 
+describe('the losers of a tally (design §3.6, M3 phase 4)', () => {
+  it('are the counted voters for any hash but the winner, me included, sorted by ID with `<`', () => {
+    const v = new VoteBook(SIZE);
+    const [upper, lower] = ['F'.repeat(32), 'a'.repeat(32)];
+    for (const [voter, h] of [[lower, 3], [P2, 1], [ME, 2], [upper, 3], [P1, 1], [P3, 4]] as const) v.add(60, voter, hash(h));
+    expect(v.losers(60, hash(1), everyone)).toEqual([P3, ME, upper, lower]);
+    // Only counted votes lose: an outsider's never.
+    expect(v.losers(60, hash(1), (voter) => voter !== P3 && voter !== lower)).toEqual([ME, upper]);
+    expect(v.losers(60, hash(9), (voter) => voter === P1)).toEqual([P1]);
+    expect([v.losers(61, hash(1), everyone), v.losers(-1, hash(1), everyone)]).toEqual([[], []]);
+    v.retire(60);
+    expect(v.losers(60, hash(1), everyone)).toEqual([]);
+  });
+});
+
 describe('the ring: a slot is reused only once its tick is retired (design §2.12)', () => {
   it('drops a retired tick’s votes, refuses votes for it, and reuses its slot', () => {
     const v = new VoteBook(8);

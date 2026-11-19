@@ -36,9 +36,11 @@ export interface ConfirmedEnd {
   readonly rows: readonly ResultRow[]; // in (spot, pack) order
 }
 
-/** What the scoreboard reads of a timeline; timeline.ts's Timeline satisfies it. started and id are
- *  the design's shape plus two members Timeline has: before it starts, final is a placeholder, not an
- *  arrival; and a timeline of another ID is another match, a merge's, whose goals aren't this one's. */
+/** What the scoreboard reads of a timeline; timeline.ts's Timeline satisfies it. The design's shape
+ *  plus three members Timeline has: started, since before it starts final is a placeholder, not an
+ *  arrival; id, since a timeline of another ID is another match, a merge's, whose goals aren't this
+ *  one's; and hasGoalAt, whether its final lineage has a goal at a tick, which a repair may have taken
+ *  away (M3 phase 4's integration). */
 export interface ScoreTimeline {
   readonly started: boolean;
   readonly id: string;
@@ -46,6 +48,7 @@ export interface ScoreTimeline {
   readonly finalTick: number;
   readonly repairing: boolean;
   isConfirmed(t: number): boolean;
+  hasGoalAt(t: number): boolean;
 }
 
 /** One update's changes: the goals latched, and the goals withdrawn (C-4). */
@@ -75,9 +78,6 @@ export class Scoreboard {
   /** In tick order, each once. */
   readonly goals: ConfirmedGoal[] = [];
   end: ConfirmedEnd | null = null;
-  /** Goals are at least a celebration and a kickoff countdown apart: 384 ticks at A.4's values,
-   *  more than a repair reaches back, the 256-tick history and its spread (§3.5). */
-  private readonly spacing: number;
   /** The timeline last arrived on: a merge or a rejoin hands the glue another (design §1.14). */
   private seen: ScoreTimeline | null = null;
   private arrivedAt = 0;
@@ -92,9 +92,9 @@ export class Scoreboard {
   private counts: ReadonlyMap<string, number> = new Map();
   private readonly countsBefore: ReadonlyMap<string, number>[] = [];
 
-  constructor(P: SimParams = defaultParams) {
-    this.spacing = P.celebrationTicks + P.kickoffCountdownTicks;
-  }
+  /** The design's shape (§1.15): its SimParams, which nothing reads since the withdrawal asks the
+   *  timeline's lineage rather than the goals' spacing (M3 phase 4's integration). */
+  constructor(_P: SimParams = defaultParams) {}
 
   /** The score as last confirmed: from the adopted state for a browser that arrived mid-match. */
   get score(): readonly [number, number] {
@@ -111,7 +111,7 @@ export class Scoreboard {
     let withdrawn: ConfirmedGoal[] | null = t === this.seen ? null : this.arrive(t, F);
     if (t.repairing) return withdrawn === null ? NOTHING : { added: NOTHING.added, withdrawn };
     let changed = false;
-    for (let last = this.goals.at(-1); last !== undefined && !this.has(F, last.tick); last = this.goals.at(-1)) {
+    for (let last = this.goals.at(-1); last !== undefined && !this.has(t, F, last.tick); last = this.goals.at(-1)) {
       this.goals.pop();
       this.counts = this.countsBefore.pop()!;
       (withdrawn ??= []).push(last);
@@ -152,11 +152,12 @@ export class Scoreboard {
     return s;
   }
 
-  /** F's lineage has goal L: its last goal is L, or one at least a goal's spacing after it, which a
-   *  repair from before L can't reach (§3.5). */
-  private has(F: Readonly<MatchState>, L: number): boolean {
-    const g = F.lastGoalTick;
-    return g === L || (g !== NEVER && g >= L + this.spacing);
+  /** F's lineage has goal L: its last goal is L, or the timeline's lineage has a goal there. Not
+   *  inferred from a later goal a goal's spacing on, as M3 phase 3 had it, since a repair from before L
+   *  can reach that far: a STATE from the edge of its sender's history, a slow flight and a timer gap
+   *  short of a stall (§3.5, C-4; M3 phase 4's review). */
+  private has(t: ScoreTimeline, F: Readonly<MatchState>, L: number): boolean {
+    return F.lastGoalTick === L || t.hasGoalAt(L);
   }
 
   /** F's last goal, once its tick is confirmed, if it came after the arrival or was celebrating then.

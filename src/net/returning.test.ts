@@ -17,7 +17,9 @@ import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32 } from './loopbac
 // back at once, skipping Join, with its press counters from the terrier's
 // stored previous input, so it presses nothing on return (M3-Q28); and a
 // browser that arrives, or reloads, on Results takes the final state and
-// shows the same results.
+// shows the same results. returning-seeds and returning-more.test.ts play
+// the first at 16 seeds, where three voters each lost a different tick
+// (§3.6).
 
 vi.setConfig({ testTimeout: 120_000 });
 

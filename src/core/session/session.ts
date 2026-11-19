@@ -32,9 +32,12 @@
 //   receiver ages by the time since it was sent, so every page weighs two
 //   timelines as they stand at one moment, whichever announcement is
 //   fresher; and two whose ages differ by at most half stallMs are a tie,
-//   the smaller ID winning, so Play-again presses never more than a one-way
-//   delay apart are ranked alike everywhere (P7's peer side, Q-7, M3 phase
-//   4's fixes);
+//   the smaller ID winning, so pages whose estimates of the ages differ a
+//   little rank them alike. A Play-again press's ID leads with the old
+//   timeline's tick at the press (roster.ts's againTimelineId), so of one old
+//   match's presses the earlier wins both ways, as the older past the tie
+//   and as the smaller ID within it, and every page ranks them alike at any
+//   spacing (P7's peer side, Q-7, §4.9, M3 phase 4);
 // - a joiner's warm-up waits for every peer connected or still handshaking,
 //   each from when this side met it and for at most warmupMs, and only one
 //   met within warmupMs of the adoption (T6, M3 phase 4's fixes);
@@ -269,8 +272,10 @@ export class Session implements RoomPeer {
   private lastPeersSent = -Infinity;
   private lastRole = -1;
   /** P7's tie, in ticks: half stallMs, the longest one-way delay the session takes for the network's
-   *  (onRtt), so two Play-again presses that each saw no AGAIN of the other, never more than a one-way
-   *  delay apart (§4.9), are always a tie, whatever each page's estimate of their ages. */
+   *  (onRtt), so two pages whose estimates of two timelines' ages differ by the network's errors rank
+   *  them alike. Two Play-again presses of one old match are ranked alike at any spacing, a partial
+   *  mesh's included, where an AGAIN doesn't reach every page: their IDs lead with the old timeline's
+   *  tick at the press, so the earlier is both the older and the smaller ID (§4.9, M3 phase 4). */
   private readonly tieTicks: number;
   private openedAt = -1;
   private arrivedAt = 0;
@@ -797,7 +802,7 @@ export class Session implements RoomPeer {
    *  paused or resyncing, the timeline's rule, nor without a timeline. */
   private onStateReq(peer: string, info: PeerInfo, m: StateReq, now: number): void {
     if (now - info.answeredAt < this.room.resyncRetryMs) return;
-    if (this.current.onStateReq(peer, m, now)) info.answeredAt = now;
+    if (this.current.onStateReq(peer, m, now, info.player)) info.answeredAt = now;
   }
 
   /** Only a STATE this side asked that connection for; an unsolicited one is invalid. A merge takes

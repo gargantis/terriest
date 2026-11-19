@@ -85,6 +85,22 @@ export class VoteBook {
     return out.sort(byId);
   }
 
+  /** The voters at t whose vote counts (counts(voter)) and names a hash other than win, sorted by ID:
+   *  those a tally that win won saw lose (§3.6, M3 phase 4). */
+  losers(t: number, win: string, counts: (voter: string) => boolean): string[] {
+    const s = this.slotOf(t);
+    if (s === undefined) return [];
+    const out: string[] = [];
+    for (const [voter, h] of s.votes) if (h !== win && counts(voter)) out.push(voter);
+    return out.sort(byId);
+  }
+
+  /** Every voter with a vote at t, sorted by ID (the timeline's complete re-tally, M3 phase 4). */
+  votersAt(t: number): string[] {
+    const s = this.slotOf(t);
+    return s === undefined ? [] : [...s.votes.keys()].sort(byId);
+  }
+
   /** t's slot, if it holds t and t is still needed. */
   private slotOf(t: number): Slot | undefined {
     if (!isTick(t) || t <= this.retired) return undefined;

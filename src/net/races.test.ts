@@ -18,11 +18,14 @@ import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32 } from './loopbac
 // neighbour, as forwarding needs (P5). Every test ends as one timeline,
 // every player in its pack, one node verifying its chain: the race run
 // twice, incrementally and as a full replay (design §2.7), which the old
-// code fails, and then over more seeds, ending on the press with the
-// smallest ID, the presses being a tie (outranks), each page moving only to
-// better timelines, never back to one it left, with no disagreement, where
-// the first fix's frozen announcements swapped pages to and fro and ended
-// some on the younger press, or split (M3 phase 4's review, protocol-F1).
+// code fails. races-1 to -3, races-seeds and races-more.test.ts run more
+// seeds, each as a full replay too, twin comparing the runs at their
+// common ticks: 3, 7, 11, 12, 29 and 40, and 31, 34, 42 and 43, ending on
+// the press with the smallest ID, the presses being a tie (outranks), each
+// page moving only to better timelines, never back to one it left, with no
+// disagreement, where the first fix's frozen announcements swapped pages to
+// and fro and ended some on the younger press, or split (M3 phase 4's
+// review, protocol-F1).
 
 vi.setConfig({ testTimeout: 120_000 });
 
@@ -138,35 +141,5 @@ describe('P7: Play-again races in a partial mesh (M3 phase 4, P7, D-12, §4.9)',
       room.run(9000);
     });
     onOne(run, ks, packs, presses);
-  });
-
-  /** The race's mesh and presses, as above. */
-  const TWO = {
-    ks: [0, 1, 2, 3, 4, 5],
-    packs: new Map<number, Pack>([[0, 0], [1, 1], [2, 0], [3, 1], [4, 0], [5, 1]]),
-    presses: new Map<number, [number, string]>([[0, [0, 'e']], [3, [34, 'f']]]),
-    open: ['n0|n1', 'n0|n2', 'n1|n2', 'n3|n4', 'n3|n5', 'n4|n5', 'n2|n3', 'n2|n4', 'n2|n5', 'n0|n4', 'n1|n4'],
-  };
-  it('ends the two presses on the press with the smallest ID over more seeds, each page moving on only to a better timeline, with no disagreement', () => {
-    for (const [name, r] of [['two', TWO]] as const) {
-      for (const seed of [3, 7, 11, 12, 29, 40]) {
-        const room = ROOM(seed)('incremental');
-        race(room, r.ks, r.packs, r.presses, 10);
-        blockAllBut(room, r.ks, r.open);
-        room.run(9000);
-        const label = `${name}, seed ${seed}`;
-        const want = tl([...r.presses.values()].map(([, t]) => t).sort()[0]!);
-        expectOne(room, r.ks, want, r.packs);
-        for (const k of r.ks) {
-          const n = nodeOf(room, k);
-          const took = n.session.took;
-          expect(new Set(took).size, `${label}: n${k} ${took.map((x) => x[0]).join('>')}`).toBe(took.length);
-          expect(took.length, `${label}: n${k}`).toBeLessThanOrEqual(r.presses.size);
-          const s = n.session.timeline.stats;
-          expect([s.disagree, s.resyncFailed, s.verifyMismatches], `${label}: n${k} ${JSON.stringify(s.log.slice(0, 6))}`).toEqual([0, 0, 0]);
-        }
-        expect(room.problems, label).toEqual([]);
-      }
-    }
   });
 });

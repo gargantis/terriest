@@ -22,10 +22,12 @@ import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32 } from './loopbac
 // get it on their connections. Seven joiners arrive within 300 ms at
 // 30–90, 60–150, 100–150 and 100–200 ms one way, each pressing Play at
 // once, and two spectators with some; every page takes every JOIN, as one
-// roster, with no disagreement and no resync anywhere: one burst run
-// twice, incrementally and as a full replay (twin), and one with
-// spectators with every page verifying its chain (design §2.7), here, and
-// more in bursts-seeds.test.ts. The old code fails each of these seeds. And however a handshake hangs, a peer frozen mid-way or one that
+// roster, with no disagreement and no resync anywhere, each burst run
+// twice, incrementally and as a full replay, twin comparing the two at
+// their common ticks (design §2.7): 60–150 ms and 100–200 ms here,
+// spectators in bursts-watchers.test.ts, and more seeds in bursts-seeds,
+// bursts-near and bursts-far.test.ts, split for design §13's 8 s a file.
+// The old code fails each of these seeds. And however a handshake hangs, a peer frozen mid-way or one that
 // begins another every 400 ms and never completes, no warm-up holds the
 // final tick, and the joiner's JOIN, longer than twice warmupMs, where the
 // first fix waited handshakeTimeoutMs, or for good (reviewer F1).
@@ -149,28 +151,13 @@ function expectOne(r: Room, b: Burst): void {
 
 describe('an overlapping burst of joiners (reviewer T6, design §3.4)', () => {
   it('takes every JOIN everywhere, with no disagreement or resync, run as a full replay too', () => {
-    // A warm-up's catch-up longer than the spread's cap is spread further in the full replay, which
-    // steps every final, so twin, which compares the finals as each advance takes them, runs one
-    // burst whose catch-ups fit (D-11, §2.8).
     const b: Burst = { lo: 60, hi: 150, seed: 1 };
     expectOne(twin((mode) => room(b, mode), (r) => play(r, b)), b);
   });
 
-  it('waits for a spectator, which never sends, warmupMs after the later of the adoption and its meeting, and no longer', () => {
-    const b: Burst = { lo: 60, hi: 150, seed: 5, watchers: 2 };
-    const r = play(room(b), b, 8);
-    expectOne(r, b);
-    const warmup = NET.timeline.warmupMs;
-    for (const n of r.nodes.slice(1)) {
-      const s = n.session as GameSession;
-      const ms = n.t.stats.warmMs;
-      expect(ms, `node ${n.k}`).toBeGreaterThanOrEqual(warmup);
-      // Its wait ends warmupMs after the last peer it met within warmupMs of its adoption, if that came
-      // later, within a timer run or two: never more than twice warmupMs.
-      const last = Math.max(s.adoptedAt, ...s.met.filter((at) => at < s.adoptedAt + warmup));
-      expect(ms, `node ${n.k}`).toBeLessThanOrEqual(last + warmup - s.adoptedAt + 2 * NET.timerMs);
-      expect(ms, `node ${n.k}`).toBeLessThan(2 * warmup);
-    }
+  it('takes every JOIN everywhere at 100–200 ms, every page verifying, run as a full replay too', () => {
+    const b: Burst = { lo: 100, hi: 200, seed: 6 };
+    expectOne(twin((mode) => room(b, mode), (r) => play(r, b, 8)), b);
   });
 });
 

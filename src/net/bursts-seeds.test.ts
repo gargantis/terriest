@@ -4,16 +4,17 @@ import { defaultBotParams } from '../core/bot/brain';
 import { Session, type SessionConfig } from '../core/session/session';
 import { netSettings } from '../core/session/settings';
 import { defaultParams, type Pack } from '../core/sim/index';
-import { expectAgreement, type Mode, NetPump, TEST_BUILD } from '../core/timeline/testing';
+import { expectAgreement, type Mode, NetPump, TEST_BUILD, twin } from '../core/timeline/testing';
 import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32 } from './loopback';
 
 // Overlapping bursts of joiners over more latencies and seeds (M3 phase 4's
 // fixes, reviewer T6; M3's design, research/m3/DESIGN.md, §3.4, §4.2,
 // §6.2, §8.1), as bursts.test.ts has them, which says what they check:
-// seven joiners within 300 ms at 30–90, 60–150, 100–150 and 100–200 ms one
-// way, every page verifying its chain (design §2.7); every page takes every
-// JOIN, as one roster, with no disagreement and no resync. The old code
-// fails each of these seeds.
+// seven joiners within 300 ms, here at 30–90 and 100–150 ms, every page verifying its
+// chain, each burst run twice, incrementally and as a full replay, twin
+// comparing the two at their common ticks (design §2.7); every page takes
+// every JOIN, as one roster, with no disagreement and no resync. The old
+// code fails each of these seeds. Split for design §13's 8 s a file.
 
 vi.setConfig({ testTimeout: 120_000 });
 
@@ -119,13 +120,13 @@ function expectOne(r: Room, b: Burst): void {
 }
 
 describe('an overlapping burst of joiners over more latencies and seeds (reviewer T6, design §3.4)', () => {
-  it('takes every JOIN everywhere at 30–90, 60–150 and 100–150 ms and several seeds, with no disagreement or resync, every page verifying', () => {
-    const bursts: Burst[] = [
-      { lo: 30, hi: 90, seed: 23 }, { lo: 30, hi: 90, seed: 29 },
-      { lo: 60, hi: 150, seed: 2 }, { lo: 60, hi: 150, seed: 39 },
-      { lo: 100, hi: 150, seed: 3 }, { lo: 100, hi: 150, seed: 4 },
-      { lo: 100, hi: 200, seed: 6 },
-    ];
-    for (const b of bursts) expectOne(play(room(b), b, 8), b);
+  it('takes every JOIN everywhere at 30–90 ms, seed 23, every page verifying, run as a full replay too', () => {
+    const b: Burst = { lo: 30, hi: 90, seed: 23 };
+    expectOne(twin((mode) => room(b, mode), (r) => play(r, b, 8)), b);
+  });
+
+  it('takes every JOIN everywhere at 100–150 ms, seed 4, every page verifying, run as a full replay too', () => {
+    const b: Burst = { lo: 100, hi: 150, seed: 4 };
+    expectOne(twin((mode) => room(b, mode), (r) => play(r, b, 8)), b);
   });
 });
