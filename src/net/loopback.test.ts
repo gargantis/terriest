@@ -3,9 +3,11 @@
 // over each link's latency, so a burst's handshakes overlap and only
 // reservations keep a count; refusals, and onHandshakeFailed for a side that
 // had accepted; C-12's replacement of a silent connection; pings on each
-// pinger's timers, which stop for a frozen node; FIFO per link, loss as
-// head-of-line blocking, dropNext and delayNext; drop, block, leave, pace,
-// the clocks, and runs that repeat exactly from a seed.
+// pinger's timers; a frozen node, which runs nothing until it thaws, its
+// messages, pings, pongs, handshakes and closes waiting for it (M3 phase 3's
+// answers); FIFO per link, loss as head-of-line blocking, dropNext and
+// delayNext; drop, block, leave, pace, the clocks, and runs that repeat
+// exactly from a seed.
 
 import { describe, expect, it } from 'vitest';
 import { botId } from '../core/bot/bot-id';
@@ -281,11 +283,15 @@ describe('the handshake (design §6.2)', () => {
     expect(silent.a.neighbours.has('n2')).toBe(true);
     const order = silent.a.session.calls.filter((c) => (c.what === 'leave' && c.peer === 'n1') || (c.what === 'join' && c.peer === 'n2'));
     expect(order.map((c) => c.what)).toEqual(['leave', 'join']);
+    // The old page, frozen, learns its connection closed once it thaws.
+    expect(silent.old.session.of('leave', 'n0')).toEqual([]);
+    silent.net.pace(silent.old, 8000, NET.timerMs);
+    silent.net.run(8500);
     expect(silent.old.session.of('leave', 'n0')).toHaveLength(1);
     // The pair stays blocked: the old connection's peer ID never connects again.
-    silent.net.leave(silent.old, 8000);
-    silent.net.join(silent.old, 8100);
-    silent.net.run(12_000);
+    silent.net.leave(silent.old, 9000);
+    silent.net.join(silent.old, 9100);
+    silent.net.run(13_000);
     expect(silent.a.neighbours.has('n1')).toBe(false);
     expect(silent.a.session.of('check', 'n1')).toHaveLength(1);
   });
@@ -353,11 +359,93 @@ describe('pings (design §4.4, §6.2)', () => {
     expect(a.session.of('rtt', 'n1').filter((c) => c.now > 3000 && c.now <= 5000).length).toBeGreaterThan(0);
     expect(a.session.of('rtt', 'n1').filter((c) => c.now > 12_000).length).toBeGreaterThanOrEqual(3);
     expect(b.session.of('rtt', 'n0').filter((c) => c.now > 12_000).length).toBeGreaterThanOrEqual(3);
-    // Messages still reach a frozen node's session, as roslambo's.
+    // A message to a frozen node waits until it thaws, after its first timer run there.
     const got = b.session.of('message', 'n0');
     expect(got).toHaveLength(1);
-    expect(got[0]!.now).toBeGreaterThanOrEqual(8040);
-    expect(got[0]!.now).toBeLessThan(8060);
+    expect(got[0]!.now).toBe(12_000);
+    expect(b.session.advances.filter((t) => t >= 12_000)[0]).toBe(12_000);
+  });
+});
+
+describe('a frozen node (M3 phase 3\'s answers, design §8.2)', () => {
+  it('runs nothing until it thaws: its handshakes wait, a close waits, and its pongs come a freeze late', () => {
+    const net = new LoopbackNet(24, fixed(30));
+    const a = add(net, 0);
+    const b = add(net, 1);
+    const c = add(net, 2);
+    net.join(a, 0);
+    net.join(b, 0);
+    net.pace(b, 1000, Infinity);
+    net.join(c, 2000); // meets a, and b only once b thaws
+    net.leave(a, 3000);
+    net.pace(b, 5000, NET.timerMs);
+    net.run(4999);
+    // Frozen: no check of c's HELLO, no word of a's leave, no pong.
+    expect(b.session.of('check', 'n2')).toEqual([]);
+    expect(b.session.of('leave')).toEqual([]);
+    expect(b.session.calls.filter((x) => x.now > 1000)).toEqual([]);
+    expect(c.session.of('join', 'n0')).toHaveLength(1);
+    expect(c.neighbours.has('n1')).toBe(false);
+    // a pinged b while b was frozen, and had no answer before a left.
+    expect(a.session.of('rtt', 'n1').filter((x) => x.now > 1100)).toEqual([]);
+    net.run(6000);
+    // Thawed: the close first, as it reached b first, then the handshake with c, a round trip later.
+    expect(b.session.of('leave', 'n0').map((x) => x.what)).toEqual(['leave']);
+    expect(b.session.of('check', 'n2').map((x) => x.now)).toEqual([5030]);
+    expect(b.session.of('join', 'n2').map((x) => x.now)).toEqual([5060]);
+    expect(c.session.of('join', 'n1').map((x) => x.now)).toEqual([5060]);
+    expect(b.neighbours.has('n2')).toBe(true);
+  });
+
+  it("answers the ping that reached it frozen when it thaws, the pinger's round trip a freeze long, one ping out at a time", () => {
+    const net = new LoopbackNet(25, fixed(40));
+    const a = add(net, 0);
+    const b = add(net, 1);
+    net.join(a, 0);
+    net.join(b, 0);
+    // Frozen just after its timer pinged a, at 2000.
+    net.pace(b, 2010, Infinity);
+    net.pace(b, 6000, NET.timerMs);
+    net.run(8000);
+    const rtt = a.session.of('rtt', 'n1');
+    // None while b slept: a's ping out to it waited, and a sent no other meanwhile, as TrysteroRoom
+    // sends none while one is out (reviewer L1). It comes back once b wakes, 40 ms later: a freeze's
+    // round trip; then a's next round, at 7000, pings it again.
+    expect(rtt.filter((x) => x.now > 2080 && x.now < 6040)).toEqual([]);
+    const late = rtt.filter((x) => x.ms! > 1000);
+    expect(late.map((x) => x.now)).toEqual([6040]);
+    expect(late[0]!.ms).toBeGreaterThan(3000);
+    expect(rtt.filter((x) => x.now > 6040).map((x) => [x.now, x.ms])).toEqual([[7080, 80]]);
+    // b's own ping before it froze came back while it slept, and is handled when it wakes.
+    const own = b.session.of('rtt', 'n0').filter((x) => x.now >= 6000 && x.now < 6040);
+    expect(own.map((x) => x.now)).toEqual([6000]);
+    expect(own[0]!.ms).toBeGreaterThan(3900);
+  });
+
+  it('fails a handshake with a frozen node handshakeTimeoutMs after it began, on both sides, and meets again once it thaws (reviewer L1)', () => {
+    const net = new LoopbackNet(26, fixed(40));
+    const a = add(net, 0);
+    const b = add(net, 1);
+    net.join(a, 0);
+    net.join(b, 1000);
+    // b meets a at 1080, both HELLOs leaving; b freezes before a's arrives, and a's verdict waits too.
+    net.pace(b, 1100, Infinity);
+    net.pace(b, 1100 + 2 * NET.room.handshakeTimeoutMs, NET.timerMs);
+    net.run(1080 + NET.room.handshakeTimeoutMs - 1);
+    expect([a.session.of('check', 'n1').length, a.session.of('failed', 'n1').length, a.neighbours.has('n1')]).toEqual([1, 0, false]);
+    net.run(1080 + NET.room.handshakeTimeoutMs + 1);
+    // a's place for b goes at the timeout, as TrysteroRoom releases it; b, frozen, hears of it later.
+    expect(a.session.of('failed', 'n1')).toHaveLength(1);
+    expect(a.session.reserved.has('n1')).toBe(false);
+    const thaw = 1100 + 2 * NET.room.handshakeTimeoutMs;
+    net.run(thaw - 1);
+    expect(b.session.calls.filter((x) => x.what !== 'check' && x.what !== 'rtt')).toEqual([]);
+    net.run(thaw + 500);
+    // Thawed: the old handshake's steps do nothing, and a new one joins the pair.
+    expect(b.session.of('check', 'n0').map((x) => x.now)).toEqual([thaw + 40]);
+    expect(b.session.of('join', 'n0').map((x) => x.now)).toEqual([thaw + 80]);
+    expect(a.session.of('join', 'n1').map((x) => x.now)).toEqual([thaw + 80]);
+    expect([a.session.of('check', 'n1').length, a.neighbours.has('n1'), b.neighbours.has('n0')]).toEqual([2, true, true]);
   });
 });
 

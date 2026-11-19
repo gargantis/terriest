@@ -151,9 +151,11 @@ export class Watch {
     };
   }
 
+  /** calm: started, not repairing and not paused, so a full replay recomputes its window (a paused
+   *  timeline, Practice's or a stall's, advances nothing). */
   before(t: Timeline): Before {
     this.adopt(t);
-    return { t, steps: t.stats.steps, local: t.localTick, calm: t.started && !t.repairing };
+    return { t, steps: t.stats.steps, local: t.localTick, calm: t.started && !t.repairing && !t.paused };
   }
 
   /** After an advance of t, labelled `where` in a problem. */
@@ -162,7 +164,7 @@ export class Watch {
       const steps = t.stats.steps - b.steps;
       const budget = t.cfg.spreadCap * Math.max(1, t.localTick - b.local);
       if (steps > budget) this.problem(`${where}: ${steps} steps over ${budget}`);
-      if (t.cfg.mode === 'fullReplay' && b.calm && !t.repairing && steps < t.localTick - t.finalTick) {
+      if (t.cfg.mode === 'fullReplay' && b.calm && !t.repairing && !t.paused && steps < t.localTick - t.finalTick) {
         this.problem(`${where}: ${steps} steps, not the window's ${t.localTick - t.finalTick}`);
       }
     } else {
@@ -286,12 +288,14 @@ export function oldest(t: Timeline): number {
   return g;
 }
 
-/** The hashes every node holds at each `every`th final tick they all hold. */
+/** The hashes every node holds at each `every`th final tick they all hold, and at the newest of them,
+ *  the one tick roslambo's agreeNow compared. */
 export function sharedHashes(nodes: readonly { readonly t: Timeline }[], every = 7): { tick: number; hashes: string[] }[] {
   const lo = Math.max(...nodes.map((n) => oldest(n.t)));
   const hi = Math.min(...nodes.map((n) => n.t.finalTick));
   const out: { tick: number; hashes: string[] }[] = [];
   for (let g = lo; g <= hi; g += every) out.push({ tick: g, hashes: nodes.map((n) => n.t.hashAt(g)) });
+  if (lo <= hi && (hi - lo) % every !== 0) out.push({ tick: hi, hashes: nodes.map((n) => n.t.hashAt(hi)) });
   return out;
 }
 

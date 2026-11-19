@@ -11,8 +11,18 @@
 //   where they matter; roslambo's ran both checks and joins in one event.
 //   An accepted HELLO's replaces drops the connection it replaces (C-12);
 // - pings to each neighbour every pingEveryMs of the pinger's timers, and
-//   on joining, as TrysteroRoom's; a frozen page answers none, and each pong
-//   is an onRtt, C-12's liveness;
+//   on joining, as TrysteroRoom's, one out to a peer at a time; each pong is
+//   an onRtt, C-12's liveness;
+// - a frozen node runs nothing, as a frozen page doesn't: its timers stop,
+//   and everything addressed to it, a message, a ping, a pong, a
+//   handshake's step or a connection's close, waits until it thaws, and is
+//   then handled in order, after the timer run that thawing restarts when
+//   the freeze stopped it; so its handshakes don't complete meanwhile, and
+//   its pong comes late, a freeze's round trip (M3 phase 3's answers). A
+//   handshake that hasn't completed handshakeTimeoutMs after it began fails
+//   on both sides, as TrysteroRoom's does, and the pair meets again once
+//   neither is frozen, as the relay's next announcement brings it (M3 phase
+//   3's integration). A hidden page is a paced node, not a frozen one;
 // - a loss chance per link: a lost message on the reliable ordered channel
 //   arrives an extra round trip late, its retransmission (§17's "an
 //   occasional extra round trip"), and FIFO holds the messages behind it,
@@ -23,9 +33,8 @@
 //   refusal it received, and leave().
 // The handshake's messages and the pings travel each link in order with
 // the session's own, but only the session's are counted or matched by
-// dropNext and delayNext. A frozen node's timers stop and it answers no
-// ping, but messages still reach its session, as roslambo's did. Virtual
-// time, a seeded PRNG and a heap of events, so every run repeats exactly.
+// dropNext and delayNext. Virtual time, a seeded PRNG and a heap of events,
+// so every run repeats exactly.
 
 import { decode, encodeHello, encodeRefuse, REFUSAL, T, type Hello } from '../core/protocol/messages';
 import type { Accepted, Refusal, RoomPeer } from '../core/session/room-peer';
@@ -118,6 +127,8 @@ interface Node extends LoopNode {
   gen: number; // a join or a leave ends the timers before it
   stopped: boolean; // its timers stopped at an infinite pace, until pace() starts them again
   refusedBy: number | null; // the last refusal it received
+  readonly held: (() => void)[]; // what reached it frozen, in order, handled when it thaws
+  readonly pinging: Set<string>; // the neighbours its ping is out to, its pong not yet handled
 }
 
 /** One side of a handshake under way. */
@@ -196,6 +207,8 @@ export class LoopbackNet {
       gen: 0,
       stopped: false,
       refusedBy: null,
+      held: [],
+      pinging: new Set<string>(),
     };
     const self = node as Node & LoopNode<S>;
     const link: Transport = {
@@ -232,6 +245,8 @@ export class LoopbackNet {
       n.gen++;
       n.stopped = false;
       n.lastPing = -Infinity;
+      n.held.length = 0;
+      n.pinging.clear();
       for (const other of this.all.values()) {
         if (other === n || !other.online) continue;
         const l = this.latency(n.id, other.id, this.now);
@@ -253,6 +268,8 @@ export class LoopbackNet {
       for (const hs of [...this.handshakes.values()]) if (hs.sides.some((s) => s.node === n)) this.endHandshake(hs);
       for (const peer of [...n.neighbours]) this.disconnect(n, peer);
       for (const other of this.all.values()) if (other.neighbours.has(n.id)) this.disconnect(other, n.id);
+      // Gone: what waited for it to thaw never reaches it.
+      n.held.length = 0;
     });
   }
 
@@ -269,15 +286,19 @@ export class LoopbackNet {
     if (na?.online && nb?.online) this.meet(na, nb);
   }
 
-  /** The node's timers run every `ms` from virtual time `at`; Infinity stops them until paced again. */
+  /** The node's timers run every `ms` from virtual time `at`; Infinity freezes it until paced again,
+   *  when its timer, if the freeze stopped it, runs at once, and then what reached it meanwhile is
+   *  handled, in order. */
   pace(node: LoopNode, at: number, ms: number): void {
     this.at(at, () => {
       const n = this.node(node);
+      const thaws = frozen(n) && Number.isFinite(ms);
       n.paceMs = ms;
       if (Number.isFinite(ms) && n.stopped) {
         n.stopped = false;
         this.timers(n, n.gen);
       }
+      if (thaws) this.thaw(n);
     });
   }
 
@@ -319,9 +340,14 @@ export class LoopbackNet {
 
   /** The node's timer: advance now, a round of pings when one is due, then again after its pace. A
    *  ping falls due within half a pace, as an interval timer fires on the run nearest it: so a hidden
-   *  page whose clock runs slow still pings on each of its runs a second apart. */
+   *  page whose clock runs slow still pings on each of its runs a second apart. A frozen node's timer
+   *  stops, before it runs. */
   private timers(n: Node, gen: number): void {
     if (!n.online || n.gen !== gen) return;
+    if (frozen(n)) {
+      n.stopped = true;
+      return;
+    }
     n.session.advance(n.local(this.now));
     if (!n.online || n.gen !== gen) return;
     const local = n.local(this.now);
@@ -334,11 +360,30 @@ export class LoopbackNet {
     else n.stopped = true;
   }
 
-  /** A pair finds each other: both HELLOs leave (design §6.2). */
+  /** Runs fn now, or, for a frozen node, once it thaws (pace). */
+  private call(n: Node, fn: () => void): void {
+    if (frozen(n)) n.held.push(fn);
+    else fn();
+  }
+
+  /** What reached n while it was frozen, in order, until it freezes again. */
+  private thaw(n: Node): void {
+    let k = 0;
+    while (k < n.held.length && !frozen(n) && n.online) n.held[k++]!();
+    n.held.splice(0, k);
+  }
+
+  /** A pair finds each other: both HELLOs leave (design §6.2), once neither is frozen. */
   private meet(a: Node, b: Node): void {
     const key = pairKey(a.id, b.id);
     if (a === b || !a.online || !b.online || this.blocked.has(key) || this.handshakes.has(key)) return;
     if (a.neighbours.has(b.id) || b.neighbours.has(a.id)) return;
+    for (const n of [a, b]) {
+      if (frozen(n)) {
+        n.held.push(() => this.meet(a, b));
+        return;
+      }
+    }
     const hs: Handshake = {
       key,
       sides: [
@@ -352,12 +397,27 @@ export class LoopbackNet {
       const bytes = encodeHello(me.sent);
       this.carry(me.node, other.node.id, 0, () => this.heard(hs, other, me, bytes));
     }
+    this.at(this.now + DEFAULTS.transport.handshakeTimeoutMs, () => this.timedOut(hs));
+  }
+
+  /** A handshake under way handshakeTimeoutMs after it began, as one with a frozen node is: it fails on
+   *  both sides, as TrysteroRoom's does, and the pair meets again once neither is frozen. */
+  private timedOut(hs: Handshake): void {
+    if (hs.over) return;
+    this.endHandshake(hs);
+    const [a, b] = [hs.sides[0].node, hs.sides[1].node];
+    const frozenSide = frozen(a) ? a : frozen(b) ? b : null;
+    frozenSide?.held.push(() => this.meet(a, b));
   }
 
   /** A HELLO reaches `me`: its check runs, and its verdict leaves. One that
    *  doesn't decode gets none, and the handshake fails, as TrysteroRoom's. */
   private heard(hs: Handshake, me: Side, other: Side, bytes: Uint8Array): void {
     if (hs.over || me.done) return;
+    if (frozen(me.node)) {
+      me.node.held.push(() => this.heard(hs, me, other, bytes));
+      return;
+    }
     const m = decode(bytes);
     if (m === null || m.type !== T.HELLO) {
       this.endHandshake(hs);
@@ -373,6 +433,10 @@ export class LoopbackNet {
   /** The other's verdict reaches `me`, after its HELLO on the same link: `me` joins if both accepted. */
   private answered(hs: Handshake, me: Side, other: Side, bytes: Uint8Array): void {
     if (hs.over || me.done) return;
+    if (frozen(me.node)) {
+      me.node.held.push(() => this.answered(hs, me, other, bytes));
+      return;
+    }
     const m = decode(bytes);
     const reason = m !== null && m.type === T.REFUSE ? m.reason : -1;
     me.done = true;
@@ -406,7 +470,7 @@ export class LoopbackNet {
     for (const [s, other] of [[hs.sides[0], hs.sides[1]], [hs.sides[1], hs.sides[0]]] as const) {
       if (s.done) continue;
       s.done = true;
-      if (s.verdict?.ok) s.node.session.onHandshakeFailed(other.node.id);
+      if (s.verdict?.ok) this.call(s.node, () => s.node.session.onHandshakeFailed(other.node.id));
     }
   }
 
@@ -425,21 +489,32 @@ export class LoopbackNet {
     const other = this.all.get(peer);
     const had = n.neighbours.delete(peer);
     const theyHad = other !== undefined && other.neighbours.delete(n.id);
-    if (had) n.session.onPeerLeave(peer);
-    if (theyHad) other.session.onPeerLeave(n.id);
+    n.pinging.delete(peer);
+    other?.pinging.delete(n.id);
+    if (had) this.call(n, () => n.session.onPeerLeave(peer));
+    if (theyHad) this.call(other, () => other.session.onPeerLeave(n.id));
   }
 
-  /** A ping from n to peer, answered on arrival unless the peer is frozen; the pong is n's onRtt. */
+  /** A ping from n to peer, unless one is out to it already, as TrysteroRoom's: answered on arrival,
+   *  or by a frozen peer once it thaws; the pong is n's onRtt, handled once n isn't frozen either. */
   private ping(n: Node, peer: string): void {
+    if (n.pinging.has(peer)) return;
+    n.pinging.add(peer);
+    const gen = n.gen;
     const sent = n.local(this.now);
     this.carry(n, peer, 0, () => {
       const p = this.all.get(peer);
-      if (p === undefined || !p.online || !p.neighbours.has(n.id) || frozen(p)) return;
-      this.carry(p, n.id, 0, () => {
-        if (!n.online || !n.neighbours.has(peer)) return;
-        const now = n.local(this.now);
-        n.session.onRtt(peer, now - sent, now);
-      });
+      if (p === undefined || !p.online || !p.neighbours.has(n.id)) return;
+      this.call(p, () =>
+        this.carry(p, n.id, 0, () => {
+          if (!n.online || n.gen !== gen || !n.neighbours.has(peer)) return;
+          this.call(n, () => {
+            n.pinging.delete(peer);
+            const now = n.local(this.now);
+            n.session.onRtt(peer, now - sent, now);
+          });
+        }),
+      );
     });
   }
 
@@ -457,7 +532,7 @@ export class LoopbackNet {
     const rule = k < 0 ? undefined : this.rules.splice(k, 1)[0];
     this.carry(from, to, rule?.ms ?? 0, () => {
       const n = this.all.get(to);
-      if (n?.online && n.neighbours.has(from.id)) n.session.onMessage(from.id, copy, n.local(this.now));
+      if (n?.online && n.neighbours.has(from.id)) this.call(n, () => n.session.onMessage(from.id, copy, n.local(this.now)));
     }, rule?.lose ?? false);
   }
 
