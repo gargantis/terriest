@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { botCoat, botIds, botName, personId } from '../bot/bot-id';
 import { defaultBotParams, newBrain, think } from '../bot/brain';
 import {
-  decode, encodeState as encodeStateMessage, type EventPayload, type InputRecord, NO_TICK, type StateMsg, T, type Tick, type TickEvent,
+  decode, encodeState as encodeStateMessage, type EventPayload, type InputRecord, NO_TICK, type StateMsg, type Tick, type TickEvent,
   wireLimits, ZERO_HASH,
 } from '../protocol/messages';
 import {
@@ -10,6 +10,7 @@ import {
   type MatchSettings, type MatchState, type Pack, pounceCount, READY, type Sim, START_COUNTDOWN, step, type TickInput, WARM_UP,
 } from '../sim/index';
 import { park, place, placeBall, placedMatch } from '../sim/scenes';
+import { at, tickOf } from '../timeline/testing';
 import { Timeline } from '../timeline/timeline';
 import { BotHost, type BotTimeline } from './bots';
 import { netSettings, type RoomSettings } from './settings';
@@ -652,22 +653,9 @@ describe('BotHost (PLAN §14, D-39)', () => {
 // --- Over the real timeline (design §2.4, §4.8; M3 phase 2's integration) ---
 
 describe('BotHost over the real timeline (design §2.4, §4.8)', () => {
-  const at = (n: number): number => n * NET.tickMs + 1;
   const MATCH = 'feedfacecafebeef';
   const bot = ids[0]!;
   const WIRE = wireLimits();
-
-  /** A remote sender's TICK for u: its input, the 16 before it, and these events. */
-  function tickOf(inputs: ReadonlyMap<number, number>, u: number, events: TickEvent[], voteTick = NO_TICK, voteHash = ZERO_HASH): Tick {
-    let present = 0;
-    const hist: number[] = [];
-    for (let k = 0; k < NET.timeline.inputHistory; k++) {
-      const v = inputs.get(u - 1 - k);
-      if (v !== undefined) present |= 1 << k;
-      hist.push(v ?? 0);
-    }
-    return { type: T.TICK, t: u, own: { input: inputs.get(u) ?? 0, present, hist, events }, voteTick, voteHash, phase: 0, bots: [] };
-  }
 
   /** The bot's LEAVE in a TICK, as the tick it's for. */
   const leaveIn = (m: Tick): number | null => {

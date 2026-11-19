@@ -1,25 +1,26 @@
 import { describe, expect, it, vi } from 'vitest';
 import { botId } from '../bot/bot-id';
 import {
-  decode, encodeState as encodeStateMessage, type Message, NO_TICK, type StateMsg, T, type Tick, wireLimits, ZERO_HASH,
+  decode, encodeState as encodeStateMessage, NO_TICK, type StateMsg, T, type Tick, wireLimits, ZERO_HASH,
 } from '../protocol/messages';
 import { netSettings } from '../session/settings';
 import {
-  cloneState, decodeState, defaultParams, encodeInput, encodeState, findTerrier, FRAME_BALL, FRAME_PITCH, genesis, hash64, hashState, IN_PLAY,
+  decodeState, defaultParams, encodeInput, encodeState, findTerrier, FRAME_BALL, FRAME_PITCH, genesis, hash64, hashState, IN_PLAY,
   type InputParts, JOIN, LEAVE, makeSim, type MatchState, READY, step, type TickInput,
 } from '../sim';
 import { sceneInputs, sceneStart, WALL_SCRUM } from '../sim/scenes';
 import { GOLDEN_SCRIPTS, scriptTickInputs } from '../sim/scripts';
-import { type Correction, Timeline, type TimelineConfig, type TimelineOut } from './timeline';
+import { at, expectAgreement, inside, type Mode, Pump, type PumpNode, tickOf, twin } from './testing';
+import { Timeline, type TimelineConfig } from './timeline';
 
-// The timeline over a test pump, no transport (design §2, §3, §8.3): a
+// The timeline over the test pump, no transport (design §2, §3, §8.3): a
 // decoded state stepping as its original; three browsers and a bot in
 // agreement, against a full replay; the joiner's warm-up; the late boundary
 // on the clock; what a STATE_REQ is answered with; a resync with its votes;
 // the LEAVE a STATE wiped out; pause, reanchor and the catch-up; and the
 // correction observer. Every timeline verifies its chain after every
 // advance (verify: 1), and the pump checks the drawn head's contract after
-// each: never F, never moved back, never written while drawn.
+// each: never F, never moved back, never written while drawn (testing.ts).
 
 // Whole matches in virtual time, twice each for the full replay: CPU-bound, as M2's suites are.
 vi.setConfig({ testTimeout: 120_000 });
@@ -34,185 +35,12 @@ const MATCH = 'feedfacecafebeef';
 
 const playerId = (k: number): string => (0xa0 + k).toString(16).padStart(32, '0');
 
-// --- The pump: timelines in virtual time, with latency, jitter and FIFO links ---
+// --- The pump (testing.ts): timelines in virtual time, with latency, jitter and FIFO links ---
 
-type Mode = 'incremental' | 'fullReplay';
+type Node = PumpNode;
 
-interface Node {
-  readonly k: number;
-  readonly id: string;
-  readonly peer: string;
-  readonly t: Timeline;
-  /** ms between timer runs: 4 awake, 1,000 hidden (D-31). */
-  pace: number;
-  next: number;
-  frozen: boolean;
-  lastHeadTick: number;
-  held: [Readonly<MatchState>, string][];
-  lastFinal: number;
-  readonly finals: string[];
-  readonly heads: string[];
-  readonly corrections: Correction[];
-}
-
-/** An extra delay for a message, in ms, or null to drop it. */
-type Rule = (from: Node, to: Node, m: Message, now: number) => number | null;
-
-interface Post {
-  readonly at: number;
-  readonly seq: number;
-  readonly from: Node;
-  readonly to: Node;
-  readonly bytes: Uint8Array;
-}
-
-class Pump {
-  now = 0;
-  readonly mode: Mode;
-  readonly nodes: Node[] = [];
-  /** Every message posted, for comparing two runs. */
-  readonly trace: string[] = [];
-  /** The drawn head's contract, broken. */
-  readonly problems: string[] = [];
-  latency = 70;
-  jitter = 20;
-  rules: Rule[] = [];
-  private queue: Post[] = [];
-  private seq = 0;
-  private readonly lastAt = new Map<string, number>();
-
-  constructor(mode: Mode = 'incremental') {
-    this.mode = mode;
-  }
-
-  add(over: Partial<TimelineConfig> = {}): Node {
-    const k = this.nodes.length;
-    const self: { node: Node | null } = { node: null };
-    const out: TimelineOut = {
-      broadcast: (bytes) => {
-        for (const to of this.nodes) if (to !== self.node) this.post(self.node!, to, bytes);
-      },
-      sendToPlayer: (player, bytes) => {
-        const to = this.nodes.find((n) => n.id === player);
-        if (to === undefined) return false;
-        this.post(self.node!, to, bytes);
-        return true;
-      },
-      sendToPeer: (peer, bytes) => {
-        const to = this.nodes.find((n) => n.peer === peer);
-        if (to !== undefined) this.post(self.node!, to, bytes);
-      },
-    };
-    const t = new Timeline({ ...NET.timeline, P, me: playerId(k), mode: this.mode, verify: 1, ...over }, out);
-    const node: Node = {
-      k, id: playerId(k), peer: `peer-${k}`, t, pace: NET.timerMs, next: this.now, frozen: false,
-      lastHeadTick: -1, held: [], lastFinal: -1, finals: [], heads: [], corrections: [],
-    };
-    t.onCorrection = (c) => node.corrections.push({ ...c, before: cloneState(c.before), after: cloneState(c.after) });
-    self.node = node;
-    this.nodes.push(node);
-    return node;
-  }
-
-  private post(from: Node, to: Node, bytes: Uint8Array): void {
-    const m = decode(bytes, P, WIRE);
-    if (m === null) throw new Error(`${from.k} sent bytes that don't decode`);
-    let extra = 0;
-    for (const rule of this.rules) {
-      const x = rule(from, to, m, this.now);
-      if (x === null) {
-        this.trace.push(`${this.now} ${from.k}>${to.k} dropped ${hash64(bytes)}`);
-        return;
-      }
-      extra += x;
-    }
-    const link = `${from.k}>${to.k}`;
-    const seq = this.seq++;
-    const jitter = this.jitter === 0 ? 0 : ((seq * 2654435761) >>> 0) % (this.jitter + 1);
-    const at = Math.max(this.now + this.latency + jitter + extra, this.lastAt.get(link) ?? 0);
-    this.lastAt.set(link, at);
-    let i = this.queue.length;
-    while (i > 0 && this.queue[i - 1]!.at > at) i--;
-    this.queue.splice(i, 0, { at, seq, from, to, bytes });
-    this.trace.push(`${this.now} ${link} ${hash64(bytes)}`);
-  }
-
-  /** Runs ms of virtual time, a millisecond at a time: messages due, then timers due. */
-  run(ms: number, each?: (now: number) => void): void {
-    const end = this.now + ms;
-    while (this.now < end) {
-      this.now++;
-      this.deliver();
-      for (const n of this.nodes) {
-        if (n.frozen || this.now < n.next) continue;
-        n.next = this.now + n.pace;
-        const steps = n.t.stats.steps;
-        const calm = n.t.started && !n.t.repairing;
-        n.t.advance(this.now);
-        // The full replay recomputes its whole window from F each advance outside a repair (D-11).
-        if (this.mode === 'fullReplay' && calm && !n.t.repairing && n.t.stats.steps - steps < n.t.localTick - n.t.finalTick) {
-          this.problems.push(`${n.k} at ${this.now}: ${n.t.stats.steps - steps} steps, not the window's ${n.t.localTick - n.t.finalTick}`);
-        }
-        this.check(n);
-      }
-      each?.(this.now);
-    }
-  }
-
-  /** Runs until cond holds, at most ms. */
-  until(cond: () => boolean, ms: number): void {
-    const end = this.now + ms;
-    while (!cond() && this.now < end) this.run(1);
-    if (!cond()) throw new Error(`not reached within ${ms} ms`);
-  }
-
-  private deliver(): void {
-    const keep: Post[] = [];
-    while (this.queue.length > 0 && this.queue[0]!.at <= this.now) {
-      const q = this.queue.shift()!;
-      // A frozen page runs nothing: its messages wait.
-      if (q.to.frozen) keep.push(q);
-      else this.dispatch(q);
-    }
-    if (keep.length > 0) this.queue.unshift(...keep);
-  }
-
-  private dispatch(q: Post): void {
-    const m = decode(q.bytes, P, WIRE)!;
-    const to = q.to.t;
-    if (m.type === T.TICK) to.onTick(q.from.id, m, this.now, true);
-    else if (m.type === T.STATE_REQ) to.onStateReq(q.from.peer, m, this.now);
-    else if (m.type === T.STATE) to.onState(q.from.peer, m, this.latency, this.now);
-  }
-
-  /** §2.8's contract after an advance, and what two runs compare. */
-  private check(n: Node): void {
-    const t = n.t;
-    if (!t.started) return;
-    const at = `${n.k} at ${this.now} ms`;
-    if (t.head === t.final || t.prevHead === t.final) this.problems.push(`${at}: the drawn head is F`);
-    if (t.headTick < n.lastHeadTick) this.problems.push(`${at}: the head moved back from ${n.lastHeadTick} to ${t.headTick}`);
-    // The state drawn is the head's tick's, and the one before it no later: never an older state swapped in.
-    if (t.head.tick !== t.headTick || t.prevHead.tick > t.headTick) this.problems.push(`${at}: the head shows ${t.head.tick}, prevHead ${t.prevHead.tick}, at ${t.headTick}`);
-    n.lastHeadTick = t.headTick;
-    const held: [Readonly<MatchState>, string][] = [];
-    for (const s of [t.head, t.prevHead]) {
-      const h = hashState(s);
-      const seen = n.held.find(([o]) => o === s);
-      if (seen !== undefined && seen[1] !== h) this.problems.push(`${at}: a drawn state was written`);
-      held.push([s, h]);
-    }
-    n.held = held;
-    if (t.finalTick !== n.lastFinal) {
-      n.finals.push(`${t.finalTick} ${t.hashAt(t.finalTick)}`);
-      n.lastFinal = t.finalTick;
-    }
-    if (!t.repairing) {
-      const h = `${t.headTick} ${held[0]![1]}`;
-      if (n.heads[n.heads.length - 1] !== h) n.heads.push(h);
-    }
-  }
-}
+/** A pump of this file's players, keeping their corrections. */
+const pump = (mode: Mode = 'incremental'): Pump => new Pump({ mode, ids: playerId, corrections: true });
 
 /** A person's wandering input, from its node and local tick: a step that changes every 16 ticks,
  *  held most of the time, zoomies in spells, a jump and a pounce now and then, and a bark counter
@@ -244,50 +72,6 @@ function plays(n: Node, pack: number, ready = true, packSize = 2): void {
   n.t.sending = true;
   n.t.controls = wander(n.k, n.t);
   n.t.queueEvent(n.id, { events: JOIN | (ready ? READY : 0), joinPack: pack, coat: n.k, name: `P${n.k}` });
-}
-
-/** A node's oldest final tick still in its history: a joiner holds none before its STATE's. */
-function oldest(n: Node): number {
-  let g = n.t.finalTick;
-  while (g > 0 && n.t.hashAt(g - 1) !== '') g--;
-  return g;
-}
-
-/** The hashes every node holds at the final ticks they share. */
-function sharedHashes(nodes: readonly Node[]): { tick: number; hashes: string[] }[] {
-  const lo = Math.max(...nodes.map(oldest));
-  const hi = Math.min(...nodes.map((n) => n.t.finalTick));
-  const out: { tick: number; hashes: string[] }[] = [];
-  for (let g = lo; g <= hi; g += 7) out.push({ tick: g, hashes: nodes.map((n) => n.t.hashAt(g)) });
-  return out;
-}
-
-function expectAgreement(nodes: readonly Node[]): void {
-  const shared = sharedHashes(nodes);
-  expect(shared.length).toBeGreaterThan(0);
-  for (const s of shared) expect(new Set(s.hashes).size, `tick ${s.tick}`).toBe(1);
-}
-
-/** A scenario run in both modes: the same messages, final chains and heads (§2.7), every chain
- *  verified, and the head's contract kept. */
-function twin(scenario: (p: Pump) => void): Pump {
-  const inc = new Pump('incremental');
-  scenario(inc);
-  const full = new Pump('fullReplay');
-  scenario(full);
-  for (const p of [inc, full]) {
-    expect(p.problems).toEqual([]);
-    for (const n of p.nodes) expect(n.t.stats.verifyMismatches, `${p.mode} ${n.k}: ${JSON.stringify(n.t.stats.log.slice(-5))}`).toBe(0);
-  }
-  // The full replay steps every final, reusing none (D-11).
-  for (const n of full.nodes) expect([n.t.stats.reusedFinals, n.t.stats.steppedFinals > 0], `${n.k}`).toEqual([0, true]);
-  expect(full.trace.length).toBe(inc.trace.length);
-  expect(full.trace).toEqual(inc.trace);
-  for (const n of inc.nodes) {
-    expect(full.nodes[n.k]!.finals).toEqual(n.finals);
-    expect(full.nodes[n.k]!.heads).toEqual(n.heads);
-  }
-  return inc;
 }
 
 // --- §2.9 ---
@@ -326,7 +110,7 @@ describe('snapshots kept and restored exactly (§2.9)', () => {
 
 describe('three browsers and a hosted bot (§2, §3)', () => {
   it('agree on every final tick from genesis through the start countdown into play, as a full replay does', () => {
-    const p = twin((q) => {
+    const p = twin(pump, (q) => {
       const nodes = [q.add(), q.add(), q.add()];
       nodes.forEach((n, k) => plays(n, k % 2));
       const host = nodes[2]!;
@@ -371,7 +155,7 @@ describe("the joiner's warm-up (§3.4, roslambo M0)", () => {
   }
 
   it('holds finalisation until every active sender is heard, takes the inputs in flight, and votes once a tally agrees', () => {
-    const p = twin((q) => {
+    const p = twin(pump, (q) => {
       const { c } = joining(q);
       q.until(() => c.t.started, 1000);
       // In warm-up: final at the STATE's tick, nothing confirmed, no vote.
@@ -397,7 +181,7 @@ describe("the joiner's warm-up (§3.4, roslambo M0)", () => {
   });
 
   it('never trusts a tally whose votes went out before it joined: a wrong joiner whose resyncs fail stays silent (§3.1, §3.4)', () => {
-    const q = new Pump();
+    const q = pump();
     const [a, b] = [q.add(), q.add()];
     plays(a, 0, false);
     plays(b, 1, false);
@@ -435,7 +219,7 @@ describe("the joiner's warm-up (§3.4, roslambo M0)", () => {
   });
 
   it('trusts itself as the lone voter once its tallies reach ticks whose votes could all reach it (§3.2)', () => {
-    const q = new Pump();
+    const q = pump();
     const k = q.add();
     // The keeper watches: no terrier, so no vote.
     k.t.start(0, { packSize: 2, matchMinutes: 1 }, MATCH);
@@ -483,7 +267,7 @@ describe("the joiner's warm-up (§3.4, roslambo M0)", () => {
 describe("a sender's own JOIN (§2.4, §5.7)", () => {
   it('records its name as receivers decode it: a leading U+FEFF kept, a lone surrogate the empty name', () => {
     for (const name of ['\uFEFFRex', '\uD800ex', 'Ünïcödé 🐕']) {
-      const q = new Pump();
+      const q = pump();
       q.jitter = 0;
       const a = q.add();
       const b = q.add();
@@ -498,8 +282,7 @@ describe("a sender's own JOIN (§2.4, §5.7)", () => {
       expectAgreement(q.nodes);
       expect(b.t.final.terriers[0]!.name).toBe(a.t.final.terriers[0]!.name);
       // Its own record of the JOIN, ridden in tick 1 + d, holds what b's does, not only the terrier's name.
-      const record = (n: Node): string | undefined =>
-        (n.t as unknown as { store: { get(id: string, t: number): { name?: string } | undefined } }).store.get(a.id, 1 + D)?.name;
+      const record = (n: Node): string | undefined => inside(n.t).store.get(a.id, 1 + D)?.name;
       expect([record(a), record(b)]).toEqual([a.t.final.terriers[0]!.name, a.t.final.terriers[0]!.name]);
     }
   });
@@ -522,20 +305,6 @@ describe("a sender's own JOIN (§2.4, §5.7)", () => {
 });
 
 // --- The late boundary (§2.8) ---
-
-/** One sender's TICK for t with these inputs by tick, from its newest back through the history. */
-function tickOf(inputs: ReadonlyMap<number, number>, t: number, voteTick = NO_TICK, voteHash = ZERO_HASH): Tick {
-  let present = 0;
-  const hist: number[] = [];
-  for (let k = 0; k < NET.timeline.inputHistory; k++) {
-    const v = inputs.get(t - 1 - k);
-    if (v !== undefined) present |= 1 << k;
-    hist.push(v ?? 0);
-  }
-  return { type: T.TICK, t, own: { input: inputs.get(t) ?? 0, present, hist, events: [] }, voteTick, voteHash, phase: 0, bots: [] };
-}
-
-const at = (n: number): number => n * NET.tickMs + 1;
 
 describe('the late boundary (§2.8)', () => {
   it('is max(finalTick, ⌊clock⌋ − w) outside a warm-up: a page whose timers slept drops what every other peer finalised absent', () => {
@@ -659,9 +428,9 @@ describe('what a TICK may say (§2.5, §2.12, §4.10)', () => {
     const b = playerId(1);
     t.advance(at(300));
     const f = t.finalTick;
-    const book = (t as unknown as { book: { voters(g: number, hash: string, me: string): string[] } }).book;
+    const book = inside(t).book;
     const h = 'aaaaaaaaaaaaaaaa';
-    for (const g of [f - NET.timeline.history, f - NET.timeline.history + 1, f + 1, 300 + W, 300 + W + 1]) t.onTick(b, tickOf(new Map(), 300 + D, g, h), at(300), true);
+    for (const g of [f - NET.timeline.history, f - NET.timeline.history + 1, f + 1, 300 + W, 300 + W + 1]) t.onTick(b, tickOf(new Map(), 300 + D, [], g, h), at(300), true);
     expect([f - NET.timeline.history, f - NET.timeline.history + 1, f + 1, 300 + W, 300 + W + 1].map((g) => book.voters(g, h, '').length)).toEqual([0, 1, 1, 1, 0]);
   });
 
@@ -808,7 +577,7 @@ describe('a resync after a dropped input (§3.1, §3.4, §3.6)', () => {
   }
 
   it('repairs the dissenter: no vote sent and no STATE answered while outstanding, its own votes replaced, every hash equal after', () => {
-    const p = twin(dropped);
+    const p = twin(pump, dropped);
     const [a, b, c] = p.nodes as [Node, Node, Node];
     expectAgreement(p.nodes);
     expect(b.t.stats.resyncs).toBe(1);
@@ -821,7 +590,7 @@ describe('a resync after a dropped input (§3.1, §3.4, §3.6)', () => {
   });
 
   it("books b's repaired votes in place of its stale ones, and sends none while it waits", () => {
-    const q = new Pump();
+    const q = pump();
     const watch: { voted: number; waiting: number; refused: boolean } = { voted: 0, waiting: 0, refused: false };
     const nodes = [q.add(), q.add(), q.add()];
     nodes.forEach((n, k) => plays(n, k % 2, false));
@@ -848,7 +617,7 @@ describe('a resync after a dropped input (§3.1, §3.4, §3.6)', () => {
     expect(watch.voted).toBe(0);
     expect(watch.refused).toBe(true);
     // The book holds b's vote for each re-finalised tick under the winner's hash.
-    const book = (b as unknown as { book: { voters(t: number, hash: string, me: string): string[] } }).book;
+    const book = inside(b).book;
     const g = Number(b.stats.log.find(([, e]) => e.startsWith('STATE '))![1].slice(6));
     for (let u = g + 1; u <= g + 10; u++) expect(book.voters(u, b.hashAt(u), '')).toContain(nodes[1]!.id);
     expectAgreement(q.nodes);
@@ -876,7 +645,7 @@ describe('a LEAVE a STATE wiped out', () => {
     const remote = (n: number, voteTick = NO_TICK, voteHash = ZERO_HASH): void => {
       held.set(n + D, 0);
       for (const [id, pack] of [[x, 1], [y, 0]] as const) {
-        const m = tickOf(held, n + D, voteTick, voteHash);
+        const m = tickOf(held, n + D, [], voteTick, voteHash);
         if (n === 1) m.own!.events.push({ back: 0, events: JOIN, joinPack: pack, coat: 2, name: id.slice(-2) });
         t.onTick(id, m, at(n), true);
       }
@@ -991,7 +760,7 @@ describe('the clock on timers (§2.4, §2.13)', () => {
 
 describe('the correction observer (§2.11)', () => {
   it("fires for each recomputation of the drawn head's tick, from the earliest tick touched, and repair only from a STATE", () => {
-    const q = new Pump();
+    const q = pump();
     q.latency = 90;
     const [a, b] = [q.add(), q.add()];
     plays(a, 0, false, 1);

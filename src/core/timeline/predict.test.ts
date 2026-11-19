@@ -1,12 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { botId } from '../bot/bot-id';
-import { decode, type Message, NO_TICK, T, type Tick, wireLimits, ZERO_HASH } from '../protocol/messages';
+import { T } from '../protocol/messages';
 import { netSettings } from '../session/settings';
-import {
-  barkCount, cloneState, defaultParams, encodeInput, findTerrier, FRAME_PITCH, hash64, hashState, IN_PLAY, JOIN, KEPT_BITS,
-  type MatchState, NEVER, READY, type TickInput,
-} from '../sim';
-import { Timeline, type TimelineConfig, type TimelineOut } from './timeline';
+import { barkCount, defaultParams, encodeInput, findTerrier, FRAME_PITCH, hashState, IN_PLAY, JOIN, KEPT_BITS, NEVER, READY } from '../sim';
+import { at, inside, type Mode, Pump, type PumpNode, tickOf, twin, usedBy } from './testing';
+import { Timeline } from './timeline';
 
 // Prediction (design §2.2, §2.5, §8.3; PLAN D-10, D-11, M3-Q12): silent
 // terriers predicted absent, and sitting in the predicted state; a press
@@ -14,189 +12,24 @@ import { Timeline, type TimelineConfig, type TimelineOut } from './timeline';
 // the marks; barks never forcing a rollback; own inputs and bots recorded
 // when sent. Each scenario runs twice, incremental and as a full replay,
 // with every chain verified after every advance and the drawn head's
-// contract checked after each.
+// contract checked after each (testing.ts).
 
 vi.setConfig({ testTimeout: 120_000 });
 
 const NET = netSettings();
 const P = defaultParams;
-const WIRE = wireLimits();
 const D = NET.timeline.delay;
 const W = NET.timeline.window;
 const MATCH = '0123456789abcdef';
 
 const playerId = (k: number): string => (0xb0 + k).toString(16).padStart(32, '0');
 
-// --- A pump: timelines in virtual time over FIFO links with latency and jitter ---
+// --- The pump (testing.ts): timelines in virtual time over FIFO links with latency and jitter ---
 
-type Mode = 'incremental' | 'fullReplay';
+type Node = PumpNode;
 
-interface Node {
-  readonly k: number;
-  readonly id: string;
-  readonly peer: string;
-  readonly t: Timeline;
-  next: number;
-  frozen: boolean;
-  lastHeadTick: number;
-  held: [Readonly<MatchState>, string][];
-  /** Each advance's head, with its tick, outside a repair. */
-  readonly heads: { readonly tick: number; readonly state: MatchState }[];
-}
-
-type Rule = (from: Node, to: Node, m: Message) => number | null;
-
-interface Post {
-  readonly at: number;
-  readonly from: Node;
-  readonly to: Node;
-  readonly bytes: Uint8Array;
-}
-
-class Pump {
-  now = 0;
-  readonly mode: Mode;
-  readonly nodes: Node[] = [];
-  readonly trace: string[] = [];
-  readonly problems: string[] = [];
-  latency = 70;
-  jitter = 20;
-  rules: Rule[] = [];
-  private queue: Post[] = [];
-  private seq = 0;
-  private readonly lastAt = new Map<string, number>();
-
-  constructor(mode: Mode) {
-    this.mode = mode;
-  }
-
-  add(over: Partial<TimelineConfig> = {}): Node {
-    const k = this.nodes.length;
-    const self: { node: Node | null } = { node: null };
-    const out: TimelineOut = {
-      broadcast: (bytes) => {
-        for (const to of this.nodes) if (to !== self.node) this.post(self.node!, to, bytes);
-      },
-      sendToPlayer: (player, bytes) => {
-        const to = this.nodes.find((n) => n.id === player);
-        if (to !== undefined) this.post(self.node!, to, bytes);
-        return to !== undefined;
-      },
-      sendToPeer: (peer, bytes) => {
-        const to = this.nodes.find((n) => n.peer === peer);
-        if (to !== undefined) this.post(self.node!, to, bytes);
-      },
-    };
-    const t = new Timeline({ ...NET.timeline, P, me: playerId(k), mode: this.mode, verify: 1, ...over }, out);
-    const node: Node = { k, id: playerId(k), peer: `peer-${k}`, t, next: 0, frozen: false, lastHeadTick: -1, held: [], heads: [] };
-    self.node = node;
-    this.nodes.push(node);
-    return node;
-  }
-
-  private post(from: Node, to: Node, bytes: Uint8Array): void {
-    const m = decode(bytes, P, WIRE)!;
-    let extra = 0;
-    for (const rule of this.rules) {
-      const x = rule(from, to, m);
-      if (x === null) {
-        this.trace.push(`${this.now} ${from.k}>${to.k} dropped`);
-        return;
-      }
-      extra += x;
-    }
-    const link = `${from.k}>${to.k}`;
-    const seq = this.seq++;
-    const jitter = ((seq * 2654435761) >>> 0) % (this.jitter + 1);
-    const at = Math.max(this.now + this.latency + jitter + extra, this.lastAt.get(link) ?? 0);
-    this.lastAt.set(link, at);
-    let i = this.queue.length;
-    while (i > 0 && this.queue[i - 1]!.at > at) i--;
-    this.queue.splice(i, 0, { at, from, to, bytes });
-    this.trace.push(`${this.now} ${link} ${hash64(bytes)}`);
-  }
-
-  run(ms: number, each?: () => void): void {
-    const end = this.now + ms;
-    while (this.now < end) {
-      this.now++;
-      const keep: Post[] = [];
-      while (this.queue.length > 0 && this.queue[0]!.at <= this.now) {
-        const q = this.queue.shift()!;
-        if (q.to.frozen) keep.push(q);
-        else this.dispatch(q);
-      }
-      if (keep.length > 0) this.queue.unshift(...keep);
-      for (const n of this.nodes) {
-        if (n.frozen || this.now < n.next) continue;
-        n.next = this.now + NET.timerMs;
-        const steps = n.t.stats.steps;
-        const calm = n.t.started && !n.t.repairing;
-        n.t.advance(this.now);
-        // The full replay recomputes its whole window from F each advance outside a repair (D-11).
-        if (this.mode === 'fullReplay' && calm && !n.t.repairing && n.t.stats.steps - steps < n.t.localTick - n.t.finalTick) {
-          this.problems.push(`${n.k} at ${this.now}: ${n.t.stats.steps - steps} steps, not the window's ${n.t.localTick - n.t.finalTick}`);
-        }
-        this.check(n);
-      }
-      each?.();
-    }
-  }
-
-  private dispatch(q: Post): void {
-    const m = decode(q.bytes, P, WIRE)!;
-    if (m.type === T.TICK) q.to.t.onTick(q.from.id, m, this.now, true);
-    else if (m.type === T.STATE_REQ) q.to.t.onStateReq(q.from.peer, m, this.now);
-    else if (m.type === T.STATE) q.to.t.onState(q.from.peer, m, this.latency, this.now);
-  }
-
-  private check(n: Node): void {
-    const t = n.t;
-    if (!t.started) return;
-    if (t.head === t.final || t.prevHead === t.final) this.problems.push(`${n.k} at ${this.now}: the drawn head is F`);
-    if (t.headTick < n.lastHeadTick) this.problems.push(`${n.k} at ${this.now}: the head moved back`);
-    // The state drawn is the head's tick's, and the one before it no later: never an older state swapped in.
-    if (t.head.tick !== t.headTick || t.prevHead.tick > t.headTick) {
-      this.problems.push(`${n.k} at ${this.now}: the head shows ${t.head.tick}, prevHead ${t.prevHead.tick}, at ${t.headTick}`);
-    }
-    n.lastHeadTick = t.headTick;
-    const held: [Readonly<MatchState>, string][] = [];
-    for (const s of [t.head, t.prevHead]) {
-      const h = hashState(s);
-      const seen = n.held.find(([o]) => o === s);
-      if (seen !== undefined && seen[1] !== h) this.problems.push(`${n.k} at ${this.now}: a drawn state was written`);
-      held.push([s, h]);
-    }
-    n.held = held;
-    const last = n.heads[n.heads.length - 1];
-    if (!t.repairing && (last === undefined || last.tick !== t.headTick || hashState(last.state) !== held[0]![1])) {
-      n.heads.push({ tick: t.headTick, state: cloneState(t.head) });
-    }
-  }
-}
-
-/** The scenario in both modes: the same messages and heads, every chain verified, the head's contract kept. */
-function twin(scenario: (p: Pump) => void): Pump {
-  const inc = new Pump('incremental');
-  scenario(inc);
-  const full = new Pump('fullReplay');
-  scenario(full);
-  for (const p of [inc, full]) {
-    expect(p.problems).toEqual([]);
-    for (const n of p.nodes) expect(n.t.stats.verifyMismatches, `${p.mode} ${n.k}`).toBe(0);
-  }
-  // The full replay steps every final, reusing none (D-11).
-  for (const n of full.nodes) expect([n.t.stats.reusedFinals, n.t.stats.steppedFinals > 0], `${n.k}`).toEqual([0, true]);
-  expect(full.trace).toEqual(inc.trace);
-  for (const n of inc.nodes) {
-    const heads = (q: Pump): string[] => q.nodes[n.k]!.heads.map((h) => `${h.tick} ${hashState(h.state)}`);
-    expect(heads(full)).toEqual(heads(inc));
-    for (let g = n.t.finalTick - NET.timeline.history + 1; g <= n.t.finalTick; g++) {
-      expect(full.nodes[n.k]!.t.hashAt(g)).toBe(n.t.hashAt(g));
-    }
-  }
-  return inc;
-}
+/** A pump of this file's players, keeping each head it records. */
+const pump = (mode: Mode): Pump => new Pump({ mode, ids: playerId, keepStates: true });
 
 function starts(n: Node, packSize = 1): void {
   n.t.start(0, { packSize, matchMinutes: 1 }, MATCH);
@@ -210,28 +43,6 @@ function plays(n: Node, pack: number, input: (tick: number) => number, ready: bo
   n.t.queueEvent(n.id, { events: JOIN | (ready ? READY : 0), joinPack: pack, coat: n.k, name: `P${n.k}` });
 }
 
-/** What the inside of a timeline shows its tests: the chain's entries and their inputs (§2.1). */
-interface Inside {
-  validTo: number;
-  entryAt(u: number): { readonly tick: number; readonly state: MatchState; readonly used: readonly TickInput[] } | null;
-}
-const inside = (t: Timeline): Inside => t as unknown as Inside;
-const usedBy = (t: Timeline, u: number, id: string): TickInput | undefined => inside(t).entryAt(u)?.used.find((x) => x.id === id);
-
-/** One sender's TICK for t with these inputs by tick, from its newest back through the history. */
-function tickOf(inputs: ReadonlyMap<number, number>, t: number): Tick {
-  let present = 0;
-  const hist: number[] = [];
-  for (let k = 0; k < NET.timeline.inputHistory; k++) {
-    const v = inputs.get(t - 1 - k);
-    if (v !== undefined) present |= 1 << k;
-    hist.push(v ?? 0);
-  }
-  return { type: T.TICK, t, own: { input: inputs.get(t) ?? 0, present, hist, events: [] }, voteTick: NO_TICK, voteHash: ZERO_HASH, phase: 0, bots: [] };
-}
-
-const at = (n: number): number => n * NET.tickMs + 1;
-
 const HELD = encodeInput({ step: 3, frame: FRAME_PITCH });
 
 // --- Silent terriers (D-11) ---
@@ -239,7 +50,7 @@ const HELD = encodeInput({ step: 3, frame: FRAME_PITCH });
 describe('a silent terrier (D-11, D-16)', () => {
   it('is predicted absent once its newest tick is final, sits in the predicted state within the sit threshold plus w, and stands when it returns', () => {
     const watch: { last: number; sitAt: number; standsAt: number } = { last: -1, sitAt: -1, standsAt: -1 };
-    const p = twin((q) => {
+    const p = twin(pump, (q) => {
       const [a, b] = [q.add(), q.add()];
       plays(a, 0, () => HELD, true);
       plays(b, 1, () => HELD, true);
@@ -293,7 +104,7 @@ describe('a press (D-10)', () => {
 
   for (const drop of [false, true]) {
     it(drop ? 'acts once when its TICK is lost and filled from a later TICK\'s history: newest stays at the newer input' : 'acts once under prediction and re-simulation', () => {
-      const p = twin((q) => {
+      const p = twin(pump, (q) => {
         jumpOnce(q, drop);
       });
       const [a, b] = p.nodes as [Node, Node];
@@ -304,12 +115,12 @@ describe('a press (D-10)', () => {
       expect(a.t.receivedInput(b.id, press)).toBe(encodeInput({ jump: 1 }));
       expect(a.t.newestInput(b.id)!.input).toBe(encodeInput({ jump: 1 }));
       // Every head a drew shows no take-off but the press's: a repeated press would show another.
-      const offs = new Set(a.heads.map((h) => h.state.terriers[findTerrier(h.state, b.id)]?.takeOffTick ?? NEVER));
+      const offs = new Set(a.heads.map((h) => h.state!.terriers[findTerrier(h.state!, b.id)]?.takeOffTick ?? NEVER));
       expect([...offs].sort()).toEqual([press, NEVER].sort());
       // And from the tick b's press reached a on, every head equals the final state at its tick.
       const known = a.heads.filter((h) => h.tick >= press + W && h.tick <= a.t.finalTick && h.tick > a.t.finalTick - NET.timeline.history);
       expect(known.length).toBeGreaterThan(50);
-      for (const h of known) expect(hashState(h.state), `head ${h.tick}`).toBe(a.t.hashAt(h.tick));
+      for (const h of known) expect(hashState(h.state!), `head ${h.tick}`).toBe(a.t.hashAt(h.tick));
     });
   }
 });
@@ -319,7 +130,7 @@ describe('a press (D-10)', () => {
 describe('the marks (§2.2)', () => {
   it("predict a catch-up's skipped ticks absent, as finalisation will make them, from the TICK's clear present bits", () => {
     const seen: string[] = [];
-    twin((q) => {
+    twin(pump, (q) => {
       const [a, b] = [q.add(), q.add()];
       starts(a);
       plays(b, 1, () => HELD, false);
@@ -364,7 +175,7 @@ describe('the marks (§2.2)', () => {
 describe('barks (D-16, M3-Q12)', () => {
   it('never force a rollback: the simulation takes inputs masked to the kept bits, and receivedInput keeps the counter', () => {
     const counts: { rollbacks: number; corrections: number } = { rollbacks: -1, corrections: -1 };
-    const p = twin((q) => {
+    const p = twin(pump, (q) => {
       const [a, b] = [q.add(), q.add()];
       starts(a);
       // Held, with a bark every 16 ticks.
@@ -396,7 +207,7 @@ describe('barks (D-16, M3-Q12)', () => {
 describe('own inputs and hosted bots (§2.2, §2.4)', () => {
   it('are recorded when sent, for tick n + d, and never predicted', () => {
     const problems: string[] = [];
-    twin((q) => {
+    twin(pump, (q) => {
       const a = q.add();
       plays(a, 0, (n) => encodeInput({ step: n & 31, bark: n & 3 }), false, 2);
       const bot = botId(a.id, 0);

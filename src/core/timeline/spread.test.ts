@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { botId } from '../bot/bot-id';
-import { decode, type Message, NO_TICK, T, wireLimits } from '../protocol/messages';
+import { NO_TICK, T } from '../protocol/messages';
 import { netSettings } from '../session/settings';
-import { defaultParams, encodeInput, FRAME_PITCH, hash64, hashState, IN_PLAY, type InputParts, JOIN, type MatchState, READY } from '../sim';
-import { Timeline, type TimelineConfig, type TimelineOut } from './timeline';
+import { encodeInput, FRAME_PITCH, IN_PLAY, type InputParts, JOIN, READY } from '../sim';
+import { inside, type Mode, Pump, type PumpNode, twin } from './testing';
+import { Timeline, type TimelineConfig } from './timeline';
 
 // The spread (design §2.8, §3.4, §8.3; PLAN D-11, M0): a changed base far
 // back, a late-vote repair from 2 s back, re-simulated at spreadCap steps a
@@ -12,179 +13,22 @@ import { Timeline, type TimelineConfig, type TimelineOut } from './timeline';
 // sent; after it, the chain equal to a full replay's and every hash equal.
 // At a cap of w + 1, an ordinary resync spreads too; a hidden page's
 // catch-up never does, its budget growing with the ticks its clock moved.
+// The pump checks the budget and the head after each advance and message
+// (testing.ts).
 
 vi.setConfig({ testTimeout: 120_000 });
 
 const NET = netSettings();
-const P = defaultParams;
-const WIRE = wireLimits();
 const W = NET.timeline.window;
 const CAP = NET.timeline.spreadCap;
 const MATCH = '89abcdef01234567';
 
 const playerId = (k: number): string => (0xd0 + k).toString(16).padStart(32, '0');
 
-type Mode = 'incremental' | 'fullReplay';
+type Node = PumpNode;
 
-interface Node {
-  readonly k: number;
-  readonly id: string;
-  readonly peer: string;
-  readonly t: Timeline;
-  pace: number;
-  next: number;
-  lastHeadTick: number;
-  held: [Readonly<MatchState>, string][];
-  readonly heads: string[];
-}
-
-type Rule = (from: Node, to: Node, m: Message) => number | null;
-
-interface Post {
-  readonly at: number;
-  readonly from: Node;
-  readonly to: Node;
-  readonly bytes: Uint8Array;
-}
-
-class Pump {
-  now = 0;
-  readonly mode: Mode;
-  readonly nodes: Node[] = [];
-  readonly trace: string[] = [];
-  readonly problems: string[] = [];
-  latency = 70;
-  jitter = 20;
-  rules: Rule[] = [];
-  private queue: Post[] = [];
-  private seq = 0;
-  private readonly lastAt = new Map<string, number>();
-
-  constructor(mode: Mode) {
-    this.mode = mode;
-  }
-
-  add(over: Partial<TimelineConfig> = {}): Node {
-    const k = this.nodes.length;
-    const self: { node: Node | null } = { node: null };
-    const out: TimelineOut = {
-      broadcast: (bytes) => {
-        for (const to of this.nodes) if (to !== self.node) this.post(self.node!, to, bytes);
-      },
-      sendToPlayer: (player, bytes) => {
-        const to = this.nodes.find((n) => n.id === player);
-        if (to !== undefined) this.post(self.node!, to, bytes);
-        return to !== undefined;
-      },
-      sendToPeer: (peer, bytes) => {
-        const to = this.nodes.find((n) => n.peer === peer);
-        if (to !== undefined) this.post(self.node!, to, bytes);
-      },
-    };
-    const t = new Timeline({ ...NET.timeline, P, me: playerId(k), mode: this.mode, verify: 1, ...over }, out);
-    const node: Node = { k, id: playerId(k), peer: `peer-${k}`, t, pace: NET.timerMs, next: 0, lastHeadTick: -1, held: [], heads: [] };
-    self.node = node;
-    this.nodes.push(node);
-    return node;
-  }
-
-  private post(from: Node, to: Node, bytes: Uint8Array): void {
-    const m = decode(bytes, P, WIRE)!;
-    let extra = 0;
-    for (const rule of this.rules) {
-      const x = rule(from, to, m);
-      if (x === null) return;
-      extra += x;
-    }
-    const link = `${from.k}>${to.k}`;
-    const seq = this.seq++;
-    const jitter = ((seq * 2654435761) >>> 0) % (this.jitter + 1);
-    const at = Math.max(this.now + this.latency + jitter + extra, this.lastAt.get(link) ?? 0);
-    this.lastAt.set(link, at);
-    let i = this.queue.length;
-    while (i > 0 && this.queue[i - 1]!.at > at) i--;
-    this.queue.splice(i, 0, { at, from, to, bytes });
-    this.trace.push(`${this.now} ${link} ${hash64(bytes)}`);
-  }
-
-  run(ms: number, each?: () => void): void {
-    const end = this.now + ms;
-    while (this.now < end) {
-      this.now++;
-      while (this.queue.length > 0 && this.queue[0]!.at <= this.now) this.dispatch(this.queue.shift()!);
-      for (const n of this.nodes) {
-        if (this.now < n.next) continue;
-        n.next = this.now + n.pace;
-        const steps = n.t.stats.steps;
-        const local = n.t.localTick;
-        const calm = n.t.started && !n.t.repairing;
-        n.t.advance(this.now);
-        // The budget: spreadCap for each tick the clock moved, at least one tick's (§2.8).
-        const budget = n.t.cfg.spreadCap * Math.max(1, n.t.localTick - local);
-        if (n.t.stats.steps - steps > budget) this.problems.push(`${n.k} at ${this.now}: ${n.t.stats.steps - steps} steps over ${budget}`);
-        // The full replay recomputes its whole window from F each advance outside a repair (D-11).
-        if (this.mode === 'fullReplay' && calm && !n.t.repairing && n.t.stats.steps - steps < n.t.localTick - n.t.finalTick) {
-          this.problems.push(`${n.k} at ${this.now}: ${n.t.stats.steps - steps} steps, not the window's ${n.t.localTick - n.t.finalTick}`);
-        }
-        this.check(n);
-      }
-      each?.();
-    }
-  }
-
-  private dispatch(q: Post): void {
-    const m = decode(q.bytes, P, WIRE)!;
-    const t = q.to.t;
-    const steps = t.stats.steps;
-    if (m.type === T.TICK) t.onTick(q.from.id, m, this.now, true);
-    else if (m.type === T.STATE_REQ) t.onStateReq(q.from.peer, m, this.now);
-    else if (m.type === T.STATE) t.onState(q.from.peer, m, this.latency, this.now);
-    // Adopting a STATE runs under one tick's budget too.
-    if (t.stats.steps - steps > t.cfg.spreadCap) this.problems.push(`${q.to.k} at ${this.now}: a message's ${t.stats.steps - steps} steps`);
-  }
-
-  private check(n: Node): void {
-    const t = n.t;
-    if (!t.started) return;
-    if (t.head === t.final || t.prevHead === t.final) this.problems.push(`${n.k} at ${this.now}: the drawn head is F`);
-    if (t.headTick < n.lastHeadTick) this.problems.push(`${n.k} at ${this.now}: the head moved back from ${n.lastHeadTick} to ${t.headTick}`);
-    // The state drawn is the head's tick's, and the one before it no later: never an older state swapped in.
-    if (t.head.tick !== t.headTick || t.prevHead.tick > t.headTick) {
-      this.problems.push(`${n.k} at ${this.now}: the head shows ${t.head.tick}, prevHead ${t.prevHead.tick}, at ${t.headTick}`);
-    }
-    n.lastHeadTick = t.headTick;
-    const held: [Readonly<MatchState>, string][] = [];
-    for (const s of [t.head, t.prevHead]) {
-      const h = hashState(s);
-      if (n.held.some(([o, x]) => o === s && x !== h)) this.problems.push(`${n.k} at ${this.now}: a drawn state was written`);
-      held.push([s, h]);
-    }
-    n.held = held;
-    if (!t.repairing) {
-      const h = `${t.headTick} ${held[0]![1]}`;
-      if (n.heads[n.heads.length - 1] !== h) n.heads.push(h);
-    }
-  }
-}
-
-function twin(scenario: (p: Pump) => void): Pump {
-  const inc = new Pump('incremental');
-  scenario(inc);
-  const full = new Pump('fullReplay');
-  scenario(full);
-  for (const p of [inc, full]) {
-    expect(p.problems).toEqual([]);
-    for (const n of p.nodes) expect(n.t.stats.verifyMismatches, `${p.mode} ${n.k}: ${JSON.stringify(n.t.stats.log.slice(-6))}`).toBe(0);
-  }
-  // The full replay steps every final, reusing none (D-11).
-  for (const n of full.nodes) expect([n.t.stats.reusedFinals, n.t.stats.steppedFinals > 0], `${n.k}`).toEqual([0, true]);
-  expect(full.trace).toEqual(inc.trace);
-  for (const n of inc.nodes) {
-    expect(full.nodes[n.k]!.heads).toEqual(n.heads);
-    for (let g = n.t.finalTick - NET.timeline.history + 1; g <= n.t.finalTick; g++) expect(full.nodes[n.k]!.t.hashAt(g)).toBe(n.t.hashAt(g));
-  }
-  return inc;
-}
+/** A pump of this file's players. */
+const pump = (mode: Mode): Pump => new Pump({ mode, ids: playerId });
 
 function wander(k: number, t: Timeline): () => number {
   return () => {
@@ -256,7 +100,7 @@ function lateFlip(q: Pump, delayMs: number, seen: During, over: Partial<Timeline
     return 0;
   });
   // The repair under way: a STATE adopted, its re-finalisation not caught up (§3.4's steps 3 and 4).
-  const spreading = (): boolean => (b.t as unknown as { repair: object | null }).repair !== null;
+  const spreading = (): boolean => inside(b.t).repair !== null;
   q.run(delayMs + 1500, () => {
     const t = b.t;
     if (!t.repairing) return;
@@ -273,7 +117,7 @@ function lateFlip(q: Pump, delayMs: number, seen: During, over: Partial<Timeline
 describe('a late-vote repair from 2 s back (§2.8, §3.4)', () => {
   it('runs at the cap: within each advance\'s budget, the head held and never F, nothing confirmed and no vote sent, then equal to a full replay', () => {
     const runs: During[] = [];
-    const p = twin((q) => {
+    const p = twin(pump, (q) => {
       runs.push(during());
       lateFlip(q, 2000, runs[runs.length - 1]!);
     });
@@ -302,7 +146,7 @@ describe('a late-vote repair from 2 s back (§2.8, §3.4)', () => {
 describe('the cap (§2.8, §10)', () => {
   it('at w + 1 spreads an ordinary resync too, here in warm-up, and the chain after it is a full replay\'s', () => {
     const runs: During[] = [];
-    const p = twin((q) => {
+    const p = twin(pump, (q) => {
       runs.push(during());
       lateFlip(q, 600, runs[runs.length - 1]!, { spreadCap: W + 1 }, false);
     });
@@ -317,7 +161,7 @@ describe('the cap (§2.8, §10)', () => {
 
   it('holds the head across ticks on a page whose timer runs once a tick, and counts those advances in holds', () => {
     const runs: During[] = [];
-    const p = twin((q) => {
+    const p = twin(pump, (q) => {
       runs.push(during());
       lateFlip(q, 600, runs[runs.length - 1]!, { spreadCap: W + 1 }, false, NET.tickMs);
     });
@@ -333,7 +177,7 @@ describe('the cap (§2.8, §10)', () => {
 
 describe('a hidden page (§2.8, D-31)', () => {
   it("catches up in one advance a second: its budget grows with the ticks its clock moved, so it's never spread", () => {
-    const p = twin((q) => {
+    const p = twin(pump, (q) => {
       const nodes = match(q, {}, false);
       q.run(1500);
       nodes[2]!.pace = 1000;

@@ -1,12 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  decode, encodeState as encodeStateMessage, type InputRecord, NO_TICK, type StateMsg, T, type Tick, type TickEvent, wireLimits, ZERO_HASH,
+  decode, encodeState as encodeStateMessage, type InputRecord, NO_TICK, type StateMsg, type Tick, type TickEvent, wireLimits, ZERO_HASH,
 } from '../protocol/messages';
 import { netSettings } from '../session/settings';
-import {
-  cloneState, defaultParams, encodeInput, encodeState, findTerrier, FRAME_PITCH, hash64, hashState, JOIN, type MatchState, READY,
-  type TickInput,
-} from '../sim';
+import { defaultParams, encodeInput, encodeState, findTerrier, FRAME_PITCH, hash64, JOIN, READY, type TickInput } from '../sim';
+import { at, inside, type Mode, tickOf, twin, usedBy, Watch } from './testing';
 import { type Correction, Timeline } from './timeline';
 
 // Rollback (design §2.6, §2.7, §8.3; PLAN D-11): every way a predicted
@@ -15,7 +13,7 @@ import { type Correction, Timeline } from './timeline';
 // earliest tick re-simulated, a held input that cuts nothing, and the reuse
 // of a predicted final. Each runs incremental and as a full replay, the two
 // heads and final chains compared tick by tick, with every chain verified
-// after every advance (verify: 1).
+// after every advance (verify: 1): testing.ts's watch and twin.
 
 vi.setConfig({ testTimeout: 120_000 });
 
@@ -29,22 +27,11 @@ const H = NET.timeline.inputHistory;
 const MATCH = 'abcdef0123456789';
 
 const playerId = (k: number): string => (0xc0 + k).toString(16).padStart(32, '0');
-const at = (n: number): number => n * NET.tickMs + 1;
 
 const HELD = encodeInput({ step: 3, frame: FRAME_PITCH });
 const TAP = encodeInput({ step: 20, frame: FRAME_PITCH });
 /** b's TICK for t reaches this timeline once its local tick is t − d + LAG: so it has predicted t. */
 const LAG = 4;
-
-type Mode = 'incremental' | 'fullReplay';
-
-/** What the inside of a timeline shows its tests (§2.1, §2.7). */
-interface Inside {
-  validTo: number;
-  touchedFrom: number;
-  entryAt(u: number): { readonly tick: number; readonly state: MatchState; readonly used: readonly TickInput[] } | null;
-}
-const inside = (t: Timeline): Inside => t as unknown as Inside;
 
 /** A spectator's timeline, a, and a remote player b, whose TICKs the test writes from its inputs. */
 class Solo {
@@ -54,11 +41,10 @@ class Solo {
   /** b's inputs by tick: what its TICKs carry, history included. */
   readonly inputs = new Map<number, number>();
   readonly asked: string[] = [];
-  readonly corrections: Correction[] = [];
-  readonly heads: string[] = [];
   readonly problems: string[] = [];
+  /** The drawn head's contract after every advance, every advance's head, and the corrections. */
+  readonly watch = new Watch(this.problems, { everyHead: true, corrections: true });
   n = 0;
-  private held: [Readonly<MatchState>, string][] = [];
 
   constructor(mode: Mode) {
     this.mode = mode;
@@ -71,47 +57,33 @@ class Solo {
       sendToPeer: () => {},
     });
     this.t.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
-    this.t.onCorrection = (c) => this.corrections.push({ ...c, before: cloneState(c.before), after: cloneState(c.after) });
+    this.watch.adopt(this.t);
   }
 
-  /** Advances a tick at a time to local tick n, checking the drawn head's contract after each, and
-   *  that the full replay recomputes its whole window from F each advance outside a repair (D-11). */
+  /** The run's one node, as twin reads it. */
+  get nodes(): readonly Solo[] {
+    return [this];
+  }
+
+  get corrections(): readonly Correction[] {
+    return this.watch.corrections;
+  }
+
+  /** Advances a tick at a time to local tick n, the watch checking after each: the drawn head's
+   *  contract, and that the full replay recomputes its whole window from F each advance outside a
+   *  repair (D-11). */
   advanceTo(n: number): void {
     while (this.n < n) {
       this.n++;
-      const t = this.t;
-      const steps = t.stats.steps;
-      const calm = !t.repairing;
-      const headTick = t.headTick;
-      t.advance(at(this.n));
-      if (this.mode === 'fullReplay' && calm && !t.repairing && t.stats.steps - steps < t.localTick - t.finalTick) {
-        this.problems.push(`${this.n}: ${t.stats.steps - steps} steps, not the window's ${t.localTick - t.finalTick}`);
-      }
-      if (t.head === t.final || t.prevHead === t.final) this.problems.push(`${this.n}: the head is F`);
-      if (t.headTick < headTick || t.head.tick !== t.headTick || t.prevHead.tick > t.headTick) {
-        this.problems.push(`${this.n}: the head at ${t.headTick} after ${headTick}, showing ${t.head.tick}, prevHead ${t.prevHead.tick}`);
-      }
-      const held: [Readonly<MatchState>, string][] = [];
-      for (const s of [t.head, t.prevHead]) {
-        const h = hashState(s);
-        if (this.held.some(([o, x]) => o === s && x !== h)) this.problems.push(`${this.n}: a drawn state was written`);
-        held.push([s, h]);
-      }
-      this.held = held;
-      this.heads.push(`${t.headTick} ${held[0]![1]}`);
+      const b = this.watch.before(this.t);
+      this.t.advance(at(this.n));
+      this.watch.advanced(this.t, `${this.n}`, b);
     }
   }
 
   /** b's TICK for t, as its inputs say, with these events and vote. */
   tickOf(t: number, events: TickEvent[] = [], voteTick = NO_TICK, voteHash = ZERO_HASH): Tick {
-    let present = 0;
-    const hist: number[] = [];
-    for (let k = 0; k < H; k++) {
-      const v = this.inputs.get(t - 1 - k);
-      if (v !== undefined) present |= 1 << k;
-      hist.push(v ?? 0);
-    }
-    return { type: T.TICK, t, own: { input: this.inputs.get(t) ?? 0, present, hist, events }, voteTick, voteHash, phase: 0, bots: [] };
+    return tickOf(this.inputs, t, events, voteTick, voteHash);
   }
 
   send(t: number, events: TickEvent[] = [], from = this.b, vote: [number, string] = [NO_TICK, ZERO_HASH]): void {
@@ -138,33 +110,19 @@ class Solo {
   }
 
   usedBy(u: number, id = this.b): TickInput | undefined {
-    return inside(this.t).entryAt(u)?.used.find((x) => x.id === id);
-  }
-
-  finals(): string[] {
-    const out: string[] = [];
-    for (let g = Math.max(0, this.t.finalTick - NET.timeline.history + 1); g <= this.t.finalTick; g++) out.push(`${g} ${this.t.hashAt(g)}`);
-    return out;
+    return usedBy(this.t, u, id);
   }
 }
 
-/** A path run incremental and as a full replay: the same observations, heads and final chains,
- *  every chain verified. The incremental run's timeline and observations. */
+/** A path run incremental and as a full replay, as twin compares them, with the same observations.
+ *  The incremental run's timeline and observations. */
 function both<T>(path: (s: Solo) => T): { s: Solo; seen: T } {
-  const inc = new Solo('incremental');
-  const seen = path(inc);
-  const full = new Solo('fullReplay');
-  expect(path(full)).toEqual(seen);
-  for (const s of [inc, full]) {
-    expect(s.problems).toEqual([]);
-    expect(s.t.stats.verifyMismatches, `${s.mode}: ${JSON.stringify(s.t.stats.log.slice(-4))}`).toBe(0);
-  }
-  // The full replay steps every final, reusing none (D-11).
-  expect([full.t.stats.reusedFinals, full.t.stats.steppedFinals >= full.t.finalTick]).toEqual([0, true]);
-  expect(full.heads).toEqual(inc.heads);
-  expect(full.finals()).toEqual(inc.finals());
-  expect(full.corrections.map((c) => [c.tick, c.from, c.repair])).toEqual(inc.corrections.map((c) => [c.tick, c.from, c.repair]));
-  return { s: inc, seen };
+  const seen: T[] = [];
+  const s = twin((mode) => new Solo(mode), (x) => {
+    seen.push(path(x));
+  });
+  expect(seen[1]).toEqual(seen[0]);
+  return { s, seen: seen[0] as T };
 }
 
 /** The corrections fired since `since`, as [tick, from, repair]. */
