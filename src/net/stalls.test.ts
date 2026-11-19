@@ -10,7 +10,7 @@ import { netSettings } from '../core/session/settings';
 import { defaultParams, encodeInput, findTerrier, IN_PLAY, JOIN, jumpCount, KEPT_BITS, LEAVE, type MatchState, type Pack, WARM_UP } from '../core/sim/index';
 import { Timeline } from '../core/timeline/timeline';
 import { expectAgreement, NetPump, senderInput, TEST_BUILD } from '../core/timeline/testing';
-import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32 } from './loopback';
+import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32, type ThawOrder } from './loopback';
 
 // Stalls over the loopback network (PLAN D-31, A.4's Timer stall; M3's
 // design, research/m3/DESIGN.md, §4.12, M3-Q9, §8.1): a page whose timers
@@ -18,9 +18,15 @@ import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32 } from './loopbac
 // on, keeping its old timeline until a STATE is adopted, or re-anchors when
 // none did. A frozen node runs nothing until it thaws (M3 phase 3's
 // answers), and its round trips across the freeze set no one-way delay.
+// The freezes under the stall threshold, and a stall every page shares,
+// thaw both ways, the late timer run first or the messages held first, and
+// move no clock either way (M3 phase 5).
 
 vi.setConfig({ testTimeout: 120_000 });
 
+/** A thawing page's late timer run first, as the loopback's default, or the messages held for it
+ *  first: a browser may run a woken page's tasks either way (M3 phase 5). */
+const THAWS = ['timer', 'messages'] as const satisfies readonly ThawOrder[];
 const NET = netSettings();
 const P = defaultParams;
 const B = defaultBotParams;
@@ -87,6 +93,8 @@ function expectClean(room: Room): void {
   for (const n of room.nodes) expect(n.t.stats.verifyMismatches, `node ${n.k}: ${JSON.stringify(n.t.stats.log.slice(-4))}`).toBe(0);
 }
 const rosterOf = (n: Node): string[] => finalOf(n).terriers.map((T) => `${T.id}:${T.pack}`).sort();
+/** When the node's clock last took the median (design §1.6): its private state, read for a freeze's place. */
+const lastRebalance = (n: Node): number => (n.session.timeline as unknown as { ticks: { lastRebalance: number } }).ticks.lastRebalance;
 
 /** n0 proposes and plays in pack A, three players join and play, alternate packs; Ready at 2 s if asked. */
 function lobby(room: Room, ready: boolean, bases: number[][] = []): Node[] {
@@ -162,8 +170,10 @@ describe('stalls (D-31, §4.12, M3-Q9)', () => {
     agree(nodes);
   });
 
-  it('re-anchors every page frozen together, with nobody removed, sitting or rejoining, and every hash equal', () => {
-    const room = new NetPump(new LoopbackNet(3, uniform(43, 30, 60, 20)));
+  it.each(THAWS)('re-anchors every page frozen together, with nobody removed, sitting or rejoining, and every hash equal (thawing %s first)', (thaw) => {
+    // Taking its messages first, a page takes those that reached it frozen before its timer sees the
+    // stall: no clock samples, though its clock is still running (M3 phase 5).
+    const room = new NetPump(new LoopbackNet(3, uniform(43, 30, 60, 20), { thaw }));
     const nodes = lobby(room, true);
     for (const n of nodes) {
       room.net.pace(n, 10_000, Infinity);
@@ -249,8 +259,8 @@ describe('stalls (D-31, §4.12, M3-Q9)', () => {
     expect(Math.abs(s.timeline.clock(5044) - keeper.clock(5044))).toBeLessThan(0.5);
   });
 
-  it("takes no one-way delay from a shorter freeze's pong either: a 1.5 s freeze moves nobody's clock (reviewer H6)", () => {
-    const room = new NetPump(new LoopbackNet(5, () => ({ base: 40, jitter: 0 })));
+  it.each(THAWS)("takes no one-way delay from a shorter freeze's pong either: a 1.5 s freeze moves nobody's clock (reviewer H6; thawing %s first)", (thaw) => {
+    const room = new NetPump(new LoopbackNet(5, () => ({ base: 40, jitter: 0 }), { thaw }));
     const net = room.net;
     const a = node(room, 0, { verify: 8 });
     const b = node(room, 1);
@@ -281,6 +291,53 @@ describe('stalls (D-31, §4.12, M3-Q9)', () => {
     expect(after[1]!.jumps - before[1]!.jumps).toBe(0);
     expectClean(room);
     agree([a, b]);
+  });
+
+  it.each(THAWS)('moves no clock at 1 a side after a 1 s freeze in play, and the page that ran on misses none of its own inputs (M3 phase 5; thawing %s first)', (thaw) => {
+    // Two people, each the other's one peer (C-10). The frozen page's TICKs held for it are as old as
+    // the freeze: as samples they'd jump its clock, and D-15's full jumps would then swap the two
+    // clocks each rebalanceMs, the one that ran on skipping its own inputs as it jumped forward. The
+    // last freeze, 850 ms, ends 40 ms before the frozen page takes the median: its held TICKs first.
+    for (const [seed, start, ms] of [[7, 12_000, 1000], [8, 12_250, 1000], [9, 12_610, 1000], [10, null, 850]] as const) {
+      const room = new NetPump(new LoopbackNet(seed, uniform(seed * 5, 30, 60, 20), { thaw }));
+      const net = room.net;
+      const a = node(room, 0, { script: 'brain', verify: 8 });
+      const b = node(room, 1, { script: 'brain' });
+      net.join(a, 0, (now) => {
+        a.session.propose(a.local(now), { packSize: 1, matchMinutes: 1 }, MATCH);
+        a.session.play(0);
+      });
+      net.join(b, 200, () => b.session.play(1));
+      for (const [k, n] of [a, b].entries()) net.at(2000 + 50 * k, () => n.session.ready(true));
+      let at = start ?? 12_000;
+      if (start === null) {
+        runTo(room, at);
+        const last = lastRebalance(b);
+        room.until(() => lastRebalance(b) !== last, 2 * NET.timeline.clock.rebalanceMs);
+        at = lastRebalance(b) + NET.timeline.clock.rebalanceMs - 40 - ms;
+      }
+      net.pace(b, at, Infinity);
+      net.pace(b, at + ms, NET.timerMs);
+      runTo(room, at - 10);
+      expect(finalOf(a).phase, `seed ${seed}`).toBe(IN_PLAY);
+      const before = [a, b].map((n) => ({ ...n.session.timeline.stats }));
+      const ta = a.session.timeline;
+      let from = ta.finalTick + 1;
+      let absent = 0;
+      for (let t = at; t < at + 12_000; t += 100) {
+        runTo(room, t);
+        for (let u = from; u <= ta.finalTick; u++) if (ta.receivedInput(id(0), u) === undefined) absent++;
+        from = Math.max(from, ta.finalTick + 1);
+      }
+      expect(b.session.stalls, `seed ${seed}`).toBe(0);
+      const after = [a, b].map((n) => n.session.timeline.stats);
+      const label = `seed ${seed}: a ${JSON.stringify(after[0]!.log.slice(-3))}, b ${JSON.stringify(after[1]!.log.slice(-3))}`;
+      expect([after[0]!.jumps - before[0]!.jumps, after[1]!.jumps - before[1]!.jumps], label).toEqual([0, 0]);
+      // The page that ran on: every one of its own final ticks has its input, and none of b's came late.
+      expect([absent, after[0]!.late - before[0]!.late], label).toEqual([0, 0]);
+      expectClean(room);
+      agree([a, b]);
+    }
   });
 
   it('sends a Leave pressed while a stall decides in the timeline it rejoins, and takes no control there (reviewer S7)', () => {
@@ -410,5 +467,51 @@ describe('stalls (D-31, §4.12, M3-Q9)', () => {
     expect([s.timeline.started, s.returning]).toEqual([true, true]);
     expect(bases.map(jumpCount)).toEqual([2]);
     expect(bases[0]! & ~KEPT_BITS).toBe(0);
+  });
+});
+
+describe('a clock set off at 1 a side, as a re-anchor can leave two pages (D-15, §4.12; M3 phase 5)', () => {
+  // D-15's jump at 1 a side moves half the median (M3 phase 5), so two pages alone with each other that
+  // both jump at one rebalance meet rather than cross; the cost is a slower close from a genuine offset.
+  // These four took 3.1 to 4.8 s to come within 1.5 ticks, and the phase's review measured 2.3 to 4.9 s
+  // over 16 seeds, against 0.6 to 3.4 s with the whole jump; a quarter jump takes 7.5 s here. The bound
+  // keeps a later change from slowing it further unseen (review clock-F2).
+  const SETTLE_MS = 6000; // not a setting: the bound, over the slowest measured
+  const SPREAD_TICKS = 1.5; // not a setting: in step, the review's measure
+  it('closes 20 and 120 ticks either way within the bound, with every hash equal', () => {
+    for (const [seed, ticks] of [[31, 20], [32, -20], [33, 120], [34, -120]] as const) {
+      const room = new NetPump(new LoopbackNet(seed, uniform(seed * 5, 30, 60, 20)));
+      const net = room.net;
+      const a = node(room, 0, { script: 'brain', verify: 8 });
+      const b = node(room, 1, { script: 'brain' });
+      net.join(a, 0, (now) => {
+        a.session.propose(a.local(now), { packSize: 1, matchMinutes: 1 }, MATCH);
+        a.session.play(0);
+      });
+      net.join(b, 200, () => b.session.play(1));
+      for (const [k, n] of [a, b].entries()) net.at(2000 + 50 * k, () => n.session.ready(true));
+      const at = 12_000;
+      // b's clock, its private TickClock, set off as a re-anchor from another peer's reading would.
+      net.at(at, () => {
+        const c = (b.session.timeline as unknown as { ticks: { read(now: number): number; set(now: number, at: number): void } }).ticks;
+        const now = b.local(net.now);
+        c.set(now, c.read(now) + ticks);
+      });
+      runTo(room, at - 10);
+      expect(finalOf(a).phase, `seed ${seed}`).toBe(IN_PLAY);
+      let since = -1;
+      for (let t = at; t <= at + 2 * SETTLE_MS; t += 20) {
+        runTo(room, t);
+        const spread = Math.abs(a.session.timeline.clock(a.local(net.now)) - b.session.timeline.clock(b.local(net.now)));
+        if (spread > SPREAD_TICKS) since = -1;
+        else if (since < 0) since = t;
+      }
+      const label = `seed ${seed}, ${ticks} ticks: a ${JSON.stringify(a.session.timeline.stats.log.slice(-3))}, b ${JSON.stringify(b.session.timeline.stats.log.slice(-3))}`;
+      expect(since, label).toBeGreaterThanOrEqual(at);
+      expect(since - at, label).toBeLessThanOrEqual(SETTLE_MS);
+      expect([a.session.stalls, b.session.stalls], label).toEqual([0, 0]);
+      expectClean(room);
+      agree([a, b]);
+    }
   });
 });

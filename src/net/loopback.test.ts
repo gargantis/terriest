@@ -5,9 +5,10 @@
 // had accepted; C-12's replacement of a silent connection; pings on each
 // pinger's timers; a frozen node, which runs nothing until it thaws, its
 // messages, pings, pongs, handshakes and closes waiting for it (M3 phase 3's
-// answers); FIFO per link, loss as head-of-line blocking, dropNext and
-// delayNext; drop, block, leave, pace, the clocks, and runs that repeat
-// exactly from a seed.
+// answers), handled after its late timer run or, with the thaw option
+// 'messages', before it (M3 phase 5); FIFO per link, loss as head-of-line
+// blocking, dropNext and delayNext; drop, block, leave, pace, the clocks,
+// and runs that repeat exactly from a seed.
 
 import { describe, expect, it } from 'vitest';
 import { botId } from '../core/bot/bot-id';
@@ -16,7 +17,7 @@ import {
 } from '../core/protocol/messages';
 import { commonRefusal, type Accepted, type Refusal, type RoomPeer } from '../core/session/room-peer';
 import { netSettings } from '../core/session/settings';
-import { LoopbackNet, mulberry32, type LinkSpec, type LoopNode } from './loopback';
+import { LoopbackNet, mulberry32, type LinkSpec, type LoopNode, type NetOptions } from './loopback';
 import type { Transport } from './transport';
 
 const BUILD = '0123456789abcdef';
@@ -420,6 +421,38 @@ describe('a frozen node (M3 phase 3\'s answers, design §8.2)', () => {
     const own = b.session.of('rtt', 'n0').filter((x) => x.now >= 6000 && x.now < 6040);
     expect(own.map((x) => x.now)).toEqual([6000]);
     expect(own[0]!.ms).toBeGreaterThan(3900);
+  });
+
+  it("handles what reached it before its late timer run with the thaw option 'messages', and after it by default (M3 phase 5)", () => {
+    const thawed = (opts: NetOptions): { order: string[]; net: LoopbackNet } => {
+      const net = new LoopbackNet(27, fixed(40), opts);
+      const a = add(net, 0);
+      const b = add(net, 1);
+      net.join(a, 0);
+      net.join(b, 0);
+      net.pace(b, 1000, Infinity);
+      net.at(1500, () => a.session.link.send('n1', msg(T.PEERS, 1)));
+      net.at(1600, () => a.session.link.send('n1', msg(T.PEERS, 2)));
+      net.pace(b, 3000, NET.timerMs);
+      // b's calls at the thaw, in the order they ran: its advances and the messages held for it.
+      const order: string[] = [];
+      const advance = b.session.advance.bind(b.session);
+      b.session.advance = (now) => {
+        if (now === 3000) order.push('advance');
+        advance(now);
+      };
+      const onMessage = b.session.onMessage.bind(b.session);
+      b.session.onMessage = (peer, bytes, now) => {
+        if (now === 3000) order.push(`message ${bytes[1]}`);
+        onMessage(peer, bytes, now);
+      };
+      net.run(3500);
+      return { order, net };
+    };
+    expect(thawed({}).net.thawOrder).toBe('timer');
+    expect(thawed({}).order).toEqual(['advance', 'message 1', 'message 2']);
+    expect(thawed({ thaw: 'timer' }).order).toEqual(['advance', 'message 1', 'message 2']);
+    expect(thawed({ thaw: 'messages' }).order).toEqual(['message 1', 'message 2', 'advance']);
   });
 
   it('fails a handshake with a frozen node handshakeTimeoutMs after it began, on both sides, and meets again once it thaws (reviewer L1)', () => {

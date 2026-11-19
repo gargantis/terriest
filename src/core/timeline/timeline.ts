@@ -570,6 +570,8 @@ export class Timeline {
   // ---- One local tick (§2.3) ----
 
   advance(now: number): void {
+    // Every timer run, paused or not: a TICK handled across a freeze of them is no clock sample.
+    this.ticks.ran(now);
     if (!this.isStarted || this.ticks.paused) return;
     const warm = this.warm;
     if (warm !== null && this.warmedUp(warm, now)) {
@@ -591,7 +593,7 @@ export class Timeline {
     this.work(now, this.cfg.spreadCap * Math.max(1, moved), moved > 0);
     if (this.ticks.rebalance(now) !== null) {
       const s = this.ticks.stats;
-      if (s.jumps > this.stats.jumps) this.note(`jump ${s.medianOffset.toFixed(1)}`);
+      if (s.jumps > this.stats.jumps) this.note(`jump ${s.lastJump.toFixed(1)} of median ${s.medianOffset.toFixed(1)}`);
       this.stats.jumps = s.jumps;
       this.stats.rateAdj = s.rateAdj;
       this.stats.medianOffset = s.medianOffset;

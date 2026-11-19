@@ -10,7 +10,18 @@
 // - samples come from direct TICKs only (§4.10): the caller passes no other;
 // - a sample further off than the stores' rings reach is none, so one forged
 //   TICK can't jump the clock past the wire's u32 (§2.12);
-// - pause, resume and set are new, for D-22's Practice and §4.12's re-anchor.
+// - pause, resume and set are new, for D-22's Practice and §4.12's re-anchor;
+// - with one peer's offset counted, a jump moves half the median, to the
+//   midpoint of the two clocks: two pages alone with each other that jump
+//   at one rebalance meet rather than cross, and one that jumps alone
+//   closes half the gap, the rate the rest. D-15's full jump would swap
+//   them each rebalanceMs after a freeze (M3 phase 5);
+// - a TICK handled across a freeze of this page's timers is no sample: it
+//   was held for the page, as old as the freeze, whether the page took it
+//   before its late timer run or after. A freeze is a gap between runs of
+//   more than an input's time in flight, d + w ticks, that follows a gap
+//   within it. How many samples that drops depends on the engine's timer
+//   cadence, which M4 measures again with real frames (M3 phase 5's review).
 // Pure: it's handed the time (`now`, in ms, monotonic) and reads no clock.
 
 export interface ClockConfig {
@@ -35,7 +46,8 @@ export interface ClockConfig {
 export const PHASE_CAP = 0.9999; // not a setting: the wire's clamp
 
 export class TickClock {
-  readonly stats = { jumps: 0, rateAdj: 0, medianOffset: 0 };
+  /** lastJump: the last jump's size in ticks, half its median's with one peer counted. */
+  readonly stats = { jumps: 0, rateAdj: 0, medianOffset: 0, lastJump: 0 };
   private readonly cfg: ClockConfig;
   private readonly baseRate: number; // ticks a ms
   private rate: number;
@@ -46,11 +58,20 @@ export class TickClock {
   private lastRebalance = -Infinity;
   private readonly offsets = new Map<string, number>(); // peer → its clock less mine, in ticks, smoothed
   private readonly firstHeard = new Map<string, number>();
+  /** An input's time in flight, from its TICK to its tick's late boundary, d + w ticks: a longer gap
+   *  between this page's timer runs, after a shorter one, is a freeze. */
+  private readonly freezeMs: number;
+  // This page's timer runs, as ran() reports them: the last one's time, the gap before it, and
+  // whether it ended a freeze, with no run since. None before the first.
+  private lastRun = -Infinity;
+  private lastGap = 0;
+  private thawed = false;
 
   constructor(cfg: ClockConfig) {
     this.cfg = cfg;
     this.baseRate = 1 / cfg.tickMs;
     this.rate = this.baseRate;
+    this.freezeMs = (cfg.delay + cfg.window) * cfg.tickMs;
   }
 
   get paused(): boolean {
@@ -84,12 +105,32 @@ export class TickClock {
     this.anchor(now, at);
   }
 
+  /** This page's timer ran at now: called on every advance, paused or not. A gap since the last run
+   *  over d + w ticks, where the one before was within it, ended a freeze (M3 phase 5). */
+  ran(now: number): void {
+    const gap = this.lastRun === -Infinity ? 0 : now - this.lastRun;
+    this.thawed = gap > this.freezeMs && this.lastGap <= this.freezeMs;
+    this.lastGap = gap;
+    this.lastRun = now;
+  }
+
+  /** A TICK handled now was held for this page through a freeze of its timers, as old as the freeze:
+   *  handled once the timer, on time before, is d + w ticks overdue, as a page that takes its messages
+   *  first takes them, or within d + w ticks after the freeze's late run, before any other, as one
+   *  whose timer runs first does (M3 phase 5). */
+  private held(now: number): boolean {
+    if (this.lastRun === -Infinity) return false;
+    const since = now - this.lastRun;
+    return this.thawed ? since <= this.freezeMs : this.lastGap <= this.freezeMs && since > this.freezeMs;
+  }
+
   /** A direct TICK's clock sample: the sender's t − d + phase, plus the one-way delay, against mine. A
    *  phase at its cap was sent catching up after a stall, and is no sample (roslambo, 2026-10-25); nor
-   *  is one taken while paused, against a reading that doesn't move, nor one further off than
-   *  sampleMaxTicks, which no honest clock is. True if it counted. */
+   *  is one taken while paused, against a reading that doesn't move, nor one held for this page through
+   *  a freeze of its timers (ran), nor one further off than sampleMaxTicks, which no honest clock is.
+   *  True if it counted. */
   sample(peer: string, t: number, phase: number, oneWayMs: number, now: number): boolean {
-    if (this.frozen !== null || !(phase < PHASE_CAP)) return false;
+    if (this.frozen !== null || !(phase < PHASE_CAP) || this.held(now)) return false;
     const off = t - this.cfg.delay + phase + oneWayMs * this.baseRate - this.read(now);
     if (!Number.isFinite(off) || !(Math.abs(off) <= this.cfg.sampleMaxTicks)) return false;
     this.heard(peer, now);
@@ -110,8 +151,8 @@ export class TickClock {
   }
 
   /** Called every advance; every rebalanceMs, the median offset of peers heard for settleMs: past the
-   *  late window's middle a jump, else a proportional rate with a deadband ('rate', its 0 included).
-   *  Nothing while paused. */
+   *  late window's middle a jump, by the median, or by half of it with one peer counted, else a
+   *  proportional rate with a deadband ('rate', its 0 included). Nothing while paused. */
   rebalance(now: number): 'jump' | 'rate' | null {
     if (this.frozen !== null || now - this.lastRebalance < this.cfg.rebalanceMs) return null;
     this.lastRebalance = now;
@@ -128,8 +169,11 @@ export class TickClock {
     const middle = this.cfg.window / 2; // not a setting: D-15's rule, the late window's middle
     if (Math.abs(med) > middle) {
       // A jump forward, or back, which holds the ticks until the clock catches up (roslambo M0).
-      const at = this.read(now) + med;
-      for (const [peer, off] of this.offsets) this.offsets.set(peer, off - med);
+      // A lone peer's page may jump at this rebalance too: each goes halfway, so they meet.
+      const jump = offs.length === 1 ? med / 2 : med; // not a setting: the midpoint of two clocks
+      const at = this.read(now) + jump;
+      for (const [peer, off] of this.offsets) this.offsets.set(peer, off - jump);
+      this.stats.lastJump = jump;
       this.stats.jumps++;
       this.stats.rateAdj = 0;
       this.rate = this.baseRate;

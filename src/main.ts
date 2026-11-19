@@ -5,10 +5,12 @@
 // boot.js shows that message instead, and nothing else runs. Settings
 // arrive at M4; until then the render quality comes from the URL (D-33).
 // The fragment's #test=determinism opens the determinism page instead,
-// from a chunk of its own and with no canvas (§16; design §7.5); M3's net
-// and M4's frames pages hang off the same parse. Without it, nothing here
+// from a chunk of its own and with no canvas (§16; design §7.5), and
+// #test=net, from M3, the network test page, likewise (M3's design §1.28,
+// §7); M4's frames page hangs off the same parse. Without one, nothing here
 // changes.
 
+import type { NetHook } from './nettest-params';
 import { qualityFrom } from './render/quality';
 import { createPitchView, type RenderInfo } from './render/scene';
 
@@ -27,9 +29,11 @@ export interface Inspection {
 
 /** Set by an end-to-end test before the page loads, and never by a normal
  *  page, whose behaviour it never changes: the page only adds inspect()
- *  to it once it has started. M3 and M4 extend it (§16, D-27). */
+ *  to it once it has started, and the #test=net page net, once its match
+ *  is open (M3-Q7). M4 extends it (§16, D-27). */
 export interface TerriestTest {
   inspect?: () => Inspection;
+  net?: NetHook;
 }
 
 declare global {
@@ -45,8 +49,13 @@ function testPage(): string | null {
 }
 
 async function start(boot: Boot): Promise<void> {
-  if (testPage() === 'determinism') {
+  const which = testPage();
+  if (which === 'determinism') {
     (await import('./determinism')).run(boot);
+    return;
+  }
+  if (which === 'net') {
+    (await import('./nettest')).run(boot);
     return;
   }
   const canvas = document.createElement('canvas');

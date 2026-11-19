@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,7 +24,10 @@ afterAll(() => {
 });
 
 const ENTRY = 'const a=1;export{a};\n';
-const LICENCES = 'Third-party notices.\n\n## three@0.187.0\n\nMIT\n\nThe MIT License, its text.\n';
+// A notice for each package the build bundles, as the repo's list names them, so hermet's audit
+// passes the planted folder on that and fails it on the dev relay alone (design §1.32, M3 phase 5).
+const EXPECTED = JSON.parse(readFileSync(join(root, 'scripts', 'expected-licenses.json'), 'utf8'));
+const LICENCES = `Third-party notices.\n\n${EXPECTED.map((p) => `## ${p}@1.0.0\n\nMIT\n\nThe MIT License, its text.\n`).join('\n')}`;
 
 /** A dist/ folder of the given files, under a fresh folder of dir. */
 function dist(name, files) {

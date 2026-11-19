@@ -214,20 +214,40 @@ describe('the rebalance (roslambo D-11, M0)', () => {
     expect(c.read(3000) - at).toBeCloseTo(60 * 1.01, 9);
   });
 
-  it('jumps past the late window’s middle, either way, and the offsets jump with it', () => {
-    for (const offset of [6.5, -7]) {
-      const c = withPeers([offset]);
+  it('jumps the whole median past the late window’s middle, either way, with two peers or more counted, and the offsets jump with it (D-15)', () => {
+    for (const offsets of [[6.5, 7.5], [-7, -9, 30], [8, 8, 9, 40]]) {
+      const c = withPeers(offsets);
       const at = c.read(2000);
       expect(c.rebalance(2000)).toBe('jump');
-      expect(c.read(2000)).toBeCloseTo(at + offset, 9);
+      const med = c.stats.medianOffset;
+      expect(Math.abs(med)).toBeGreaterThan(M3.window / 2);
+      expect([c.read(2000), c.stats.lastJump]).toEqual([expect.closeTo(at + med, 9), med]);
       expect([c.stats.jumps, c.stats.rateAdj]).toEqual([1, 0]);
       expect(c.read(3000) - c.read(2000)).toBeCloseTo(60, 9); // at the base rate
-      // The peer's offset moved with the jump: in step now.
+      // The peers' offsets moved with the jump: the median is in step now.
       expect(c.rebalance(3000)).toBe('rate');
       expect([c.stats.medianOffset, c.stats.rateAdj]).toEqual([expect.closeTo(0, 9), 0]);
     }
     // At the middle itself, a rate.
-    expect(withPeers([6]).rebalance(2000)).toBe('rate');
+    expect(withPeers([6, 6]).rebalance(2000)).toBe('rate');
+  });
+
+  it('jumps half the median with one peer counted, to the midpoint of the two clocks, its offset moving by the half (M3 phase 5)', () => {
+    for (const offset of [6.5, -7, 20]) {
+      const c = withPeers([offset]);
+      const at = c.read(2000);
+      expect(c.rebalance(2000)).toBe('jump');
+      expect([c.read(2000), c.stats.medianOffset, c.stats.lastJump]).toEqual([expect.closeTo(at + offset / 2, 9), expect.closeTo(offset, 9), expect.closeTo(offset / 2, 9)]);
+      expect([c.stats.jumps, c.stats.rateAdj]).toEqual([1, 0]);
+      expect(c.read(3000) - c.read(2000)).toBeCloseTo(60, 9); // at the base rate
+      // The offset moved by the jump made: half the gap is left, for the rate, or a jump at 20.
+      expect(c.rebalance(3000)).toBe(offset / 2 > M3.window / 2 ? 'jump' : 'rate');
+      expect(c.stats.medianOffset).toBeCloseTo(offset / 2, 9);
+    }
+    // A peer still settling isn't counted: one counted, half.
+    const c = withPeers([10]);
+    sampleAhead(c, 'late', 10, 1500);
+    expect([c.rebalance(2000), c.stats.lastJump]).toEqual(['jump', expect.closeTo(5, 9)]);
   });
 
   it('jumps back to the base rate from a rate it had set', () => {
@@ -326,9 +346,198 @@ describe('against a peer’s clock, in virtual time', () => {
     }
   });
 
-  it('jumps once to a peer past the late window’s middle, then stays in step', () => {
+  it('jumps once to a peer past the late window’s middle, halfway, the rate the rest, then stays in step', () => {
     const { c, lead } = run(9, 10_000, 40);
-    expect(c.stats.jumps).toBe(1);
+    expect([c.stats.jumps, c.stats.lastJump]).toEqual([1, expect.closeTo(4.5, 0)]);
     expect(Math.abs(lead)).toBeLessThanOrEqual(M3.deadbandTicks + 0.1);
+  });
+});
+
+describe('a TICK held through a freeze of the page’s timers (M3 phase 5)', () => {
+  /** d + w ticks: an input's time in flight, 233⅓ ms at the values above. */
+  const FREEZE_MS = (M3.delay + M3.window) * M3.tickMs;
+
+  /** A clock whose timer ran every 4 ms up to `until`, then sleeps. */
+  function running(until: number, cfg: ClockConfig = M3): TickClock {
+    const c = new TickClock(cfg);
+    c.set(0, 0);
+    for (let now = 0; now <= until; now += 4) c.ran(now);
+    return c;
+  }
+
+  it('is no sample once the timer is d + w ticks overdue, as a page that takes its messages first takes it', () => {
+    const c = running(1000);
+    expect(sampleAhead(c, 'p', 0, 1000 + Math.floor(FREEZE_MS))).toBe(true);
+    expect(sampleAhead(c, 'p', 0, 1000 + Math.ceil(FREEZE_MS))).toBe(false);
+    expect(sampleAhead(c, 'p', 0, 1900)).toBe(false);
+  });
+
+  it('is no sample within d + w ticks after the late run that ends the freeze, before the next run, as a page whose timer runs first takes it', () => {
+    const c = running(1000);
+    c.ran(1900);
+    expect([sampleAhead(c, 'p', 0, 1900), sampleAhead(c, 'p', 0, 1900 + Math.floor(FREEZE_MS))]).toEqual([false, false]);
+    c.ran(1904);
+    expect(sampleAhead(c, 'p', 0, 1904)).toBe(true);
+    // A gap within d + w ticks is no freeze.
+    const d = running(1000);
+    d.ran(1000 + Math.floor(FREEZE_MS));
+    expect(sampleAhead(d, 'p', 0, 1000 + Math.floor(FREEZE_MS))).toBe(true);
+  });
+
+  it('is a sample on a page whose timers always run that slowly or slower, as the gate’s slowest frames do, but for the first such gap', () => {
+    // Every 200 ms, the messages between taken at each run, before it or after it.
+    const slow = running(1000);
+    const kept: boolean[] = [];
+    for (let now = 1200; now <= 3000; now += 200) {
+      kept.push(sampleAhead(slow, 'p', 0, now));
+      slow.ran(now);
+      kept.push(sampleAhead(slow, 'p', 0, now));
+    }
+    expect(kept.every((x) => x)).toBe(true);
+    // Every 300 ms: the first gap is a freeze, the ones after it aren't, whichever the page takes first.
+    const slower = running(1000);
+    const seen: boolean[] = [];
+    for (let now = 1300; now <= 3100; now += 300) {
+      seen.push(sampleAhead(slower, 'p', 0, now));
+      slower.ran(now);
+      seen.push(sampleAhead(slower, 'p', 0, now));
+    }
+    expect(seen).toEqual([false, false, ...new Array<boolean>(12).fill(true)]);
+  });
+
+  it('is a sample on a hidden page, its timers waking once a second and its messages taken as they come, but around its first wake (D-31)', () => {
+    const c = running(1000);
+    const at = (from: number, to: number): boolean[] => {
+      const out: boolean[] = [];
+      for (let now = from; now < to; now += 17) out.push(sampleAhead(c, 'p', 0, now));
+      return out;
+    };
+    const first = at(1001, 2000);
+    c.ran(2000);
+    const second = at(2000, 3000);
+    c.ran(3000);
+    const third = at(3000, 4000);
+    // Hidden at 1 s: taken until the timer is d + w ticks overdue; none then until d + w ticks after
+    // its first wake, a freeze's late run; all from then on.
+    const kept = (xs: boolean[]): number => xs.filter((x) => x).length;
+    const within = Math.floor(FREEZE_MS / 17) + 1; // the samples d + w ticks hold, 17 ms apart
+    expect([kept(first), first.slice(0, within).every((x) => x)]).toEqual([within, true]);
+    expect([kept(second), second.slice(within).every((x) => x)]).toEqual([second.length - within, true]);
+    expect(third.every((x) => x)).toBe(true);
+  });
+
+  it('takes its freeze, d + w ticks, from configuration, and sees none before the timer’s first run', () => {
+    const cfg: ClockConfig = { ...M3, tickMs: 10, delay: 3, window: 20 }; // 230 ms
+    const at = (gap: number): boolean => {
+      const c = running(1000, cfg);
+      c.ran(1000 + gap);
+      return sampleAhead(c, 'p', 0, 1000 + gap, 0, cfg);
+    };
+    expect([at(230), at(231)]).toEqual([true, false]);
+    // A clock whose timer never ran: tests that sample at any time, and a timeline before its first advance.
+    const fresh = new TickClock(M3);
+    fresh.set(0, 0);
+    expect(sampleAhead(fresh, 'p', 0, 5000)).toBe(true);
+  });
+
+  /** c beside a peer clock in step with it, the peer sending a TICK on each of its ticks that reaches c
+   *  40 ms later, c's timer every 4 ms but frozen from `from` for `ms`: what reached c meanwhile is
+   *  taken at the thaw, before its late run or after it. Returns c's jumps and its lag at the end. */
+  function frozen(order: 'timer' | 'messages', from: number, ms: number, end = 9000): { jumps: number; lead: number } {
+    const oneWayMs = 40;
+    const c = new TickClock(M3);
+    c.set(0, 0);
+    const peer = (now: number): number => now / M3.tickMs;
+    let sent = 0;
+    const inFlight: { at: number; t: number; phase: number }[] = [];
+    const take = (now: number): void => {
+      while (inFlight.length > 0 && inFlight[0]!.at <= now) {
+        const m = inFlight.shift()!;
+        c.heard('peer', now);
+        c.sample('peer', m.t, m.phase, oneWayMs, now);
+      }
+    };
+    const run = (now: number): void => {
+      c.ran(now);
+      c.rebalance(now);
+    };
+    for (let now = 0; now <= end; now += 4) {
+      const n = Math.floor(peer(now));
+      for (let k = sent + 1; k <= n; k++) inFlight.push({ at: now + oneWayMs, t: k + M3.delay, phase: Math.min(PHASE_CAP + 0.00009, peer(now) - k) });
+      sent = n;
+      if (now >= from && now < from + ms) continue;
+      if (order === 'messages') take(now);
+      run(now);
+      if (order === 'timer') take(now);
+    }
+    return { jumps: c.stats.jumps, lead: peer(end) - c.read(end) };
+  }
+
+  it('moves no clock after a freeze under the stall threshold, in either order: a freeze ending just before a rebalance, or past one', () => {
+    // The rebalance runs each whole second: 850 ms from 4,100 ms and 500 ms from 4,460 ms end 50 and
+    // 40 ms before one, so in either order the held TICKs would reach the median first, their offsets
+    // as old as the freeze; 1.9 s from 5,100 ms ends past one, which a page that takes its messages
+    // first would take them into.
+    for (const order of ['timer', 'messages'] as const) {
+      for (const [from, ms] of [[4100, 850], [4460, 500], [5100, 1900]] as const) {
+        const r = frozen(order, from, ms);
+        expect(r.jumps, `${order}, ${ms} ms`).toBe(0);
+        expect(Math.abs(r.lead), `${order}, ${ms} ms`).toBeLessThanOrEqual(M3.deadbandTicks);
+      }
+    }
+  });
+});
+
+describe('two clocks alone with each other (M3 phase 5)', () => {
+  /** Two clocks `gap` ticks apart, each the other's one peer: each sends a TICK on each of its ticks,
+   *  which reaches the other oneWayMs later, both timers every 4 ms. Both rebalance at the same
+   *  instants, as two pages do once a freeze has pulled both offsets past the middle. Returns their
+   *  jumps by rebalance and the gap at the end. */
+  function both(gap: number, ms: number, oneWayMs = 40): { jumps: number[]; gap: number; first: number[] } {
+    const clocks = [new TickClock(M3), new TickClock(M3)];
+    clocks[0]!.set(0, gap);
+    clocks[1]!.set(0, 0);
+    // Heard from long before, so each offset counts from its first sample.
+    for (const [k, c] of clocks.entries()) c.heard(`p${1 - k}`, -M3.settleMs);
+    const sent = clocks.map((c) => Math.floor(c.read(0)));
+    const inFlight: { at: number; to: number; t: number; phase: number }[] = [];
+    const jumps: number[] = [];
+    let first: number[] = [];
+    for (let now = 0; now <= ms; now += 4) {
+      clocks.forEach((c, k) => {
+        const n = Math.floor(c.read(now));
+        for (let u = sent[k]! + 1; u <= n; u++) inFlight.push({ at: now + oneWayMs, to: 1 - k, t: u + M3.delay, phase: Math.min(PHASE_CAP + 0.00009, c.read(now) - u) });
+        sent[k] = Math.max(sent[k]!, n);
+      });
+      while (inFlight.length > 0 && inFlight[0]!.at <= now) {
+        const m = inFlight.shift()!;
+        clocks[m.to]!.sample(`p${1 - m.to}`, m.t, m.phase, oneWayMs, now);
+      }
+      // The first rebalance waits for a full second of samples, so both offsets read the gap.
+      if (now < M3.rebalanceMs) continue;
+      const before = clocks.map((c) => c.stats.jumps);
+      for (const c of clocks) c.rebalance(now);
+      const made = clocks.map((c, k) => (c.stats.jumps > before[k]! ? c.stats.lastJump : 0));
+      if (made.some((j) => j !== 0)) {
+        jumps.push(...made.filter((j) => j !== 0));
+        if (first.length === 0) first = clocks.map((c) => c.read(now));
+      }
+    }
+    return { jumps, gap: clocks[0]!.read(ms) - clocks[1]!.read(ms), first };
+  }
+
+  it('meet halfway when both jump at one rebalance, rather than crossing each rebalanceMs, then stay in step', () => {
+    for (const gap of [10, -10, 7, 30]) {
+      const r = both(gap, 12_000);
+      // One jump each, toward the other, half the gap: at the midpoint, nothing left for the rate.
+      expect(r.jumps.map((j) => Math.sign(j)).sort(), `gap ${gap}`).toEqual([-1, 1]);
+      for (const j of r.jumps) expect(Math.abs(j), `gap ${gap}`).toBeCloseTo(Math.abs(gap) / 2, 0);
+      expect(Math.abs(r.first[0]! - r.first[1]!), `gap ${gap}`).toBeLessThan(1);
+      expect(Math.abs(r.gap), `gap ${gap}`).toBeLessThanOrEqual(M3.deadbandTicks);
+    }
+    // Under the middle, the rate alone closes it, both clocks moving.
+    const r = both(5, 12_000);
+    expect(r.jumps).toEqual([]);
+    expect(Math.abs(r.gap)).toBeLessThanOrEqual(M3.deadbandTicks);
   });
 });

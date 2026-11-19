@@ -21,7 +21,7 @@
 
 import { chromium, firefox, webkit, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { generateMatchId } from '../../src/core/match-id';
-import type { NetHook, NetReport } from '../../src/nettest-params';
+import type { NetReport } from '../../src/nettest-params';
 import { CHROMIUM_GL_ARGS } from './gl';
 import { expectWebGL2, type PageWatch, watchPage } from './guards';
 import { installHook } from './page';
@@ -51,9 +51,6 @@ export interface NetPage {
   readonly engine: Engine;
 }
 
-/** The page's hook, as the page adds it (src/main.ts, at M3's phase 5). */
-type Hooked = { terriestTest?: { net?: NetHook } };
-
 /** A context and page: WebGL 2 asserted first, the hook installed, the page watched with only the
  *  base URL and the relay allowed (and extra prefixes, such as a dev server's ws:// origin), #test=net&…
  *  opened, with the relay among its parameters when there is one, and window.terriestTest.net awaited. */
@@ -70,13 +67,13 @@ export async function openNetPage(
   if (relay !== null) query.set('relay', relay);
   for (const [k, v] of Object.entries(params)) query.set(k, String(v));
   await page.goto(`${base}#${query.toString()}`);
-  await page.waitForFunction(() => (window as unknown as Hooked).terriestTest?.net !== undefined, null, { timeout: OPEN_TIMEOUT_MS });
+  await page.waitForFunction(() => window.terriestTest?.net !== undefined, null, { timeout: OPEN_TIMEOUT_MS });
   return { page, watch, engine };
 }
 
 export function report(p: Page): Promise<NetReport> {
   return p.evaluate(() => {
-    const net = (window as unknown as Hooked).terriestTest?.net;
+    const net = window.terriestTest?.net;
     if (net === undefined) throw new Error('no window.terriestTest.net: the hook goes in before load, and the page adds net once started');
     return net.report();
   });
@@ -84,7 +81,7 @@ export function report(p: Page): Promise<NetReport> {
 
 export function hashAt(p: Page, t: number): Promise<string> {
   return p.evaluate((tick) => {
-    const net = (window as unknown as Hooked).terriestTest?.net;
+    const net = window.terriestTest?.net;
     if (net === undefined) throw new Error('no window.terriestTest.net');
     return net.hashAt(tick);
   }, t);

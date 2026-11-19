@@ -1,0 +1,28 @@
+import { defineConfig } from '@playwright/test';
+
+// The 12-page load run (M3's design §8.5, §1.38), outside the gate: it
+// needs a quiet machine and takes minutes. Against the built page under
+// vite preview, on a port of its own so a gate's server (4339) can't
+// collide with it, and hermet's local relay, which the run starts:
+//   npm run build && TERRIEST_LOAD_OUT=research/load/results.json npx playwright test -c playwright.load.config.ts
+// LOAD_SECONDS sets the play measured, 90 s by default. e2e/load.run.ts
+// says what it checks and logs. Named .run.ts, so the gate's
+// playwright.config.ts, which matches *.spec.ts, never runs it.
+const BASE_URL = 'http://127.0.0.1:4349/';
+
+export default defineConfig({
+  testDir: './e2e',
+  testMatch: /load\.run\.ts$/,
+  forbidOnly: true,
+  timeout: 20 * 60_000,
+  workers: 1,
+  fullyParallel: false,
+  reporter: [['list']],
+  webServer: {
+    command: 'npx vite preview --port 4349',
+    url: BASE_URL,
+    reuseExistingServer: false,
+    timeout: 60_000,
+  },
+  use: { baseURL: BASE_URL, headless: true },
+});

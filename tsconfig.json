@@ -7,5 +7,7 @@
     "erasableSyntaxOnly": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "e2e", "dev", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
+  "include": [
+    "src", "e2e", "dev", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "playwright.load.config.ts", "playwright.dev-local.config.ts"
+  ]
 }

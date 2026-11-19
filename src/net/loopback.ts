@@ -17,12 +17,14 @@
 //   and everything addressed to it, a message, a ping, a pong, a
 //   handshake's step or a connection's close, waits until it thaws, and is
 //   then handled in order, after the timer run that thawing restarts when
-//   the freeze stopped it; so its handshakes don't complete meanwhile, and
-//   its pong comes late, a freeze's round trip (M3 phase 3's answers). A
-//   handshake that hasn't completed handshakeTimeoutMs after it began fails
-//   on both sides, as TrysteroRoom's does, and the pair meets again once
-//   neither is frozen, as the relay's next announcement brings it (M3 phase
-//   3's integration). A hidden page is a paced node, not a frozen one;
+//   the freeze stopped it, or before it with the thaw option 'messages', as
+//   a browser may run a woken page's queued tasks either way (M3 phase 5);
+//   so its handshakes don't complete meanwhile, and its pong comes late, a
+//   freeze's round trip (M3 phase 3's answers). A handshake that hasn't
+//   completed handshakeTimeoutMs after it began fails on both sides, as
+//   TrysteroRoom's does, and the pair meets again once neither is frozen,
+//   as the relay's next announcement brings it (M3 phase 3's integration).
+//   A hidden page is a paced node, not a frozen one;
 // - a loss chance per link: a lost message on the reliable ordered channel
 //   arrives an extra round trip late, its retransmission (§17's "an
 //   occasional extra round trip"), and FIFO holds the messages behind it,
@@ -112,6 +114,16 @@ export interface LinkSpec {
 
 export interface NodeOptions { readonly clockOffset?: number; readonly drift?: number; readonly pingEveryMs?: number }
 
+/** What a frozen node does first as it thaws: its late timer run, then what reached it meanwhile
+ *  ('timer'), or that, then the run ('messages'). A browser may take a woken page's queued tasks
+ *  either way, and a clock sample's age differs between them (M3 phase 5). */
+export type ThawOrder = 'timer' | 'messages';
+
+export interface NetOptions {
+  /** 'timer' by default. */
+  readonly thaw?: ThawOrder;
+}
+
 export interface LoopNode<S extends RoomPeer = RoomPeer> {
   readonly id: string; readonly session: S;
   paceMs: number;             // between advance() calls: the timer, 1000 for a hidden page, Infinity frozen
@@ -171,6 +183,7 @@ export class LoopbackNet {
   readonly refusals: { from: string; to: string; reason: number }[] = [];
   /** Connections closed with drop(), as [by, peer]: a session's, or a replaced one's (C-12). */
   readonly drops: [string, string][] = [];
+  readonly thawOrder: ThawOrder;
   private readonly all = new Map<string, Node>();
   private readonly q = new Heap();
   private seq = 0;
@@ -183,10 +196,11 @@ export class LoopbackNet {
   private readonly rules: Rule[] = [];
 
   /** latency(a, b, now): a link's spec when a message leaves, so a test can slow a link for a while. */
-  constructor(seed: number, latency: (from: string, to: string, now: number) => LinkSpec) {
+  constructor(seed: number, latency: (from: string, to: string, now: number) => LinkSpec, opts: NetOptions = {}) {
     this.rand = mulberry32(seed);
     this.lossRand = mulberry32(seed ^ LOSS_STREAM);
     this.latency = latency;
+    this.thawOrder = opts.thaw ?? 'timer';
   }
 
   /** Adds a node, offline until join(). `make` builds its room peer around
@@ -287,18 +301,19 @@ export class LoopbackNet {
   }
 
   /** The node's timers run every `ms` from virtual time `at`; Infinity freezes it until paced again,
-   *  when its timer, if the freeze stopped it, runs at once, and then what reached it meanwhile is
-   *  handled, in order. */
+   *  when its timer, if the freeze stopped it, runs at once, and what reached it meanwhile is handled,
+   *  in order: after that run, or before it with the thaw option 'messages'. */
   pace(node: LoopNode, at: number, ms: number): void {
     this.at(at, () => {
       const n = this.node(node);
       const thaws = frozen(n) && Number.isFinite(ms);
       n.paceMs = ms;
+      if (thaws && this.thawOrder === 'messages') this.thaw(n);
       if (Number.isFinite(ms) && n.stopped) {
         n.stopped = false;
         this.timers(n, n.gen);
       }
-      if (thaws) this.thaw(n);
+      if (thaws && this.thawOrder === 'timer') this.thaw(n);
     });
   }
 
