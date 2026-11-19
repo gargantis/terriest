@@ -1,14 +1,15 @@
 // The bot brain (PLAN D-39, Q-9, L142; design §1.18, §8). It runs on the
-// host only, once a local tick, never in the timeline's re-simulations: it
-// reads the state, the predicted head at M3, and returns the u16 input a
-// person would send, in the pitch frame (A.2, D-7). Its memory is its own,
-// and nothing it holds is in the state: its press counters, a ring of what
-// it has seen, its aim noise, its bark times, its zoomies and its stuck
-// tracking. It takes no time but the state's tick and no randomness but
-// mix() seeded by its ID, with exact operations only, so its seeded marks
-// count the same on every machine (D-39). It reads bodies by slot and skips
-// empty ones, so the empty-goal mark's short pack is an ordinary state to
-// it (design §0).
+// host only, never in the timeline's re-simulations: at M3 once per tick of
+// the timeline's drawn head, which it reads (M3's design §1.11, §4.8), and
+// it returns the u16 input a person would send, in the pitch frame (A.2,
+// D-7). Its memory is its own, and nothing it holds is in the state: its
+// press counters, a view of what it has seen, keyed by the state's tick
+// (M3's design §1.12), its aim noise, its bark times, its zoomies and its
+// stuck tracking. It takes no time but the state's tick and no randomness
+// but mix() seeded by its ID, with exact operations only, so its seeded
+// marks count the same on every machine (D-39). It reads bodies by slot and
+// skips empty ones, so the empty-goal mark's short pack is an ordinary state
+// to it (design §0).
 //
 // In play, roles go by distance rank within the pack (Q-9): the nearest
 // chases while no rival is nearer the ball, and falls back to get between
@@ -117,8 +118,9 @@ interface Mind extends Brain {
   readonly B: BotParams;
   readonly seed: number;
   readonly entry: number; // floats in a ring entry
-  readonly ring: Float64Array; // reactionTicks + 1 entries
-  seen: number; // entries written since it last found its terrier
+  readonly ring: Float64Array; // reactionTicks + 1 entries, in the order written
+  readonly ticks: Float64Array; // each entry's tick, rising with the order written (M3's design §1.12)
+  seen: number; // entries written since it last found its terrier, a repeated tick's not counted again
   jump: number; // press counters, mod 4 (D-10)
   pounce: number;
   bark: number;
@@ -159,6 +161,7 @@ export function newBrain(id: string, prevInput: number, P: SimParams, B: BotPara
     seed: botSeed(id),
     entry,
     ring: new Float64Array((B.reactionTicks + 1) * entry),
+    ticks: new Float64Array(B.reactionTicks + 1),
     seen: 0,
     jump: jumpCount(prevInput),
     pounce: pounceCount(prevInput),
@@ -296,14 +299,28 @@ function counters(m: Mind): number {
 }
 
 /** Writes this tick's entry, and returns the offset of the one it decides
- *  from: reactionTicks old, or the oldest it has, so a fresh brain acts on
- *  what it sees at once. It reads the ball's place from that entry carried
- *  on by the velocity it saw then, as a player judges a rolling ball, into
- *  m.bx and m.by. */
+ *  from: the newest at or before reactionTicks ago, or the oldest it has
+ *  when none is that old, so a fresh brain acts on what it sees at once. The
+ *  view is keyed by the state's tick, not by calls (M3's design §1.12): a
+ *  repeated tick overwrites its own entry, and a tick before the newest
+ *  entry's, a head from another timeline, starts the view afresh. So a head
+ *  held through a spread, or the ticks a catch-up skips, keep its reaction
+ *  (D-39); M2's marks, one think a tick on consecutive ticks, read the same
+ *  entry as before. It reads the ball's place from that entry carried on by
+ *  the velocity it saw then, over the ticks between, as a player judges a
+ *  rolling ball, into m.bx and m.by. */
 function perceive(m: Mind, s: Readonly<MatchState>): number {
   const n = m.B.reactionTicks + 1;
   const ring = m.ring;
-  const at = (m.seen % n) * m.entry;
+  const ticks = m.ticks;
+  const tick = s.tick;
+  if (m.seen > 0) {
+    const newest = ticks[(m.seen - 1) % n]!;
+    if (tick === newest) m.seen--;
+    else if (tick < newest) m.seen = 0;
+  }
+  const slot = m.seen % n;
+  const at = slot * m.entry;
   const b = s.ball;
   ring[at] = b.x;
   ring[at + 1] = b.y;
@@ -320,11 +337,15 @@ function perceive(m: Mind, s: Readonly<MatchState>): number {
     ring[j + 1] = T.x;
     ring[j + 2] = T.y;
   }
+  ticks[slot] = tick;
   m.seen++;
-  const back = Math.min(m.B.reactionTicks, m.seen - 1);
-  const v = ((m.seen - 1 - back) % n) * m.entry;
+  // From the oldest entry held, on to the newest at or before reactionTicks ago.
+  let e = Math.max(0, m.seen - n);
+  while (e + 1 < m.seen && ticks[(e + 1) % n]! <= tick - m.B.reactionTicks) e++;
+  const from = e % n;
+  const v = from * m.entry;
   // Where that ball is now, if it kept its velocity, inside the floor plan.
-  const lead = back * m.P.tickSeconds;
+  const lead = (tick - ticks[from]!) * m.P.tickSeconds;
   clampInside(m.P, ring[v]! + ring[v + 3]! * lead, ring[v + 1]! + ring[v + 4]! * lead, m.P.ballRadius, m.out);
   m.bx = m.out[0]!;
   m.by = m.out[1]!;

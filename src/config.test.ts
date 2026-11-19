@@ -296,23 +296,25 @@ function spreadCap(c: Config): string[] {
 }
 
 /** A host sends a bot's READY again before its Ready expires, and early
- *  enough that one lost once lands on its second sending. Sent at local
- *  tick n, when the final state, w behind, shows the Ready's time left, it
- *  is for tick n + d, final at n + d + w; it goes again once the final tick
- *  passes n + d + eventRetryTicks without the state showing it, at local
- *  tick n + d + w + eventRetryTicks + 1, for d later. The Ready expires at
- *  n − w and its time left, and a READY for that tick still renews it,
- *  since a tick's events come before the expiry (step.ts). So the time
- *  left is at least 2d + 2w + eventRetryTicks + 1 ticks (C-41, M3's design
- *  §4.8; roslambo's tendBots). */
+ *  enough that one lost once lands on its second sending. Queued at local
+ *  tick n, after the advance, when the final state, w behind, shows the
+ *  Ready's time left, it rides in the next tick's input, for n + 1 + d; it
+ *  goes again once the final tick passes n + d + eventRetryTicks without the
+ *  state showing it, eventRetryTicks after its tick is final, at local tick
+ *  n + d + w + eventRetryTicks + 1, for 1 + d later (M3 phase 2's
+ *  integration: tend runs after the advance, as roslambo's tendBots). The
+ *  Ready expires at n − w and its time left, and a READY for that tick
+ *  still renews it, since a tick's events come before the expiry
+ *  (step.ts). So the time left is at least 2d + 2w + eventRetryTicks + 2
+ *  ticks (C-41, M3's design §4.8). */
 function botsReady(c: Config): string[] {
   const problems: string[] = [];
   const renew = c.botReadyRenewSeconds;
-  const land = 2 * (c.inputDelayTicks + c.lateWindowTicks) + c.eventRetryTicks + 1;
+  const land = 2 * (c.inputDelayTicks + c.lateWindowTicks) + c.eventRetryTicks + 2;
   if (!(renew < c.readyExpirySeconds)) problems.push(`a bot's READY goes again with ${renew} s of its Ready left, not under the ${c.readyExpirySeconds} s expiry`);
   if (!(renew * c.ticksPerSecond >= land)) {
     problems.push(
-      `a bot's READY goes again with ${renew} s of its Ready left, under the ${land} ticks, 2d + 2w + eventRetryTicks + 1, one lost once takes to land`,
+      `a bot's READY goes again with ${renew} s of its Ready left, under the ${land} ticks, 2d + 2w + eventRetryTicks + 2, one lost once takes to land`,
     );
   }
   return problems;
@@ -1030,15 +1032,16 @@ describe('the configuration checks (PLAN §7.4)', () => {
     expect(botsReady(config)).toEqual([]);
     expect(botsReady(planted({ botReadyRenewSeconds: 60 }))).toEqual(["a bot's READY goes again with 60 s of its Ready left, not under the 60 s expiry"]);
     expect(botsReady(planted({ readyExpirySeconds: 5 })).join('\n')).toMatch(/not under the 5 s expiry/);
-    // 2d + 2w + 30 + 1 = 59 ticks to land: 1 s is 60 ticks, and 0.75 s only 45.
+    // 2d + 2w + 30 + 2 = 60 ticks to land: 1 s is 60 ticks, and 0.75 s only 45.
     expect(botsReady(planted({ botReadyRenewSeconds: 1 }))).toEqual([]);
     expect(botsReady(planted({ botReadyRenewSeconds: 0.75 }))).toEqual([
-      "a bot's READY goes again with 0.75 s of its Ready left, under the 59 ticks, 2d + 2w + eventRetryTicks + 1, one lost once takes to land",
+      "a bot's READY goes again with 0.75 s of its Ready left, under the 60 ticks, 2d + 2w + eventRetryTicks + 2, one lost once takes to land",
     ]);
-    // At the bound, 60 ticks with a retry of 31, it lands on the expiry's tick, in time; with 32, a tick late.
-    expect(botsReady(planted({ botReadyRenewSeconds: 1, eventRetryTicks: 31 }))).toEqual([]);
-    expect(botsReady(planted({ botReadyRenewSeconds: 1, eventRetryTicks: 32 }))).toHaveLength(1);
-    expect(botsReady(planted({ eventRetryTicks: 600 })).join('\n')).toMatch(/under the 629 ticks/);
+    // At the bound, 60 ticks with a retry of 30, it lands on the expiry's tick, in time; with 31, a tick
+    // late, as src/core/session/bots.test.ts measures with BotHost.
+    expect(botsReady(planted({ botReadyRenewSeconds: 1, eventRetryTicks: 30 }))).toEqual([]);
+    expect(botsReady(planted({ botReadyRenewSeconds: 1, eventRetryTicks: 31 }))).toHaveLength(1);
+    expect(botsReady(planted({ eventRetryTicks: 600 })).join('\n')).toMatch(/under the 630 ticks/);
   });
 
   it('keeps a leaving page in its room until its LEAVE is final (M3)', () => {

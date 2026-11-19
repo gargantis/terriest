@@ -5,7 +5,9 @@
 // finds its bots again after a reload, and a receiver checks that a bot's
 // inputs come from its host (M3). It's a UUID of version 8, RFC 9562's
 // custom version, where a person's own ID is version 4 (D-25), so every peer
-// tells a bot from a person by its ID alone.
+// tells a bot from a person by its ID alone. A person's ID for a seed, the
+// marks' and the #test=net page's, is here too, moved from marks.ts so the
+// page imports neither the marks nor their size (M3's design §1.12).
 // Exact operations only (D-39).
 
 import { config } from '../../config';
@@ -54,4 +56,13 @@ export function botSeed(id: string): number {
  *  seeded by the ID (D-39, §12). */
 export function botCoat(id: string, coatCount: number): number {
   return mix(botSeed(id), 1) % coatCount;
+}
+
+const hex8 = (v: number): string => (v >>> 0).toString(16).padStart(8, '0');
+
+/** A person's ID for a seed: 32 hex digits, version 4, as a browser's (D-25). */
+export function personId(seed: number, k: number): string {
+  const h = mix(seed, k);
+  const id = hex8(mix(h, 11)) + hex8(mix(h, 12)) + hex8(mix(h, 13)) + hex8(mix(h, 14));
+  return `${id.slice(0, 12)}4${id.slice(13)}`;
 }

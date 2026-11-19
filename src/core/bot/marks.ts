@@ -4,19 +4,24 @@
 // code, so exact operations only (D-39). A seed picks the host, and through
 // botIds(hostOf(seed)) the bots' IDs, coats and noise; it picks the
 // placements through mix(). The measures don't depend on the brain
-// (design §8.6): they read the state alone.
+// (design §8.6): they read the state alone. The scripted people's inputs
+// and personId moved to setups.ts and bot-id.ts at M3, which the #test=net
+// page imports without the marks (M3's design §1.12): the same code.
 
-import { encodeInput, FRAME_BALL, HELD, heldDirection, JOIN, READY, STEP_MASK, STEP_UNITS, type TickInput } from '../sim/input';
+import { HELD, heldDirection, JOIN, READY, STEP_MASK, STEP_UNITS, type TickInput } from '../sim/input';
 import { datan2, mix, TURN } from '../sim/math';
 import { defaultParams, type SimParams } from '../sim/params';
 import { insideFloorPlan } from '../sim/pitch';
 import { place, placeBall, placedMatch, touchReach } from '../sim/scenes';
 import {
-  ENDED, findTerrier, genesis, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, NEVER, type Pack, START_COUNTDOWN, type Terrier, WARM_UP,
+  ENDED, findTerrier, genesis, KICKOFF_COUNTDOWN, type MatchState, NEVER, type Pack, START_COUNTDOWN, type Terrier, WARM_UP,
 } from '../sim/state';
 import { makeSim, step } from '../sim/step';
-import { botCoat, botIds, botName } from './bot-id';
+import { botCoat, botIds, botName, personId } from './bot-id';
 import { type BotParams, type Brain, CHASE, defaultBotParams, FALL_BACK, newBrain, type Role, think } from './brain';
+import { BACK_IN_BALL_VIEW, heldFirstSecond, SIDEWAYS_IN_BALL_VIEW } from './setups';
+
+export { personId };
 
 // §16's and §8.6's measures, which define the marks rather than tune the
 // brain: settle records them in §16 (Q-9, design §9.6).
@@ -43,22 +48,10 @@ const FB_BALL_GAP = 0.3; // not a setting: between the ball and the other rivals
 const FB_DRAWS = 100000; // not a setting: a point's draws before a setup gives up
 const READY_EVERY_SECONDS = 50; // not a setting: a host re-sends its bots' READY inside the minute's expiry
 const OVERTIME_CAP_SECONDS = 60; // not a setting: the regulation shards' overtime cap (design §8.5)
-const HOLD_SECONDS = 1; // not a setting: §16's end-to-end setups, "the first second after each kickoff"
-const BACK = 16; // not a setting: A.2's step, back along the ball line
-const SIDEWAYS = 8; // not a setting: A.2's step, sideways from the ball line
 const TICKS_MAX = 60000; // not a setting: a runaway match's end, far past any whole one
-
-const hex8 = (v: number): string => (v >>> 0).toString(16).padStart(8, '0');
 
 /** After each tick of a run: the state, and each player's brain, null for a person. For a test's diagnosis. */
 export type Probe = (s: Readonly<MatchState>, brains: readonly (Brain | null)[]) => void;
-
-/** A person's ID for a seed: 32 hex digits, version 4, as a browser's (D-25). */
-export function personId(seed: number, k: number): string {
-  const h = mix(seed, k);
-  const id = hex8(mix(h, 11)) + hex8(mix(h, 12)) + hex8(mix(h, 13)) + hex8(mix(h, 14));
-  return `${id.slice(0, 12)}4${id.slice(13)}`;
-}
 
 /** The host whose bots a seed's run plays. */
 export function hostOf(seed: number): string {
@@ -475,11 +468,6 @@ export function regulationMatch(
   return playMatch({ packSize, matchMinutes: P.config.matchLengthDefaultMinutes, players, watched: ids, toFirstGoal, seed, P, probe });
 }
 
-/** A scripted person's u16 (design §8.6): `held` for the first second of
- *  play after each kickoff, and then nothing, present every tick. */
-const person = (held: number, P: SimParams) => (s: Readonly<MatchState>): number =>
-  s.phase === IN_PLAY && s.tick - s.phaseStart < HOLD_SECONDS * P.config.ticksPerSecond ? held : 0;
-
 /** §16's end-to-end setups, which M3's and M4's specs rest on, 1 minute
  *  each. 'three-engine': 2 a side; pack A's person holds back in ball view
  *  for the first second of play after each kickoff, then nothing, and hosts
@@ -495,7 +483,7 @@ export function e2eMatch(
   const minutes = 1; // not a setting: §16's "every match these tests play is 1 minute long"
   if (setup === 'three-engine') {
     const players: Player[] = [
-      { id: host, pack: 0, brain: null, person: person(encodeInput({ step: BACK, frame: FRAME_BALL }), P) },
+      { id: host, pack: 0, brain: null, person: heldFirstSecond(BACK_IN_BALL_VIEW, P) },
       botPlayer(bot, 0, P, B),
       { id: personId(seed, 1), pack: 1, brain: null, person: () => 0 },
       { id: personId(seed, 2), pack: 1, brain: null, person: () => 0 },
@@ -503,7 +491,7 @@ export function e2eMatch(
     return { ...playMatch({ packSize: 2, matchMinutes: minutes, players, watched: [bot], toFirstGoal: false, seed, P, probe }), botPack: 0 };
   }
   const players: Player[] = [
-    { id: host, pack: 0, brain: null, person: person(encodeInput({ step: SIDEWAYS, frame: FRAME_BALL }), P) },
+    { id: host, pack: 0, brain: null, person: heldFirstSecond(SIDEWAYS_IN_BALL_VIEW, P) },
     botPlayer(bot, 1, P, B),
   ];
   return { ...playMatch({ packSize: 1, matchMinutes: minutes, players, watched: [bot], toFirstGoal: false, seed, P, probe }), botPack: 1 };

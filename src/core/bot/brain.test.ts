@@ -307,6 +307,91 @@ describe('perception (Q-9, design §8.2)', () => {
   });
 });
 
+// Over the timeline the brain reads the drawn head, which a spread holds and
+// a catch-up moves several ticks at once, so its view is keyed by the
+// state's tick, not by its calls (M3's design §1.12, M3-Q25). One think a
+// tick on consecutive ticks, as M2's marks call it, reads what it read before.
+describe("the view, keyed by the state's tick (M3's design §1.12, D-39)", () => {
+  /** A bot standing still in play, 10 m behind the ball, which jumps to (−5, 8) at tick
+   *  moveAt: the step it holds at each tick it thinks on, thinking calls(t) times at t. */
+  const decisions = (calls: (t: number) => number, moveAt: number): Map<number, number | null> => {
+    const s = placed(1, (s) => {
+      placeBall(P, s, 5, 0);
+      place(P, s, 0, -5, 0);
+      park(P, s, 1);
+    });
+    const bot = newBrain(s.terriers[0]!.id, 0, P, quiet);
+    const seen = new Map<number, number | null>();
+    for (let t = 0; t < 60; t++) {
+      s.tick = t; // nothing stepped, short of the unstick
+      if (t === moveAt) placeBall(P, s, -5, 8);
+      for (let c = 0; c < calls(t); c++) seen.set(t, steps(think(bot, s)));
+    }
+    return seen;
+  };
+  /** The first tick at which a decision differs from the first one. */
+  const changedAt = (seen: Map<number, number | null>): number => [...seen].find(([, v]) => v !== seen.get(0))![0];
+
+  it('keeps its reaction through a repeated tick: a head held for several calls decides as once a tick does', () => {
+    const once = decisions(() => 1, 10);
+    expect(changedAt(once)).toBe(10 + B.reactionTicks);
+    // Four calls a tick while the head is held, from the change on: counted by calls, the
+    // view would take the ball's new place 3 ticks after the change, not 15.
+    const held = decisions((t) => (t >= 10 && t < 15 ? 4 : 1), 10);
+    expect(held).toEqual(once);
+  });
+
+  it("keeps its reaction through skipped ticks: after a catch-up's jump it decides from 15 ticks before", () => {
+    const once = decisions(() => 1, 5);
+    // Ticks 10–19 skipped: counted by calls, the change at tick 5 would show at tick 30.
+    const skipped = decisions((t) => (t >= 10 && t < 20 ? 0 : 1), 5);
+    expect(changedAt(skipped)).toBe(5 + B.reactionTicks);
+    for (const [t, v] of skipped) expect(v, `tick ${t}`).toBe(once.get(t));
+  });
+
+  it('judges a rolling ball over the ticks between: after skipped ticks it faces where the ball is now', () => {
+    // A countdown: it holds the step toward the ball as it judges it, turning on its spot.
+    const s = placed(1, (s) => {
+      place(P, s, 0, -10, 0);
+      park(P, s, 1);
+    }, START_COUNTDOWN);
+    const id = s.terriers[0]!.id;
+    const roll = (t: number): void => placeBall(P, s, 0, -6 + (6 * t) / 60, P.ballRadius, 0, 6); // 6 m/s along +y
+    const bot = newBrain(id, 0, P, quiet);
+    const seen = new Set<number | null>();
+    for (const t of [...Array.from({ length: 10 }, (_, k) => k), ...Array.from({ length: 30 }, (_, k) => 40 + k)]) {
+      s.tick = t;
+      roll(t);
+      const v = steps(think(bot, s));
+      // A fresh brain sees the ball where it is, with no lead to judge.
+      expect(v, `tick ${t}`).toBe(steps(think(newBrain(id, 0, P, quiet), s)));
+      seen.add(v);
+    }
+    expect(bot.role).toBe(FACE);
+    expect(seen.size, 'the ball moved past more than one step').toBeGreaterThan(1);
+  });
+
+  it('starts its view afresh at a tick before its newest: a head from another timeline', () => {
+    const s = placed(1, (s) => {
+      placeBall(P, s, 0, -6);
+      place(P, s, 0, -10, 0);
+      park(P, s, 1);
+    }, START_COUNTDOWN);
+    const id = s.terriers[0]!.id;
+    const bot = newBrain(id, 0, P, quiet);
+    for (let t = 0; t <= 30; t++) {
+      s.tick = t;
+      think(bot, s);
+    }
+    const before = steps(think(bot, s));
+    s.tick = 10;
+    placeBall(P, s, 0, 6);
+    const after = steps(think(bot, s));
+    expect(after).toBe(steps(think(newBrain(id, 0, P, quiet), s)));
+    expect(after).not.toBe(before);
+  });
+});
+
 describe('noise and mirrors (§16, D-39)', () => {
   it('keeps mirrored bots mirrored without aim noise, and its noise, seeded per bot, sets them apart within 2 s', () => {
     for (const packSize of [1, 2, 3, 4]) {

@@ -1,0 +1,1012 @@
+import { describe, expect, it, vi } from 'vitest';
+import { botId } from '../bot/bot-id';
+import {
+  decode, encodeState as encodeStateMessage, type Message, NO_TICK, type StateMsg, T, type Tick, wireLimits, ZERO_HASH,
+} from '../protocol/messages';
+import { netSettings } from '../session/settings';
+import {
+  cloneState, decodeState, defaultParams, encodeInput, encodeState, findTerrier, FRAME_BALL, FRAME_PITCH, genesis, hash64, hashState, IN_PLAY,
+  type InputParts, JOIN, LEAVE, makeSim, type MatchState, READY, step, type TickInput,
+} from '../sim';
+import { sceneInputs, sceneStart, WALL_SCRUM } from '../sim/scenes';
+import { GOLDEN_SCRIPTS, scriptTickInputs } from '../sim/scripts';
+import { type Correction, Timeline, type TimelineConfig, type TimelineOut } from './timeline';
+
+// The timeline over a test pump, no transport (design §2, §3, §8.3): a
+// decoded state stepping as its original; three browsers and a bot in
+// agreement, against a full replay; the joiner's warm-up; the late boundary
+// on the clock; what a STATE_REQ is answered with; a resync with its votes;
+// the LEAVE a STATE wiped out; pause, reanchor and the catch-up; and the
+// correction observer. Every timeline verifies its chain after every
+// advance (verify: 1), and the pump checks the drawn head's contract after
+// each: never F, never moved back, never written while drawn.
+
+// Whole matches in virtual time, twice each for the full replay: CPU-bound, as M2's suites are.
+vi.setConfig({ testTimeout: 120_000 });
+
+const NET = netSettings();
+const P = defaultParams;
+const WIRE = wireLimits();
+const D = NET.timeline.delay;
+const W = NET.timeline.window;
+const V = NET.timeline.voteWindow;
+const MATCH = 'feedfacecafebeef';
+
+const playerId = (k: number): string => (0xa0 + k).toString(16).padStart(32, '0');
+
+// --- The pump: timelines in virtual time, with latency, jitter and FIFO links ---
+
+type Mode = 'incremental' | 'fullReplay';
+
+interface Node {
+  readonly k: number;
+  readonly id: string;
+  readonly peer: string;
+  readonly t: Timeline;
+  /** ms between timer runs: 4 awake, 1,000 hidden (D-31). */
+  pace: number;
+  next: number;
+  frozen: boolean;
+  lastHeadTick: number;
+  held: [Readonly<MatchState>, string][];
+  lastFinal: number;
+  readonly finals: string[];
+  readonly heads: string[];
+  readonly corrections: Correction[];
+}
+
+/** An extra delay for a message, in ms, or null to drop it. */
+type Rule = (from: Node, to: Node, m: Message, now: number) => number | null;
+
+interface Post {
+  readonly at: number;
+  readonly seq: number;
+  readonly from: Node;
+  readonly to: Node;
+  readonly bytes: Uint8Array;
+}
+
+class Pump {
+  now = 0;
+  readonly mode: Mode;
+  readonly nodes: Node[] = [];
+  /** Every message posted, for comparing two runs. */
+  readonly trace: string[] = [];
+  /** The drawn head's contract, broken. */
+  readonly problems: string[] = [];
+  latency = 70;
+  jitter = 20;
+  rules: Rule[] = [];
+  private queue: Post[] = [];
+  private seq = 0;
+  private readonly lastAt = new Map<string, number>();
+
+  constructor(mode: Mode = 'incremental') {
+    this.mode = mode;
+  }
+
+  add(over: Partial<TimelineConfig> = {}): Node {
+    const k = this.nodes.length;
+    const self: { node: Node | null } = { node: null };
+    const out: TimelineOut = {
+      broadcast: (bytes) => {
+        for (const to of this.nodes) if (to !== self.node) this.post(self.node!, to, bytes);
+      },
+      sendToPlayer: (player, bytes) => {
+        const to = this.nodes.find((n) => n.id === player);
+        if (to === undefined) return false;
+        this.post(self.node!, to, bytes);
+        return true;
+      },
+      sendToPeer: (peer, bytes) => {
+        const to = this.nodes.find((n) => n.peer === peer);
+        if (to !== undefined) this.post(self.node!, to, bytes);
+      },
+    };
+    const t = new Timeline({ ...NET.timeline, P, me: playerId(k), mode: this.mode, verify: 1, ...over }, out);
+    const node: Node = {
+      k, id: playerId(k), peer: `peer-${k}`, t, pace: NET.timerMs, next: this.now, frozen: false,
+      lastHeadTick: -1, held: [], lastFinal: -1, finals: [], heads: [], corrections: [],
+    };
+    t.onCorrection = (c) => node.corrections.push({ ...c, before: cloneState(c.before), after: cloneState(c.after) });
+    self.node = node;
+    this.nodes.push(node);
+    return node;
+  }
+
+  private post(from: Node, to: Node, bytes: Uint8Array): void {
+    const m = decode(bytes, P, WIRE);
+    if (m === null) throw new Error(`${from.k} sent bytes that don't decode`);
+    let extra = 0;
+    for (const rule of this.rules) {
+      const x = rule(from, to, m, this.now);
+      if (x === null) {
+        this.trace.push(`${this.now} ${from.k}>${to.k} dropped ${hash64(bytes)}`);
+        return;
+      }
+      extra += x;
+    }
+    const link = `${from.k}>${to.k}`;
+    const seq = this.seq++;
+    const jitter = this.jitter === 0 ? 0 : ((seq * 2654435761) >>> 0) % (this.jitter + 1);
+    const at = Math.max(this.now + this.latency + jitter + extra, this.lastAt.get(link) ?? 0);
+    this.lastAt.set(link, at);
+    let i = this.queue.length;
+    while (i > 0 && this.queue[i - 1]!.at > at) i--;
+    this.queue.splice(i, 0, { at, seq, from, to, bytes });
+    this.trace.push(`${this.now} ${link} ${hash64(bytes)}`);
+  }
+
+  /** Runs ms of virtual time, a millisecond at a time: messages due, then timers due. */
+  run(ms: number, each?: (now: number) => void): void {
+    const end = this.now + ms;
+    while (this.now < end) {
+      this.now++;
+      this.deliver();
+      for (const n of this.nodes) {
+        if (n.frozen || this.now < n.next) continue;
+        n.next = this.now + n.pace;
+        const steps = n.t.stats.steps;
+        const calm = n.t.started && !n.t.repairing;
+        n.t.advance(this.now);
+        // The full replay recomputes its whole window from F each advance outside a repair (D-11).
+        if (this.mode === 'fullReplay' && calm && !n.t.repairing && n.t.stats.steps - steps < n.t.localTick - n.t.finalTick) {
+          this.problems.push(`${n.k} at ${this.now}: ${n.t.stats.steps - steps} steps, not the window's ${n.t.localTick - n.t.finalTick}`);
+        }
+        this.check(n);
+      }
+      each?.(this.now);
+    }
+  }
+
+  /** Runs until cond holds, at most ms. */
+  until(cond: () => boolean, ms: number): void {
+    const end = this.now + ms;
+    while (!cond() && this.now < end) this.run(1);
+    if (!cond()) throw new Error(`not reached within ${ms} ms`);
+  }
+
+  private deliver(): void {
+    const keep: Post[] = [];
+    while (this.queue.length > 0 && this.queue[0]!.at <= this.now) {
+      const q = this.queue.shift()!;
+      // A frozen page runs nothing: its messages wait.
+      if (q.to.frozen) keep.push(q);
+      else this.dispatch(q);
+    }
+    if (keep.length > 0) this.queue.unshift(...keep);
+  }
+
+  private dispatch(q: Post): void {
+    const m = decode(q.bytes, P, WIRE)!;
+    const to = q.to.t;
+    if (m.type === T.TICK) to.onTick(q.from.id, m, this.now, true);
+    else if (m.type === T.STATE_REQ) to.onStateReq(q.from.peer, m, this.now);
+    else if (m.type === T.STATE) to.onState(q.from.peer, m, this.latency, this.now);
+  }
+
+  /** §2.8's contract after an advance, and what two runs compare. */
+  private check(n: Node): void {
+    const t = n.t;
+    if (!t.started) return;
+    const at = `${n.k} at ${this.now} ms`;
+    if (t.head === t.final || t.prevHead === t.final) this.problems.push(`${at}: the drawn head is F`);
+    if (t.headTick < n.lastHeadTick) this.problems.push(`${at}: the head moved back from ${n.lastHeadTick} to ${t.headTick}`);
+    // The state drawn is the head's tick's, and the one before it no later: never an older state swapped in.
+    if (t.head.tick !== t.headTick || t.prevHead.tick > t.headTick) this.problems.push(`${at}: the head shows ${t.head.tick}, prevHead ${t.prevHead.tick}, at ${t.headTick}`);
+    n.lastHeadTick = t.headTick;
+    const held: [Readonly<MatchState>, string][] = [];
+    for (const s of [t.head, t.prevHead]) {
+      const h = hashState(s);
+      const seen = n.held.find(([o]) => o === s);
+      if (seen !== undefined && seen[1] !== h) this.problems.push(`${at}: a drawn state was written`);
+      held.push([s, h]);
+    }
+    n.held = held;
+    if (t.finalTick !== n.lastFinal) {
+      n.finals.push(`${t.finalTick} ${t.hashAt(t.finalTick)}`);
+      n.lastFinal = t.finalTick;
+    }
+    if (!t.repairing) {
+      const h = `${t.headTick} ${held[0]![1]}`;
+      if (n.heads[n.heads.length - 1] !== h) n.heads.push(h);
+    }
+  }
+}
+
+/** A person's wandering input, from its node and local tick: a step that changes every 16 ticks,
+ *  held most of the time, zoomies in spells, a jump and a pounce now and then, and a bark counter
+ *  that turns every 8 ticks, which the simulation never reads. */
+function wander(k: number, t: Timeline): () => number {
+  return () => {
+    const n = t.localTick;
+    const p: InputParts = { frame: FRAME_PITCH, zoomies: ((n >> 7) + k) % 3 === 0, jump: (n >> 6) & 3, pounce: (n >> 8) & 3, bark: (n >> 3) & 3 };
+    if (((n >> 5) + k) % 4 !== 0) p.step = ((n >> 4) * 7 + k * 5) & 31;
+    return encodeInput(p);
+  };
+}
+
+/** A bot's input from the drawn head, as a hosted bot reads it (§1.11): every 8th head tick a step
+ *  from the head's hash, held between. */
+function chase(t: Timeline): () => number {
+  let input = 0;
+  let at = -1;
+  return () => {
+    if (t.headTick !== at && (t.headTick & 7) === 0) input = encodeInput({ step: parseInt(hashState(t.head).slice(0, 2), 16) & 31, frame: FRAME_BALL });
+    at = t.headTick;
+    return input;
+  };
+}
+
+/** n starts from one genesis and plays in a pack: JOIN, and READY if asked. */
+function plays(n: Node, pack: number, ready = true, packSize = 2): void {
+  n.t.start(0, { packSize, matchMinutes: 1 }, MATCH);
+  n.t.sending = true;
+  n.t.controls = wander(n.k, n.t);
+  n.t.queueEvent(n.id, { events: JOIN | (ready ? READY : 0), joinPack: pack, coat: n.k, name: `P${n.k}` });
+}
+
+/** A node's oldest final tick still in its history: a joiner holds none before its STATE's. */
+function oldest(n: Node): number {
+  let g = n.t.finalTick;
+  while (g > 0 && n.t.hashAt(g - 1) !== '') g--;
+  return g;
+}
+
+/** The hashes every node holds at the final ticks they share. */
+function sharedHashes(nodes: readonly Node[]): { tick: number; hashes: string[] }[] {
+  const lo = Math.max(...nodes.map(oldest));
+  const hi = Math.min(...nodes.map((n) => n.t.finalTick));
+  const out: { tick: number; hashes: string[] }[] = [];
+  for (let g = lo; g <= hi; g += 7) out.push({ tick: g, hashes: nodes.map((n) => n.t.hashAt(g)) });
+  return out;
+}
+
+function expectAgreement(nodes: readonly Node[]): void {
+  const shared = sharedHashes(nodes);
+  expect(shared.length).toBeGreaterThan(0);
+  for (const s of shared) expect(new Set(s.hashes).size, `tick ${s.tick}`).toBe(1);
+}
+
+/** A scenario run in both modes: the same messages, final chains and heads (§2.7), every chain
+ *  verified, and the head's contract kept. */
+function twin(scenario: (p: Pump) => void): Pump {
+  const inc = new Pump('incremental');
+  scenario(inc);
+  const full = new Pump('fullReplay');
+  scenario(full);
+  for (const p of [inc, full]) {
+    expect(p.problems).toEqual([]);
+    for (const n of p.nodes) expect(n.t.stats.verifyMismatches, `${p.mode} ${n.k}: ${JSON.stringify(n.t.stats.log.slice(-5))}`).toBe(0);
+  }
+  // The full replay steps every final, reusing none (D-11).
+  for (const n of full.nodes) expect([n.t.stats.reusedFinals, n.t.stats.steppedFinals > 0], `${n.k}`).toEqual([0, true]);
+  expect(full.trace.length).toBe(inc.trace.length);
+  expect(full.trace).toEqual(inc.trace);
+  for (const n of inc.nodes) {
+    expect(full.nodes[n.k]!.finals).toEqual(n.finals);
+    expect(full.nodes[n.k]!.heads).toEqual(n.heads);
+  }
+  return inc;
+}
+
+// --- §2.9 ---
+
+describe('snapshots kept and restored exactly (§2.9)', () => {
+  it('steps a decoded state beside its original, hash by hash: the wall scrum and the kickoff scripts, 600 ticks', () => {
+    const runs: { name: string; s: MatchState; inputs: (s: Readonly<MatchState>, t: number) => TickInput[] }[] = [
+      { name: WALL_SCRUM.name, s: sceneStart(WALL_SCRUM, P), inputs: (s, t) => sceneInputs(WALL_SCRUM, s, t, []) },
+      ...GOLDEN_SCRIPTS.filter((spec) => spec.name.startsWith('mirrored kickoff')).map((spec) => ({
+        name: spec.name,
+        s: genesis({ packSize: spec.packSize, matchMinutes: spec.matchMinutes }, P),
+        inputs: (s: Readonly<MatchState>, t: number) => scriptTickInputs(spec, t, s, []),
+      })),
+    ];
+    expect(runs.length).toBe(5);
+    const mismatches: string[] = [];
+    for (const run of runs) {
+      const sim = makeSim(P, run.s.packSize);
+      const original = run.s;
+      let copy = decodeState(encodeState(original), P)!;
+      for (let t = 1; t <= 600; t++) {
+        const ins = run.inputs(original, t);
+        step(sim, original, ins);
+        step(sim, copy, ins);
+        if (hashState(copy) !== hashState(original)) mismatches.push(`${run.name} at ${t}`);
+        // A copy decoded mid-run, as a STATE's, steps on the same.
+        if (t % 100 === 0) copy = decodeState(encodeState(original), P)!;
+      }
+      expect(encodeState(copy)).toEqual(encodeState(original));
+    }
+    expect(mismatches).toEqual([]);
+  });
+});
+
+// --- A match ---
+
+describe('three browsers and a hosted bot (§2, §3)', () => {
+  it('agree on every final tick from genesis through the start countdown into play, as a full replay does', () => {
+    const p = twin((q) => {
+      const nodes = [q.add(), q.add(), q.add()];
+      nodes.forEach((n, k) => plays(n, k % 2));
+      const host = nodes[2]!;
+      const bot = botId(host.id, 0);
+      host.t.bots.set(bot, chase(host.t));
+      host.t.queueEvent(bot, { events: JOIN | READY, joinPack: 1, coat: 6, name: 'Bot' });
+      q.run(8000);
+    });
+    const a = p.nodes[0]!.t;
+    expect(a.final.phase).toBe(IN_PLAY);
+    expect(a.final.terriers.length).toBe(4);
+    expectAgreement(p.nodes);
+    for (const n of p.nodes) {
+      const s = n.t.stats;
+      expect([s.disagree, s.resyncs, s.resyncFailed, s.split]).toEqual([0, 0, 0, 0]);
+      expect(s.agree).toBeGreaterThan(400);
+      // Most finals reuse their prediction; the rest stepped where the chain had been recomputed.
+      expect(s.reusedFinals).toBeGreaterThan(s.steppedFinals);
+      expect(s.rollbacks).toBeGreaterThan(0);
+      expect(s.corrections).toBeGreaterThan(0);
+      // A normal tick is never spread (§2.8): the cap covers w + 1.
+      expect(s.spreadTicks).toBe(0);
+      expect(s.maxStepsPerAdvance).toBeLessThanOrEqual(W + 2);
+      expect(n.t.isConfirmed(n.t.finalTick - V)).toBe(true);
+      expect(n.t.isConfirmed(n.t.finalTick + 1)).toBe(false);
+    }
+  });
+});
+
+// --- Joining (§3.4) ---
+
+describe("the joiner's warm-up (§3.4, roslambo M0)", () => {
+  function joining(q: Pump): { a: Node; b: Node; c: Node } {
+    const a = q.add();
+    const b = q.add();
+    plays(a, 0, false);
+    plays(b, 1, false);
+    q.run(2000);
+    const c = q.add();
+    c.t.requestState(a.peer);
+    return { a, b, c };
+  }
+
+  it('holds finalisation until every active sender is heard, takes the inputs in flight, and votes once a tally agrees', () => {
+    const p = twin((q) => {
+      const { c } = joining(q);
+      q.until(() => c.t.started, 1000);
+      // In warm-up: final at the STATE's tick, nothing confirmed, no vote.
+      expect(c.t.repairing).toBe(true);
+      const g = c.t.finalTick;
+      expect(c.t.localTick).toBeGreaterThan(g + W);
+      q.until(() => !c.t.repairing, 1000);
+      // Every active sender heard, well before warmupMs runs out.
+      expect(c.t.stats.warmMs).toBeGreaterThan(0);
+      expect(c.t.stats.warmMs).toBeLessThan(NET.timeline.warmupMs);
+      c.t.sending = true;
+      c.t.controls = wander(c.k, c.t);
+      c.t.queueEvent(c.id, { events: JOIN, joinPack: 0, coat: 2, name: 'late' });
+      q.run(3000);
+    });
+    const [a, , c] = p.nodes as [Node, Node, Node];
+    expectAgreement(p.nodes);
+    expect(findTerrier(c.t.final, c.id)).toBeGreaterThanOrEqual(0);
+    expect(c.t.stats.agree).toBeGreaterThan(0);
+    expect([c.t.stats.disagree, c.t.stats.resyncs, a.t.stats.statesSent]).toEqual([0, 0, 1]);
+    // Its first vote came after a tally agreed: the other two counted it from then on.
+    expect(c.t.isConfirmed(c.t.finalTick - V)).toBe(true);
+  });
+
+  it('never trusts a tally whose votes went out before it joined: a wrong joiner whose resyncs fail stays silent (§3.1, §3.4)', () => {
+    const q = new Pump();
+    const [a, b] = [q.add(), q.add()];
+    plays(a, 0, false);
+    plays(b, 1, false);
+    q.run(2000);
+    // a's timers wake once a second: asked just before it wakes, it gives a STATE a second old, so the
+    // joiner's first tallies are for ticks whose votes went out before it held the timeline.
+    a.pace = 1000;
+    q.run(900);
+    const c = q.add();
+    // A wrong state adopted, a float off, and no STATE_REQ of c's reaching anyone once it holds one.
+    const take = c.t.onState.bind(c.t);
+    c.t.onState = (peer, m, oneWayMs, now) => {
+      (m.decoded as MatchState).ball.vx += 1;
+      return take(peer, m, oneWayMs, now);
+    };
+    let votes = 0;
+    q.rules.push((from, _to, m) => {
+      if (from !== c) return 0;
+      if (m.type === T.STATE_REQ && c.t.started) return null;
+      if (m.type === T.TICK && m.voteTick !== NO_TICK) votes++;
+      return 0;
+    });
+    c.t.requestState(a.peer);
+    q.until(() => c.t.started, 1000);
+    const joinedAt = c.t.localTick;
+    expect(c.t.finalTick).toBeLessThan(joinedAt - W - V);
+    c.t.sending = true;
+    c.t.controls = wander(c.k, c.t);
+    c.t.queueEvent(c.id, { events: JOIN, joinPack: 0, coat: 2, name: 'late' });
+    q.run(4000);
+    expect(findTerrier(c.t.final, c.id)).toBeGreaterThanOrEqual(0);
+    expect(c.t.stats.disagree).toBeGreaterThan(0);
+    expect(c.t.stats.resyncFailed).toBeGreaterThan(0);
+    expect([c.t.stats.agree, c.t.stats.resyncs, votes]).toEqual([0, 0, 0]);
+  });
+
+  it('trusts itself as the lone voter once its tallies reach ticks whose votes could all reach it (§3.2)', () => {
+    const q = new Pump();
+    const k = q.add();
+    // The keeper watches: no terrier, so no vote.
+    k.t.start(0, { packSize: 2, matchMinutes: 1 }, MATCH);
+    q.run(1000);
+    const j = q.add();
+    j.t.requestState(k.peer);
+    q.until(() => j.t.started, 1000);
+    j.t.sending = true;
+    j.t.controls = wander(j.k, j.t);
+    j.t.queueEvent(j.id, { events: JOIN, joinPack: 0, coat: 1, name: 'solo' });
+    let votes = 0;
+    q.rules.push((from, _to, m) => {
+      if (from === j && m.type === T.TICK && m.voteTick !== NO_TICK) votes++;
+      return 0;
+    });
+    q.run(3000);
+    expect(votes).toBeGreaterThan(100);
+    expect([j.t.isConfirmed(j.t.finalTick - V), j.t.stats.disagree]).toEqual([true, 0]);
+    expect(k.t.stats.agree).toBeGreaterThan(100);
+  });
+
+  it('takes only a STATE it asked for (§4.10)', () => {
+    const got: StateMsg[] = [];
+    const giver = new Timeline({ ...NET.timeline, P, me: playerId(7) }, {
+      broadcast: () => {}, sendToPlayer: () => false, sendToPeer: (_p, bytes) => got.push(decode(bytes, P, WIRE) as StateMsg),
+    });
+    expect(giver.onStateReq('x', { type: T.STATE_REQ, tick: NO_TICK, want: ZERO_HASH }, 0)).toBe(false); // nothing to give yet
+    giver.start(0, { packSize: 2, matchMinutes: 1 }, MATCH);
+    giver.advance(500);
+    expect(giver.onStateReq('x', { type: T.STATE_REQ, tick: NO_TICK, want: ZERO_HASH }, 500)).toBe(true);
+    const joiner = new Timeline({ ...NET.timeline, P, me: playerId(9) }, { broadcast: () => {}, sendToPlayer: () => false, sendToPeer: () => {} });
+    expect(joiner.onState('giver', got[0]!, 0, 500)).toBe(false);
+    joiner.requestState('giver');
+    expect(joiner.onState('stranger', got[0]!, 0, 500)).toBe(false);
+    expect(joiner.started).toBe(false);
+    expect(joiner.onState('giver', got[0]!, 0, 500)).toBe(true);
+    expect([joiner.started, joiner.id, joiner.finalTick, joiner.hashAt(joiner.finalTick)]).toEqual([true, MATCH, giver.finalTick, giver.hashAt(giver.finalTick)]);
+    // A started timeline takes no STATE it didn't ask for.
+    expect(joiner.onState('giver', got[0]!, 0, 600)).toBe(false);
+  });
+});
+
+// --- Strings (§5.7) ---
+
+describe("a sender's own JOIN (§2.4, §5.7)", () => {
+  it('records its name as receivers decode it: a leading U+FEFF kept, a lone surrogate the empty name', () => {
+    for (const name of ['\uFEFFRex', '\uD800ex', 'Ünïcödé 🐕']) {
+      const q = new Pump();
+      q.jitter = 0;
+      const a = q.add();
+      const b = q.add();
+      a.t.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
+      b.t.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
+      a.t.sending = true;
+      a.t.queueEvent(a.id, { events: JOIN, joinPack: 0, coat: 1, name });
+      q.run(1500);
+      const k = findTerrier(a.t.final, a.id);
+      expect(k).toBe(0);
+      expect(a.t.final.terriers[0]!.name).toBe(name.startsWith('\uD800') ? '' : name);
+      expectAgreement(q.nodes);
+      expect(b.t.final.terriers[0]!.name).toBe(a.t.final.terriers[0]!.name);
+      // Its own record of the JOIN, ridden in tick 1 + d, holds what b's does, not only the terrier's name.
+      const record = (n: Node): string | undefined =>
+        (n.t as unknown as { store: { get(id: string, t: number): { name?: string } | undefined } }).store.get(a.id, 1 + D)?.name;
+      expect([record(a), record(b)]).toEqual([a.t.final.terriers[0]!.name, a.t.final.terriers[0]!.name]);
+    }
+  });
+
+  it('sends the later of two payloads of a kind queued before one input (§2.4)', () => {
+    const sent: Tick[] = [];
+    const me = playerId(0);
+    const t = new Timeline({ ...NET.timeline, P, me, verify: 1 }, {
+      broadcast: (bytes) => sent.push(decode(bytes, P, WIRE) as Tick), sendToPlayer: () => false, sendToPeer: () => {},
+    });
+    t.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
+    t.sending = true;
+    t.queueEvent(me, { events: JOIN, joinPack: 0, coat: 1, name: 'first' });
+    t.queueEvent(me, { events: JOIN | READY, joinPack: 1, coat: 2, name: 'second' });
+    t.advance(at(1));
+    expect(sent.map((m) => m.own!.events)).toEqual([[{ back: 0, events: JOIN | READY, joinPack: 1, coat: 2, name: 'second' }]]);
+    t.advance(at(1 + D + W));
+    expect(t.final.terriers.map((x) => [x.pack, x.coat, x.name])).toEqual([[1, 2, 'second']]);
+  });
+});
+
+// --- The late boundary (§2.8) ---
+
+/** One sender's TICK for t with these inputs by tick, from its newest back through the history. */
+function tickOf(inputs: ReadonlyMap<number, number>, t: number, voteTick = NO_TICK, voteHash = ZERO_HASH): Tick {
+  let present = 0;
+  const hist: number[] = [];
+  for (let k = 0; k < NET.timeline.inputHistory; k++) {
+    const v = inputs.get(t - 1 - k);
+    if (v !== undefined) present |= 1 << k;
+    hist.push(v ?? 0);
+  }
+  return { type: T.TICK, t, own: { input: inputs.get(t) ?? 0, present, hist, events: [] }, voteTick, voteHash, phase: 0, bots: [] };
+}
+
+const at = (n: number): number => n * NET.tickMs + 1;
+
+describe('the late boundary (§2.8)', () => {
+  it('is max(finalTick, ⌊clock⌋ − w) outside a warm-up: a page whose timers slept drops what every other peer finalised absent', () => {
+    const t = new Timeline({ ...NET.timeline, P, me: playerId(0) }, { broadcast: () => {}, sendToPlayer: () => false, sendToPeer: () => {} });
+    t.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
+    const b = playerId(1);
+    t.advance(at(40));
+    const f = t.finalTick;
+    expect(f).toBe(40 - W);
+    // The clock reads 100 now, but the page hasn't advanced: finalTick is still 28.
+    const now = at(100);
+    const inputs = new Map<number, number>([[60, 7], [61, 7]]);
+    t.onTick(b, tickOf(inputs, 61), now, true);
+    // Both at or before 100 − w: late here as everywhere, though after finalTick.
+    expect([t.receivedInput(b, 60), t.receivedInput(b, 61)]).toEqual([undefined, undefined]);
+    expect(t.stats.late).toBe(1);
+    expect(t.stats.lateBy[Math.min(100 - W - 61, NET.timeline.inputHistory - 1)]).toBe(1);
+    // Inside the window it's kept, and past 2w + d ahead of the clock it's dropped.
+    t.onTick(b, tickOf(new Map([[100 - W + 1, 3]]), 100 - W + 1), now, true);
+    expect(t.receivedInput(b, 100 - W + 1)).toBe(3);
+    t.onTick(b, tickOf(new Map([[100 + 2 * W + D + 1, 3]]), 100 + 2 * W + D + 1), now, true);
+    expect(t.receivedInput(b, 100 + 2 * W + D + 1)).toBe(undefined);
+    expect(t.finalTick).toBe(f);
+    // At the edges (§2.5, §2.12): an own input at lo itself is late, one tick late, and one at lo − 2
+    // three; one at hi itself is kept.
+    const lo = 100 - W;
+    const hi = 100 + 2 * W + D;
+    const [c, e, x, y, z] = [2, 3, 4, 5, 6].map(playerId) as [string, string, string, string, string];
+    const late = t.stats.late;
+    const lateBy = [...t.stats.lateBy];
+    t.onTick(c, tickOf(new Map([[lo, 7]]), lo), now, true);
+    t.onTick(e, tickOf(new Map([[lo - 2, 7]]), lo - 2), now, true);
+    t.onTick(x, tickOf(new Map([[hi, 5]]), hi), now, true);
+    expect([t.receivedInput(c, lo), t.receivedInput(e, lo - 2), t.receivedInput(x, hi), t.stats.late - late]).toEqual([undefined, undefined, 5, 2]);
+    const bins = new Array<number>(NET.timeline.inputHistory).fill(0);
+    bins[0] = 1;
+    bins[2] = 1;
+    expect(t.stats.lateBy.map((n, k) => n - lateBy[k]!)).toEqual(bins);
+    // An event keeps to the same window: a JOIN riding 20 ticks back, past the history, for lo is
+    // dropped, and one for lo + 1 makes a record events alone made, which joins at finalisation.
+    for (const [id, u] of [[y, lo], [z, lo + 1]] as const) {
+      const m = tickOf(new Map([[u + 20, 1]]), u + 20);
+      m.own!.events.push({ back: 20, events: JOIN, joinPack: 0, coat: 0, name: 'j' });
+      t.onTick(id, m, now, true);
+    }
+    t.advance(at(lo + 1 + W));
+    expect(t.finalTick).toBe(lo + 1);
+    expect([findTerrier(t.final, y), findTerrier(t.final, z)]).toEqual([-1, 0]);
+  });
+
+  it('stays finalTick in a warm-up, which takes the inputs in flight', () => {
+    const giverOut: { state: StateMsg | null } = { state: null };
+    const giver = new Timeline({ ...NET.timeline, P, me: playerId(0) }, {
+      broadcast: () => {}, sendToPlayer: () => false, sendToPeer: (_p, bytes) => (giverOut.state = decode(bytes, P, WIRE) as StateMsg),
+    });
+    giver.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
+    const b = playerId(1);
+    // b's input at 35, after the STATE's tick, makes it an active sender there: the joiner warms up.
+    giver.advance(at(30));
+    giver.onTick(b, tickOf(new Map([[35, 1]]), 35), at(30), true);
+    giver.advance(at(40));
+    giver.onStateReq('joiner', { type: T.STATE_REQ, tick: NO_TICK, want: ZERO_HASH }, at(40));
+    const j = new Timeline({ ...NET.timeline, P, me: playerId(2) }, { broadcast: () => {}, sendToPlayer: () => false, sendToPeer: () => {} });
+    j.requestState('giver');
+    // 200 ms on the way: the joiner's clock reads the giver's and 12 ticks more.
+    expect(j.onState('giver', giverOut.state!, 200, at(40))).toBe(true);
+    expect(j.repairing).toBe(true);
+    const g = j.finalTick;
+    expect(g).toBe(40 - W);
+    const lo = Math.floor(j.clock(at(40))) - W;
+    expect(lo).toBeGreaterThan(g + 1);
+    // Past ⌊clock⌋ − w, which would make them late outside a warm-up, inputs for g + 1 and lo are taken.
+    j.onTick(b, tickOf(new Map([[g + 1, 9], [lo, 9]]), lo), at(40), true);
+    expect([j.receivedInput(b, g + 1), j.receivedInput(b, lo), j.stats.late]).toEqual([9, 9, 0]);
+    // b heard, the warm-up ends at the next advance; then the clock's boundary holds again.
+    j.advance(at(40));
+    expect(j.repairing).toBe(false);
+    const f = j.finalTick;
+    // Five ticks on, without an advance: f + 1 is at or before ⌊clock⌋ − w, and in the TICK's history.
+    const now = at(45);
+    const late = Math.floor(j.clock(now)) - W;
+    expect([late > f + 1, late + 1 - (f + 1) <= NET.timeline.inputHistory]).toEqual([true, true]);
+    j.onTick(b, tickOf(new Map([[f + 1, 4], [late + 1, 4]]), late + 1), now, true);
+    expect([j.receivedInput(b, f + 1), j.receivedInput(b, late + 1), j.stats.late]).toEqual([undefined, 4, 0]);
+  });
+});
+
+// --- Who may speak (§4.10), votes' window (§2.12) and late inputs (§9.3) ---
+
+describe('what a TICK may say (§2.5, §2.12, §4.10)', () => {
+  function watcher(): { t: Timeline; me: string; mine: string } {
+    const me = playerId(0);
+    const t = new Timeline({ ...NET.timeline, P, me }, { broadcast: () => {}, sendToPlayer: () => false, sendToPeer: () => {} });
+    t.start(0, { packSize: 2, matchMinutes: 1 }, MATCH);
+    const mine = botId(me, 0);
+    t.bots.set(mine, () => 0);
+    return { t, me, mine };
+  }
+
+  it('is never about this browser or its bots, and speaks for a bot only from its host', () => {
+    const { t, me, mine } = watcher();
+    const [b, c] = [playerId(1), playerId(2)];
+    t.advance(at(5));
+    const inputs = new Map([[8, 5]]);
+    t.onTick(me, tickOf(inputs, 8), at(5), true);
+    t.onTick(mine, tickOf(inputs, 8), at(5), true);
+    expect([t.stats.received, t.receivedInput(me, 8), t.receivedInput(mine, 8)]).toEqual([0, undefined, undefined]);
+    const m = tickOf(inputs, 8);
+    const entry = (id: string, input: number) => ({ id, input, present: 0, hist: new Array<number>(NET.timeline.inputHistory).fill(0), events: [] });
+    m.bots.push(entry(botId(b, 1), 6), entry(botId(c, 0), 7), entry(mine, 8));
+    t.onTick(b, m, at(5), true);
+    expect([t.receivedInput(b, 8), t.receivedInput(botId(b, 1), 8), t.receivedInput(botId(c, 0), 8), t.receivedInput(mine, 8)]).toEqual([5, 6, undefined, undefined]);
+    expect(t.heardAt(b)).toBe(at(5));
+    // The last arrival, not the first.
+    t.onTick(b, tickOf(inputs, 9), at(6), false);
+    expect([t.heardAt(b), t.heardAt(c)]).toEqual([at(6), undefined]);
+  });
+
+  it('books a vote only inside (finalTick − history, ⌊clock⌋ + w]', () => {
+    const { t } = watcher();
+    const b = playerId(1);
+    t.advance(at(300));
+    const f = t.finalTick;
+    const book = (t as unknown as { book: { voters(g: number, hash: string, me: string): string[] } }).book;
+    const h = 'aaaaaaaaaaaaaaaa';
+    for (const g of [f - NET.timeline.history, f - NET.timeline.history + 1, f + 1, 300 + W, 300 + W + 1]) t.onTick(b, tickOf(new Map(), 300 + D, g, h), at(300), true);
+    expect([f - NET.timeline.history, f - NET.timeline.history + 1, f + 1, 300 + W, 300 + W + 1].map((g) => book.voters(g, h, '').length)).toEqual([0, 1, 1, 1, 0]);
+  });
+
+  it('counts an input that came after its tick was finalised absent, once for each (sender, tick) (§9.3)', () => {
+    const { t } = watcher();
+    const b = playerId(1);
+    const inputs = new Map<number, number>();
+    const send = (u: number, n: number): void => {
+      const m = tickOf(inputs, u);
+      if (u === 3) m.own!.events.push({ back: 0, events: JOIN, joinPack: 1, coat: 0, name: 'b' });
+      t.onTick(b, m, at(n), true);
+    };
+    for (let n = 1; n <= 28; n++) {
+      t.advance(at(n));
+      inputs.set(n + D, 1);
+      send(n + D, n);
+    }
+    // b's TICKs for 31 and 32 are held up: both are finalised absent here.
+    inputs.set(31, 1);
+    inputs.set(32, 1);
+    inputs.set(33, 1);
+    inputs.set(34, 1);
+    for (let n = 29; n <= 44; n++) t.advance(at(n));
+    expect([t.finalTick, t.receivedInput(b, 31)]).toEqual([32, undefined]);
+    send(33, 44);
+    send(34, 44);
+    expect([t.stats.lateAbsent, t.stats.late]).toEqual([2, 0]);
+    // The held TICK for 32 itself, at last: late, and its pair counted already.
+    send(32, 44);
+    expect([t.stats.lateAbsent, t.stats.late]).toEqual([2, 1]);
+    expect(t.final.terriers.length).toBe(1);
+  });
+});
+
+// --- STATE_REQ (§3.4) ---
+
+describe('a STATE_REQ (§3.4)', () => {
+  function giver(): { t: Timeline; sent: StateMsg[] } {
+    const sent: StateMsg[] = [];
+    const t = new Timeline({ ...NET.timeline, P, me: playerId(0) }, {
+      broadcast: () => {}, sendToPlayer: () => false, sendToPeer: (_p, bytes) => sent.push(decode(bytes, P, WIRE) as StateMsg),
+    });
+    t.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
+    return { t, sent };
+  }
+
+  it('is answered with the newest final state, or a held final tick with the hash asked for, and nothing else', () => {
+    const { t, sent } = giver();
+    t.advance(at(100));
+    const f = t.finalTick;
+    const req = (tick: number, want: string): boolean => t.onStateReq('p', { type: T.STATE_REQ, tick, want }, at(100));
+    expect(req(NO_TICK, ZERO_HASH)).toBe(true);
+    expect(req(f - 10, t.hashAt(f - 10))).toBe(true);
+    expect(req(f - 11, ZERO_HASH)).toBe(true);
+    expect(req(f - 10, t.hashAt(f - 9))).toBe(false); // another hash
+    expect(req(f + 1, ZERO_HASH)).toBe(false); // not final
+    expect(req(NO_TICK, t.hashAt(f - 1))).toBe(false); // the newest isn't that
+    expect(sent.map((m) => m.g)).toEqual([f, f - 10, f - 11]);
+    expect([t.stats.statesSent, t.stats.statesRefused]).toEqual([3, 3]);
+    for (const m of sent) {
+      expect(hash64(m.state)).toBe(t.hashAt(m.g));
+      // The clock, not localTick; records to localTick + d.
+      expect([m.senderTick, m.senderFinal, m.inputs.length]).toEqual([100, f, 100 + D - m.g]);
+    }
+  });
+
+  it('carries events-only records up to its final tick and none after (parts-T6)', () => {
+    const { t, sent } = giver();
+    const b = playerId(1);
+    t.advance(at(20));
+    // An event for a tick whose input never came: a record events alone made, at 15 and at 30.
+    for (const u of [15, 30]) {
+      t.onTick(b, { ...tickOf(new Map(), u + 20), own: { input: 0, present: 0, hist: new Array<number>(NET.timeline.inputHistory).fill(0), events: [{ back: 20, events: READY }] } }, at(20), true);
+    }
+    t.advance(at(40));
+    expect(t.finalTick).toBe(28);
+    t.onStateReq('p', { type: T.STATE_REQ, tick: 10, want: ZERO_HASH }, at(40));
+    const m = sent[0]!;
+    const players = (u: number): string[] => m.inputs[u - m.g - 1]!.map((x) => x.player);
+    expect(players(15)).toEqual([b]); // final here: input 0 with its event
+    expect(players(30)).toEqual([]); // not final: its event rides in b's TICKs
+  });
+
+  it('is refused while paused, and where the clock fell back below finalTick: stateRecordsMax is −1', () => {
+    const { t, sent } = giver();
+    t.advance(at(100));
+    t.pause(at(100));
+    expect([t.answering, t.onStateReq('p', { type: T.STATE_REQ, tick: NO_TICK, want: ZERO_HASH }, at(100))]).toEqual([false, false]);
+    t.resume(at(100));
+    expect(t.answering).toBe(true);
+    // A peer whose clock runs 30 ticks behind: once settled, the median jumps this clock back past finalTick.
+    const peer = playerId(5);
+    let n = 100;
+    while (t.stats.jumps === 0 && n < 400) {
+      n++;
+      t.onTick(peer, tickOf(new Map(), n - 30 + D), at(n), true);
+      t.advance(at(n));
+    }
+    expect(t.stats.jumps).toBe(1);
+    expect(Math.floor(t.clock(at(n)))).toBeLessThan(t.finalTick);
+    expect(t.onStateReq('p', { type: T.STATE_REQ, tick: NO_TICK, want: ZERO_HASH }, at(n))).toBe(false);
+    expect(sent).toEqual([]);
+    expect(t.stats.statesRefused).toBe(2);
+    // The resync's case is a network one: below, with the repair.
+  });
+
+  it('builds records only up to ⌊clock⌋ + d where the clock fell back below localTick, so it truncates none (D-18, M3 phase 1)', () => {
+    const { t, sent } = giver();
+    t.advance(at(100));
+    // A peer whose clock runs 8 ticks behind: once settled, the median jumps this clock back between finalTick and localTick.
+    const peer = playerId(5);
+    let n = 100;
+    while (t.stats.jumps === 0 && n < 400) {
+      n++;
+      t.onTick(peer, tickOf(new Map(), n - 8 + D), at(n), true);
+      t.advance(at(n));
+    }
+    expect(t.stats.jumps).toBe(1);
+    const clock = Math.floor(t.clock(at(n)));
+    expect([clock < t.localTick, clock >= t.finalTick]).toEqual([true, true]);
+    expect(t.onStateReq('p', { type: T.STATE_REQ, tick: NO_TICK, want: ZERO_HASH }, at(n))).toBe(true);
+    expect([t.stats.statesTruncated, sent[0]!.senderTick, sent[0]!.inputs.length]).toEqual([0, clock, clock + D - t.finalTick]);
+  });
+});
+
+// --- A resync (§3.1, §3.4, §3.6) ---
+
+describe('a resync after a dropped input (§3.1, §3.4, §3.6)', () => {
+  /** b misses one of a's TICKs: held back past the late window, so b finalises a absent there,
+   *  loses the tally 2 to 1 and repairs from a or c. */
+  function dropped(q: Pump): void {
+    const nodes = [q.add(), q.add(), q.add()];
+    nodes.forEach((n, k) => plays(n, k % 2, false));
+    q.run(1500);
+    let once = true;
+    q.rules.push((from, to, m) => {
+      if (once && from.k === 0 && to.k === 1 && m.type === T.TICK) {
+        once = false;
+        return 400;
+      }
+      return 0;
+    });
+    q.run(3500);
+  }
+
+  it('repairs the dissenter: no vote sent and no STATE answered while outstanding, its own votes replaced, every hash equal after', () => {
+    const p = twin(dropped);
+    const [a, b, c] = p.nodes as [Node, Node, Node];
+    expectAgreement(p.nodes);
+    expect(b.t.stats.resyncs).toBe(1);
+    expect(b.t.stats.disagree).toBeGreaterThan(0);
+    expect([a.t.stats.resyncs, c.t.stats.resyncs]).toEqual([0, 0]);
+    expect(a.t.stats.statesSent + c.t.stats.statesSent).toBe(1);
+    const repairs = b.corrections.filter((x) => x.repair);
+    expect(repairs.length).toBe(1);
+    expect(repairs[0]!.from).toBeLessThanOrEqual(repairs[0]!.tick);
+  });
+
+  it("books b's repaired votes in place of its stale ones, and sends none while it waits", () => {
+    const q = new Pump();
+    const watch: { voted: number; waiting: number; refused: boolean } = { voted: 0, waiting: 0, refused: false };
+    const nodes = [q.add(), q.add(), q.add()];
+    nodes.forEach((n, k) => plays(n, k % 2, false));
+    q.run(1500);
+    let once = true;
+    q.rules.push((from, to, m) => {
+      if (from.k === 1 && m.type === T.TICK && m.voteTick !== NO_TICK && nodes[1]!.t.repairing) watch.voted++;
+      if (once && from.k === 0 && to.k === 1 && m.type === T.TICK) {
+        once = false;
+        return 400;
+      }
+      return 0;
+    });
+    const b = nodes[1]!.t;
+    q.run(3500, () => {
+      if (b.repairing) watch.waiting++;
+      // A STATE_REQ to b while its resync is outstanding is refused (§3.6's second rule).
+      if (!b.answering && b.started && !watch.refused) {
+        watch.refused = !b.onStateReq('probe', { type: T.STATE_REQ, tick: NO_TICK, want: ZERO_HASH }, q.now);
+      }
+    });
+    expect(b.stats.resyncs).toBe(1);
+    expect(watch.waiting).toBeGreaterThan(0);
+    expect(watch.voted).toBe(0);
+    expect(watch.refused).toBe(true);
+    // The book holds b's vote for each re-finalised tick under the winner's hash.
+    const book = (b as unknown as { book: { voters(t: number, hash: string, me: string): string[] } }).book;
+    const g = Number(b.stats.log.find(([, e]) => e.startsWith('STATE '))![1].slice(6));
+    for (let u = g + 1; u <= g + 10; u++) expect(book.voters(u, b.hashAt(u), '')).toContain(nodes[1]!.id);
+    expectAgreement(q.nodes);
+  });
+});
+
+// --- LEAVE (M3 phase 1's answers) ---
+
+describe('a LEAVE a STATE wiped out', () => {
+  it('goes again with the next own input: the STATE replaced its tick with an absence', () => {
+    const sent: Tick[] = [];
+    const asked: string[] = [];
+    const me = playerId(1);
+    const t = new Timeline({ ...NET.timeline, P, me, verify: 1 }, {
+      broadcast: (bytes) => sent.push(decode(bytes, P, WIRE) as Tick),
+      sendToPlayer: (player) => (asked.push(player), true),
+      sendToPeer: () => {},
+    });
+    t.start(0, { packSize: 2, matchMinutes: 1 }, MATCH);
+    t.sending = true;
+    t.queueEvent(me, { events: JOIN, joinPack: 0, coat: 1, name: 'me' });
+    // Two remote players, x and y, whose TICKs the test writes: they join at once and hold nothing.
+    const [x, y] = [playerId(2), playerId(3)];
+    const held = new Map<number, number>();
+    const remote = (n: number, voteTick = NO_TICK, voteHash = ZERO_HASH): void => {
+      held.set(n + D, 0);
+      for (const [id, pack] of [[x, 1], [y, 0]] as const) {
+        const m = tickOf(held, n + D, voteTick, voteHash);
+        if (n === 1) m.own!.events.push({ back: 0, events: JOIN, joinPack: pack, coat: 2, name: id.slice(-2) });
+        t.onTick(id, m, at(n), true);
+      }
+    };
+    let n = 0;
+    const tickTo = (to: number, vote: () => [number, string] = () => [NO_TICK, ZERO_HASH]): void => {
+      while (n < to) {
+        n++;
+        t.advance(at(n));
+        remote(n, ...vote());
+      }
+    };
+    tickTo(52);
+    const g = t.finalTick;
+    expect([g, t.final.terriers.length]).toEqual([52 - W, 3]);
+    // x and y vote for another state at g, so this browser loses g's tally 2 to 1.
+    const theirs = { ...t.final, terriers: t.final.terriers.map((T, k) => (k === 0 ? { ...T, heading: (T.heading + 1) >>> 0 } : { ...T })) };
+    const bytes = encodeState(theirs);
+    const win = hash64(bytes);
+    expect(win).not.toBe(t.hashAt(g));
+    tickTo(g + W + V - 4, () => [g, win]);
+    t.queueEvent(me, { events: LEAVE });
+    tickTo(g + W + V - 3, () => [g, win]);
+    const leaveTick = sent[sent.length - 1]!.t;
+    expect(sent[sent.length - 1]!.own!.events).toEqual([{ back: 0, events: LEAVE }]);
+    tickTo(g + W + V);
+    expect(asked).toEqual([x]);
+    expect(t.repairing).toBe(true);
+    // The winner's STATE: its records at g + 1 … senderFinal hold x and y but not this browser.
+    const senderFinal = leaveTick + 1;
+    const inputs = Array.from({ length: senderFinal + D - g }, () => [x, y].map((player) => ({ player, input: 0, events: 0 })));
+    const wire = encodeStateMessage({ timeline: MATCH, senderTick: senderFinal, phase: 0, g, senderFinal, state: bytes, inputs }, theirs.terriers.map((T) => T.id), WIRE);
+    const state = decode(wire.bytes, P, WIRE) as StateMsg;
+    expect(t.onState('peer-x', state, 0, at(n))).toBe(true);
+    expect(t.hashAt(g)).toBe(win);
+    expect(t.receivedInput(me, leaveTick)).toBe(undefined);
+    // The next TICK carries the LEAVE again, for its own tick, and no longer the one the STATE wiped out.
+    tickTo(n + 1);
+    const next = sent[sent.length - 1]!;
+    expect(next.t).toBeGreaterThan(senderFinal);
+    expect(next.own!.events).toEqual([{ back: 0, events: LEAVE }]);
+    tickTo(n + W + 2);
+    expect(findTerrier(t.final, me)).toBe(-1);
+    // It rode until its tick was final here, and stops there.
+    expect(sent[sent.length - 1]!.own!.events).toEqual([{ back: W + 2, events: LEAVE }]);
+    tickTo(n + 1);
+    expect(sent[sent.length - 1]!.own!.events).toEqual([]);
+    expect(t.stats.resyncs).toBe(1);
+    expect(t.stats.verifyMismatches).toBe(0);
+  });
+});
+
+// --- Pause, reanchor and the catch-up (§2.4, §2.13, §4.12) ---
+
+describe('the clock on timers (§2.4, §2.13)', () => {
+  function lone(over: Partial<TimelineConfig> = {}): { t: Timeline; ticks: Tick[] } {
+    const ticks: Tick[] = [];
+    const t = new Timeline({ ...NET.timeline, P, me: playerId(0), verify: 1, ...over }, {
+      broadcast: (bytes) => ticks.push(decode(bytes, P, WIRE) as Tick), sendToPlayer: () => false, sendToPeer: () => {},
+    });
+    t.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
+    t.sending = true;
+    return { t, ticks };
+  }
+
+  it('pauses frozen, resumes where it stopped, and re-anchors at localTick after a stall', () => {
+    const { t, ticks } = lone();
+    for (let n = 1; n <= 30; n++) t.advance(at(n));
+    expect(t.localTick).toBe(30);
+    t.pause(at(30));
+    t.advance(at(500));
+    expect([t.paused, t.localTick, ticks.length]).toEqual([true, 30, 30]);
+    t.resume(at(500));
+    t.advance(at(501));
+    expect(t.localTick).toBe(31); // nothing caught up across the pause (D-22)
+    // A stall: the clock ran on 200 ticks while no timer ran; re-anchored, it goes on from localTick.
+    t.reanchor(at(731));
+    t.advance(at(731) + 1);
+    expect(t.localTick).toBe(31);
+    t.advance(at(732) + 1);
+    expect(t.localTick).toBe(32);
+    expect(ticks.map((m) => m.t)).toEqual(Array.from({ length: 32 }, (_, k) => k + 1 + D));
+    // A stall the session decided paused (§4.12), re-anchored with no resume: it runs on from localTick.
+    t.pause(at(733));
+    t.reanchor(at(900));
+    expect(t.paused).toBe(false);
+    t.advance(at(901) + 1);
+    expect(t.localTick).toBe(33);
+    expect(ticks.map((m) => m.t)).toEqual(Array.from({ length: 33 }, (_, k) => k + 1 + D));
+    expect(t.stats.verifyMismatches).toBe(0);
+  });
+
+  it('sends only the newest stallSendTicks after a catch-up, the rest absent for good; Practice sends every tick (D-22)', () => {
+    const { t, ticks } = lone();
+    t.advance(at(10));
+    t.advance(at(40));
+    const sentTicks = ticks.map((m) => m.t);
+    const stall = NET.timeline.stallSendTicks;
+    expect(sentTicks).toEqual([...Array.from({ length: stall }, (_, k) => 10 - stall + 1 + k), ...Array.from({ length: stall }, (_, k) => 40 - stall + 1 + k)].map((n) => n + D));
+    // Its own skipped ticks are absent, as every receiver finalises them.
+    const last = ticks[ticks.length - 1]!.own!;
+    expect(last.present & 0xff).toBe(0b11);
+    expect(t.receivedInput(playerId(0), 20 + D)).toBe(undefined);
+    expect(t.receivedInput(playerId(0), 40 + D)).toBe(0);
+    const practice = lone({ stallSendTicks: Infinity });
+    practice.t.advance(at(40));
+    expect(practice.ticks.map((m) => m.t)).toEqual(Array.from({ length: 40 }, (_, k) => k + 1 + D));
+  });
+});
+
+// --- Corrections (§2.11) ---
+
+describe('the correction observer (§2.11)', () => {
+  it("fires for each recomputation of the drawn head's tick, from the earliest tick touched, and repair only from a STATE", () => {
+    const q = new Pump();
+    q.latency = 90;
+    const [a, b] = [q.add(), q.add()];
+    plays(a, 0, false, 1);
+    plays(b, 1, false, 1);
+    q.run(3000);
+    const cs = a.corrections;
+    expect(cs.length).toBeGreaterThan(0);
+    expect(cs.length).toBe(a.t.stats.corrections);
+    for (const c of cs) {
+      expect(c.repair).toBe(false);
+      expect(c.from).toBeLessThanOrEqual(c.tick);
+      expect(c.from).toBeGreaterThan(c.tick - W - D - 8);
+      expect([c.before.tick, c.after.tick]).toEqual([c.tick, c.tick]);
+    }
+    // Most moved something; each is reported whether or not it did.
+    expect(cs.some((c) => hashState(c.before) !== hashState(c.after))).toBe(true);
+  });
+});

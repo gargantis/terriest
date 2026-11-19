@@ -2,9 +2,11 @@
 // on its own in a file of each group by scripts/eslint/config.test.mjs.
 // Never compiled or bundled. {{src}} is the path from that file to src/.
 // Only src/render imports three, from 'three' and 'three/addons/…' only;
-// only src/net/trystero.ts imports Trystero, whose types go anywhere; and
-// src/core imports no drawing or browser folder. Everywhere, a specifier is
-// a plain string, written without a detour.
+// only src/net/trystero.ts imports Trystero, whose types go anywhere;
+// src/core imports nothing outside src/core but src/config.ts (M3); and
+// src/net/trystero.ts and src/net/dev-relay.ts are loaded only by import(),
+// Trystero's file from src/ui/game.ts alone (M3). Everywhere, a specifier
+// is a plain string, written without a detour.
 
 // == three
 import * as THREE from 'three';
@@ -139,3 +141,111 @@ import { TICK_RATE } from '{{src}}/config';
 import { step } from '{{src}}/core/sim/step';
 import { decode } from './input';
 export const t = [TICK_RATE, step, decode];
+
+// == src/net
+import { LocalTransport } from '{{src}}/net/local';
+export const t = new LocalTransport();
+
+// == src/net re-exported
+export { LocalTransport } from '{{src}}/net/local';
+
+// == src/net re-exported whole
+export * from '{{src}}/net/local';
+
+// == src/net re-exported as a namespace
+export * as local from '{{src}}/net/local';
+
+// == src/net's types
+import type { Transport } from '{{src}}/net/transport';
+export type T = Transport;
+
+// == src/net in an import type
+export type T = import('{{src}}/net/transport').Transport;
+
+// == src/storage
+import { load } from '{{src}}/storage/profile';
+export const l = load;
+
+// == src/main, for its side effects
+import '{{src}}/main';
+
+// == the net page
+import { run } from '{{src}}/nettest';
+export const r = run;
+
+// == the net page's parameters
+import type { NetParams } from '{{src}}/nettest-params';
+export type P = NetParams;
+
+// == the determinism page imported dynamically
+export const m = import('{{src}}/determinism');
+
+// == the build info
+import { BUILD_INPUTS } from '{{src}}/build-info';
+export const b = BUILD_INPUTS;
+
+// == a module outside src
+import { roomConfig } from '{{src}}/../vendor/hermet/room-config';
+export const c = roomConfig;
+
+// == a file outside src
+import thirdParty from '{{src}}/../third-party.json';
+export const t = thirdParty;
+
+// == src/net from the root
+import { LocalTransport } from '/src/net/local';
+export const t = new LocalTransport();
+
+// == src/net/trystero
+import { openRoom } from '{{src}}/net/trystero';
+export const o = openRoom;
+
+// == src/net/trystero re-exported
+export { openRoom } from '{{src}}/net/trystero';
+
+// == src/net/trystero re-exported whole
+export * from '{{src}}/net/trystero';
+
+// == src/net/trystero re-exported as a namespace
+export * as trystero from '{{src}}/net/trystero';
+
+// == src/net/trystero's types re-exported whole
+export type * from '{{src}}/net/trystero';
+
+// == src/net/trystero for its side effects
+import '{{src}}/net/trystero';
+
+// == src/net/trystero by its extension
+import { openRoom } from '{{src}}/net/trystero.ts';
+export const o = openRoom;
+
+// == src/net/trystero from its own folder
+import { openRoom } from './trystero';
+export const o = openRoom;
+
+// == src/net/trystero imported dynamically
+export const m = import('{{src}}/net/trystero');
+
+// == src/net/trystero's types
+import type { TrysteroRoom } from '{{src}}/net/trystero';
+export type R = TrysteroRoom;
+
+// == src/net/trystero in an import type
+export type R = import('{{src}}/net/trystero').TrysteroRoom;
+
+// == src/net/trystero's types re-exported
+export type { TrysteroRoom } from '{{src}}/net/trystero';
+
+// == src/net/trystero's types by an inline type specifier
+import { type TrysteroRoom } from '{{src}}/net/trystero';
+export type R = TrysteroRoom;
+
+// == src/net/dev-relay
+import { devRelay } from '{{src}}/net/dev-relay';
+export const d = devRelay;
+
+// == src/net/dev-relay imported dynamically
+export const m = import('{{src}}/net/dev-relay');
+
+// == src/net/dev-relay's types
+export type D = typeof import('{{src}}/net/dev-relay').devRelay;

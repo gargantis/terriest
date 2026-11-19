@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:local": "node scripts/dev-local.mjs",
     "lint": "eslint .",
     "public-scan": "node scripts/public-scan.mjs",
     "typecheck": "tsc --noEmit",

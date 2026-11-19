@@ -9,6 +9,15 @@
 // tests; src/render; src/net/trystero.ts; src/storage; the rest of src,
 // with dev/, the tuning page (M2). scripts/eslint/config.test.mjs lints
 // every ban in each group.
+//
+// M3 adds two rules of terriest's own, which resolve each specifier against
+// its file's path, as a pattern on the specifier as written can't (design
+// §1.36): src/core imports nothing outside src/core but src/config.ts, and
+// src/net/trystero.ts and src/net/dev-relay.ts are loaded only by import(),
+// Trystero's file from src/ui/game.ts alone, and by its own unit test, which
+// no build bundles and which mocks Trystero (M3 phase 2's integration).
+import { dirname, posix, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import { baseConfig } from './vendor/hermet/eslint/base.mjs';
@@ -38,10 +47,6 @@ const readonly = (names) => Object.fromEntries(names.map((n) => [n, 'readonly'])
 const THREE = '^three(/|$)';
 const THREE_NOT_ADDONS = '^three/(?!addons/)';
 const TRYSTERO = '^@trystero-p2p/';
-// A specifier that climbs out of its folder and names a drawing or browser
-// folder. The paths are part of the contract (PLAN §6): src/core holds no
-// folder of those names, so `./input` and `../protocol/input` stay allowed.
-const BROWSER_DIRS = '^((\\.{1,2}/)*\\.\\./(\\.{1,2}/)*(src/)?|/src/)(render|ui|input|audio)(/|\\.|$)';
 // The bans read a specifier as written, so it's written plainly: a package
 // by its name, never through node_modules, and a path without a detour, no
 // '.' or '..' after a named folder and no '//' ('../config/../render/scene').
@@ -51,7 +56,6 @@ const THREE_MESSAGE = 'Only src/render imports three (PLAN D-26, D-38).';
 const THREE_SRC_MESSAGE =
   "three is imported from 'three' and 'three/addons/…' only: its unbuilt sources would bundle a second copy (PLAN §15, D-38).";
 const TRYSTERO_MESSAGE = 'Only src/net/trystero.ts imports Trystero; types may be imported anywhere (PLAN D-18, D-38).';
-const BROWSER_DIRS_MESSAGE = 'src/core never imports src/render, src/ui, src/input or src/audio (REQUIREMENTS L252, PLAN D-38).';
 const DETOUR_MESSAGE =
   "Import a package by its name and a module by its plain path, with no node_modules, '.', '..' or '//' detour, so the import bans read where it leads (PLAN D-38).";
 
@@ -81,6 +85,86 @@ const IMPORT_FORM_BANS = [
     message: "Re-export types with `export type { … } from`: `export { type X } from 'm'` still loads m (PLAN D-18, D-38).",
   },
 ];
+
+// --- Module boundaries, by where a specifier leads (M3 design §1.36) ---
+
+// Paths as these rules compare them: repo-relative, from this config's
+// folder, with '/'.
+const REPO = dirname(fileURLToPath(import.meta.url));
+const fromRoot = (file) => relative(REPO, file).split(sep).join('/');
+const SCRIPT_EXT = /\.(?:[cm]?[jt]s|[jt]sx)$/;
+/** Where a specifier leads from `file`, repo-relative, or null for a
+ *  package. A root-absolute one is from the project root, as Vite reads it. */
+function target(file, specifier) {
+  const path = specifier.replace(/[?#][\s\S]*$/, '');
+  if (path.startsWith('/')) return posix.normalize(path.slice(1));
+  if (path === '.' || path === '..' || path.startsWith('./') || path.startsWith('../')) {
+    return posix.normalize(posix.join(posix.dirname(file), path));
+  }
+  return null;
+}
+/** The visitors that hand `check` each module a file names, and how:
+ *  'static' (an import or a re-export, a bare import for its side effects
+ *  among them), 'type' (import type, export type, an import type), or
+ *  'dynamic' (import()). */
+function eachModule(check) {
+  const from = (node, how) => {
+    if (typeof node?.value === 'string') check(node, node.value, how);
+  };
+  return {
+    ImportDeclaration: (n) => from(n.source, n.importKind === 'type' ? 'type' : 'static'),
+    ExportNamedDeclaration: (n) => from(n.source, n.exportKind === 'type' ? 'type' : 'static'),
+    ExportAllDeclaration: (n) => from(n.source, n.exportKind === 'type' ? 'type' : 'static'),
+    TSImportEqualsDeclaration: (n) => from(n.moduleReference.expression, n.importKind === 'type' ? 'type' : 'static'),
+    ImportExpression: (n) => from(n.source, 'dynamic'),
+    TSImportType: (n) => from(n.source, 'type'),
+  };
+}
+
+const CORE_IMPORTS_MESSAGE =
+  'src/core imports nothing outside src/core but src/config.ts: no drawing, page, network, storage or build module, so the simulation, the timeline and the session stay pure (REQUIREMENTS L252, PLAN D-38, M3 design §1.36).';
+const IN_CORE = /^src\/core(\/|$)/;
+const CONFIG_MODULE = /^src\/config(\.[cm]?[jt]sx?)?$/;
+const coreImports = {
+  meta: { type: 'problem', schema: [], messages: { outside: CORE_IMPORTS_MESSAGE } },
+  create(context) {
+    const file = fromRoot(context.filename);
+    return eachModule((node, specifier) => {
+      const to = target(file, specifier);
+      if (to !== null && !IN_CORE.test(to) && !CONFIG_MODULE.test(to)) context.report({ node, messageId: 'outside' });
+    });
+  },
+};
+
+const GAME_FILE = 'src/ui/game.ts';
+// TrysteroRoom's own test, against a mocked Trystero: never bundled.
+const TRYSTERO_TEST = 'src/net/trystero.test.ts';
+const lazyImports = {
+  meta: {
+    type: 'problem',
+    schema: [],
+    messages: {
+      trystero:
+        'src/net/trystero.ts is never imported statically, so a normal page, the determinism page and Practice never load Trystero: src/ui/game.ts loads it with import() when a networked match opens. Its types may be imported anywhere (L238, PLAN D-18, M3 design §1.36).',
+      trysteroDynamic: 'Only src/ui/game.ts loads src/net/trystero.ts, with import(), when a networked match opens (L238, PLAN D-18, M3 design §1.36).',
+      devRelay:
+        "src/net/dev-relay.ts is loaded only with import(), under import.meta.env.DEV, so a production build never bundles npm run dev:local's relay, and a chunk of its own would show if one did (PLAN §15, M3 design §1.29, §1.33).",
+    },
+  },
+  create(context) {
+    const file = fromRoot(context.filename);
+    return eachModule((node, specifier, how) => {
+      const to = target(file, specifier)?.replace(SCRIPT_EXT, '');
+      if (to === 'src/net/trystero') {
+        if (file === TRYSTERO_TEST) return;
+        if (how === 'static') context.report({ node, messageId: 'trystero' });
+        else if (how === 'dynamic' && file !== GAME_FILE) context.report({ node, messageId: 'trysteroDynamic' });
+      } else if (to === 'src/net/dev-relay' && how === 'static') {
+        context.report({ node, messageId: 'devRelay' });
+      }
+    });
+  },
+};
 
 // --- Globals (PLAN §6, D-38) ---
 
@@ -217,15 +301,12 @@ function groupRules({ exact = false, core = false, render = false, trystero = fa
     imports.push({ regex: TRYSTERO, allowTypeImports: true, message: TRYSTERO_MESSAGE });
     syntax.push(...dynamicBans(TRYSTERO, TRYSTERO_MESSAGE, { types: false }));
   }
-  if (core) {
-    imports.push({ regex: BROWSER_DIRS, message: BROWSER_DIRS_MESSAGE });
-    syntax.push(...dynamicBans(BROWSER_DIRS, BROWSER_DIRS_MESSAGE));
-  }
   if (exact) syntax.push(...MATH_BANS, ...LOCALE_BANS, ...COLLECTION_BANS);
   const globals = core ? CORE_GLOBALS : storage ? [] : STORAGE_GLOBALS;
   return {
     ...(exact ? { 'hermet/exact-ops': 'error' } : {}),
-    ...(core ? { 'no-undef': 'error' } : {}),
+    ...(core ? { 'no-undef': 'error', 'terriest/core-imports': 'error' } : {}),
+    'terriest/lazy-imports': 'error',
     '@typescript-eslint/no-restricted-imports': ['error', { patterns: imports }],
     'no-restricted-syntax': ['error', ...syntax],
     'no-restricted-globals': globals.length > 0 ? ['error', ...globals] : 'off',
@@ -244,7 +325,11 @@ export default defineConfig(
     // The TypeScript parser for every script in src and dev, whatever its extension.
     files: [...SRC, ...DEV],
     languageOptions: { parser: tseslint.parser },
-    plugins: { '@typescript-eslint': tseslint.plugin, hermet: { rules: { 'exact-ops': exactOps } } },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+      hermet: { rules: { 'exact-ops': exactOps } },
+      terriest: { rules: { 'core-imports': coreImports, 'lazy-imports': lazyImports } },
+    },
     rules: {
       // Under verbatimModuleSyntax, `import { type X } from 'm'` is written
       // `import {} from 'm'`, which loads m: an inline type import of

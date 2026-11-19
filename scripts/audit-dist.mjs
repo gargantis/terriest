@@ -2,8 +2,11 @@
 // The PLAN §15 dist audit. The logic and its planted-failure self-test are
 // hermet's, in vendor/hermet/audit-dist.mjs; it allows the hosts in
 // third-party.json and expects the notices in scripts/expected-licenses.json.
-// terriest's exceptions are here (D-37).
+// terriest's exceptions are here (D-37), and so is its own check that no
+// dev relay ships (design §1.33).
+import { join } from 'node:path';
 import { runAuditDist } from '../vendor/hermet/audit-dist.mjs';
+import { auditDevRelay } from './dev-relay-audit.mjs';
 
 await runAuditDist({
   // Trystero's built-in STUN list, bundled from M3, is a template literal,
@@ -19,3 +22,12 @@ await runAuditDist({
   // GLTFLoader: a separator that's never requested (C-9, M0).
   ignoredPaths: ['/'],
 });
+
+// npm run dev:local's relay is dev only (PLAN §15): no dev-relay chunk, and
+// no file naming one or the dev server's variable.
+const devRelay = auditDevRelay(join(process.cwd(), 'dist'));
+if (devRelay.length > 0) {
+  for (const problem of devRelay) console.error(`audit-dist: ${problem} (design §1.33)`);
+  process.exit(1);
+}
+console.log('audit-dist: no dev relay in dist/');

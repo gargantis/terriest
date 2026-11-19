@@ -30,6 +30,8 @@ const AT = {
   ui: 'src/ui/a.ts',
   net: 'src/net/a.ts',
   trystero: 'src/net/trystero.ts',
+  // The one file that may load src/net/trystero.ts, with import() (M3).
+  game: 'src/ui/game.ts',
   storage: 'src/storage/a.ts',
   main: 'src/main.ts',
   dev: 'dev/tuning/a.ts',
@@ -49,6 +51,9 @@ const IMPORTS = '@typescript-eslint/no-restricted-imports';
 const UNDEF = 'no-undef';
 const TYPE_SIDE_EFFECTS = '@typescript-eslint/no-import-type-side-effects';
 const REQUIRE = '@typescript-eslint/no-require-imports';
+// terriest's own (M3 design §1.36).
+const CORE_IMPORTS = 'terriest/core-imports';
+const LAZY = 'terriest/lazy-imports';
 // A global the config names for src/core that isn't the language's own:
 // no-undef fails it there too.
 const DOM = { [GLOBALS]: CORE, [UNDEF]: CORE };
@@ -126,7 +131,7 @@ const EXPECT = {
   "three's sources": { [IMPORTS]: ALL },
   "three's sources imported dynamically": { [SYNTAX]: ALL },
   "three's sources in an import type": { [SYNTAX]: ALL },
-  "three's sources through node_modules": { [IMPORTS]: ALL },
+  "three's sources through node_modules": { [IMPORTS]: ALL, [CORE_IMPORTS]: CORE },
   "three's examples folder": { [IMPORTS]: ALL },
   Trystero: { [IMPORTS]: but('trystero') },
   'Trystero imported dynamically': { [SYNTAX]: but('trystero') },
@@ -135,24 +140,61 @@ const EXPECT = {
   "Trystero's types re-exported": {},
   "Trystero's types by an inline type specifier": { [TYPE_SIDE_EFFECTS]: ALL },
   "Trystero's types re-exported by an inline type specifier": { [SYNTAX]: ALL },
-  'src/render': { [IMPORTS]: CORE },
-  'src/ui': { [IMPORTS]: CORE },
-  'src/input': { [IMPORTS]: CORE },
-  'src/audio': { [IMPORTS]: CORE },
-  'src/render by a path that starts with ./': { [IMPORTS]: CORE },
-  "src/render's types": { [IMPORTS]: CORE },
-  'src/ui imported dynamically': { [SYNTAX]: CORE },
-  'src/render in an import type': { [SYNTAX]: CORE },
+  // src/core imports nothing outside src/core but src/config.ts: each
+  // specifier is resolved against its file's own path (M3).
+  'src/render': { [CORE_IMPORTS]: CORE },
+  'src/ui': { [CORE_IMPORTS]: CORE },
+  'src/input': { [CORE_IMPORTS]: CORE },
+  'src/audio': { [CORE_IMPORTS]: CORE },
+  'src/render by a path that starts with ./': { [CORE_IMPORTS]: CORE },
+  "src/render's types": { [CORE_IMPORTS]: CORE },
+  'src/ui imported dynamically': { [CORE_IMPORTS]: CORE },
+  'src/render in an import type': { [CORE_IMPORTS]: CORE },
   // From dev/, {{src}} is ../../src, so its path detours through '..' as well.
-  'src/render by a path through src/': { [IMPORTS]: [...CORE, 'dev'] },
-  'src/ui from the root': { [IMPORTS]: CORE },
-  "a module by a detour through '..'": { [IMPORTS]: ALL },
+  'src/render by a path through src/': { [CORE_IMPORTS]: CORE, [IMPORTS]: ['dev'] },
+  'src/ui from the root': { [CORE_IMPORTS]: CORE },
+  "a module by a detour through '..'": { [IMPORTS]: ALL, [CORE_IMPORTS]: CORE },
   "a module by a detour through '.'": { [IMPORTS]: ALL },
-  "a module by a detour through '//'": { [IMPORTS]: ALL },
-  'a detour imported dynamically': { [SYNTAX]: ALL },
-  'a detour in an import type': { [SYNTAX]: ALL },
+  "a module by a detour through '//'": { [IMPORTS]: ALL, [CORE_IMPORTS]: CORE },
+  'a detour imported dynamically': { [SYNTAX]: ALL, [CORE_IMPORTS]: CORE },
+  'a detour in an import type': { [SYNTAX]: ALL, [CORE_IMPORTS]: CORE },
   'import.meta.glob': { [SYNTAX]: ALL },
   "src/config and the core's own modules": {},
+  'src/net': { [CORE_IMPORTS]: CORE },
+  'src/net re-exported': { [CORE_IMPORTS]: CORE },
+  'src/net re-exported whole': { [CORE_IMPORTS]: CORE },
+  'src/net re-exported as a namespace': { [CORE_IMPORTS]: CORE },
+  "src/net's types": { [CORE_IMPORTS]: CORE },
+  'src/net in an import type': { [CORE_IMPORTS]: CORE },
+  'src/storage': { [CORE_IMPORTS]: CORE },
+  'src/main, for its side effects': { [CORE_IMPORTS]: CORE },
+  'the net page': { [CORE_IMPORTS]: CORE },
+  "the net page's parameters": { [CORE_IMPORTS]: CORE },
+  'the determinism page imported dynamically': { [CORE_IMPORTS]: CORE },
+  'the build info': { [CORE_IMPORTS]: CORE },
+  'a module outside src': { [CORE_IMPORTS]: CORE, [IMPORTS]: ['dev'] },
+  'a file outside src': { [CORE_IMPORTS]: CORE, [IMPORTS]: ['dev'] },
+  'src/net from the root': { [CORE_IMPORTS]: CORE },
+  // src/net/trystero.ts by import() from src/ui/game.ts alone, its types
+  // anywhere, and src/net/dev-relay.ts by import() only (M3).
+  'src/net/trystero': { [LAZY]: ALL, [CORE_IMPORTS]: CORE },
+  'src/net/trystero re-exported': { [LAZY]: ALL, [CORE_IMPORTS]: CORE },
+  'src/net/trystero re-exported whole': { [LAZY]: ALL, [CORE_IMPORTS]: CORE },
+  'src/net/trystero re-exported as a namespace': { [LAZY]: ALL, [CORE_IMPORTS]: CORE },
+  "src/net/trystero's types re-exported whole": { [CORE_IMPORTS]: CORE },
+  'src/net/trystero for its side effects': { [LAZY]: ALL, [CORE_IMPORTS]: CORE },
+  'src/net/trystero by its extension': { [LAZY]: ALL, [CORE_IMPORTS]: CORE },
+  // './trystero' leads to it only from src/net.
+  'src/net/trystero from its own folder': { [LAZY]: ['net', 'trystero'] },
+  'src/net/trystero imported dynamically': { [LAZY]: but('game'), [CORE_IMPORTS]: CORE },
+  "src/net/trystero's types": { [CORE_IMPORTS]: CORE },
+  'src/net/trystero in an import type': { [CORE_IMPORTS]: CORE },
+  "src/net/trystero's types re-exported": { [CORE_IMPORTS]: CORE },
+  // Under verbatimModuleSyntax this loads the module: it's a static import.
+  "src/net/trystero's types by an inline type specifier": { [TYPE_SIDE_EFFECTS]: ALL, [LAZY]: ALL, [CORE_IMPORTS]: CORE },
+  'src/net/dev-relay': { [LAZY]: ALL, [CORE_IMPORTS]: CORE },
+  'src/net/dev-relay imported dynamically': { [CORE_IMPORTS]: CORE },
+  "src/net/dev-relay's types": { [CORE_IMPORTS]: CORE },
   // storage.ts.fixture
   'localStorage destructured from window': { [PROPERTIES]: but('storage'), ...DOM },
   'storage on globalThis, by optional chaining': { [PROPERTIES]: but('storage'), [GLOBALS]: CORE },
@@ -310,6 +352,23 @@ describe('the files the lint reaches', { timeout: LINT_TIMEOUT_MS }, () => {
       ]);
     }
     expect(await ruleIds('export const a = localStorage;\n', 'src/ui/a.tsx')).toEqual([GLOBALS]);
+  });
+
+  it("holds M3's module rules in every script extension: src/core's imports, and src/net/trystero.ts by import() alone", async () => {
+    for (const ext of EXTS) {
+      expect(await ruleIds("import '../../net/local';\n", `src/core/timeline/a.${ext}`), `src/core/timeline/a.${ext}`).toEqual([CORE_IMPORTS]);
+      expect(await ruleIds("import '../../config';\n", `src/core/timeline/a.${ext}`), `config from a.${ext}`).toEqual([]);
+      expect(await ruleIds("import './trystero';\n", `src/net/a.${ext}`), `src/net/a.${ext}`).toEqual([LAZY]);
+      expect(await ruleIds("export const m = import('./dev-relay');\n", `src/net/a.${ext}`), `dev-relay from a.${ext}`).toEqual([]);
+    }
+    expect(await ruleIds("export const m = import('../net/trystero');\n", 'src/ui/game.ts')).toEqual([]);
+    expect(await ruleIds("export const m = import('../net/trystero');\n", 'src/ui/game.test.ts')).toEqual([LAZY]);
+    expect(await ruleIds("export const m = import('../net/trystero');\n", 'src/ui/practice.ts')).toEqual([LAZY]);
+    // TrysteroRoom's own test, which no build bundles, loads it either way; no other test may.
+    expect(await ruleIds("import { openRoom } from './trystero';\nexport const o = openRoom;\n", 'src/net/trystero.test.ts')).toEqual([]);
+    expect(await ruleIds("export const m = import('./trystero');\n", 'src/net/trystero.test.ts')).toEqual([]);
+    expect(await ruleIds("import './trystero';\n", 'src/net/loopback.test.ts')).toEqual([LAZY]);
+    expect(await ruleIds("export const m = import('./trystero');\n", 'src/net/trystero.test.tsx')).toEqual([LAZY]);
   });
 
   it("gives every test in src/core the environment, and src/core's own code none", async () => {
