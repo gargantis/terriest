@@ -1,14 +1,14 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { botIds, personId } from '../bot/bot-id';
-import { type Hello, PROTOCOL_VERSION, ROLE, T, TIMELINE_KIND, ZERO_HASH } from '../protocol/messages';
+import { ZERO_HASH } from '../protocol/messages';
 import { defaultParams, genesis, newTerrier } from '../sim/index';
-import { admits, beats, freePlaces, inRoster, spectatorsOverCap } from './roster';
+import { admits, againTimelineId, freePlaces, inRoster, outranks, spectatorsOverCap } from './roster';
 
 // The roster's questions (PLAN D-17, D-21, C-11, P7; M3's design,
 // research/m3/DESIGN.md, §1.10, §4.3, §4.5, M3-Q16): who is in it, the free
 // places, D-21's admission count and spectator cap, and which of two
-// timelines a room keeps (roslambo D-12, Q-7, without saves).
+// timelines a room keeps: outranks, and Play again's IDs (Q-7, P7, §4.9).
 
 const P = defaultParams;
 const host = personId(23, 0);
@@ -65,38 +65,96 @@ describe('spectatorsOverCap (D-21, C-11)', () => {
   });
 });
 
-describe('beats (roslambo D-12, Q-7, P7)', () => {
-  const hello = (o: Partial<Hello>): Hello => ({
-    type: T.HELLO, protocol: PROTOCOL_VERSION, build: '0123456789abcdef', player: host, role: ROLE.PLAYER,
-    timeline: '1111111111111111', timelineKind: TIMELINE_KIND.LIVE, phase: 0, finalTick: 100, hash: 'aaaaaaaaaaaaaaaa', name: '', ...o,
-  });
-  const none = hello({ timeline: ZERO_HASH, timelineKind: TIMELINE_KIND.NONE, finalTick: 0, hash: ZERO_HASH });
+describe('outranks (Q-7, P7; M3 phase 4a)', () => {
+  const tie = 60;
 
-  it('takes a live timeline over none, and none over nothing', () => {
-    expect(beats(hello({}), none)).toBe(true);
-    expect(beats(none, hello({}))).toBe(false);
-    expect(beats(none, none)).toBe(false);
+  it('takes the older timeline past the tie, and the smaller ID within it', () => {
+    expect(outranks('2222222222222222', 161, '1111111111111111', 100, tie)).toBe(true);
+    expect(outranks('1111111111111111', 100, '2222222222222222', 161, tie)).toBe(false);
+    expect(outranks('1111111111111111', 100, '2222222222222222', 160, tie)).toBe(true);
+    expect(outranks('2222222222222222', 160, '1111111111111111', 100, tie)).toBe(false);
+    expect(outranks('1111111111111111', 100, '1111111111111111', 100, tie)).toBe(false);
   });
 
-  it('takes the later final tick, the older timeline; then the smaller hash; then the smaller ID', () => {
-    expect(beats(hello({ finalTick: 101 }), hello({}))).toBe(true);
-    expect(beats(hello({}), hello({ finalTick: 101 }))).toBe(false);
-    expect(beats(hello({ hash: '0aaaaaaaaaaaaaaa' }), hello({}))).toBe(true);
-    expect(beats(hello({ timeline: '0111111111111111' }), hello({}))).toBe(true);
-    expect(beats(hello({}), hello({}))).toBe(false);
-  });
-
-  it('orders live HELLOs strictly, whoever compares them: one beats the other, never both, and transitively', () => {
-    const hex = (n: number): fc.Arbitrary<string> => fc.stringMatching(new RegExp(`^[0-9a-f]{${n}}$`));
-    const live = fc.record({ finalTick: fc.integer({ min: 0, max: 5 }), hash: fc.constantFrom('aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb'), timeline: hex(16) }).map(hello);
+  it('ranks two different timelines one way, whoever compares them', () => {
+    const hex = fc.stringMatching(/^[0-9a-f]{16}$/);
+    const age = fc.double({ min: 0, max: 40000, noNaN: true });
     fc.assert(
-      fc.property(live, live, live, (a, b, c) => {
-        const same = a.finalTick === b.finalTick && a.hash === b.hash && a.timeline === b.timeline;
-        expect(beats(a, b) && beats(b, a)).toBe(false);
-        if (!same) expect(beats(a, b) || beats(b, a)).toBe(true);
-        if (beats(a, b) && beats(b, c)) expect(beats(a, c)).toBe(true);
+      fc.property(hex, age, hex, age, (a, x, b, y) => {
+        fc.pre(a !== b);
+        expect(outranks(a, x, b, y, tie) !== outranks(b, y, a, x, tie)).toBe(true);
       }),
       { numRuns: 2000 },
+    );
+  });
+});
+
+describe("againTimelineId (§4.9; M3 phase 4)", () => {
+  const r = (...b: number[]): Uint8Array => Uint8Array.from(b);
+
+  it('is the press tick as a big-endian u32, then 4 random bytes, in lowercase hex', () => {
+    expect(againTimelineId(0x0a0b0c0d, r(0xde, 0xad, 0xbe, 0xef, 9, 9))).toBe('0a0b0c0ddeadbeef');
+    expect(againTimelineId(36000, r(1, 2, 3, 4))).toBe('00008ca001020304');
+    expect(againTimelineId(12.9, r(0, 0, 0, 5))).toBe('0000000c00000005');
+  });
+
+  it('holds the tick to the u32 and is never all zero, which means none', () => {
+    expect(againTimelineId(0, r(0, 0, 0, 0))).not.toBe(ZERO_HASH);
+    expect(againTimelineId(0, r(0, 0, 0, 0))).toBe('0000000000000001');
+    expect(againTimelineId(-5, r(0, 0, 0, 0))).toBe('0000000000000001');
+    expect(againTimelineId(Number.NaN, r(0, 0, 0, 7))).toBe('0000000000000007');
+    expect(againTimelineId(2 ** 40, r(0, 0, 0, 1))).toBe('ffffffff00000001');
+    expect(() => againTimelineId(5, r(1, 2, 3))).toThrow(RangeError);
+  });
+
+  it('gives an earlier press the smaller ID, whatever the random bytes', () => {
+    const bytes = fc.uint8Array({ minLength: 4, maxLength: 4 });
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 0xfffffffe }), fc.integer({ min: 1, max: 1000 }), bytes, bytes, (t, gap, x, y) => {
+        expect(againTimelineId(t, x) < againTimelineId(Math.min(t + gap, 0xffffffff), y)).toBe(true);
+      }),
+      { numRuns: 2000 },
+    );
+  });
+
+  // The point of the ID: pages estimate the two new timelines' ages with errors, and outranks then
+  // picks the earlier press on every page, at any spacing, the tie's edge included, so presses of one
+  // old match never split a room or rank in a cycle. With estimates within a quarter of the tie each
+  // way, an age gap past the tie comes only from presses more than half the tie apart, where the
+  // older is the earlier; within the tie the smaller ID is the earlier.
+  it("ranks presses a tie and a tick apart alike on a page that sees a tie and on one that doesn't", () => {
+    const a = againTimelineId(1000, r(0xff, 0xff, 0xff, 0xff)); // the earlier press, its random part the larger
+    const b = againTimelineId(1061, r(0, 0, 0, 1));
+    expect(outranks(a, 9061 - 1, b, 9000, 60)).toBe(true); // ages 60 apart here: a tie, the smaller ID
+    expect(outranks(a, 9061 + 1, b, 9000, 60)).toBe(true); // 62 apart there: the older
+    expect(outranks(b, 9000, a, 9061 - 1, 60)).toBe(false);
+  });
+
+  it('makes every page rank the presses of one old match alike, at any spacing, and never in a cycle', () => {
+    const tie = 60;
+    const err = fc.double({ min: -tie / 4, max: tie / 4, noNaN: true });
+    // Spacings of up to two and a half ties, so most pairs sit near the tie's edge.
+    const offsets = fc.uniqueArray(fc.integer({ min: 0, max: 150 }), { minLength: 3, maxLength: 3 });
+    const randoms = fc.array(fc.uint8Array({ minLength: 4, maxLength: 4 }), { minLength: 3, maxLength: 3 });
+    const pressesOf = fc.tuple(fc.integer({ min: 0, max: 36000 }), offsets, randoms).map(([base, o, rs]) => o.map((x, i) => ({ tick: base + x, random: rs[i]! })));
+    fc.assert(
+      fc.property(pressesOf, fc.array(fc.array(err, { minLength: 3, maxLength: 3 }), { minLength: 4, maxLength: 4 }), (presses, pages) => {
+        const now = 40000;
+        const ids = presses.map((p) => againTimelineId(p.tick, p.random));
+        const earliest = presses.reduce((m, p, i) => (p.tick < presses[m]!.tick ? i : m), 0);
+        for (const e of pages) {
+          const age = (i: number): number => now - presses[i]!.tick + e[i]!;
+          for (let i = 0; i < 3; i++)
+            for (let j = 0; j < 3; j++) {
+              if (i === j) continue;
+              const earlier = presses[i]!.tick < presses[j]!.tick;
+              expect(outranks(ids[i]!, age(i), ids[j]!, age(j), tie)).toBe(earlier);
+            }
+          const best = [0, 1, 2].find((i) => [0, 1, 2].every((j) => j === i || outranks(ids[i]!, age(i), ids[j]!, age(j), tie)));
+          expect(best).toBe(earliest);
+        }
+      }),
+      { numRuns: 1000 },
     );
   });
 });

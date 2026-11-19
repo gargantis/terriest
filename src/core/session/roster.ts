@@ -2,11 +2,10 @@
 // design, research/m3/DESIGN.md, §1.10, §4.3, §4.5): who is in it, how
 // many places are free, whether a HELLO from outside it is admitted, when a
 // watcher is one spectator too many, and which of two timelines a room
-// keeps. roslambo's beats (src/core/session/session.ts), without saves: a
-// live timeline beats none, then the later final tick, then the smaller
-// hash, then the smaller ID (roslambo D-12, Q-7). Pure.
+// keeps: two live timelines ranked as old as each is at one moment, as M3
+// builds Q-7 (P7's peer side, M3 phase 4a), and a Play-again timeline's ID,
+// which makes that rank exact for one old match's presses (§4.9). Pure.
 
-import { TIMELINE_KIND, type Hello } from '../protocol/messages';
 import type { MatchState } from '../sim/index';
 
 /** Whether player, or a bot derived from it, is in the roster (D-17, D-21). */
@@ -40,13 +39,23 @@ export function spectatorsOverCap(announcedSpectators: number, spectatorsMax: nu
   return announcedSpectators > spectatorsMax;
 }
 
-/** roslambo D-12 and Q-7, without saves: whether a room keeps a's timeline over b's. A live timeline
- *  beats none; then the later final tick, the older timeline; then the smaller hash, then the
- *  smaller ID, each compared with `<`. None beats nothing. */
-export function beats(a: Hello, b: Hello): boolean {
-  if (a.timelineKind === TIMELINE_KIND.NONE) return false;
-  if (b.timelineKind === TIMELINE_KIND.NONE) return true;
-  if (a.finalTick !== b.finalTick) return a.finalTick > b.finalTick;
-  if (a.hash !== b.hash) return a.hash < b.hash;
-  return a.timeline < b.timeline;
+/** P7's rule, Q-7 as M3 builds it: whether a room keeps timeline a over timeline b, each as old as it
+ *  is at one moment, in ticks. The older wins, but two whose ages differ by at most `tie` are a tie
+ *  that the smaller ID wins, so pages whose estimates of the ages differ a little rank them alike
+ *  (M3 phase 4a). */
+export function outranks(a: string, ageA: number, b: string, ageB: number, tie: number): boolean {
+  return Math.abs(ageA - ageB) > tie ? ageA > ageB : a < b;
+}
+
+/** A Play-again timeline's ID (§4.9, M3 phase 4): the old timeline's tick at the press, as a
+ *  big-endian u32, then the first 4 bytes of `random`, in the 16 lowercase hex characters every
+ *  timeline ID takes. Of two presses in one old match the earlier has the smaller ID, so outranks'
+ *  tie agrees with their age order however far apart they are, and every page ranks them alike. The
+ *  tick is floored and held to the u32's range; the ID is never all zero, which means none. */
+export function againTimelineId(pressTick: number, random: Uint8Array): string {
+  if (random.length < 4) throw new RangeError('againTimelineId takes 4 random bytes');
+  const t = Number.isFinite(pressTick) ? Math.min(Math.max(Math.floor(pressTick), 0), 0xffffffff) : 0;
+  const bytes = [t >>> 24, (t >>> 16) & 0xff, (t >>> 8) & 0xff, t & 0xff, random[0]!, random[1]!, random[2]!, random[3]!];
+  if (!bytes.some((b) => b !== 0)) bytes[7] = 1;
+  return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 }

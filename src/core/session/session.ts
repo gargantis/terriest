@@ -71,7 +71,7 @@ import {
 import { Timeline, type TimelineConfig } from '../timeline/timeline';
 import { BotHost } from './bots';
 import { type Accepted, commonRefusal, type Link, type Refusal, type RoomPeer } from './room-peer';
-import { admits, freePlaces, inRoster, spectatorsOverCap } from './roster';
+import { admits, freePlaces, inRoster, outranks, spectatorsOverCap } from './roster';
 import type { NetSettings, RoomSettings } from './settings';
 
 /** Play again (D-12): the previous match's choices. */
@@ -187,13 +187,6 @@ interface Merge {
   readonly t: Timeline;
   readonly asked: Set<string>; // the connections asked
   at: number; // when the last was asked
-}
-
-/** P7's rule on two live timelines as old as each is at one moment, in ticks: Q-7's later tick, the
- *  older timeline, but two whose ages differ by at most `tie` are a tie, the smaller ID winning (M3
- *  phase 4's fixes). */
-function outranks(a: string, ageA: number, b: string, ageB: number, tie: number): boolean {
-  return Math.abs(ageA - ageB) > tie ? ageA > ageB : a < b;
 }
 
 /** A HELLO's announcement (P7). */
