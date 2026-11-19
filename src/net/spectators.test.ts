@@ -447,7 +447,8 @@ describe('duplicate IDs (C-12, M3-Q23)', () => {
     sent.length = 0;
     run(NET.room.peersEveryMs + NET.timerMs);
     const peers = sent.map((m) => decode(m.bytes)).find((m) => m?.type === T.PEERS);
-    expect(peers).toEqual({ type: T.PEERS, players: [other], role: ROLE.PLAYER });
+    // And the timeline it holds (P7's peer side).
+    expect(peers).toMatchObject({ type: T.PEERS, players: [other], role: ROLE.PLAYER, timeline: MATCH, timelineKind: TIMELINE_KIND.LIVE });
     // Its own leave takes them: a departed player's clock samples and one-way delay go.
     s.onPeerLeave('new');
     expect(kept()).toEqual([undefined, false]);

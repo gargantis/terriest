@@ -8,9 +8,9 @@ import { defaultParams, simParams } from '../sim/params';
 import { IN_PLAY, type MatchState } from '../sim/state';
 import { Reader, Writer } from './bytes';
 import {
-  type BotEntry, decode, encodeAgain, encodeFwd, encodeHello, encodePeers, encodeRefuse, encodeState, encodeStateReq, encodeTick,
-  type Hello, type InputRecord, KIND, NO_TICK, PROTOCOL_VERSION, REFUSAL, ROLE, type SenderInput, stateRecordsMax, type StateMsg, T,
-  type Tick, TIMELINE_KIND, wireLimits, wireString, ZERO_HASH,
+  type Announcement, type BotEntry, decode, encodeAgain, encodeFwd, encodeHello, encodePeers, encodeRefuse, encodeState, encodeStateReq,
+  encodeTick, type Hello, type InputRecord, KIND, NO_TICK, NO_TIMELINE, PROTOCOL_VERSION, REFUSAL, ROLE, type SenderInput, stateRecordsMax,
+  type StateMsg, T, type Tick, TIMELINE_KIND, wireLimits, wireString, ZERO_HASH,
 } from './messages';
 
 // The wire protocol (PLAN §9, D-20; design §1.1, §1.2, §5): every message
@@ -69,6 +69,8 @@ const hello: Omit<Hello, 'type'> = {
 const lone: Omit<Hello, 'type'> = {
   ...hello, role: ROLE.UNDECIDED, timeline: ZERO_HASH, timelineKind: TIMELINE_KIND.NONE, phase: 0, finalTick: 0, hash: ZERO_HASH, name: '',
 };
+/** A live timeline as PEERS announces it (P7). */
+const live: Announcement = { timeline: other, timelineKind: TIMELINE_KIND.LIVE, finalTick: 0x01020304, hash };
 
 /** A 2-a-side warm-up at tick 5 with two terriers, one named with a
  *  leading U+FEFF: its bytes and its roster. */
@@ -184,8 +186,9 @@ describe('the messages (PLAN §9, design §5)', () => {
       [encodeTick({ ...tick, own: { ...own, events: [] }, voteTick: NO_TICK, voteHash: ZERO_HASH, bots: [] }),
         { type: T.TICK, ...tick, own: { ...own, events: [] }, voteTick: NO_TICK, voteHash: ZERO_HASH, bots: [] }],
       [encodeFwd(id(7), encodeTick(tick)), { type: T.FWD, origin: id(7), tick: { type: T.TICK, ...tick } }],
-      [encodePeers([id(1), id(2)], ROLE.SPECTATOR), { type: T.PEERS, players: [id(1), id(2)], role: ROLE.SPECTATOR }],
-      [encodePeers([], ROLE.KEEPER), { type: T.PEERS, players: [], role: ROLE.KEEPER }],
+      [encodePeers([id(1), id(2)], ROLE.SPECTATOR, live), { type: T.PEERS, players: [id(1), id(2)], role: ROLE.SPECTATOR, ...live }],
+      [encodePeers([], ROLE.KEEPER, live), { type: T.PEERS, players: [], role: ROLE.KEEPER, ...live }],
+      [encodePeers([id(1)], ROLE.UNDECIDED), { type: T.PEERS, players: [id(1)], role: ROLE.UNDECIDED, ...NO_TIMELINE }],
       [encodeAgain(), { type: T.AGAIN }],
       [encodeStateReq(NO_TICK, ZERO_HASH), { type: T.STATE_REQ, tick: NO_TICK, want: ZERO_HASH }],
       [encodeStateReq(1234, hash), { type: T.STATE_REQ, tick: 1234, want: hash }],
@@ -350,11 +353,31 @@ describe('the messages (PLAN §9, design §5)', () => {
     const ids = (n: number): string[] => Array.from({ length: n }, (_, k) => id(k));
     expect((decode(encodePeers(ids(max), ROLE.PLAYER)) as { players: string[] }).players).toEqual(ids(max));
     expect(decode(encodePeers(ids(max + 1), ROLE.PLAYER))).toBeNull();
-    expect(decode(encodePeers([id(1), id(2), id(1)], ROLE.PLAYER))).toEqual({ type: T.PEERS, players: [id(1), id(2)], role: ROLE.PLAYER });
-    const raw = new Writer().u8(T.PEERS).u8(2).hex(id(1), 16).hex(id(1), 16).u8(ROLE.PLAYER).done();
+    expect(decode(encodePeers([id(1), id(2), id(1)], ROLE.PLAYER))).toEqual({ type: T.PEERS, players: [id(1), id(2)], role: ROLE.PLAYER, ...NO_TIMELINE });
+    const raw = new Writer().u8(T.PEERS).u8(2).hex(id(1), 16).hex(id(1), 16).u8(ROLE.PLAYER).hex(ZERO_HASH, 8).u8(0).u32(0).hex(ZERO_HASH, 8).done();
     expect(decode(raw)).toBeNull();
     for (const role of [0, 5]) expect(decode(encodePeers([id(1)], role))).toBeNull();
     expect(decode(new Uint8Array([T.PEERS, 0]))).toBeNull();
+  });
+
+  it("refuses PEERS whose announcement HELLO would refuse, or that leaves it out; and zeros a timeline of kind none (P7)", () => {
+    // n, one ID, the role, then the timeline ID, kind, final tick and hash, as written raw.
+    const raw = (a: Announcement, cut = 0): Uint8Array => {
+      const b = new Writer().u8(T.PEERS).u8(1).hex(id(1), 16).u8(ROLE.PLAYER).hex(a.timeline, 8).u8(a.timelineKind).u32(a.finalTick).hex(a.hash, 8).done();
+      return b.subarray(0, b.length - cut);
+    };
+    expect(decode(raw(live))).toEqual({ type: T.PEERS, players: [id(1)], role: ROLE.PLAYER, ...live });
+    expect(decode(raw(NO_TIMELINE))).toEqual({ type: T.PEERS, players: [id(1)], role: ROLE.PLAYER, ...NO_TIMELINE });
+    // A kind past live; none with a timeline ID, a tick or a hash; the announcement cut short or left out.
+    for (const a of [{ ...live, timelineKind: 2 }, { ...NO_TIMELINE, timeline: other }, { ...NO_TIMELINE, finalTick: 1 }, { ...NO_TIMELINE, hash }]) {
+      expect(decode(raw(a)), JSON.stringify(a)).toBeNull();
+    }
+    for (const cut of [1, 8, 20, 21]) expect(decode(raw(live, cut)), `${cut} short`).toBeNull();
+    expect(decode(new Uint8Array([...raw(live), 0]))).toBeNull();
+    // The encoder writes kind none as zeros, whatever the rest says.
+    expect(decode(encodePeers([id(1)], ROLE.PLAYER, { ...live, timelineKind: TIMELINE_KIND.NONE }))).toEqual({
+      type: T.PEERS, players: [id(1)], role: ROLE.PLAYER, ...NO_TIMELINE,
+    });
   });
 
   it('refuses a FWD with anything but one complete TICK inside', () => {
@@ -380,8 +403,10 @@ describe('the messages (PLAN §9, design §5)', () => {
       .toEqual([1, id(40), 0xbeef, 0b11, 0b01, 5, 1, 1, KIND.SWITCH, 1, 56]);
     const f = encodeFwd(id(7), b);
     expect([f[0], hexAt(f, 1, 16), Array.from(f.subarray(17))]).toEqual([T.FWD, id(7), Array.from(b)]);
-    const p = encodePeers([id(1), id(2)], ROLE.SPECTATOR);
-    expect([p[0], p[1], hexAt(p, 2, 16), hexAt(p, 18, 16), p[34], p.length]).toEqual([T.PEERS, 2, id(1), id(2), ROLE.SPECTATOR, 35]);
+    // PEERS: n, the IDs, the role, then the announcement: timeline ID, kind, final tick and hash.
+    const p = encodePeers([id(1), id(2)], ROLE.SPECTATOR, live);
+    expect([p[0], p[1], hexAt(p, 2, 16), hexAt(p, 18, 16), p[34], hexAt(p, 35, 8), p[43], u32At(p, 44), hexAt(p, 48, 8), p.length])
+      .toEqual([T.PEERS, 2, id(1), id(2), ROLE.SPECTATOR, other, TIMELINE_KIND.LIVE, 0x01020304, hash, 56]);
     const q = encodeStateReq(0x01020304, hash);
     expect([q[0], u32At(q, 1), hexAt(q, 5, 8), q.length]).toEqual([T.STATE_REQ, 0x01020304, hash, 13]);
     // STATE: its header, the state, the table of one candidate, then one

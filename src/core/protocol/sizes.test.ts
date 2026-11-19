@@ -125,7 +125,12 @@ describe("the messages' sizes (design §5)", () => {
     }
     expect(utf8(longName(0))).toBe(config.displayNameMaxBytes);
     expect(encodeRefuse(2).length).toBe(2);
-    for (const n of [0, 1, L.peersMax]) expect(encodePeers(Array.from({ length: n }, (_, k) => id(k)), ROLE.PLAYER).length).toBe(3 + 16 * n);
+    // PEERS: 3 + 16n, and its timeline's announcement, 21 bytes whether live or none (P7).
+    const timeline = { timeline: hash, timelineKind: TIMELINE_KIND.LIVE, finalTick: 9999, hash };
+    for (const n of [0, 1, L.peersMax]) {
+      const players = Array.from({ length: n }, (_, k) => id(k));
+      expect([encodePeers(players, ROLE.PLAYER).length, encodePeers(players, ROLE.PLAYER, timeline).length]).toEqual([24 + 16 * n, 24 + 16 * n]);
+    }
     expect(encodeAgain().length).toBe(1);
     expect(encodeStateReq(NO_TICK, ZERO_HASH).length).toBe(13);
     const t = encodeTick(tick(held(3, 2)));

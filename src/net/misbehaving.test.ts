@@ -465,8 +465,11 @@ describe('FWDs (design §4.10, D-19, R-18)', () => {
       const [a, b] = pair(room);
       const r = rogue(room, 'r', id(9));
       net.join(r, 1000);
-      room.until(() => r.session.joined.has('n0'), 3000);
+      // The connection's age is the keeper's count, from its side's join, which may come before the
+      // rogue's (M3 phase 4's fixes).
+      room.until(() => a.session.connectedRoles().has(id(9)), 3000);
       const opened = net.now;
+      room.until(() => r.session.joined.has('n0'), 3000);
       const x = id(7); // nobody's connection here
       r.session.link.send('n0', encodePeers([id(0), x], ROLE.UNDECIDED));
       runTo(room, net.now + 100);

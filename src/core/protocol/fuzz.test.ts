@@ -10,8 +10,8 @@ import { stateProblems } from '../sim/valid';
 import { Writer } from './bytes';
 import {
   type BotEntry, decode, encodeAgain, encodeFwd, encodeHello, encodePeers, encodeRefuse, encodeState, encodeStateReq, encodeTick,
-  type EventPayload, type Hello, type InputRecord, type Message, NO_TICK, ROLE, type SenderInput, type StateMsg, T, type Tick,
-  type TickEvent, TIMELINE_KIND, wireLimits, wireString, ZERO_HASH,
+  type EventPayload, type Hello, type InputRecord, type Message, NO_TICK, NO_TIMELINE, type Peers, ROLE, type SenderInput, type StateMsg, T,
+  type Tick, type TickEvent, TIMELINE_KIND, wireLimits, wireString, ZERO_HASH,
 } from './messages';
 
 // The decoder's fuzz tests (D-20; design §5.6, §5.8): any bytes decode or
@@ -134,7 +134,14 @@ const anyHello: fc.Arbitrary<Omit<Hello, 'type'>> = fc
       ? { ...rest, timeline, timelineKind: TIMELINE_KIND.LIVE, finalTick, hash: h }
       : { ...rest, timeline: ZERO_HASH, timelineKind: TIMELINE_KIND.NONE, finalTick: 0, hash: ZERO_HASH });
 
-const anyPeers = fc.record({ players: fc.uniqueArray(anyId, { maxLength: L.peersMax }), role: fc.integer({ min: 1, max: 4 }) });
+/** PEERS of any IDs and role, and any announcement, live or none (P7). */
+const anyPeers: fc.Arbitrary<Omit<Peers, 'type'>> = fc
+  .record({
+    players: fc.uniqueArray(anyId, { maxLength: L.peersMax }), role: fc.integer({ min: 1, max: 4 }), live: fc.boolean(), timeline: anyHash,
+    finalTick: anyU32, hash: anyHash,
+  })
+  .map(({ live, timeline, finalTick, hash: h, ...rest }) =>
+    live ? { ...rest, timeline, timelineKind: TIMELINE_KIND.LIVE, finalTick, hash: h } : { ...rest, ...NO_TIMELINE });
 
 // --- States for STATE ---
 
@@ -230,7 +237,8 @@ const ENCODINGS: readonly (readonly [string, Uint8Array])[] = [
   ['TICK', encodeTick(rich)],
   ['TICK without its own input', encodeTick(hostOnly)],
   ['FWD', encodeFwd(id(7), encodeTick(rich))],
-  ['PEERS', encodePeers([id(1), id(2), id(3)], ROLE.SPECTATOR)],
+  ['PEERS', encodePeers([id(1), id(2), id(3)], ROLE.SPECTATOR, { timeline: '0123456789abcdef', timelineKind: TIMELINE_KIND.LIVE, finalTick: 4321, hash })],
+  ['PEERS of no timeline', encodePeers([id(1)], ROLE.UNDECIDED)],
   ['AGAIN', encodeAgain()],
   ['STATE_REQ', encodeStateReq(1234, hash)],
   ['STATE in warm-up', stateCase(THREE, STATE_INPUTS)],
@@ -254,7 +262,7 @@ function reencode(m: Message): Uint8Array {
     case T.FWD:
       return encodeFwd(m.origin, encodeTick(tickFields(m.tick)));
     case T.PEERS:
-      return encodePeers(m.players, m.role);
+      return encodePeers(m.players, m.role, { timeline: m.timeline, timelineKind: m.timelineKind, finalTick: m.finalTick, hash: m.hash });
     case T.AGAIN:
       return encodeAgain();
     case T.STATE_REQ:
@@ -396,8 +404,8 @@ describe('the decoder, fuzzed (design §5.8)', () => {
     fc.assert(fc.property(anyHello, (v) => {
       expect(decode(encodeHello(v))).toEqual({ type: T.HELLO, ...v });
     }), { numRuns: 1000 });
-    fc.assert(fc.property(anyPeers, ({ players, role }) => {
-      expect(decode(encodePeers(players, role))).toEqual({ type: T.PEERS, players, role });
+    fc.assert(fc.property(anyPeers, (v) => {
+      expect(decode(encodePeers(v.players, v.role, v))).toEqual({ type: T.PEERS, ...v });
     }), { numRuns: 500 });
   });
 

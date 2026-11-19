@@ -19,11 +19,25 @@
 //   source's counters after any adoption (M3-Q28), and a stall's rule:
 //   pause, rejoin only from a peer whose clock ran on, else re-anchor, the
 //   old timeline kept until a STATE is adopted (§4.12, M3-Q9);
-// - a merge (P7) decided on the HELLO pair while this side holds what it
-//   announced, else against what it holds or moves to now, the losing
-//   timeline running on until the winner's STATE is adopted, and given up
-//   once each of its holders was asked, so nobody is stranded (M3 phase 3's
-//   integration, where roslambo dropped the losing timeline at once);
+// - a merge (P7) whose losing timeline runs on until the winner's STATE is
+//   adopted, given up once each holder was asked, so nobody is stranded (M3
+//   phase 3's integration, where roslambo dropped the losing timeline at
+//   once); one at a time, each connection asked once in it;
+// - PEERS carries the timeline this side holds, as HELLO does, and goes
+//   ahead of the first TICK or FWD to a peer last told of another timeline
+//   or none; a TICK or FWD from a peer that announces another is ignored.
+//   Each side weighs a peer's latest announcement, its HELLO's or a later
+//   PEERS', so a page that meets only pages that moved to a better timeline
+//   follows them. An announcement gives the timeline's clock tick, which the
+//   receiver ages by the time since it was sent, so every page weighs two
+//   timelines as they stand at one moment, whichever announcement is
+//   fresher; and two whose ages differ by at most half stallMs are a tie,
+//   the smaller ID winning, so Play-again presses never more than a one-way
+//   delay apart are ranked alike everywhere (P7's peer side, Q-7, M3 phase
+//   4's fixes);
+// - a joiner's warm-up waits for every peer connected or still handshaking,
+//   each from when this side met it and for at most warmupMs, and only one
+//   met within warmupMs of the adoption (T6, M3 phase 4's fixes);
 // - a watcher counting the room's spectators as it meets them after its
 //   first STATE, not once at the adoption (§4.5);
 // - what a peer may say (§4.10, M3-Q10): nothing about this browser or its
@@ -47,8 +61,8 @@ import { config } from '../../config';
 import { botIds, isBot } from '../bot/bot-id';
 import type { BotParams } from '../bot/brain';
 import {
-  decode, encodeAgain, encodeFwd, encodePeers, type Fwd, type Hello, PROTOCOL_VERSION, REFUSAL, ROLE, type StateMsg, type StateReq, T,
-  type Tick, TIMELINE_KIND, wireLimits, type WireLimits, ZERO_HASH,
+  type Announcement, decode, encodeAgain, encodeFwd, encodePeers, type Fwd, type Hello, NO_TIMELINE, type Peers, PROTOCOL_VERSION, REFUSAL,
+  ROLE, type StateMsg, type StateReq, T, type Tick, TIMELINE_KIND, wireLimits, type WireLimits,
 } from '../protocol/messages';
 import {
   ENDED, findTerrier, JOIN, KEPT_BITS, LEAVE, type MatchSettings, type MatchState, type Pack, packCount, READY, type SimParams, SWITCH,
@@ -57,7 +71,7 @@ import {
 import { Timeline, type TimelineConfig } from '../timeline/timeline';
 import { BotHost } from './bots';
 import { type Accepted, commonRefusal, type Link, type Refusal, type RoomPeer } from './room-peer';
-import { admits, beats, freePlaces, inRoster, spectatorsOverCap } from './roster';
+import { admits, freePlaces, inRoster, spectatorsOverCap } from './roster';
 import type { NetSettings, RoomSettings } from './settings';
 
 /** Play again (D-12): the previous match's choices. */
@@ -121,8 +135,15 @@ class Arrivals {
 /** A connection that completed the handshake. */
 interface PeerInfo {
   readonly player: string;
-  readonly hello: Hello; // its HELLO, for beats
-  readonly sent: Hello; // the HELLO this side sent it: a merge compares the same pair on both sides
+  readonly hello: Hello; // its HELLO
+  /** Its latest announcement, its HELLO's and then each PEERS' (P7), and the local time it came: the
+   *  tick it gives is aged from then (outranks). */
+  heard: Announcement;
+  heardWhen: number;
+  /** The timeline this side last announced to it, in its HELLO or a PEERS: ZERO_HASH for none. No TICK
+   *  goes to it before it's told the timeline the TICK is for (P7). */
+  told: string;
+  readonly metAt: number; // when its HELLO came, its handshake begun here (T6)
   readonly joinedAt: number;
   role: number; // announced: its HELLO's, then its PEERS' (§4.5)
   heardAt: number; // its last message or pong (C-12, M3-Q23)
@@ -135,12 +156,14 @@ interface PeerInfo {
   readonly fwd: Map<string, Arrivals>; // its FWDs, by origin
   invalid: number;
   asks: number; // STATE_REQs this side sent it and no STATE has answered yet
+  askedAt: number; // when this side last sent it a STATE_REQ, from any of its timelines
   answeredAt: number; // when this side last answered its STATE_REQ
 }
 
 /** An accepted HELLO whose handshake is under way (D-21's reservation when outside the roster). */
 interface Handshake {
   readonly player: string;
+  readonly at: number; // when its HELLO came (T6)
   readonly until: number;
   readonly outside: boolean;
 }
@@ -153,17 +176,28 @@ interface Rejoin {
   at: number; // when the last was asked
 }
 
-/** A merge under way (P7): a new timeline asks the connections whose HELLO announced the winning
- *  timeline for its STATE, one every stateRequestRetryMs, while the timeline held keeps running; it
- *  ends when a STATE is adopted, or once each has been asked and none answered, when the page stays
- *  where it is. So a winner whose holders left, or a HELLO that claims a timeline nobody holds,
- *  strands nobody (M3 phase 3's integration). */
+/** A merge under way (P7): a new timeline asks, one every stateRequestRetryMs, each connection whose
+ *  latest announcement outranks the timeline held, the best first, while the timeline held keeps
+ *  running; it ends when a STATE is adopted, or once each has been asked and none answered, when the
+ *  page stays where it is. So a winner whose holders left, or an announcement of a timeline nobody
+ *  holds, strands nobody (M3 phase 3's integration). One merge at a time, each connection asked once
+ *  in it, so a peer's announcements, however many and however made up, build at most one timeline
+ *  each stateRequestRetryMs and can't keep the page from an honest winner (M3 phase 4's fixes). */
 interface Merge {
   readonly t: Timeline;
-  readonly target: Hello; // the winner, as the HELLO that announced it gave it
   readonly asked: Set<string>; // the connections asked
   at: number; // when the last was asked
 }
+
+/** P7's rule on two live timelines as old as each is at one moment, in ticks: Q-7's later tick, the
+ *  older timeline, but two whose ages differ by at most `tie` are a tie, the smaller ID winning (M3
+ *  phase 4's fixes). */
+function outranks(a: string, ageA: number, b: string, ageB: number, tie: number): boolean {
+  return Math.abs(ageA - ageB) > tie ? ageA > ageB : a < b;
+}
+
+/** A HELLO's announcement (P7). */
+const announced = (h: Announcement): Announcement => ({ timeline: h.timeline, timelineKind: h.timelineKind, finalTick: h.finalTick, hash: h.hash });
 
 /** A newcomer meeting the room after its first STATE: a Watch counts the spectators again as it meets
  *  them, until it has met every player the STATE's sender lists, or handshakeTimeoutMs has passed.
@@ -241,6 +275,10 @@ export class Session implements RoomPeer {
   private peersDirty = true;
   private lastPeersSent = -Infinity;
   private lastRole = -1;
+  /** P7's tie, in ticks: half stallMs, the longest one-way delay the session takes for the network's
+   *  (onRtt), so two Play-again presses that each saw no AGAIN of the other, never more than a one-way
+   *  delay apart (§4.9), are always a tie, whatever each page's estimate of their ages. */
+  private readonly tieTicks: number;
   private openedAt = -1;
   private arrivedAt = 0;
   private lastNow = 0;
@@ -249,6 +287,7 @@ export class Session implements RoomPeer {
     this.cfg = cfg;
     this.link = link;
     this.room = cfg.net.room;
+    this.tieTicks = cfg.net.stallMs / 2 / cfg.net.tickMs;
     const tl = cfg.net.timeline;
     this.L =
       cfg.wire ??
@@ -486,12 +525,20 @@ export class Session implements RoomPeer {
 
   hello(): Hello {
     const t = this.current;
-    const live = t.started;
     return {
       type: T.HELLO, protocol: PROTOCOL_VERSION, build: this.cfg.build, player: this.cfg.me, role: this.role(),
-      timeline: live ? t.id : ZERO_HASH, timelineKind: live ? TIMELINE_KIND.LIVE : TIMELINE_KIND.NONE,
-      phase: t.final.phase, finalTick: live ? t.finalTick : 0, hash: live ? t.hashAt(t.finalTick) : ZERO_HASH, name: this.cfg.name,
+      ...this.announcement(), phase: t.final.phase, name: this.cfg.name,
     };
+  }
+
+  /** The timeline held, as HELLO and PEERS announce it (P7). Its tick is the clock's, how old the
+   *  timeline is now, which a receiver ages by the time since (ageOf); a final tick, which a warm-up
+   *  or a spread holds back, would announce a timeline just taken younger than it is. The hash, the
+   *  final tick's, is no longer weighed (M3 phase 4's fixes). */
+  private announcement(): Announcement {
+    const t = this.current;
+    if (!t.started) return { ...NO_TIMELINE };
+    return { timeline: t.id, timelineKind: TIMELINE_KIND.LIVE, finalTick: Math.floor(t.clock(this.lastNow)), hash: t.hashAt(t.finalTick) };
   }
 
   /** In order: protocol, build, this browser's ID or a bot's (REFUSE 1, 2, 3); a duplicate, which
@@ -542,43 +589,55 @@ export class Session implements RoomPeer {
         }
       }
     }
-    this.handshakes.set(peer, { player: hello.player, until: now + this.room.handshakeTimeoutMs, outside });
+    this.handshakes.set(peer, { player: hello.player, at: now, until: now + this.room.handshakeTimeoutMs, outside });
     if (replaces === undefined) return { ok: true, hello };
     this.logDuplicate(hello.player, now, REFUSAL.ACCEPTED, silent, replaces);
     return { ok: true, hello, replaces };
   }
 
-  /** The handshake completed. If the peer's timeline beats the one this side announced, and the one it
-   *  holds or moves to now, this side takes the winner's (roslambo D-12, Q-7, P7). */
+  /** The handshake completed. If the peer's timeline outranks the one held, this side takes the
+   *  winner's (roslambo D-12, Q-7, P7). */
   onPeerJoin(peer: string, hello: Hello, sent: Hello, now: number): void {
     this.lastNow = now;
+    const metAt = this.handshakes.get(peer)?.at ?? now;
     this.handshakes.delete(peer);
     this.peers.set(peer, {
-      player: hello.player, hello, sent, joinedAt: now, role: hello.role, heardAt: now, oneWayMs: null, rttLast: null,
-      live: hello.timelineKind === TIMELINE_KIND.LIVE, newestTick: NONE, peers: null, ticks: new Arrivals(), fwd: new Map(),
-      invalid: 0, asks: 0, answeredAt: -Infinity,
+      player: hello.player, hello, heard: announced(hello), heardWhen: metAt, told: sent.timeline, metAt, joinedAt: now, role: hello.role, heardAt: now,
+      oneWayMs: null, rttLast: null, live: hello.timelineKind === TIMELINE_KIND.LIVE, newestTick: NONE, peers: null, ticks: new Arrivals(),
+      fwd: new Map(), invalid: 0, asks: 0, askedAt: -Infinity, answeredAt: -Infinity,
     });
     this.byPlayer.set(hello.player, peer);
     this.peersDirty = true;
-    if (hello.timelineKind === TIMELINE_KIND.LIVE) this.considerMerge(peer, hello, sent, now);
+    this.considerMerge(peer, now);
   }
 
-  /** P7's merge rule (roslambo D-12, Q-7). While this side holds the timeline it announced, the pair
-   *  both sides compare decides, so exactly one of them moves; once it holds or moves to another,
-   *  the peer's must beat that one too, so a handshake begun on a stale HELLO never moves a page from
-   *  a better timeline to a weaker one (reviewer S1). A page without a timeline joins the best holder
-   *  instead (askToJoin). */
-  private considerMerge(peer: string, hello: Hello, sent: Hello, now: number): void {
+  /** How old a peer's announced timeline is now, in ticks: the tick it gave, aged by the time since it
+   *  came and the one-way delay before that; null for none (P7, M3 phase 4's fixes). Two pages weighing
+   *  one pair of timelines this way see the same difference but for the link's asymmetry. */
+  private ageOf(info: PeerInfo, now: number): number | null {
+    const a = info.heard;
+    if (a.timelineKind !== TIMELINE_KIND.LIVE) return null;
+    return a.finalTick + (now - info.heardWhen + (info.oneWayMs ?? 0)) / this.cfg.net.tickMs;
+  }
+
+  /** A peer's announced timeline outranks the one held (outranks), each as old as it is now. */
+  private outranksHeld(info: PeerInfo, now: number): boolean {
     const t = this.current;
-    const g = this.merging;
-    if ((t.started && hello.timeline === t.id) || hello.timeline === g?.target.timeline) return;
-    if (g !== null) {
-      if (beats(hello, g.target)) this.merge(peer, hello, now);
-      return;
-    }
-    if (!t.started) return;
-    const announced = sent.timelineKind === TIMELINE_KIND.LIVE && sent.timeline === t.id;
-    if (beats(hello, announced ? sent : this.hello())) this.merge(peer, hello, now);
+    const age = this.ageOf(info, now);
+    return t.started && age !== null && info.heard.timeline !== t.id && outranks(info.heard.timeline, age, t.id, t.clock(now), this.tieTicks);
+  }
+
+  /** P7's merge rule (roslambo D-12, Q-7), on the peer's latest announcement, its HELLO's or a later
+   *  PEERS': a merge begins when it outranks the timeline held. Every page ranks two timelines as they
+   *  stand at one moment (ageOf), so a page that adopted a better timeline and announces it in PEERS
+   *  moves a peer that held its old one there too, announcements move only to better timelines, and the
+   *  comparisons converge on the best one in each connected group (P7's peer side, M3 phase 4's fixes).
+   *  While a merge is under way, its next ask weighs every announcement (askToMerge). A page without a
+   *  timeline joins the best holder instead (askToJoin). */
+  private considerMerge(peer: string, now: number): void {
+    const info = this.peers.get(peer);
+    if (info === undefined || this.byPlayer.get(info.player) !== peer || this.merging !== null) return;
+    if (this.outranksHeld(info, now)) this.merge(now);
   }
 
   /** An admission's place goes (D-21). Idempotent. */
@@ -645,6 +704,7 @@ export class Session implements RoomPeer {
         // An origin's FWD count goes only once its window is empty, so a PEERS that drops an origin
         // and lists it again never resets its flood count (reviewer H4).
         this.pruneFwd(info, now);
+        this.heardAnnouncement(peer, info, m, now);
         break;
       case T.AGAIN:
         this.againSeenNow = true;
@@ -670,6 +730,9 @@ export class Session implements RoomPeer {
       return;
     }
     info.live = true;
+    // Another timeline's TICK is for its ticks: its inputs, JOINs and votes would land on this one's,
+    // where its holders couldn't agree on them, and its tick says nothing of this clock (P7's peer side).
+    if (this.elsewhere(info)) return;
     if (m.t > info.newestTick) info.newestTick = m.t;
     if (this.stallNow !== 'none') {
       const t = this.current;
@@ -679,8 +742,9 @@ export class Session implements RoomPeer {
     // Relayed only while its sender keeps within half the flood limit, however young its connection:
     // a receiver counts a forwarder's FWDs for each origin against the forwarder, however they bunch
     // up on the way, so an honest forwarder is never closed over another's flood (reviewer H3). An
-    // honest sender's TICKs are about a third of the limit.
-    if (this.cfg.forwarding && count <= this.room.floodTicksMax / 2) this.forward(info.player, peer, bytes);
+    // honest sender's TICKs are about a third of the limit. And only a TICK taken on the timeline held
+    // here: a page without one can't say which timeline a TICK is for (P7's peer side).
+    if (this.cfg.forwarding && this.current.started && count <= this.room.floodTicksMax / 2) this.forward(info.player, peer, bytes, now);
   }
 
   /** A FWD only for an origin with no direct connection here, from a connection whose latest PEERS
@@ -707,12 +771,31 @@ export class Session implements RoomPeer {
       this.drop(peer);
       return;
     }
+    // A forwarder relays only its own timeline's TICKs (forward), so one of another timeline relays
+    // none of this one's.
+    if (this.elsewhere(info)) return;
     this.current.onTick(origin, m.tick, now, false);
+  }
+
+  /** A peer whose latest announcement is a timeline other than the one held here (P7's peer side). */
+  private elsewhere(info: PeerInfo): boolean {
+    const a = info.heard;
+    const t = this.current;
+    return a.timelineKind === TIMELINE_KIND.LIVE && t.started && a.timeline !== t.id;
   }
 
   /** The origins whose FWDs from this connection all left the flood window: their counts are 0. */
   private pruneFwd(info: PeerInfo, now: number): void {
     for (const [origin, w] of info.fwd) if (w.newest < now - this.room.floodMs) info.fwd.delete(origin);
+  }
+
+  /** A PEERS' announcement: the peer's latest, weighed as its HELLO's was, on every PEERS, so a merge
+   *  that found no holder to answer is tried again (P7's peer side). */
+  private heardAnnouncement(peer: string, info: PeerInfo, m: Peers, now: number): void {
+    info.heard = announced(m);
+    info.heardWhen = now;
+    if (m.timelineKind === TIMELINE_KIND.LIVE) info.live = true;
+    this.considerMerge(peer, now);
   }
 
   /** At most one answer per connection per resyncRetryMs (§3.4); the rest go unanswered. None counts
@@ -754,8 +837,9 @@ export class Session implements RoomPeer {
 
   /** roslambo D-14: for each neighbour B that can't reach the TICK's origin A, the peer with the
    *  smallest player ID connected to both forwards it, inside a FWD, never forwarded again. A TICK
-   *  too large for a FWD is skipped, so no honest forwarder is closed over it (M3 phase 3's answers). */
-  private forward(origin: string, from: string, tick: Uint8Array): void {
+   *  too large for a FWD is skipped, so no honest forwarder is closed over it (M3 phase 3's answers).
+   *  Only the timeline held here's: onTick takes no other's (P7's peer side). */
+  private forward(origin: string, from: string, tick: Uint8Array, now: number): void {
     const theirs = this.peers.get(from)?.peers ?? null;
     if (theirs === null) return; // not known yet: a full mesh, as far as this side knows
     let fwd: Uint8Array | null = null;
@@ -771,6 +855,11 @@ export class Session implements RoomPeer {
       if (forwarder !== this.cfg.me) continue;
       fwd ??= encodeFwd(origin, tick);
       if (fwd.length > this.L.messageMaxBytes) return;
+      // A FWD, as a TICK, goes only to a peer told of the timeline it's for: a PEERS first if not (P7).
+      if (b.told !== this.current.id) {
+        this.peersDirty = true;
+        this.gossip(now);
+      }
       this.link.send(peer, fwd);
     }
   }
@@ -802,6 +891,12 @@ export class Session implements RoomPeer {
     else if (!this.current.started) this.askToJoin(now);
     if (this.merging !== null) this.askToMerge(now);
     const t = this.current;
+    // No TICK on a link whose peer was told of another timeline, or none, in this side's HELLO or a
+    // PEERS: a PEERS goes ahead of it, so no peer takes a TICK as another timeline's (P7's peer side).
+    if (this.untold(t)) {
+      this.peersDirty = true;
+      this.gossip(now);
+    }
     t.advance(now);
     if (t.started && this.stallNow === 'none' && this.rejoin === null) {
       this.tendPlayer(t);
@@ -831,12 +926,17 @@ export class Session implements RoomPeer {
   }
 
   /** Without a timeline: a STATE_REQ every stateRequestRetryMs, rotating among the peers that hold
-   *  one, best first by beats (roslambo's askToJoin). */
+   *  one, best first by their latest announcements, as old as each is now (roslambo's askToJoin, P7). */
   private askToJoin(now: number): void {
     if (now - this.joinAsk.at < this.room.stateRequestRetryMs) return;
     const holders = [...this.byPlayer.values()].map((p) => [p, this.peers.get(p)!] as const).filter(([, info]) => info.live);
     if (holders.length === 0) return;
-    holders.sort(([pa, a], [pb, b]) => (beats(a.hello, b.hello) ? -1 : beats(b.hello, a.hello) ? 1 : pa < pb ? -1 : pa > pb ? 1 : 0));
+    const better = (a: PeerInfo, b: PeerInfo): boolean => {
+      const [x, y] = [this.ageOf(a, now), this.ageOf(b, now)];
+      if (x === null || a.heard.timeline === b.heard.timeline) return false;
+      return y === null || outranks(a.heard.timeline, x, b.heard.timeline, y, this.tieTicks);
+    };
+    holders.sort(([pa, a], [pb, b]) => (better(a, b) ? -1 : better(b, a) ? 1 : pa < pb ? -1 : pa > pb ? 1 : 0));
     const [peer] = holders[this.joinAsk.next++ % holders.length]!;
     this.joinAsk.at = now;
     this.current.requestState(peer);
@@ -857,42 +957,61 @@ export class Session implements RoomPeer {
     this.reanchor(now);
   }
 
-  /** A merge (roslambo D-12, P7): a new timeline asks the winner's announcer for its STATE, while the
+  /** A merge (roslambo D-12, P7): a new timeline asks the winner's holders for a STATE, while the
    *  losing timeline runs on until one is adopted, where roslambo dropped it at once; so a winner
-   *  nobody can supply strands nobody (reviewers S4, H1). A later handshake with a better timeline
-   *  retargets it. */
-  private merge(peer: string, hello: Hello, now: number): void {
-    const t = this.newTimeline();
-    this.merging = { t, target: hello, asked: new Set([peer]), at: now };
-    t.requestState(peer);
+   *  nobody can supply strands nobody (reviewers S4, H1). */
+  private merge(now: number): void {
+    this.merging = { t: this.newTimeline(), asked: new Set(), at: -Infinity };
+    this.askToMerge(now);
   }
 
-  /** The merge's next ask: the connected peers whose HELLO announced the winner, by player ID, one
-   *  every stateRequestRetryMs; with none left unasked, it ends, and the page stays where it is. */
+  /** The merge's next ask, one every stateRequestRetryMs: of the connections not asked in it whose
+   *  latest announcement outranks the timeline held, the best timeline's, then the smallest player
+   *  ID's; with none left, it ends, and the page stays where it is. A peer answers one STATE_REQ per
+   *  connection per resyncRetryMs (§4.10), so one asked sooner than that, by an earlier merge, a join
+   *  or a resync, is asked once that has passed, rather than in vain (M3 phase 4's fixes, as H2's). */
   private askToMerge(now: number): void {
     const g = this.merging!;
     if (now - g.at < this.room.stateRequestRetryMs) return;
-    let next: string | null = null;
-    let nextPlayer = '';
-    for (const [player, p] of this.byPlayer) {
-      if (g.asked.has(p) || this.peers.get(p)!.hello.timeline !== g.target.timeline) continue;
-      if (next === null || player < nextPlayer) [next, nextPlayer] = [p, player];
+    let next: { peer: string; player: string; info: PeerInfo; age: number } | null = null;
+    let waiting = false;
+    for (const [player, peer] of this.byPlayer) {
+      const info = this.peers.get(peer)!;
+      if (g.asked.has(peer) || !this.outranksHeld(info, now)) continue;
+      if (!this.mayAsk(info, now)) {
+        waiting = true;
+        continue;
+      }
+      const age = this.ageOf(info, now)!;
+      const timeline = info.heard.timeline;
+      const best = next === null || (timeline === next.info.heard.timeline ? player < next.player : outranks(timeline, age, next.info.heard.timeline, next.age, this.tieTicks));
+      if (best) next = { peer, player, info, age };
     }
     if (next === null) {
-      this.merging = null;
+      if (!waiting) this.merging = null;
       return;
     }
-    g.asked.add(next);
+    g.asked.add(next.peer);
     g.at = now;
-    g.t.requestState(next);
+    g.t.requestState(next.peer);
   }
 
-  /** A STATE adopted from `from`: this timeline is held from now on (§4.6). */
+  /** Whether a STATE_REQ to this connection would be answered: none was sent it within resyncRetryMs,
+   *  with its one-way delay on top for the jitter between the two requests' paths. */
+  private mayAsk(info: PeerInfo, now: number): boolean {
+    return now - info.askedAt >= this.room.resyncRetryMs + (info.oneWayMs ?? 0);
+  }
+
+  /** A STATE adopted from `from`: this timeline is held from now on (§4.6). A peer last told of
+   *  another timeline, or none, hears of this one in a PEERS ahead of the first TICK or FWD this side
+   *  sends it (untold, forward), and weighs it against its own; and once the rest is done here, each
+   *  peer's latest announcement is weighed against it, a merge under way having ended (P7's peer
+   *  side). */
   private adopted(t: Timeline, from: string, now: number): void {
     const first = !this.everHeld;
     this.current = t;
     this.rejoin = null;
-    if (this.merging !== null && (this.merging.t === t || this.merging.target.timeline === t.id)) this.merging = null;
+    this.merging = null;
     this.stallNow = 'none';
     this.ranOn = [];
     this.everHeld = true;
@@ -930,6 +1049,7 @@ export class Session implements RoomPeer {
       t.sending = false;
       if (this.choice === 'watch') this.spectatorCheck();
     }
+    for (const peer of [...this.peers.keys()]) this.considerMerge(peer, now);
   }
 
   /** After each advance (roslambo's order): the JOIN, the Ready, the switch and a LEAVE held back. */
@@ -965,6 +1085,9 @@ export class Session implements RoomPeer {
       this.refusedWhy = null;
       return;
     }
+    // Not while a warm-up holds the final state back: the JOIN goes once the peers this side was
+    // handshaking with are connected, so it reaches them on their connections (T6).
+    if (t.warming) return;
     const flying = this.inFlight(t, JOIN);
     if (s.phase !== WARM_UP || packCount(s, w.pack) >= s.packSize) {
       if (flying) return;
@@ -1039,8 +1162,9 @@ export class Session implements RoomPeer {
     }
   }
 
-  /** PEERS on each change, the role's included, and every peersEveryMs (§4.5, §6.5): at most
-   *  peersMax IDs, which the decoder takes. */
+  /** PEERS on each change, the role's, a peer's and the timeline's included, and every peersEveryMs
+   *  (§4.5, §6.5): at most peersMax IDs, which the decoder takes, and the timeline held as it stands
+   *  now (P7). */
   private gossip(now: number): void {
     const role = this.role();
     if (role !== this.lastRole) {
@@ -1051,7 +1175,17 @@ export class Session implements RoomPeer {
     this.peersDirty = false;
     this.lastPeersSent = now;
     const players = [...this.byPlayer.keys()].sort().slice(0, this.L.peersMax);
-    this.link.broadcast(encodePeers(players, role));
+    const a = this.announcement();
+    for (const info of this.peers.values()) info.told = a.timeline;
+    this.link.broadcast(encodePeers(players, role, a));
+  }
+
+  /** A TICK of t's is to go to a peer that was last told of another timeline, or none. A page that
+   *  sends nothing announces a timeline it joined in the next PEERS that goes. */
+  private untold(t: Timeline): boolean {
+    if (!t.started || (!t.sending && t.bots.size === 0)) return false;
+    for (const info of this.peers.values()) if (info.told !== t.id) return true;
+    return false;
   }
 
   // ---- Helpers ----
@@ -1139,7 +1273,10 @@ export class Session implements RoomPeer {
     };
     const send = (peer: string, bytes: Uint8Array): void => {
       const info = this.peers.get(peer);
-      if (info !== undefined && bytes[0] === T.STATE_REQ) info.asks++;
+      if (info !== undefined && bytes[0] === T.STATE_REQ) {
+        info.asks++;
+        info.askedAt = this.lastNow;
+      }
       this.link.send(peer, bytes);
     };
     const t = new Timeline(tl, {
@@ -1153,10 +1290,26 @@ export class Session implements RoomPeer {
       sendToPeer: send,
     });
     t.controls = this.sample;
+    t.peersToHear = () => this.peersToHear();
+    t.lastAsked = (player) => {
+      const peer = this.byPlayer.get(player);
+      return peer === undefined ? -Infinity : this.peers.get(peer)!.askedAt;
+    };
     for (const [player, peer] of this.byPlayer) {
       const ms = this.peers.get(peer)!.oneWayMs;
       if (ms !== null) t.setOneWay(player, ms);
     }
     return t;
+  }
+
+  /** The peers a warm-up waits for (T6), each by when this side met it, its HELLO's coming: each
+   *  connected player, and each whose handshake this side accepted and is still under way, until it
+   *  joins, fails or times out. In an overlapping burst a co-joiner's inputs may be in no STATE yet,
+   *  while its JOIN reaches the others before its handshake here completes. */
+  private peersToHear(): Map<string, number> {
+    const out = new Map<string, number>();
+    for (const [player, peer] of this.byPlayer) out.set(player, this.peers.get(peer)!.metAt);
+    for (const h of this.handshakes.values()) if (!out.has(h.player)) out.set(h.player, h.at);
+    return out;
   }
 }

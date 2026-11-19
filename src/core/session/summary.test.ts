@@ -4,21 +4,25 @@ import {
   cloneState, defaultParams, genesis, HALF_TURN, JOIN, type MatchState, newTerrier, type Pack, QUARTER_TURN, READY, TURN,
 } from '../sim';
 import { chasey } from '../sim/scenes';
-import { Pump } from '../timeline/testing';
-import type { Correction, Timeline, TimelineStats } from '../timeline/timeline';
+import { at, expectAgreement, inside, Pump, type PumpNode, senderInput, tickOf } from '../timeline/testing';
+import { type Correction, Timeline, type TimelineStats } from '../timeline/timeline';
+import { netSettings } from './settings';
 import { correctionSizes, LogBins, type Quantiles, SummaryBuilder } from './summary';
 
 // The match summary (design §1.16, §9.3, §9.4, M3-Q24): a correction's
 // sizes as the measurement defines them; p50, p95 and max from fixed
 // log-spaced bins, each within a bin's width of the exact nearest rank, the
-// zeros apart and the maximum exact; repairs kept out of the figures; the
-// timeline's counts; memory that doesn't grow; and the corrections a pumped
-// match fires, summarised live as they come.
+// zeros apart and the maximum exact; a repair's corrections kept out of the
+// figures and reported apart, a count and their sizes; the timeline's
+// counts, the inputs received counted as late counts them (M3 phase 4's
+// fixes, reviewer SUM-1); memory that doesn't grow; and the corrections a
+// pumped match fires, a repair's among them, summarised live as they come.
 
 // A pumped match in virtual time: CPU-bound, as the network suites are.
 vi.setConfig({ testTimeout: 120_000 });
 
 const P = defaultParams;
+const NET = netSettings();
 /** Half a bin's width: 20 bins a decade, each percentile its bin's geometric middle, so within this
  *  factor of the exact one (with a rounding's margin). */
 const HALF_BIN = 10 ** (1 / 40) * (1 + 1e-12);
@@ -162,24 +166,28 @@ function shape(x: unknown, seen = new Set<unknown>()): string[] {
 }
 
 const STATS: TimelineStats = {
-  sent: 900, received: 2700, late: 6, lateBy: [3, 2, 0, 1], lateAbsent: 2, agree: 800, disagree: 1, split: 0, resyncs: 1, resyncMs: [180],
+  sent: 900, received: 2700, receivedInputs: 3400, late: 6, lateBy: [3, 2, 0, 1], lateAbsent: 2, agree: 800, disagree: 1, split: 0, resyncs: 1, resyncMs: [180],
   resyncFailed: 1, lateVoteFlips: 0, statesSent: 0, statesTruncated: 0, statesRefused: 0, steps: 4000, maxStepsPerAdvance: 13,
   spreadTicks: 0, holds: 0, reusedFinals: 700, steppedFinals: 190, rollbacks: 120, corrections: 95, verifyMismatches: 0, jumps: 0,
   rateAdj: 0, medianOffset: 0, warmMs: 0, joinedAt: 0, log: [],
 };
 
 describe('the summary builder (design §1.16)', () => {
-  it("keeps a repair's corrections out of the figures, its own terrier apart, and copies the timeline's counts", () => {
+  it("keeps a repair's corrections out of the figures and reports them apart, its own terrier apart, and copies the timeline's counts", () => {
     const b = new SummaryBuilder(ME);
     for (const d of [0, 0.5, 2]) b.add(ballMoved(d));
     b.add(ballMoved(10, true));
+    b.add(ballMoved(0.25, true));
     const s = b.summary(STATS);
     expect(s.ball).toEqual({ count: 3, zero: 1, p50: 0.5, p95: 2, max: 2 });
     expect(s.remote).toEqual({ count: 3, zero: 3, p50: 0, p95: 0, max: 0 });
     expect(s.headings).toEqual(s.remote);
     expect(s.own).toEqual({ count: 3, zero: 3, p50: 0, p95: 0, max: 0 });
+    // The repair's, apart: how many, and their sizes (SUM-1).
+    const still = { count: 2, zero: 2, p50: 0, p95: 0, max: 0 };
+    expect(s.repair).toEqual({ count: 2, ball: { count: 2, zero: 0, p50: 0.25, p95: 10, max: 10 }, remote: still, own: still, headings: still });
     expect(s).toMatchObject({
-      ticks: 890, remoteTicks: 2700, late: 6, lateAbsent: 2, lateBy: [3, 2, 0, 1], rollbacks: 120, corrections: 95, resyncs: 1, resyncFailed: 1,
+      ticks: 890, remoteInputs: 3400, late: 6, lateAbsent: 2, lateBy: [3, 2, 0, 1], rollbacks: 120, corrections: 95, resyncs: 1, resyncFailed: 1,
     });
     // A copy of the bins, not the timeline's array.
     STATS.lateBy[0] = 99;
@@ -190,6 +198,39 @@ describe('the summary builder (design §1.16)', () => {
     watching.add(ballMoved(1));
     expect(watching.summary(STATS).own.count).toBe(0);
     expect(watching.summary(STATS).remote.count).toBe(2);
+    // None repaired: a count of 0, and no sizes.
+    const none = { count: 0, zero: 0, p50: 0, p95: 0, max: 0 };
+    expect(watching.summary(STATS).repair).toEqual({ count: 0, ball: none, remote: none, own: none, headings: none });
+  });
+
+  it("counts the inputs received as late counts them: each TICK's own and each bot entry a started timeline takes (SUM-1)", () => {
+    const t = new Timeline({ ...NET.timeline, P, me: ME }, { broadcast: () => {}, sendToPlayer: () => false, sendToPeer: () => {} });
+    const mine = botId(ME, 0);
+    const entry = (id: string, u: number, v: number) => ({ id, ...senderInput(new Map([[u, v]]), u) });
+    // Before the start: a TICK received, no input taken.
+    t.onTick(R1, tickOf(new Map([[8, 5]]), 8), at(5), true);
+    expect([t.stats.received, t.stats.receivedInputs]).toEqual([1, 0]);
+    t.start(0, { packSize: 2, matchMinutes: 1 }, '5a5a5a5a5a5a5a5a');
+    t.bots.set(mine, () => 0);
+    t.advance(at(5));
+    // Never this browser's or its bot's.
+    t.onTick(ME, tickOf(new Map([[8, 5]]), 8), at(5), true);
+    t.onTick(mine, tickOf(new Map([[8, 5]]), 8), at(5), true);
+    expect([t.stats.received, t.stats.receivedInputs]).toEqual([1, 0]);
+    // R1's own and its bot's, forwarded; not another host's bot in it, nor this browser's.
+    const m = tickOf(new Map([[8, 5]]), 8);
+    m.bots.push(entry(botId(R1, 1), 8, 6), entry(botId(R2, 0), 8, 7), entry(mine, 8, 8));
+    t.onTick(R1, m, at(5), false);
+    // A host's TICK with no input of its own: its bot's alone.
+    t.onTick(R2, { ...tickOf(new Map(), 8), own: null, bots: [entry(botId(R2, 0), 8, 7)] }, at(5), true);
+    expect([t.stats.received, t.stats.receivedInputs]).toEqual([3, 3]);
+    // Late ones count in both: R3's own and its bot's for tick 20, the late boundary at 40 − w.
+    t.advance(at(40));
+    const late = tickOf(new Map([[20, 1]]), 20);
+    late.bots.push(entry(botId(R3, 0), 20, 2));
+    t.onTick(R3, late, at(40), true);
+    const s = new SummaryBuilder(ME).summary(t.stats);
+    expect([t.stats.received, s.remoteInputs, s.late]).toEqual([4, 5, 2]);
   });
 
   it('keeps no list: its memory is the same after a hundred corrections or a hundred thousand', () => {
@@ -264,5 +305,49 @@ describe('the summary builder (design §1.16)', () => {
     const after = new SummaryBuilder(a.id);
     for (const c of fired) after.add(c);
     expect(after.summary(a.t.stats)).toEqual(s);
+  });
+
+  it("reports a pumped match's repair apart, as it fires: how many corrections, and their sizes (SUM-1)", () => {
+    // Three players over 40 ms links, each running at the ball as above. a's final state is spoiled
+    // behind the timeline's back, its ball moved 0.5 m, and its chain recomputed from it, so its head
+    // carries the spoil. Its votes lose, it resyncs, and the repair puts its head back: a repair's
+    // correction.
+    const q = new Pump({ ids: (k) => personId(4, k), corrections: true });
+    q.latency = 40;
+    const nodes = [0, 1, 2].map((k) => q.add({ verify: k === 0 ? 8 : 0 }));
+    const a = nodes[0]!;
+    const live = new SummaryBuilder(a.id);
+    const play = chasey(3, 'ball');
+    const chase = (n: PumpNode) => (): number => play((n.k % 2) as Pack, n.k >> 1, n.t.localTick, n.t.head) ?? 0;
+    for (const n of nodes) {
+      n.t.start(0, { packSize: 2, matchMinutes: 1 }, '0f1e2d3c4b5a6978');
+      n.t.sending = true;
+      n.t.controls = chase(n);
+      n.t.queueEvent(n.id, { events: JOIN | READY, joinPack: n.k % 2, coat: n.k, name: `P${n.k}` });
+    }
+    const was = a.t.onCorrection;
+    a.t.onCorrection = (c) => {
+      was?.(c);
+      live.add(c);
+    };
+    q.run(4000);
+    const x = inside(a.t);
+    x.F.ball.x += 0.5;
+    x.validTo = a.t.finalTick;
+    q.run(7000);
+    expect(q.problems).toEqual([]);
+    expect([a.t.stats.resyncs, a.t.stats.resyncFailed]).toEqual([1, 0]);
+    const fired = a.corrections;
+    const repaired = fired.filter((c) => c.repair).map((c) => correctionSizes(c, a.id));
+    expect(repaired.length).toBeGreaterThan(0);
+    const s = live.summary(a.t.stats);
+    expect([s.repair.count, s.ball.count, s.corrections]).toEqual([repaired.length, fired.length - repaired.length, fired.length]);
+    expectNear(s.repair.ball, repaired.map((r) => r.ball));
+    expectNear(s.repair.remote, repaired.flatMap((r) => r.remote.map((b) => b.metres)));
+    expectNear(s.repair.headings, repaired.flatMap((r) => r.remote.map((b) => b.degrees)));
+    expectNear(s.repair.own, repaired.map((r) => r.own!.metres));
+    // The repair put back what the spoil moved.
+    expect(s.repair.ball.max).toBeCloseTo(0.5, 6);
+    expectAgreement(nodes);
   });
 });

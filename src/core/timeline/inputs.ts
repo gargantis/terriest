@@ -237,6 +237,13 @@ export class InputStore {
     return this.newestOf.get(id);
   }
 
+  /** newest(id) goes: the timeline forgets a sender whose ticks here are all retired, so made-up IDs
+   *  can't grow the store without bound (M3 phase 4's fixes, H5). Its records, all retired, are
+   *  already out of reach. */
+  forget(id: string): void {
+    this.newestOf.delete(id);
+  }
+
   /** The first tick in (after, upTo] with neither a record nor a mark for id; upTo + 1 if none.
    *  It stops within span ticks: no more ticks than that hold anything. */
   firstUnknown(id: string, after: number, upTo: number): number {

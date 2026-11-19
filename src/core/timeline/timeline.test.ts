@@ -362,9 +362,10 @@ describe('the late boundary (§2.8)', () => {
     });
     giver.start(0, { packSize: 1, matchMinutes: 1 }, MATCH);
     const b = playerId(1);
-    // b's input at 35, after the STATE's tick, makes it an active sender there: the joiner warms up.
+    // b's JOIN at 35, after the STATE's tick, makes it an active sender there: the joiner warms up. A
+    // sender outside the roster without one is in no STATE (H5).
     giver.advance(at(30));
-    giver.onTick(b, tickOf(new Map([[35, 1]]), 35), at(30), true);
+    giver.onTick(b, tickOf(new Map([[35, 1]]), 35, [{ back: 0, events: JOIN, joinPack: 0, coat: 0, name: 'b' }]), at(30), true);
     giver.advance(at(40));
     giver.onStateReq('joiner', { type: T.STATE_REQ, tick: NO_TICK, want: ZERO_HASH }, at(40));
     const j = new Timeline({ ...NET.timeline, P, me: playerId(2) }, { broadcast: () => {}, sendToPlayer: () => false, sendToPeer: () => {} });
@@ -501,9 +502,11 @@ describe('a STATE_REQ (§3.4)', () => {
     const { t, sent } = giver();
     const b = playerId(1);
     t.advance(at(20));
-    // An event for a tick whose input never came: a record events alone made, at 15 and at 30.
+    // An event for a tick whose input never came: a record events alone made, at 15 and at 30. Its
+    // JOIN, since a sender outside the roster without one is in no STATE (H5).
     for (const u of [15, 30]) {
-      t.onTick(b, { ...tickOf(new Map(), u + 20), own: { input: 0, present: 0, hist: new Array<number>(NET.timeline.inputHistory).fill(0), events: [{ back: 20, events: READY }] } }, at(20), true);
+      const events = [{ back: 20, events: JOIN | READY, joinPack: 0, coat: 0, name: 'b' }];
+      t.onTick(b, { ...tickOf(new Map(), u + 20), own: { input: 0, present: 0, hist: new Array<number>(NET.timeline.inputHistory).fill(0), events } }, at(20), true);
     }
     t.advance(at(40));
     expect(t.finalTick).toBe(28);

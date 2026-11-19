@@ -1,9 +1,10 @@
 // A match's network summary on a real page (M3's design §1.16, §9.3, §9.4,
 // M3-Q24; PLAN §17's M5 logging, through M4's readout): the timeline's late
-// inputs, rollbacks and resyncs, and the corrections' sizes, as p50, p95 and
-// max from fixed log-spaced bins, so a long match keeps no list. Also the one
-// definition of a correction's size, which the correction measurement uses
-// too (design §9.3). New at M3. Pure: fed by the timeline's onCorrection.
+// inputs against the inputs received, rollbacks and resyncs, and the
+// corrections' sizes, a repair's apart, as p50, p95 and max from fixed
+// log-spaced bins, so a long match keeps no list. Also the one definition of
+// a correction's size, which the correction measurement uses too (design
+// §9.3). New at M3. Pure: fed by the timeline's onCorrection.
 
 import { angleDiff, type Body, findTerrier, TURN } from '../sim';
 import type { Correction, TimelineStats } from '../timeline/timeline';
@@ -111,13 +112,25 @@ export class LogBins {
   }
 }
 
-export interface MatchNetSummary {
+/** The sizes of a set of corrections, body by body (design §9.4). */
+export interface CorrectionFigures {
+  readonly ball: Quantiles; // m, 3D
+  readonly remote: Quantiles; // m, each other terrier's position
+  readonly own: Quantiles; // m, this browser's player's terrier
+  readonly headings: Quantiles; // degrees, each other terrier's heading
+}
+
+/** A repair's corrections, apart (design §9.4): how many, and their sizes. */
+export interface RepairFigures extends CorrectionFigures {
+  readonly count: number;
+}
+
+export interface MatchNetSummary extends CorrectionFigures {
   readonly ticks: number; // final ticks this timeline took: reused and stepped, a repair's again
-  /** TICK messages received from others, direct or forwarded: TimelineStats counts messages, while late
-   *  and lateAbsent count inputs, a TICK carrying its sender's and each of its bots', so late over this
-   *  is no share of the inputs. Design §1.16's remoteInputs, renamed for what it counts until the
-   *  timeline counts inputs received (M3 phase 3's integration, reviewer SUM-1). */
-  readonly remoteTicks: number;
+  /** The inputs received from others, each TICK's own and each bot entry's, direct or forwarded, as
+   *  late and lateAbsent count them, so each over this is a share of the inputs (design §1.16,
+   *  TimelineStats' receivedInputs, reviewer SUM-1). */
+  readonly remoteInputs: number;
   readonly late: number;
   readonly lateAbsent: number;
   readonly lateBy: readonly number[];
@@ -125,30 +138,21 @@ export interface MatchNetSummary {
   readonly corrections: number; // every correction the timeline fired, a repair's included
   readonly resyncs: number;
   readonly resyncFailed: number;
-  // The corrections that weren't a repair's, as design §9.4's decisive figures: a repair's are
-  // governed by w and the losses, which resyncs counts.
-  readonly ball: Quantiles; // m, 3D
-  readonly remote: Quantiles; // m, each other terrier's position
-  readonly own: Quantiles; // m, this browser's player's terrier
-  readonly headings: Quantiles; // degrees, each other terrier's heading
+  // ball, remote, own and headings: the corrections that weren't a repair's, design §9.4's decisive
+  // figures. A repair's are governed by w and the losses, which resyncs counts, and are kept apart:
+  readonly repair: RepairFigures;
 }
 
-/** Fed by onCorrection; percentiles from fixed log-spaced bins, so a long match keeps no list. It
- *  keeps nothing of a correction but its sizes, so the states it is handed may change after. */
-export class SummaryBuilder {
-  private readonly me: string;
+/** One set of corrections' bins, body by body. */
+class Figures {
+  count = 0;
   private readonly ball = new LogBins();
   private readonly remote = new LogBins();
   private readonly own = new LogBins();
   private readonly headings = new LogBins();
 
-  constructor(me: string) {
-    this.me = me;
-  }
-
-  add(c: Correction): void {
-    if (c.repair) return;
-    const s = correctionSizes(c, this.me);
+  add(s: CorrectionSizes): void {
+    this.count++;
     this.ball.add(s.ball);
     for (const r of s.remote) {
       this.remote.add(r.metres);
@@ -157,10 +161,31 @@ export class SummaryBuilder {
     if (s.own !== null) this.own.add(s.own.metres);
   }
 
+  figures(): CorrectionFigures {
+    return { ball: this.ball.quantiles(), remote: this.remote.quantiles(), own: this.own.quantiles(), headings: this.headings.quantiles() };
+  }
+}
+
+/** Fed by onCorrection; percentiles from fixed log-spaced bins, so a long match keeps no list. It
+ *  keeps nothing of a correction but its sizes, so the states it is handed may change after. A
+ *  repair's corrections go to bins of their own, for M5 (M3 phase 4's fixes, reviewer SUM-1). */
+export class SummaryBuilder {
+  private readonly me: string;
+  private readonly predicted = new Figures();
+  private readonly repaired = new Figures();
+
+  constructor(me: string) {
+    this.me = me;
+  }
+
+  add(c: Correction): void {
+    (c.repair ? this.repaired : this.predicted).add(correctionSizes(c, this.me));
+  }
+
   summary(stats: TimelineStats): MatchNetSummary {
     return {
       ticks: stats.reusedFinals + stats.steppedFinals,
-      remoteTicks: stats.received,
+      remoteInputs: stats.receivedInputs,
       late: stats.late,
       lateAbsent: stats.lateAbsent,
       lateBy: [...stats.lateBy],
@@ -168,10 +193,8 @@ export class SummaryBuilder {
       corrections: stats.corrections,
       resyncs: stats.resyncs,
       resyncFailed: stats.resyncFailed,
-      ball: this.ball.quantiles(),
-      remote: this.remote.quantiles(),
-      own: this.own.quantiles(),
-      headings: this.headings.quantiles(),
+      ...this.predicted.figures(),
+      repair: { count: this.repaired.count, ...this.repaired.figures() },
     };
   }
 }

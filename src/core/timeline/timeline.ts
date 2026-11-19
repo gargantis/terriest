@@ -28,7 +28,16 @@
 // - D-12's payloads, and a LEAVE a STATE wiped out moves to the next own
 //   input (M3 phase 1's answers);
 // - pause and reanchor (D-22, §4.12), the correction observer (§2.11) and
-//   the verify mode (§2.7).
+//   the verify mode (§2.7);
+// - and M3 phase 4's fixes: a joiner's warm-up waits for every peer the
+//   session lists too, connected or still handshaking, from when it met it
+//   and for at most warmupMs, one met within warmupMs of the adoption (T6);
+//   a resync skips a candidate asked, by it or by the session's join or
+//   merge, less than resyncRetryMs ago, whose peer wouldn't answer (H2); the
+//   per-ID state of senders outside the roster with nothing in the stores'
+//   window is forgotten, and a STATE leaves out a sender outside the roster
+//   without a JOIN, so made-up IDs can't grow memory without bound (H5); and
+//   the inputs received are counted (SUM-1).
 // Pure: no DOM, timers or clocks. The caller passes `now` (ms, monotonic)
 // and routes messages in.
 
@@ -86,7 +95,8 @@ export interface Correction {
 
 export interface TimelineStats {
   sent: number;
-  received: number;
+  received: number; // TICKs from others, direct or forwarded
+  receivedInputs: number; // their own inputs and bot entries taken on a started timeline: late's and lateAbsent's whole (SUM-1)
   late: number; // TICK inputs at or before the late boundary here
   lateBy: number[]; // lateBy[k]: inputs k + 1 ticks late, the last bin open-ended (D-16's count against w)
   lateAbsent: number; // (sender, tick) finalised absent here whose input came later
@@ -140,7 +150,7 @@ interface Resync {
   readonly g: number;
   readonly hash: string;
   readonly candidates: readonly string[];
-  next: number;
+  readonly tried: Set<string>; // the candidates this resync asked, or found out of reach
   askedAt: number;
   readonly divergedAt: number;
 }
@@ -152,10 +162,13 @@ interface Repair {
 }
 
 interface Warm {
-  readonly expect: readonly string[];
-  readonly until: number;
-  readonly from: number;
+  readonly expect: readonly string[]; // the senders active in the STATE
+  readonly until: number; // from + warmupMs: their wait's end
+  readonly from: number; // the adoption
 }
+
+/** No peers to hear: a timeline without a session's (T6). */
+const NO_PEERS: ReadonlyMap<string, number> = new Map();
 
 const EVENT_BITS = JOIN | LEAVE | READY | UNREADY | SWITCH; // not a setting: sim/input.ts's event bits, the wire's kinds
 const U8 = 0xff; // not a setting: a payload byte on the wire
@@ -239,6 +252,14 @@ export class Timeline {
   /** Hosted bots' inputs, sampled once a sent tick (D-39, §4.8). */
   readonly bots = new Map<string, () => number>();
   onCorrection: ((c: Correction) => void) | null = null;
+  /** The peers a joiner's warm-up waits for besides the STATE's senders (T6): each player the session
+   *  is connected to, or in a handshake it accepted that is still under way, by the local time this
+   *  browser met it, its HELLO's coming. None without a session. Read on each advance of a warm-up. */
+  peersToHear: () => ReadonlyMap<string, number> = () => NO_PEERS;
+  /** When the session last sent a player's connection a STATE_REQ, from any of its timelines, a join's
+   *  and a merge's included: a resync passes over a candidate asked too lately to answer (H2). Never,
+   *  without a session. */
+  lastAsked: (player: string) => number = () => -Infinity;
 
   private readonly out: TimelineOut;
   private readonly P: SimParams;
@@ -293,6 +314,13 @@ export class Timeline {
   private readonly absentAt = new Map<number, string[]>();
   /** The peers this browser asked for a STATE to join from (§4.10). */
   private readonly asked = new Set<string>();
+  /** When a resync last asked each player: its peer answers one STATE_REQ per connection per
+   *  resyncRetryMs, so one asked sooner is passed over (H2). Only asks that recent are kept. */
+  private readonly askedAt = new Map<string, number>();
+  /** Each sender's newest tick here, other than this browser's and its bots': the newest of its TICKs'
+   *  and its STATE records' ticks, and the local tick its TICK was last heard at. Once that's retired
+   *  and it's outside the roster, nothing kept needs it, and its per-ID state goes (H5). */
+  private readonly seen = new Map<string, number>();
   private movedAdvances = 0;
   /** A STATE adopted or a changed base stepped since the last verify (§2.7). */
   private verifyDue = false;
@@ -325,7 +353,7 @@ export class Timeline {
     this.headState = cloneState(this.F);
     this.prevHeadState = this.headState;
     this.stats = {
-      sent: 0, received: 0, late: 0, lateBy: new Array<number>(Math.max(1, cfg.inputHistory)).fill(0), lateAbsent: 0,
+      sent: 0, received: 0, receivedInputs: 0, late: 0, lateBy: new Array<number>(Math.max(1, cfg.inputHistory)).fill(0), lateAbsent: 0,
       agree: 0, disagree: 0, split: 0, resyncs: 0, resyncMs: [], resyncFailed: 0, lateVoteFlips: 0,
       statesSent: 0, statesTruncated: 0, statesRefused: 0,
       steps: 0, maxStepsPerAdvance: 0, spreadTicks: 0, holds: 0,
@@ -375,6 +403,11 @@ export class Timeline {
   /** The newest tick whose tally agreed, or had no other vote (D-14). */
   get agreedTo(): number {
     return this.agreed;
+  }
+
+  /** A joiner's warm-up under way: finalisation held (§3.4, T6). */
+  get warming(): boolean {
+    return this.warm !== null;
   }
 
   /** A resync outstanding, a spread or a warm-up under way (§2.8). */
@@ -505,7 +538,7 @@ export class Timeline {
   advance(now: number): void {
     if (!this.isStarted || this.ticks.paused) return;
     const warm = this.warm;
-    if (warm !== null && (now >= warm.until || warm.expect.every((id) => this.firstHeard.has(id)))) {
+    if (warm !== null && this.warmedUp(warm, now)) {
       this.stats.warmMs = now - warm.from;
       this.warm = null;
       this.note(`warm in ${Math.round(this.stats.warmMs)} ms`);
@@ -654,6 +687,7 @@ export class Timeline {
     for (const b of m.bots) if (theirs.has(b.id) && !mine.has(b.id)) this.take(b.id, m.t, b, lo, hi, now);
     if (m.voteTick !== NO_TICK) this.bookVote(origin, m.voteTick, m.voteHash, now);
     this.heard(origin, now);
+    this.see(origin, this.local);
     this.ticks.heard(origin, now);
     if (direct) this.ticks.sample(origin, m.t, m.phase, this.oneWayMs.get(origin) ?? 0, now);
   }
@@ -661,8 +695,11 @@ export class Timeline {
   /** One sender's input from a TICK: for tick t, its history, then its events, so an event finds its
    *  tick's record first (§2.5); each write only inside (lo, hi]. */
   private take(id: string, t: number, x: SenderInput, lo: number, hi: number, now: number): void {
+    this.stats.receivedInputs++;
     const before = this.predictedValue(id);
     this.senders.add(id);
+    // Nothing past hi is kept, so a TICK for a far tick protects nothing (H5).
+    this.see(id, Math.min(t, hi));
     if (t <= lo) this.late(id, t, lo, true);
     else if (t <= hi) this.write(id, t, x.input);
     for (let k = 0; k < this.L.inputHistory; k++) {
@@ -703,6 +740,12 @@ export class Timeline {
   private heard(id: string, now: number): void {
     if (!this.firstHeard.has(id)) this.firstHeard.set(id, now);
     this.lastHeard.set(id, now);
+  }
+
+  /** id has something at tick t, or was heard at local tick t (H5). */
+  private see(id: string, t: number): void {
+    const was = this.seen.get(id);
+    if (was === undefined || t > was) this.seen.set(id, t);
   }
 
   // ---- The stores, and what each write invalidates (§2.7) ----
@@ -838,8 +881,32 @@ export class Timeline {
       this.store.retire(t - H);
       this.book.retire(t - H);
       this.absentAt.delete(t - H);
+      if (t % H === 0) this.forgetStale();
     }
     return steps;
+  }
+
+  /** H5: a sender outside the roster whose newest tick here is retired is needed by nothing kept:
+   *  its records, marks and votes are all retired, so its per-ID state goes, the store's newest input
+   *  and the clock's included. One in the roster stays however long it's silent: the abandoned rule
+   *  reads when it was last heard (Q-16). A rogue's made-up origins, each speaking for floodMs before
+   *  the next, are forgotten about history ticks after they fall silent, so their number stays
+   *  bounded. This browser and its bots are never in seen; another's bot IDs are a cache, made again
+   *  when needed. */
+  private forgetStale(): void {
+    const old = this.finalAt - this.cfg.history;
+    const roster = new Set(this.F.terriers.map((T) => T.id));
+    for (const [id, at] of this.seen) {
+      if (at > old || roster.has(id)) continue;
+      this.seen.delete(id);
+      this.senders.delete(id);
+      this.firstHeard.delete(id);
+      this.lastHeard.delete(id);
+      this.ticks.forget(id);
+      this.store.forget(id);
+    }
+    // And the bot IDs cached for a sender or a voter not seen, by a tally's count.
+    for (const host of this.botIdsOf.keys()) if (host !== this.cfg.me && !this.seen.has(host)) this.botIdsOf.delete(host);
   }
 
   /** The roster's terriers with no record at t, before t is stepped: lateAbsent's candidates (§9.3). */
@@ -998,20 +1065,42 @@ export class Timeline {
   // ---- The STATE resync (§3.4) ----
 
   private beginResync(g: number, hash: string, now: number): void {
-    this.resync = { g, hash, candidates: this.book.voters(g, hash, this.cfg.me), next: 0, askedAt: -Infinity, divergedAt: now };
+    this.resync = { g, hash, candidates: this.book.voters(g, hash, this.cfg.me), tried: new Set(), askedAt: -Infinity, divergedAt: now };
     this.askNext(now);
   }
 
   /** The winner's voters by ID, one every resyncRetryMs, each reached directly; with none left, the
-   *  next tally that disagrees tries again. */
+   *  next tally that disagrees tries again. A peer answers one STATE_REQ per connection per
+   *  resyncRetryMs, the rest unanswered (§4.10), so a candidate asked less than that ago, by a resync
+   *  that failed or one a repair ended, or by the session's join or merge (lastAsked), is passed over
+   *  for the next, its one-way delay added for the jitter between the two requests' paths; when only
+   *  such are left, this one waits until the first of them may be asked, rather than fail (H2). */
   private askNext(now: number): void {
     const r = this.resync!;
+    const retry = this.cfg.resyncRetryMs;
+    // When each candidate may be asked again.
+    const free = (c: string, at: number): number => at + retry + (this.oneWayMs.get(c) ?? 0);
+    for (const [c, at] of this.askedAt) if (now >= free(c, at)) this.askedAt.delete(c);
     const req = encodeStateReq(r.g, r.hash);
-    while (r.next < r.candidates.length) {
-      if (this.out.sendToPlayer(r.candidates[r.next++]!, req)) {
+    let wait = Infinity;
+    for (const c of r.candidates) {
+      if (r.tried.has(c)) continue;
+      const at = Math.max(this.askedAt.get(c) ?? -Infinity, this.lastAsked(c));
+      if (now < free(c, at)) {
+        wait = Math.min(wait, free(c, at));
+        continue;
+      }
+      r.tried.add(c);
+      if (this.out.sendToPlayer(c, req)) {
+        this.askedAt.set(c, now);
         r.askedAt = now;
         return;
       }
+    }
+    // Asked when it may be: advance retries resyncRetryMs after askedAt.
+    if (wait !== Infinity) {
+      r.askedAt = wait - retry;
+      return;
     }
     this.stats.resyncFailed++;
     this.note(`resync failed ${r.g}`);
@@ -1039,7 +1128,8 @@ export class Timeline {
     if (state === null || most < 0) return this.refuse();
     const inputs: InputRecord[][] = [];
     const last = Math.min(this.local + this.cfg.delay, g + most);
-    for (let t = g + 1; t <= last; t++) inputs.push(this.recordsAt(t));
+    const members = new Set(this.finals.roster(g));
+    for (let t = g + 1; t <= last; t++) inputs.push(this.recordsAt(t, members));
     const { bytes, kept } = encodeStateMessage(
       { timeline: this.idValue, senderTick, phase: clock - senderTick, g, senderFinal: this.finalAt, state, inputs },
       this.finals.roster(g),
@@ -1060,13 +1150,17 @@ export class Timeline {
   }
 
   /** Tick t's records for a STATE, by ID. After the final tick, none that events alone made: their
-   *  input 0 isn't one anybody sent, and their events ride in their origin's TICKs (parts-T6). */
-  private recordsAt(t: number): InputRecord[] {
+   *  input 0 isn't one anybody sent, and their events ride in their origin's TICKs (parts-T6). And
+   *  only those of `members`, the state's terriers and each sender with a JOIN at an earlier tick
+   *  here, and of a sender whose JOIN is at t, which joins them: a step takes nothing else of a
+   *  sender outside the roster, so a STATE leaves out made-up IDs, whose table would grow it (H5). */
+  private recordsAt(t: number, members: Set<string>): InputRecord[] {
     const out: InputRecord[] = [];
     const records = this.store.at(t);
     if (records === undefined) return out;
     for (const [player, r] of records) {
-      if (t > this.finalAt && this.store.receivedInput(player, t) === undefined) continue;
+      if ((r.events & JOIN) !== 0) members.add(player);
+      if (!members.has(player) || (t > this.finalAt && this.store.receivedInput(player, t) === undefined)) continue;
       out.push({ player, input: r.input, ...withEvents(r, r.events) });
     }
     return out.sort(byPlayer);
@@ -1111,7 +1205,9 @@ export class Timeline {
     const expect = new Set<string>();
     for (const records of m.inputs) for (const x of records) if (x.player !== this.cfg.me && !mine.has(x.player)) expect.add(x.player);
     this.confirmed = false;
-    this.warm = expect.size > 0 ? { expect: [...expect].sort(), until: now + this.cfg.warmupMs, from: now } : null;
+    // Held for the STATE's senders and the session's peers (T6), unless there's nobody to wait for.
+    const warm: Warm = { expect: [...expect].sort(), until: now + this.cfg.warmupMs, from: now };
+    this.warm = this.warmedUp(warm, now) ? null : warm;
     this.headState = cloneState(this.F);
     this.prevHeadState = this.headState;
     this.headAt = m.g;
@@ -1145,12 +1241,35 @@ export class Timeline {
     this.work(now, this.cfg.spreadCap, false);
   }
 
+  /** A joiner's warm-up holds finalisation until each sender active in the STATE has been heard from,
+   *  or warmupMs has passed (roslambo M0), and each peer the session lists has been too, or isn't
+   *  needed (T6). A co-joiner in an overlapping burst may be missing from the STATE, its handshake
+   *  with this browser still under way while its JOIN goes to the others: so each peer the session
+   *  met, connected or still handshaking, is waited for until a TICK of its comes after the meeting,
+   *  bringing its history and the events it hasn't seen final, or warmupMs after the later of the
+   *  adoption and the meeting. One met warmupMs after the adoption or later isn't waited for, so the
+   *  whole wait ends within twice warmupMs, however many handshakes begin or hang (M3 phase 4's
+   *  fixes). */
+  private warmedUp(warm: Warm, now: number): boolean {
+    if (now < warm.until && !warm.expect.every((id) => this.firstHeard.has(id))) return false;
+    const mine = this.botsOf(this.cfg.me);
+    for (const [id, met] of this.peersToHear()) {
+      if (id === this.cfg.me || mine.has(id) || met >= warm.until || (this.lastHeard.get(id) ?? -Infinity) >= met) continue;
+      if (now < Math.max(warm.from, met) + this.cfg.warmupMs) return false;
+    }
+    return true;
+  }
+
   /** Inputs up to the sender's final tick replace this browser's exactly, absences included; after
    *  it they're added (roslambo). */
   private importInputs(m: StateMsg): void {
+    const mine = this.botsOf(this.cfg.me);
     m.inputs.forEach((records, i) => {
       const t = m.g + 1 + i;
-      for (const x of records) this.senders.add(x.player);
+      for (const x of records) {
+        this.senders.add(x.player);
+        if (x.player !== this.cfg.me && !mine.has(x.player)) this.see(x.player, t);
+      }
       if (t <= m.senderFinal) this.store.replace(t, records.map((x) => ({ id: x.player, ...recorded(x.input, x) })));
       else for (const x of records) this.store.put(x.player, t, recorded(x.input, x));
     });

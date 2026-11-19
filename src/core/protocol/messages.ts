@@ -9,7 +9,10 @@
 // JOIN's pack and coat, and SWITCH; PEERS' role byte and cap; HELLO without
 // "saved" and "holds a result"; RESULT_REQ, RESULT and SETTLED dropped;
 // STATE's ID table and tick bounds (M3-Q27), its state through A.1's
-// decodeState; an event checked against its sender's history (§5.3).
+// decodeState; an event checked against its sender's history (§5.3). And
+// PEERS carries its sender's timeline announcement, HELLO's fields, so a
+// page that moves to another timeline tells the peers that hold its HELLO
+// (P7's peer side, M3 phase 4's fixes).
 // The encoders write only what decode takes: they zero the fields that a
 // timeline of kind none, a TICK without its own input and a missing vote
 // leave unused, and leave out what no receiver could take (writeEvents,
@@ -51,6 +54,7 @@ const EVENT_MIN = 2; // not a setting: an event's back and kind
 const BOT_MIN = 23; // not a setting: a bot entry's ID, input, masks and event count
 const INPUT_MIN = 4; // not a setting: a STATE input's index, input and event count
 const STATE_HEAD = 28; // not a setting: STATE's fields and counts, its state and ID table aside
+const ANNOUNCEMENT_BYTES = 21; // not a setting: PEERS' timeline ID, kind, final tick and hash
 
 /** The bounds the decoder checks (§5.6), from the configuration. */
 export interface WireLimits {
@@ -114,9 +118,16 @@ export interface SenderInput {
   events: TickEvent[];
 }
 export interface BotEntry extends SenderInput { id: string }
-export interface Hello {
+/** A timeline as HELLO and PEERS announce it (§5.1, P7): its ID and kind, a tick and a hash; kind
+ *  none with a zero ID, tick and hash. The session announces its clock's tick in finalTick, how old
+ *  the timeline is, which the receiver ages by the time since, and its final tick's hash (M3 phase
+ *  4's fixes); the decoder takes any tick. */
+export interface Announcement { timeline: string; timelineKind: number; finalTick: number; hash: string }
+/** No timeline: what a page without one announces. */
+export const NO_TIMELINE: Readonly<Announcement> = Object.freeze({ timeline: ZERO_HASH, timelineKind: TIMELINE_KIND.NONE, finalTick: 0, hash: ZERO_HASH });
+export interface Hello extends Announcement {
   type: typeof T.HELLO; protocol: number; build: string; player: string; role: number;
-  timeline: string; timelineKind: number; phase: number; finalTick: number; hash: string; name: string;
+  phase: number; name: string;
 }
 export interface Refuse { type: typeof T.REFUSE; reason: number }
 export interface Tick {
@@ -127,7 +138,8 @@ export interface Tick {
   bots: BotEntry[];
 }
 export interface Fwd { type: typeof T.FWD; origin: string; tick: Tick }
-export interface Peers { type: typeof T.PEERS; players: string[]; role: number }
+/** The players its sender is connected to, its role, and the timeline it holds (§5.4, P7). */
+export interface Peers extends Announcement { type: typeof T.PEERS; players: string[]; role: number }
 export interface Again { type: typeof T.AGAIN }
 export interface StateReq { type: typeof T.STATE_REQ; tick: number; want: string }
 /** One player's or bot's input for one tick, as STATE carries it. */
@@ -158,6 +170,13 @@ export function encodeHello(m: Omit<Hello, 'type'>): Uint8Array {
     .hex(none ? ZERO_HASH : m.timeline, HASH_BYTES).u8(m.timelineKind).u8(m.phase)
     .u32(none ? 0 : m.finalTick).hex(none ? ZERO_HASH : m.hash, HASH_BYTES)
     .string(m.name).done();
+}
+
+/** An announcement as PEERS carries it, in HELLO's order but for the phase: the timeline ID, the kind,
+ *  the final tick and the hash, zero but for the kind when it's none. */
+function writeAnnouncement(w: Writer, a: Readonly<Announcement>): Writer {
+  const none = (a.timelineKind & 0xff) === TIMELINE_KIND.NONE;
+  return w.hex(none ? ZERO_HASH : a.timeline, HASH_BYTES).u8(a.timelineKind).u32(none ? 0 : a.finalTick).hex(none ? ZERO_HASH : a.hash, HASH_BYTES);
 }
 
 export function encodeRefuse(reason: number): Uint8Array {
@@ -237,12 +256,13 @@ export function encodeFwd(origin: string, tick: Uint8Array): Uint8Array {
   return new Writer().u8(T.FWD).hex(origin, ID_BYTES).bytes(tick).done();
 }
 
-/** Each ID once, then the role (§5.4). */
-export function encodePeers(players: readonly string[], role: number): Uint8Array {
+/** Each ID once, then the role (§5.4), then the timeline the sender holds: none unless it's given
+ *  one (P7). */
+export function encodePeers(players: readonly string[], role: number, timeline: Readonly<Announcement> = NO_TIMELINE): Uint8Array {
   const ids = players.filter((p, i) => players.indexOf(p) === i);
   const w = new Writer().u8(T.PEERS).u8(ids.length);
   for (const p of ids) w.hex(p, ID_BYTES);
-  return w.u8(role).done();
+  return writeAnnouncement(w.u8(role), timeline).done();
 }
 
 export function encodeAgain(): Uint8Array {
@@ -421,6 +441,11 @@ function readTick(r: Reader, L: WireLimits): Tick | null {
   return r.bad ? null : { type: T.TICK, t, own, voteTick, voteHash, phase, bots };
 }
 
+/** §5.1's rule for an announcement, HELLO's and PEERS': a kind of none or live, and none with a zero
+ *  timeline ID, tick and hash. */
+const announces = (a: Readonly<Announcement>): boolean =>
+  a.timelineKind <= TIMELINE_KIND.LIVE && (a.timelineKind === TIMELINE_KIND.LIVE || (a.timeline === ZERO_HASH && a.finalTick === 0 && a.hash === ZERO_HASH));
+
 /** HELLO after its type byte (§5.1). 16 raw bytes always spell a player ID
  *  (D-25), here and in PEERS and STATE's table. */
 function readHello(r: Reader, L: WireLimits): Hello | null {
@@ -434,16 +459,15 @@ function readHello(r: Reader, L: WireLimits): Hello | null {
   const finalTick = r.u32();
   const hash = r.hex(HASH_BYTES);
   const name = r.string(L.nameMaxBytes);
-  if (r.bad || role < ROLE.KEEPER || role > ROLE.UNDECIDED || timelineKind > TIMELINE_KIND.LIVE || phase > ENDED) return null;
-  if (timelineKind === TIMELINE_KIND.NONE && (timeline !== ZERO_HASH || finalTick !== 0 || hash !== ZERO_HASH)) return null;
+  if (r.bad || role < ROLE.KEEPER || role > ROLE.UNDECIDED || phase > ENDED || !announces({ timeline, timelineKind, finalTick, hash })) return null;
   return { type: T.HELLO, protocol, build, player, role, timeline, timelineKind, phase, finalTick, hash, name };
 }
 
-/** PEERS after its type byte: at most peersMax distinct IDs and a role
- *  from 1 to 4, a keeper's 1 included (§5.4, M3-Q15). */
+/** PEERS after its type byte: at most peersMax distinct IDs, a role from 1 to 4, a keeper's 1
+ *  included (§5.4, M3-Q15), and an announcement as HELLO's (P7). */
 function readPeers(r: Reader, L: WireLimits): Peers | null {
   const n = r.u8();
-  if (n > L.peersMax || ID_BYTES * n + 1 > r.remaining) return null;
+  if (n > L.peersMax || ID_BYTES * n + 1 + ANNOUNCEMENT_BYTES > r.remaining) return null;
   const players: string[] = [];
   for (let k = 0; k < n; k++) {
     const p = r.hex(ID_BYTES);
@@ -451,7 +475,12 @@ function readPeers(r: Reader, L: WireLimits): Peers | null {
     players.push(p);
   }
   const role = r.u8();
-  return r.bad || role < ROLE.KEEPER || role > ROLE.UNDECIDED ? null : { type: T.PEERS, players, role };
+  const timeline = r.hex(HASH_BYTES);
+  const timelineKind = r.u8();
+  const finalTick = r.u32();
+  const hash = r.hex(HASH_BYTES);
+  const a: Announcement = { timeline, timelineKind, finalTick, hash };
+  return r.bad || role < ROLE.KEEPER || role > ROLE.UNDECIDED || !announces(a) ? null : { type: T.PEERS, players, role, ...a };
 }
 
 /** A STATE input's events, into x: as TICK's without back. */
