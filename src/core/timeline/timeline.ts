@@ -51,12 +51,19 @@
 //   went final at their senders meanwhile; the full replay's drawn head
 //   takes its tick's state as recomputed; and the final lineage's goal
 //   ticks are kept, so the scoreboard withdraws just the goals a repair
-//   took away (§3.5, C-4).
+//   took away (§3.5, C-4);
+// - and M3 phase 5b's: a voter the final lineage removed for silence in
+//   warm-up while it still reached this page, directly or through a
+//   forwarder, is counted out of the roster, none of its votes set aside,
+//   as many as the roster has free places, so a page cut off from the room,
+//   a joiner whose STATE came late, and each half of a partition no longer
+//   agree with themselves alone for good, and none holds a vote without a
+//   place (flood-F3, the joining split, split-F1, split-F2).
 // Pure: no DOM, timers or clocks. The caller passes `now` (ms, monotonic)
 // and routes messages in.
 
 import { config } from '../../config';
-import { botIds } from '../bot/bot-id';
+import { botIds, isBot } from '../bot/bot-id';
 import {
   type BotEntry, encodeState as encodeStateMessage, encodeStateReq, encodeTick, type EventPayload, type InputRecord, NO_TICK,
   type SenderInput, type StateMsg, type StateReq, stateRecordsMax, type Tick, type TickEvent, wireLimits, type WireLimits, wireString,
@@ -183,6 +190,8 @@ interface Warm {
 
 /** No peers to hear: a timeline without a session's (T6). */
 const NO_PEERS: ReadonlyMap<string, number> = new Map();
+/** No removed voter counted out of the roster (counter). */
+const NONE: ReadonlySet<string> = new Set();
 
 const EVENT_BITS = JOIN | LEAVE | READY | UNREADY | SWITCH; // not a setting: sim/input.ts's event bits, the wire's kinds
 const U8 = 0xff; // not a setting: a payload byte on the wire
@@ -274,6 +283,10 @@ export class Timeline {
    *  and a merge's included: a resync passes over a candidate asked too lately to answer (H2). Never,
    *  without a session. */
   lastAsked: (player: string) => number = () => -Infinity;
+  /** Whether a player reaches this browser now, the session's: by a connection, or through a forwarder
+   *  whose latest PEERS lists it (D-19). A voter this timeline's final lineage removes for silence while
+   *  it does is counted (removed). Never, without a session. */
+  connected: (player: string) => boolean = () => false;
 
   private readonly out: TimelineOut;
   private readonly P: SimParams;
@@ -322,6 +335,11 @@ export class Timeline {
    *  went out before it tallied that tick, so before it knew it lost, and aren't counted here. Its
    *  next votes are its repair's, or a failed resync's (M3 phase 4's three-way livelock). */
   private readonly lostAt = new Map<string, number>();
+  /** The voters the final lineage removed for silence in warm-up, their terrier or a bot of theirs,
+   *  while they reached this browser (connected): counted in tallies though out of the roster, as many
+   *  as it has free places, until one is back in the roster or its connection here goes (counter, M3
+   *  phase 5b). */
+  private readonly removed = new Set<string>();
   private warm: Warm | null = null;
   /** The final lineage's goal ticks from goalsFrom on, in order: each final tick whose state's last
    *  goal is itself, as finalisation takes them, a repair's again after its base (hasGoalAt). */
@@ -526,6 +544,7 @@ export class Timeline {
   forget(player: string): void {
     this.ticks.forget(player);
     this.oneWayMs.delete(player);
+    this.removed.delete(player);
   }
 
   // ---- Lifecycle ----
@@ -918,6 +937,7 @@ export class Timeline {
       if (this.F.lastGoalTick === t) this.goalTicks.push(t);
       if (this.validTo < t) this.validTo = t;
       this.storeFinal(t);
+      this.noteRemovals(t);
       if (t === this.headAt && this.touchedFrom <= t) this.headRecomputed = cloneState(this.F);
       // A sender whose newest tick is now final is predicted absent from here on (§2.6).
       for (const id of this.senders) if (this.store.newest(id)?.tick === t) this.touch(this.store.firstUnknown(id, t, this.validTo));
@@ -962,6 +982,37 @@ export class Timeline {
       (absent ??= []).push(T.id);
     }
     if (absent !== null) this.absentAt.set(t, absent);
+  }
+
+  /** After t is final: each voter whose terrier, or bot, left the roster at t with no record there, as
+   *  a removal for silence leaves it and a LEAVE doesn't, while it reaches this page (connected), joins
+   *  `removed`; and one back in the roster leaves it (M3 phase 5b). */
+  private noteRemovals(t: number): void {
+    const now = this.finals.roster(t);
+    if (this.removed.size > 0) for (const voter of [...this.removed]) if (this.inRosterOf(voter, now)) this.removed.delete(voter);
+    const was = this.finals.roster(t - 1);
+    if (was.length === now.length && was.every((id, k) => now[k] === id)) return;
+    const mine = this.botsOf(this.cfg.me);
+    for (const id of was) {
+      if (now.includes(id) || this.store.get(id, t) !== undefined || id === this.cfg.me || mine.has(id)) continue;
+      const voter = isBot(id) ? this.hostOf(id) : id;
+      if (voter === undefined || !this.connected(voter)) continue;
+      this.removed.add(voter);
+      this.note(`removed ${voter.slice(-2)} at ${t}`);
+    }
+  }
+
+  /** voter, or a bot derived from it, is in roster. */
+  private inRosterOf(voter: string, roster: readonly string[]): boolean {
+    if (roster.includes(voter)) return true;
+    for (const b of this.botsOf(voter)) if (roster.includes(b)) return true;
+    return false;
+  }
+
+  /** A bot's host, among the senders whose bot IDs are cached (botsOf). */
+  private hostOf(bot: string): string | undefined {
+    for (const [host, ids] of this.botIdsOf) if (host !== this.cfg.me && ids.has(bot)) return host;
+    return undefined;
   }
 
   /** Bytes, hash and roster into the history; this browser's vote, replacing any (§3.1). */
@@ -1056,16 +1107,37 @@ export class Timeline {
 
   /** Whether a voter's vote counts at g: it, or a bot derived from it, is in my roster there (D-13),
    *  and it isn't one a tally here saw lose in the v − 1 ticks before g, whose vote at g went out
-   *  before it knew (lostAt). */
+   *  before it knew (lostAt); or my final lineage removed it for silence while it reached this page
+   *  (removed), and it's out of my roster at g, one of as many such voters with a vote there as the
+   *  roster has free places, the smallest IDs first. A voter votes only while it controls a terrier
+   *  in its own roster (votesFor), so one removed here whose votes still come plays on in a lineage
+   *  of its own: the room, seen from a page cut off from it, or either half of a partition, seen from
+   *  the other. Its votes count, so the tallies disagree and one side repairs, the most votes and
+   *  then the smallest hash winning, tick by tick (D-13). Whether such a voter saw itself lose, this
+   *  page can't tell, its tally counting another roster, so none of its votes is set aside: every
+   *  page of a split counts the other half's votes alike, where each setting aside a different few
+   *  kept both halves winning (M3 phase 5b). Each held a place when it was removed, so one whose
+   *  place another took holds no vote, and rogues that each took a free place, fell silent and stayed
+   *  connected can't outvote a full room (L201, split-F1). */
   private counter(g: number): (voter: string) => boolean {
     const roster = new Set(this.finals.roster(g));
     const v = this.cfg.voteWindow;
-    return (voter) => {
-      const lost = this.lostAt.get(voter);
-      if (lost !== undefined && g > lost && g < lost + v) return false;
+    const inRoster = (voter: string): boolean => {
       if (roster.has(voter)) return true;
       for (const b of this.botsOf(voter)) if (roster.has(b)) return true;
       return false;
+    };
+    let placed: ReadonlySet<string> = NONE;
+    if (this.removed.size > 0) {
+      // 2 × pack size − terriers: the places both packs have left at g (roster.ts's freePlaces).
+      const free = 2 * this.F.packSize - roster.size;
+      if (free > 0) placed = new Set(this.book.votersAt(g).filter((x) => this.removed.has(x) && !inRoster(x)).slice(0, free));
+    }
+    return (voter) => {
+      if (placed.has(voter)) return true;
+      const lost = this.lostAt.get(voter);
+      if (lost !== undefined && g > lost && g < lost + v) return false;
+      return inRoster(voter);
     };
   }
 

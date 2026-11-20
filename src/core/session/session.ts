@@ -76,6 +76,9 @@
 // - a retry skips its re-send while its event is in flight, and goes once
 //   the event's tick is final without the state showing it (M3 phase 3's
 //   answers);
+// - each timeline told which players reach it, by a connection or through
+//   a forwarder, for the voters its lineage removes for silence that it
+//   counts (M3 phase 5b, flood-F3, split-F2);
 // - no saves, results peers, witnesses or ledger.
 // Pure: the caller passes `now` (ms, monotonic) and wires a transport to
 // the RoomPeer methods.
@@ -1481,6 +1484,9 @@ export class Session implements RoomPeer {
       const peer = this.byPlayer.get(player);
       return peer === undefined ? -Infinity : this.peers.get(peer)!.askedAt;
     };
+    // Directly, or through a forwarder: a FWD speaks only for a player its connection's latest PEERS
+    // lists (D-19, split-F2).
+    t.connected = (player) => this.byPlayer.has(player) || [...this.peers.values()].some((x) => x.peers?.has(player) === true);
     for (const [player, peer] of this.byPlayer) {
       const ms = this.peers.get(peer)!.oneWayMs;
       if (ms !== null) t.setOneWay(player, ms);

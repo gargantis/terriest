@@ -69,8 +69,8 @@ export interface ChainEntry {
 
 /** What the inside of a timeline shows its tests, and what they spoil on purpose (§2.1, §2.7, §3.4):
  *  the chain and its watermark, the input store, the vote book and the final history, the repair
- *  under way, whether the last work left the chain short of its target (a spread, §2.8), and F, for
- *  the consensus tests' corruptions (design §0). */
+ *  under way, whether the last work left the chain short of its target (a spread, §2.8), F, for
+ *  the consensus tests' corruptions (design §0), and the voters removed for silence it counts. */
 export interface Inside {
   validTo: number;
   touchedFrom: number;
@@ -81,6 +81,8 @@ export interface Inside {
   readonly repair: object | null;
   readonly behind: boolean;
   readonly F: MatchState;
+  /** The voters the final lineage removed for silence while connected (M3 phase 5b). */
+  readonly removed: ReadonlySet<string>;
 }
 
 export const inside = (t: Timeline): Inside => t as unknown as Inside;
