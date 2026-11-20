@@ -12,8 +12,11 @@
 // timeline IDs Play again and Practice make. M4 widens it as its screens
 // need, and nothing imports it before M4: M3's glue, the #test=net page,
 // the tests and the correction measurement import the modules themselves.
-// Re-exports only.
+// M4's contracts add the timeline's types its drawing and screens meet, and
+// the barks' (M4's design, research/m4/DESIGN.md, §1.36). Re-exports only.
 
+export type { BarkEvent, BarkTimeline } from './bark-types';
+export type { Correction, Timeline, TimelineStats } from '../timeline/timeline';
 export { buildHash } from './build';
 export { type NetSettings, netSettings, type RoomSettings, type TimelineSettings, type TransportSettings } from './settings';
 export type { Accepted, Link, Refusal, RoomPeer } from './room-peer';

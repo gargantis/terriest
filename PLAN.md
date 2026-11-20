@@ -2104,8 +2104,12 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Slip-out | 42° from vertical, 2 m/s sideways, with the slipping flag (M0 chose it, D-5); the flag holds the drive off toward the body slipped from only within 0.6 m of it, surface to surface in plan view (M2, provisional by measurement) |
 | Ball overhead | enter under 0.3 m, leave above 0.4 m (horizontal centre distance) |
 | Gait and running | the gait turns a cycle per 0.6 m run on the floor; a terrier draws as running above 0.2 m/s, or while its drive is on (M2, from M0, D-9) |
+| Pushing pose | the code-built terrier draws its pushing pose for 8 ticks after a contact with the ball or a terrier, so its head stays out of the ball (M0's, D-27; M4) |
+| Animation blends | an animation fades into the next over 150 ms, and so does an animation a correction moves, adds or takes back; an overlay fades in and out alike (D-27, L208; M4) |
 | Stick | 32 steps, half-step hysteresis, 0.2 dead zone; chase view re-reads at 45° |
+| Gamepad | read at each sampled tick, and on a 60 Hz timer of its own while none is sampled; the right trigger counts as held past half its travel (D-29; M4) |
 | Smoothing | 200 ms; 100 ms for your own terrier; bodies in contact share one decay (M3, by measurement: research/corrections/REPORT.md, D-16) |
+| A held head | while a spread holds the drawn head, its bodies are drawn carried on by their velocities for up to 6 ticks, then glided (D-16; M4) |
 | Removal before the start countdown | 180 silent ticks (roslambo Q-15) |
 | Sitting, from the start countdown | 120 silent ticks |
 | Warm-up arrivals | the pack's next free spot if it's clear, else the first clear point in 1 m steps from it toward the pack's own goal line, else the spot itself (M2, D-8) |
@@ -2125,6 +2129,9 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Results' press guard | only a press that begins 0.5 s or more after Results appears (Q-17) |
 | Lost graphics | the plain message after 5 s, counted only while the page is visible (D-30) |
 | Render quality | high: pixel ratio capped at 2, with MSAA; low: capped at 1, no MSAA, simpler effects (D-33) |
+| Drawing gives way | drawing gives way when, over a second, more than 10% of the ticks this page sends for were skipped, or more than 10% of the second passed in timer gaps longer than 50 ms: the pixel ratio falls by 0.25 of its cap, to 0.5 at least, and then every other frame is skipped; it steps back after 3 s with neither (M4's design §8.2; M4) |
+| Drawing budget | a code-built terrier at most 2,000 triangles; a model at most 8,000 triangles, 32 bones and a 512 × 512 texture; at most 40 draw calls for eight terriers; each way of drawing them at most 200 kB brotli, three not included (§12's starting guesses, a ceiling until the phone has run, C-2; M4) |
+| Terrier model | none: terriers are built in code; a model named here would load through the model drawer, as the tests' stand-in does (L97, D-27; M4) |
 | Sound under rollback | an event that a re-simulation moves by up to 3 ticks plays once (§13) |
 | Bot brain | reacts after 0.25 s, with aim noise up to 10° either way, seeded per bot; zooms toward a target over 5 m away; pounces when the ball's surface is within 2 m and the shot is lined up within 20°; supports 5 m behind the ball; defends 6 m out from its goal line; barks about every 5 s; turns away after 2 s held within 0.5 m (M2, Q-9, D-39) |
 | Bot hosting | a host sends a bot's READY again once the bot's Ready has 10 s left, so a bot is always ready (C-41, M3) |
@@ -2148,6 +2155,8 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Re-arm gap | 0.6 m surface to surface (M2, provisional by measurement) |
 | Chase view swing | 0.3 s time constant, at most 1 turn/s; calmer camera 0.6 s and 0.5 turn/s (tuned at M4 with the cameras, Q-10) |
 | Ball view swing | at most 1 turn/s, calmer camera 0.5 turn/s, with no lag below the cap; toward the overhead reference while the ball is overhead (D-28; tuned at M4) |
+| Players' cameras | 4.2 m behind the terrier and 2.1 m above its floor point, a 55° vertical field of view, kept 0.4 m inside the walls, the goals and under the net, and raised when that leaves it nearer than 1.5 m to the terrier; chase view looks 2 m ahead of it (D-28; tuned at M4 with the swing, Q-10) |
+| Spectators' camera | high above the near side, framing 24 m of the pitch's length round the ball or the terrier followed, easing after it with a 0.5 s time constant (D-28, L91; tuned at M4) |
 | Tumble guard | 1.5 s (M2, provisional by measurement) |
 | Terrier collider | sphere, radius 0.25 m (M2, provisional by measurement), mass 1 (ball 2) |
 | Idle friction | 8 m/s² (M2, provisional by measurement) |

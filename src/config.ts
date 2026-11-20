@@ -136,6 +136,17 @@ export const config = deepFreeze({
   chaseCalmerMaxTurnsPerSecond: 0.5,
   ballViewSwingMaxTurnsPerSecond: 1, // no lag below the cap
   ballViewCalmerMaxTurnsPerSecond: 0.5,
+  // Where they sit (A.5: Players' cameras, Spectators' camera; D-28), M4:
+  // every number the owner tunes with the swing on the feel page. M1's
+  // overview fit and the aim's limits stay drawing constants (M4-Q34).
+  cameraBehindMetres: 4.2, // behind the terrier's floor point, along the yaw
+  cameraAboveMetres: 2.1, // above it
+  cameraFovDegrees: 55, // vertical
+  cameraWallMarginMetres: 0.4, // inside the walls and the goals, and under the net
+  cameraNearestMetres: 1.5, // horizontally: nearer the terrier than this, the camera rises
+  chaseLookAheadMetres: 2, // chase view aims this far ahead of the terrier
+  spectatorViewLengthMetres: 24, // of the pitch's length, framed round what it follows
+  spectatorFollowSeconds: 0.5, // the time constant it eases after it with
 
   // The timeline (A.4; D-3, D-11, D-13).
   ticksPerSecond: 60,
@@ -207,6 +218,10 @@ export const config = deepFreeze({
   stickDeadZoneFraction: 0.2, // of the stick's travel
   chaseRereadDegrees: 45, // chase view reads the screen again from this far (Q-19)
   touchEdgeMarginCssPx: 32, // from the side edges, inside the safe-area insets
+  // The gamepad (A.4: Gamepad), M4: read at each sampled tick, and on a
+  // timer of its own while no input is sampled.
+  gamepadPollHz: 60,
+  gamepadTriggerFraction: 0.5, // of the right trigger's travel: zoomies held past it
 
   // The page (A.4; D-16, D-30, D-31, D-33, §13, Q-11, Q-17).
   smoothingMs: 200, // a correction's offset decay; bodies in contact share one: M3's correction measurement, rule 2 (D-16)
@@ -224,6 +239,35 @@ export const config = deepFreeze({
   },
   soundShiftTicksMax: 3, // an event a re-simulation moves this far plays once (§13)
   coatCount: 8, // the coat list is fixed with the look at M4 (Q-11); M0 drew 8
+
+  // Drawing (A.4: Pushing pose, Animation blends, A held head, Drawing gives
+  // way, Drawing budget, Terrier model; D-16, D-27, C-2), M4. Never the
+  // simulation's: drawing reads the state and feeds nothing back.
+  pushPoseTicks: 8, // after a contact with the ball or a terrier: M0's PUSH_TICKS (D-27)
+  animationBlendMs: 150, // a fade into the next animation, or to a correction's, and an overlay's in and out (L208, M4-Q12)
+  heldHeadCarryTicks: 6, // the most a held head's bodies are carried on by their velocities, then glided (D-16, M4-Q14)
+  // Drawing gives way to the timeline (M4's design §8.2): when, over a
+  // second, more than drawingLateShare of the ticks this page sends for are
+  // skipped, or of the second passes in timer gaps over drawingLateTimerMs,
+  // the pixel ratio falls by drawingScaleStep of its cap, to drawingScaleMin
+  // at least, and then every other frame is skipped; it steps back after
+  // drawingRecoverSeconds with neither.
+  drawingLateTimerMs: 50,
+  drawingLateShare: 0.1,
+  drawingScaleStep: 0.25, // a step of the governor's scale on the capped pixel ratio
+  drawingScaleMin: 0.5, // its lowest scale
+  drawingRecoverSeconds: 3,
+  // The drawing budget: PLAN §12's starting guesses, a ceiling until the
+  // phone has run (C-2), checked in the page and the build.
+  budgetCodeTrianglesPerTerrier: 2000,
+  budgetModelTrianglesPerTerrier: 8000,
+  budgetModelBonesPerTerrier: 32,
+  budgetModelTexturePx: 512, // a side, square
+  budgetDrawCalls: 40, // for eight terriers
+  budgetDownloadBytesPerWay: 200000, // brotli, for each way of drawing the terriers, three not included
+  // A render setting, empty in the MVP: terriers are built in code, and a
+  // model named here loads through the model drawer (L97, D-27).
+  terrierModelUrl: '' as string,
 
   // The bot brain (A.4: Bot brain; Q-9, D-39), which M2 tunes. Its bark gap
   // is the Bark setting's (L327).

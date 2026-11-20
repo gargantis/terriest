@@ -196,6 +196,33 @@ export const NOT_TUNED: readonly { readonly key: string; readonly why: string }[
   { key: 'renderQuality.low.pixelRatioMax', why: "drawing's (D-33)" },
   { key: 'renderQuality.low.msaa', why: "drawing's (D-33)" },
   { key: 'soundShiftTicksMax', why: "sound's, under rollback (§13)" },
+  // M4's (M4's design §10): drawing's, the controls' and the page's. The
+  // feel page has sliders for the cameras' (M4's design §1.61).
+  { key: 'cameraBehindMetres', why: "a camera's (D-28), tuned at M4 on the feel page" },
+  { key: 'cameraAboveMetres', why: "a camera's (D-28), tuned at M4 on the feel page" },
+  { key: 'cameraFovDegrees', why: "a camera's (D-28), tuned at M4 on the feel page" },
+  { key: 'cameraWallMarginMetres', why: "a camera's (D-28), tuned at M4 on the feel page" },
+  { key: 'cameraNearestMetres', why: "a camera's (D-28), tuned at M4 on the feel page" },
+  { key: 'chaseLookAheadMetres', why: "a camera's (D-28), tuned at M4 on the feel page" },
+  { key: 'spectatorViewLengthMetres', why: "the spectators' camera (D-28), M4" },
+  { key: 'spectatorFollowSeconds', why: "the spectators' camera (D-28), M4" },
+  { key: 'gamepadPollHz', why: "the gamepad's (D-29), M4" },
+  { key: 'gamepadTriggerFraction', why: "the gamepad's (D-29), M4" },
+  { key: 'pushPoseTicks', why: "drawing's pushing pose (D-27), M4" },
+  { key: 'animationBlendMs', why: "drawing's blends (D-27, L208), M4" },
+  { key: 'heldHeadCarryTicks', why: "drawing's held head (D-16), M4" },
+  { key: 'drawingLateTimerMs', why: "the page's main-thread share (M4's design §8.2), M4" },
+  { key: 'drawingLateShare', why: "the page's main-thread share (M4's design §8.2), M4" },
+  { key: 'drawingScaleStep', why: "the page's main-thread share (M4's design §8.2), M4" },
+  { key: 'drawingScaleMin', why: "the page's main-thread share (M4's design §8.2), M4" },
+  { key: 'drawingRecoverSeconds', why: "the page's main-thread share (M4's design §8.2), M4" },
+  { key: 'budgetCodeTrianglesPerTerrier', why: 'the drawing budget (§12, C-2), checked in the page and the build, M4' },
+  { key: 'budgetModelTrianglesPerTerrier', why: 'the drawing budget (§12, C-2), checked in the page and the build, M4' },
+  { key: 'budgetModelBonesPerTerrier', why: 'the drawing budget (§12, C-2), checked in the page and the build, M4' },
+  { key: 'budgetModelTexturePx', why: 'the drawing budget (§12, C-2), checked in the page and the build, M4' },
+  { key: 'budgetDrawCalls', why: 'the drawing budget (§12, C-2), checked in the page and the build, M4' },
+  { key: 'budgetDownloadBytesPerWay', why: 'the drawing budget (§12, C-2), checked in the page and the build, M4' },
+  { key: 'terrierModelUrl', why: "the model drawer's (D-27), empty in the MVP, M4" },
 ];
 
 export const sliderOf = (key: string): Slider | undefined => SLIDERS.find((s) => s.key === key);

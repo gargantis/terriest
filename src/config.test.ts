@@ -360,6 +360,29 @@ function wireCounts(c: Config, botSlots: number = BOT_SLOTS): string[] {
   return problems;
 }
 
+// --- The cameras (M4; M4's design §3.2, §10) ---
+
+/** A player's camera fits the pitch: at its height, with its margin, it's
+ *  under the walls' and the net's height and under the goal's mouth, so a
+ *  camera at its height fits inside a goal too; its distance behind fits
+ *  in half the pitch's width inside the margin; and the distance it rises
+ *  nearer than is under that distance and under the goal's depth less the
+ *  margin, so insidePitch and the rise always have room. */
+function cameras(c: Config): string[] {
+  const problems: string[] = [];
+  const { cameraAboveMetres: above, cameraBehindMetres: behind, cameraNearestMetres: nearest, cameraWallMarginMetres: margin } = c;
+  const { heightMetres: height, mouthHeightMetres: mouth, widthMetres: width, goalDepthMetres: depth } = c.pitch;
+  const up = `a player's camera ${above} m up, with its ${margin} m margin,`;
+  if (!(above + margin < height)) problems.push(`${up} doesn't fit under the walls' and the net's ${height} m`);
+  if (!(above + margin < mouth)) problems.push(`${up} doesn't fit under the goal's ${mouth} m mouth`);
+  if (!(behind < width / 2 - margin)) problems.push(`a player's camera ${behind} m behind doesn't fit in half the pitch's ${width} m width less its ${margin} m margin`);
+  if (!(nearest < behind)) problems.push(`a player's camera rises nearer than ${nearest} m, not under its ${behind} m behind`);
+  if (!(nearest < depth - margin)) {
+    problems.push(`a player's camera rises nearer than ${nearest} m, not under the goal's ${depth} m depth less its ${margin} m margin`);
+  }
+  return problems;
+}
+
 // --- Every setting from the tables is in src/config.ts (§7.4) ---
 
 /** How a table row maps to src/config.ts: the settings it names, and the
@@ -494,6 +517,28 @@ const A4: Readonly<Record<string, Row>> = {
   'Timeline timer': { keys: ['timelineTimerMs'] },
   Leaving: { keys: ['leaveGraceSeconds'] },
   'Bot hosting': { keys: ['botReadyRenewSeconds'] },
+  // M4's rows (M4's design §10).
+  'Pushing pose': { keys: ['pushPoseTicks'] },
+  'Animation blends': { keys: ['animationBlendMs'] },
+  Gamepad: { keys: ['gamepadPollHz', 'gamepadTriggerFraction'] },
+  'A held head': { keys: ['heldHeadCarryTicks'] },
+  // One share for the ticks skipped and for the second in late gaps.
+  'Drawing gives way': {
+    keys: ['drawingLateShare', 'drawingLateTimerMs', 'drawingScaleStep', 'drawingScaleMin', 'drawingRecoverSeconds'],
+    numbers: (c) => [c.drawingLateShare, c.drawingLateShare, c.drawingLateTimerMs, c.drawingScaleStep, c.drawingScaleMin, c.drawingRecoverSeconds],
+  },
+  // The model's texture is square, "512 × 512", and the download is in kB.
+  'Drawing budget': {
+    keys: [
+      'budgetCodeTrianglesPerTerrier', 'budgetModelTrianglesPerTerrier', 'budgetModelBonesPerTerrier', 'budgetModelTexturePx', 'budgetDrawCalls',
+      'budgetDownloadBytesPerWay',
+    ],
+    numbers: (c) => [
+      c.budgetCodeTrianglesPerTerrier, c.budgetModelTrianglesPerTerrier, c.budgetModelBonesPerTerrier, c.budgetModelTexturePx, c.budgetModelTexturePx,
+      c.budgetDrawCalls, c.budgetDownloadBytesPerWay / 1000,
+    ],
+  },
+  'Terrier model': { keys: ['terrierModelUrl'], numbers: () => [], holds: (c, value) => c.terrierModelUrl === '' && value.startsWith('none') },
 };
 
 /** PLAN A.5, by row; its first row is "as REQUIREMENTS' Configuration table". */
@@ -523,6 +568,11 @@ const A5: Readonly<Record<string, Row>> = {
   'Posts and crossbar': { keys: ['pitch.postRadiusMetres'] },
   // M2's row (design §4.4, §10): the settled cap, then "a cap of 0 turns it off".
   'Ball-frame push assist (C-18)': { keys: ['pushAssistCapMetresPerSecond'], numbers: (c) => [c.pushAssistCapMetresPerSecond, 0] },
+  // M4's rows (M4's design §10, M4-Q34).
+  "Players' cameras": {
+    keys: ['cameraBehindMetres', 'cameraAboveMetres', 'cameraFovDegrees', 'cameraWallMarginMetres', 'cameraNearestMetres', 'chaseLookAheadMetres'],
+  },
+  "Spectators' camera": { keys: ['spectatorViewLengthMetres', 'spectatorFollowSeconds'] },
 };
 
 /** Settings in none of the tables, with their sources. */
@@ -667,7 +717,7 @@ const words = (name: string): string[] =>
 const UNIT_WORDS = new Set([
   'metres', 'meters', 'metre', 'meter', 'm', 'mps', 'per', 'second', 'seconds', 'sec', 'secs', 's', 'ms', 'minute', 'minutes',
   'tick', 'ticks', 'turn', 'turns', 'degree', 'degrees', 'deg', 'kg', 'byte', 'bytes', 'chars', 'characters', 'css', 'px',
-  'unit', 'units', 'fraction', 'squared', '2',
+  'unit', 'units', 'fraction', 'squared', '2', 'hz',
 ]);
 
 /** A name without its unit, as an order-free key: runSpeedMetresPerSecond
@@ -760,8 +810,9 @@ function topLevelHolders(sf: ts.SourceFile): Set<ts.Node> {
 
 /** M3's settings under the names its ports would give them, where their
  *  stems aren't a setting's own (M3's design §0): netSettings' fields,
- *  derived ones included, and roslambo's constants. netSettings' tickMs is
- *  left out: its stem, "tick", is every script's tick: in src/core/sim. */
+ *  derived ones included, and roslambo's constants; and M4's under the M0
+ *  spike's. netSettings' tickMs is left out: its stem, "tick", is every
+ *  script's tick: in src/core/sim. */
 const PORTED_NAMES: Readonly<Record<string, readonly string[]>> = {
   delay: ['inputDelayTicks'],
   window: ['lateWindowTicks'],
@@ -791,6 +842,8 @@ const PORTED_NAMES: Readonly<Record<string, readonly string[]>> = {
   INPUT_RING: ['stateHistoryTicks', 'lateWindowTicks', 'inputDelayTicks'],
   MAX_STRING: ['displayNameMaxBytes'],
   FAIL_AFTER_MS: ['connectionFailureSeconds'],
+  // M4's: the M0 spike's terrier pose (M4's design §1.5).
+  PUSH_TICKS: ['pushPoseTicks'],
 };
 
 /** The source files' copies of a setting. Everywhere: a declaration,
@@ -1082,6 +1135,30 @@ describe('the configuration checks (PLAN §7.4)', () => {
     expect(wireCounts(config, 255)).toEqual([]);
   });
 
+  it("fits a player's camera inside the pitch, a goal included, with room to rise (M4)", () => {
+    expect(cameras(config)).toEqual([]);
+    // 2.1 m up and 0.4 m in fit under the goal's 3 m mouth: 2.5 m up still does, and 2.7 m doesn't.
+    expect(cameras(planted({ cameraAboveMetres: 2.5 }))).toEqual([]);
+    expect(cameras(planted({ cameraAboveMetres: 2.7 }))).toEqual(["a player's camera 2.7 m up, with its 0.4 m margin, doesn't fit under the goal's 3 m mouth"]);
+    expect(cameras(plantedPitch({ heightMetres: 2.5 }))).toEqual([
+      "a player's camera 2.1 m up, with its 0.4 m margin, doesn't fit under the walls' and the net's 2.5 m",
+    ]);
+    // Half the 28 m width less the margin is 13.6 m.
+    expect(cameras(planted({ cameraBehindMetres: 13.5 }))).toEqual([]);
+    expect(cameras(planted({ cameraBehindMetres: 14 }))).toEqual([
+      "a player's camera 14 m behind doesn't fit in half the pitch's 28 m width less its 0.4 m margin",
+    ]);
+    // The goal's 2 m depth less the margin is 1.6 m.
+    expect(cameras(planted({ cameraNearestMetres: 1.55 }))).toEqual([]);
+    expect(cameras(planted({ cameraNearestMetres: 1.7 }))).toEqual([
+      "a player's camera rises nearer than 1.7 m, not under the goal's 2 m depth less its 0.4 m margin",
+    ]);
+    expect(cameras(plantedPitch({ goalDepthMetres: 1.8 })).join('\n')).toMatch(/nearer than 1.5 m, not under the goal's 1.8 m depth/);
+    expect(cameras(planted({ cameraNearestMetres: 5 })).join('\n')).toMatch(/nearer than 5 m, not under its 4.2 m behind\n.*goal's 2 m depth/);
+    // A wider margin takes room from the height and the depth at once.
+    expect(cameras(planted({ cameraWallMarginMetres: 1 }))).toHaveLength(2);
+  });
+
   it('has every setting of the Configuration table, A.4 and A.5, with their values', () => {
     const requirements = read('REQUIREMENTS.md');
     const plan = read('PLAN.md');
@@ -1159,13 +1236,16 @@ describe('the configuration checks (PLAN §7.4)', () => {
       '];',
     ].join('\n');
     expect(copies([{ path: 'src/core/sim/e.ts', text: spike }], config)).toEqual([
-      'src/core/sim/e.ts:1: TICK_RATE = 60 is the value of readyExpirySeconds, ticksPerSecond, derived.barkGapTicks',
-      'src/core/sim/e.ts:2: iterations: 8 is the value of pitch.mouthWidthMetres, idleFrictionMetresPerSecond2, solverIterations and 2 more',
+      // M4's gamepadPollHz is 60 too, before derived.barkGapTicks: 1 more.
+      'src/core/sim/e.ts:1: TICK_RATE = 60 is the value of readyExpirySeconds, ticksPerSecond, gamepadPollHz and 1 more',
+      // And its pushPoseTicks 8: 3 more, where M3 had 2.
+      'src/core/sim/e.ts:2: iterations: 8 is the value of pitch.mouthWidthMetres, idleFrictionMetresPerSecond2, solverIterations and 3 more',
       'src/core/sim/e.ts:2: celebrationTicks: 204 is the value of derived.celebrationTicks',
       'src/core/sim/e.ts:2: guardTicks: 90 copies tumbleGuardSeconds',
       'src/core/sim/e.ts:2: cuts: [4, 4, 4, 4] is the value of pitch.cornerCutsMetres',
-      // M3's clockSettleSeconds and floodSeconds are 2 s too: 13 more, where M2 had 11.
-      'src/core/sim/e.ts:3: passes = 2; is the value of packSizeDefault, pitch.goalDepthMetres, ballMassKg and 13 more',
+      // M3's clockSettleSeconds and floodSeconds are 2 s too, and M4's chaseLookAheadMetres 2 m:
+      // 14 more, where M2 had 11 and M3 13.
+      'src/core/sim/e.ts:3: passes = 2; is the value of packSizeDefault, pitch.goalDepthMetres, ballMassKg and 14 more',
       'src/core/sim/e.ts:4: SPOTS = [ is the value of kickoffSpotsMetres, derived.kickoffSpots[0]',
     ]);
     // Counters, halves, locals, reads of the configuration and marked lines pass.
@@ -1238,7 +1318,7 @@ describe('the configuration checks (PLAN §7.4)', () => {
       at(1, 'duplicateSilentMs: 2000 copies duplicateIdSilentSeconds'),
       at(2, 'settleMs: 2000 copies clockSettleSeconds'),
       at(2, 'smoothing: 0.1 copies smoothingMs, clockSmoothing'),
-      at(2, '0.1 is the value of pitch.postRadiusMetres, clockSmoothing'),
+      at(2, '0.1 is the value of pitch.postRadiusMetres, clockSmoothing, drawingLateShare'),
       at(2, 'gainPerTick: 0.005 copies clockGainPerTick'),
       at(2, '0.005 is the value of clockGainPerTick'),
       at(2, 'rateMax: 0.02 copies clockRateMax'),
@@ -1252,7 +1332,7 @@ describe('the configuration checks (PLAN §7.4)', () => {
       at(5, 'JOIN_RETRY_MS = 1000 copies stateRequestRetrySeconds'),
       at(6, 'INVALID_LIMIT = 20 copies invalidMessagesMax'),
       at(7, 'EWMA = 0.1 copies clockSmoothing'),
-      at(7, '0.1 is the value of pitch.postRadiusMetres, clockSmoothing'),
+      at(7, '0.1 is the value of pitch.postRadiusMetres, clockSmoothing, drawingLateShare'),
       at(8, 'FLOOD_WINDOW_MS = 2000 copies floodSeconds'),
       at(9, 'ADVANCE_EVERY_MS = 4 copies timelineTimerMs'),
       at(10, 'STALLED_MS = 2000 copies timerStallSeconds'),
@@ -1270,6 +1350,28 @@ describe('the configuration checks (PLAN §7.4)', () => {
     expect(copies([{ path: 'src/net/g.ts', text: 'export const adj = (med: number): number => med * 0.005;' }], config)).toEqual([]);
     expect(copies(['session', 'protocol'].map((dir) => ({ path: `src/core/${dir}/g.ts`, text: 'export const adj = (med: number): number => med * 0.005;' })), config))
       .toEqual(['src/core/session/g.ts:1: 0.005 is the value of clockGainPerTick', 'src/core/protocol/g.ts:1: 0.005 is the value of clockGainPerTick']);
+  });
+
+  it("finds M4's settings copied by name, unit aside, and under the M0 spike's names (M4)", () => {
+    // Drawing's ports are scanned by name alone: the spike's pose and camera, and the gamepad's poll.
+    const port = [
+      'const PUSH_TICKS = 8;',
+      'export const pose = { pushPoseTicks: 8, animationBlendMs: 150 };',
+      'const GAMEPAD_POLL_MS = 16;',
+      'export const camera = { behindMetres: 4.2 };',
+      "export const look = { terrierModelUrl: './standin.glb' };",
+      // A drawing constant named apart from the settings passes, as M1's overview keeps its field.
+      'const FOV_DEGREES = 40;',
+    ].join('\n');
+    const at = (line: number, what: string): string => `src/render/drawers/h.ts:${line}: ${what}`;
+    expect(copies([{ path: 'src/render/drawers/h.ts', text: port }], config)).toEqual([
+      at(1, 'PUSH_TICKS = 8 copies pushPoseTicks'),
+      at(2, 'pushPoseTicks: 8 copies pushPoseTicks'),
+      at(2, 'animationBlendMs: 150 copies animationBlendMs'),
+      at(3, 'GAMEPAD_POLL_MS = 16 copies gamepadPollHz'),
+      at(4, 'behindMetres: 4.2 copies cameraBehindMetres'),
+      at(5, "terrierModelUrl: './standin.glb' copies terrierModelUrl"),
+    ]);
   });
 });
 
