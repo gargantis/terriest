@@ -205,7 +205,7 @@ TERRIEST_CORRECTIONS_OUT="$OUT/results.json" \
 
 ## 2. Results
 
-Measured on 2026-11-20, from 03:15 to 04:37 UTC, at 71bd4a7, whose `src`, `dev` and `scripts` trees are this report's commit's (0ab6b24), with the tree clean at every run (section 2.9). In Node 22.23.4 with vitest 4.1.12, on the development machine: WSL2, 12 threads. Every run wrote its file outside the tree, and the files beside this report are those files, copied unmodified after the last run (section 1.12). The parts a merge took aren't committed; each merged file names them, with their times (`merged`).
+Measured on 2026-11-20, from 03:15 to 04:37 UTC, at 71bd4a7, whose `src`, `dev` and `scripts` trees are this report's commit's (0ab6b24), with the tree clean at every run (section 2.9). In Node 22.23.4 with vitest 4.1.12, on the development machine: WSL2, 12 threads. Every run wrote its file outside the tree, and the files beside this report are those files, copied unmodified after the last run (section 1.12). The parts a merge took aren't committed; each merged file names them, with their times (`merged`). The load run's diagnosis, its A/B and its passing run came later that day, outside the method and at other trees, and decide none of its rules (sections 2.7 to 2.9).
 
 ### 2.1 The decisions
 
@@ -607,7 +607,9 @@ lateAbsent's share of the remote inputs and resyncs a browser-minute, at the cap
 
 ### 2.7 The load run (design §8.5)
 
-`npm run build`, then `TERRIEST_LOAD_OUT=… npx playwright test -c playwright.load.config.ts`, LOAD_SECONDS 90: 12 Chromium pages through `#test=net`, 8 players at 4 a side with the brain and 4 spectators, against `vite preview` and the local relay, at 71bd4a7, before this report's values reached `src/config.ts`, so at the spread cap of 42. **It failed its checks,** in both runs on a quiet machine, the 1-minute load under 1 at the start. `research/load/results.json` is the second run's, which stayed connected throughout:
+`npm run build`, then `TERRIEST_LOAD_OUT=… npx playwright test -c playwright.load.config.ts`, LOAD_SECONDS 90: 12 Chromium pages through `#test=net`, 8 players at 4 a side with the brain and 4 spectators, against `vite preview` and the local relay. It checks that every page is connected to the other 11 at the start and the end of the play measured, that the 8 players are in every roster, and that all 12 hold one hash at their common final tick and one phase. In the measurement it failed. A diagnosis then traced the failures to the rig's message path, not the code; an A/B of three commits passed nine runs of nine; and at the final tree, which adds a watch on each receiver's backlog, the run passed, and `research/load/results.json` is that run's. None of it is the method's: the load run decides none of its rules.
+
+**The measurement's runs** were at 71bd4a7, before this report's values reached `src/config.ts`, so at the spread cap of 42. **It failed its checks,** in both runs on a quiet machine, the 1-minute load under 1 at the start. The second run, which stayed connected throughout, was committed as `research/load/results.json` at 9236de3, until the passing run's file replaced it:
 
 | Page | Role | Peers | Late | lateAbsent | Disagree | Resyncs | Jumps | Steps a tick, mean and max | A timer run, ms: mean, p95, max | Sent a second | kB a second |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -625,12 +627,69 @@ lateAbsent's share of the remote inputs and resyncs a browser-minute, at the cap
 | 11 | spectator | 11 | 8855 (27.1%) | 9166 | 265 | 19 | 44 | 2.38, 53 | 0.76, 2.0, 99 | 3 | 0.4 |
 
 - **What failed:** every page held its 11 peers, but at their common final tick, 6897, the 12 pages held 12 hashes. Over 93.5 s of play each page's clock advanced 45 ticks a second, not 60: every page's median offset read its peers 34 to 47 ticks behind, and it jumped back, 41 to 49 times in the run. 26% to 30% of each page's remote inputs came past the late boundary, 66% to 75% of them 16 ticks late or more, and 7,355 to 9,212 a page were for ticks already finalised absent (lateAbsent, which also counts those a later TICK's history brought).
-- **The machine:** the run took the 1-minute load from 0.91 to 15–16, each page's renderer at 50–90% of a thread. A timer run cost 1.8–2.0 ms at a player, against 0.72–0.80 in phase 5's 20 s smoke run at 4da2086, which passed. That reads as pages handling their messages hundreds of ms late, so that each reads every other's clock as behind and the room's clocks fall back together; whether that is this machine's limit or the clock's (D-15) isn't settled here. PLAN §16 names the leading candidate, M3's round-trip rules, and gives the diagnosis to M4.
+- **The machine:** the run took the 1-minute load from 0.91 to 15–16, each page's renderer at 50–90% of a thread. A timer run cost 1.8–2.0 ms at a player, against 0.72–0.80 in phase 5's 20 s smoke run at 4da2086, which passed. That reads as pages handling their messages hundreds of ms late, so that each reads every other's clock as behind and the room's clocks fall back together; whether that was this machine's limit or the clock's (D-15) wasn't settled then. The diagnosis below settles it.
 - **The other runs,** whose files aren't committed: the first, 90 s, began clean (no late input or jump at the measured play's start) and broke down during it, while another process, the M0 spike's server, started too, its pages ending with 0 to 11 peers, 10 of the 12 no longer holding their common final tick, 5800, and the other two at two hashes, its clocks at 33–38 ticks a second; a 20 s diagnostic run, outside the method, failed as the second did, with 12 hashes at tick 3587 and its clocks at 41–42 ticks a second.
+
+**The diagnosis** of those runs, made from their files, in Node and in a model, none of it committed:
+- **The message path delivered less than the room sent.** The room's 8 players broadcast each TICK to their 11 peers: 88 sending links, over 132 connections, among 12 pages in one Chromium on one machine. In phase 5's passing 20 s smoke run that path carried 5,111 TICKs a second. In the second 90 s run the pages sent 3,919 a second, room-wide, and took 3,839, and the TICKs in flight, sent and not yet taken, grew from 8 at the play's start to 7,512 at its end; in the 20 s diagnostic they sent 3,641 and took 3,337, from 14 in flight to 6,508.
+- **Every receiver fell behind.** A receiver's backlog growth is what its senders sent it less what it took over the play measured: 578–683 TICKs at every page in the second run, and 380–676 in the diagnostic. In seconds of their output by the machine's clock, as the diagnosis read it, that's 1.86–1.96 s at every page in the second run, and 2.00–2.34 s at the players and 1.15–1.18 s at the spectators in the diagnostic. By the senders' own ticks, as `dev/load/backlog.ts` reads it from a run's first and last reports, their clocks having run at 41–45 ticks a second, it's 1.39–1.47 s, and 1.39–1.62 s and 0.80–0.82 s. Either way it's far past d + w's 233 ms. The first run's can't be read that way: its pages lost peers during the play, and a closed connection's TICKs never arrive.
+- **The rest follows from it.** A TICK that waits in the path past d + w reaches its receiver after its tick's late boundary. So remote inputs came late, from one onset tick room-wide, and each page finalised them absent and kept its own, each its own way: 12 hashes. Round trips over `stallMs` stopped counting, every page read its peers 34–47 ticks behind, and the room's clocks slowed to what the path delivered: 3,839 TICKs a second over 88 links is 43.6 ticks a second, against the 44.8–45.3 measured.
+- **The pages' own work wasn't the queue:** their timers ran on time, and their main threads were about 90% idle. In Node, 71bd4a7's cost was 1.002 times 4da2086's a timer run, and 0.92 times a TICK.
+- **Nor was the code.** Nothing between 4da2086 and 71bd4a7 changes what a page sends or how it handles a message. A model of the room in virtual time, the 12 pages' real sessions with one shared server delivering every message in turn, gives the same figures at 4da2086 and 71bd4a7, but for its own CPU time. With the server 5% faster than the room's message rate, about 5,580 a second, it gives one hash, the clocks at 60 ticks a second and no input late. With it 10% slower, it gives the whole failure: 12 hashes, 95% of the inputs late, 42 clock jumps a page and the clocks at 55.8 ticks a second.
+- **A milder finding,** not the failure's cause: phase 5a's round-trip rules (a87b4c0), the freeze check (`frozeSince`) and the round trip left pending through a silence, can read a gap that this page's own lag caused as the peer's freeze. In a separate model of the room's clocks and round trips, the real TickClock on 12 pages whose main threads are blocked back to back, that roughly doubles the gap between the one-way delay estimated and the true one, from 2.2 to 4.1 ticks (3.5 to 6.8 with the blocks chained more often), and the clock jumps rise from 0.05–0.07 to 0.08–0.13 a page-second, with no collapse (PLAN D-15, C-12).
+- **Left open:** why the path carried less then. The failing runs came after about an hour of CPU-bound groups (section 2.9), at loads of 6 to 8. The machine's heat, the Windows side's load and where the pages ran on its cores weren't recorded, nor was the cause of the first run's closed connections. Nor is what came before the play measured: the second run and the diagnostic already had 4,450–6,029 and 2,481–2,878 late inputs a page and 20–28 and 9–14 clock jumps when it began, with 8 and 14 TICKs in flight room-wide, and the runs' files hold only its first and last reports.
+
+**The A/B,** on 2026-11-20 from 06:51 to 08:43 UTC, alone on the machine: builds of 4da2086, phase 5's, whose 20 s smoke run had passed; 71bd4a7, the measurement's; and b43b154, the plan's amendments, each in a copy of its commit. Each cool run started once the 1-minute load had fallen under 1 and 8 more minutes had passed. After the seven cool runs, 10 cores were kept busy for 10 minutes, and the hot pair ran straight after. Its rule, set before it ran: the code is cleared if the commits agree run for run; implicated if 4da2086 passes at 90 s twice where 71bd4a7 fails twice, and then a87b4c0 and 600f2f0 are bisected; and the rig's limit if both fail cool with the backlog grown. Every count is over the play measured, and each receiver's backlog growth is in TICKs, as above, pages 0 to 7 the players, 0 the keeper, and 8 to 11 the spectators:
+
+| Run | Commit | Play: LOAD_SECONDS, measured | Machine | 1-minute load, before and after | Peers, start and end | One hash at tick | Late | lateAbsent | Disagree | Resyncs, failed | Jumps | Backlog growth by page, TICKs |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| a90-1 | 4da2086 | 90, 92.4 s | cool | 0.11, 9.69 | 11, 11 | 8051 | 1,881–2,553 (4.4–6.9%) | 2,060–2,553 | 19–130 | 0–6, 8–13 | 5–7 | −1, −1, −2, 0, 0, +2, +1, 0, +2, 0, +1, 0 |
+| b90-1 | 71bd4a7 | 90, 93.5 s | cool | 0.11, 7.89 | 11, 11 | 8112 | 0 | 0 | 0 | 0, 0 | 0 | +3, +4, +2, −1, −1, −1, −2, −3, −2, −3, −4, −7 |
+| a90-2 | 4da2086 | 90, 93.6 s | cool | 0.14, 5.40 | 11, 11 | 8112 | 0 | 0 | 0 | 0, 0 | 0 | +3, +3, +2, +2, +2, 0, 0, 0, 0, −1, −1, 0 |
+| b90-2 | 71bd4a7 | 90, 92.5 s | cool | 0.41, 6.85 | 11, 11 | 8112 | 0–1 | 0–1 | 0–1 | 0–1, 0 | 0–2 | +4, +4, +3, 0, +1, +1, −1, −2, −2, −3, −3, −6 |
+| c90-1 | b43b154 | 90, 93.6 s | cool | 0.14, 7.99 | 11, 11 | 8126 | 0 | 0 | 0 | 0, 0 | 0 | 0, +3, +1, +1, +1, 0, −1, −1, −1, −1, −1, −2 |
+| a20-1 | 4da2086 | 20, 21.3 s | cool | 0.54, 7.67 | 11, 11 | 3920 | 0 | 0 | 0 | 0, 0 | 0 | −2, −4, −4, −2, −2, 0, −1, 0, 0, 0, +1, +1 |
+| b20-1 | 71bd4a7 | 20, 20.1 s | cool | 0.26, 6.92 | 11, 11 | 3923 | 0 | 0 | 0 | 0, 0 | 0 | +1, −1, +1, +1, +2, +1, +4, +2, +3, −1, +2, 0 |
+| a20-hot | 4da2086 | 20, 21.3 s | hot | 10.52, 10.87 | 11, 11 | 3914 | 0 | 0 | 0 | 0, 0 | 0 | −4, −4, −2, −1, −1, −1, −2, −1, −1, −1, +2, +2 |
+| b20-hot | 71bd4a7 | 20, 21.2 s | hot | 10.87, 11.62 | 11, 11 | 3919 | 0 | 0 | 0 | 0, 0 | 0 | −4, −1, 0, −1, −1, 0, −1, −1, −1, −2, 0, 0 |
+
+- **All nine passed:** every page kept its 11 peers, the 8 players were in every roster, and all 12 pages held one hash at their common final tick. No receiver's backlog grew: −7 to +4 TICKs over the play, at most 0.015 s of its senders' output, against the measurement's 578–683. Room-wide the pages took what they sent, 4,970–5,261 TICKs a second.
+- **The first run,** a90-1 at 4da2086, had 4.4–6.9% of each page's remote inputs late and 2,060–2,553 a page finalised absent, 19–130 disagreements, 0–6 resyncs completed and 8–13 failed, and 5–7 clock jumps a page, and still passed, its backlog flat; what made it so wasn't found. In 71bd4a7's second 90 s run one spectator, page 9, had one input late and finalised absent, one disagreement and one resync, and pages had 0–2 jumps. The other seven runs had no late input, disagreement, resync or jump in the play measured.
+- **The commits agreed run for run,** cool and hot, so by its rule the code is cleared. The heat soak, at a load of 10.5 when the hot pair began, didn't bring the failure back.
+
+**At the final tree,** b43b154 with the backlog watch (`dev/load/backlog.ts`, `e2e/load.run.ts`) as first built, which the commit that adds this record holds as M3 phase 6a's review revised it (below), and so at the spread cap of 14: on 2026-11-20 from 09:30 to 10:06 UTC, alone on the machine. `npm run build` took 9 s, and the pages reported build cf548d0c7dd1fcae, b43b154's, since nothing under `src` changed. Each run started once the 1-minute load had fallen under 1 and 8 more minutes had passed, in which it stayed under 1: a 20 s warm-up, then the 90 s run, then the desktop settle (section 2.8). Both load runs passed. The 90 s run's file is `research/load/results.json`, with its series of polls; its pages, over the play measured, but the timer runs' cost and the steps' maximum, which are over each page's whole run:
+
+| Page | Role | Peers, start and end | Late | lateAbsent | Disagree | Resyncs | Jumps | Steps a tick, mean and max | A timer run, ms: mean, p95, max | Sent a second | kB a second | Its largest backlog, s, by the run's watch |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | keeper | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 13 | 0.68, 1.1, 16.6 | 633 | 20.6 | 0.007 |
+| 1 | player | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 13 | 0.57, 1.0, 23.4 | 633 | 20.7 | 0.013 |
+| 2 | player | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 13 | 0.64, 1.1, 8.3 | 633 | 21.3 | 0.018 |
+| 3 | player | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 14 | 0.66, 1.2, 9.2 | 633 | 20.7 | 0.015 |
+| 4 | player | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 13 | 0.66, 1.0, 9.9 | 633 | 19.7 | 0.015 |
+| 5 | player | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 14 | 0.68, 1.1, 7.7 | 633 | 21.0 | 0.015 |
+| 6 | player | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 14 | 0.63, 1.0, 18.6 | 633 | 20.6 | 0.015 |
+| 7 | player | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 16 | 0.63, 1.1, 11.8 | 633 | 19.7 | 0.012 |
+| 8 | spectator | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 13 | 0.26, 0.4, 6.0 | 2 | 0.4 | 0.009 |
+| 9 | spectator | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 13 | 0.31, 0.6, 4.7 | 2 | 0.4 | 0.011 |
+| 10 | spectator | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 13 | 0.24, 0.4, 6.1 | 2 | 0.4 | 0.013 |
+| 11 | spectator | 11, 11 | 0 | 0 | 0 | 0 | 0 | 1.00, 13 | 0.20, 0.4, 4.2 | 2 | 0.4 | 0.013 |
+
+- **Its checks:** over 90.1 s of play from tick 2723, every page was connected to the other 11 at the start and the end, the 8 players were in every roster, and all 12 held one hash, 4b16bc7d4fb0cb1b, at their common final tick, 7879, all in play at 1–1. No page had a late input, a disagreement, a resync or a clock jump.
+- **The backlog watch:** 46 polls, 2 s apart, none of the 45 intervals between them skipped. The largest backlog of any receiver at any poll was 0.018 s, page 2's at 18.0 s, and the smallest −0.010 s. None passed d + w, 0.233 s, and no input came late, so the file's verdict, which a failing check's message would have begun with, reads: "The rig's message path kept up: no receiver's backlog passed d + w (0.233 s). Its largest backlog: 0.02 s, page 2's at 18.0 s." Over the whole play each receiver's backlog grew by 1 to 5 TICKs, and room-wide the pages sent and took 5,049 TICKs a second, 32 in flight at the end.
+- **The warm-up,** 20.1 s of play, passed the same way: one hash at tick 3841, no late input, disagreement, resync or jump, and the largest backlog 0.066 s, page 8's at 16.0 s, with none of its 10 intervals skipped.
+- **The machine:** the 90 s run took the 1-minute load from 0.26 to 9.37, 4.58 at the first poll and 9.40 at most. A timer run cost 0.57–0.68 ms at a player at the mean, against 1.77–1.97 ms in the measurement's second run and 0.72–0.80 in phase 5's smoke. A player sent 633 messages a second, 631 of them TICKs and 2 PEERS, and 19.7–21.3 kB; a spectator its 2 PEERS, 0.42 kB.
+- **The rates are per second of the machine's clock,** `Date.now()`, which stepped ahead of the pages' own clocks three times in the 90 s, by 1.24–1.37 s, and once in the warm-up, by 1.26 s, while every page ticked on at 60 a second, holding nothing and jumping nothing. So the rates read about 4% low: 57.4 ticks a second is 60 by the pages' clocks, and the room's 5,049 TICKs a second about 5,280, 88 links' 60. The A/B's runs read 56.5–58.4 ticks a second but for b20-1's 59.8, which suggests the same there. No count, hash or verdict changes.
+- **The watch the run used took its senders' rates by that clock too,** each by its own reports' times, so after each step its backlogs in seconds read high: by 9.7% at the poll after the first step, at 15.4 s, and 4.5% at the end; the warm-up's by 9.0%. The review found it, and a step inside the first interval would have read 1.68 times high at the first poll. So the watch as committed takes each sender's rate by its own local ticks, at tickMs a tick, which also counts the wait as the late window does; it reads the run's polls at 0.017 s at most, page 2's at 18.0 s, and at least −0.0095 s, and the warm-up's at 0.060 s at most, page 8's at 16.0 s, with the same verdict, which now says each receiver's backlog is summed over its senders. The review also had it say, when inputs come late before the backlog passes d + w, how many and from when, and that it can't tell which failed first, where it had read as the protocol's: two of the measurement's three failing runs already had inputs late when their play measured began, with few TICKs in flight (above), so a lateness that runs from the first interval may have begun before the polls.
+
+**So the code is cleared.** 4da2086, whose smoke run had passed, and 71bd4a7, whose runs had failed, agreed run for run, cool and hot, and b43b154 and the final tree passed too. The measurement's failures were the machine's state then, after about an hour of CPU-bound groups. What in that state slowed the path, whether the heat, the Windows side or where the pages ran, wasn't recorded, and the A/B's heat soak didn't bring it back, so beyond that the failures are unexplained. A run that fails now says whether the rig's message path fell behind before any input came late, or that the watch can't tell: its message begins with the backlog's verdict.
 
 ### 2.8 The desktop connection, settled provisionally (PLAN §15, §17)
 
-`GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts`, once, at 71bd4a7, so at the spread cap of 42: passed in 2.1 minutes. A Chromium keeper and a Firefox player, at 1 a side with `script=brain` and `ice=none`, through `npm run dev:local` with its local relay only, so nothing public was contacted: 37 checks found both connected, ticking and in agreement, and both reached one confirmed end, 3–2 at tick 6871. The owner's own two desktop browsers are owner-pending (§17).
+`GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts`: a Chromium keeper and a Firefox player, at 1 a side with `script=brain` and `ice=none`, through `npm run dev:local` with its local relay only, so nothing public was contacted. It ran twice here, and passed both times:
+- **In the measurement,** at 71bd4a7, so at the spread cap of 42: in 2.1 minutes, 37 checks found both connected, ticking and in agreement, and both reached one confirmed end, 3–2 at tick 6871.
+- **At the final tree** (section 2.7), so at the cap of 14, on 2026-11-20 at 10:03 UTC, after the load run, once the 1-minute load had fallen under 1 and 8 more minutes had passed: in 2.0 minutes, 39 checks found the same, and both reached the same end, 3–2 at tick 6871. The 1-minute load went from 0.20 to 1.11.
+
+The owner's own two desktop browsers are owner-pending (§17).
 
 ### 2.9 The files and their code
 
@@ -658,6 +717,41 @@ The runs, each started at the code above with the tree clean, which each run's w
 | The merge at 14, with `cap14-check.json` | 1.4 s | 2.06, 2.06 | `cap14.json` |
 | `npm run build` | 9.4 s | 0.80, 0.98 | `dist/`, ignored |
 | The load run, first | 162 s | 0.97, 20.2 | not committed: it failed (section 2.7) |
-| The load run, second | 154 s | 0.91, 15.0 | `research/load/results.json`: it failed |
+| The load run, second | 154 s | 0.91, 15.0 | `research/load/results.json` at 9236de3 and b43b154, replaced since by the passing run's: it failed (section 2.7) |
 | A 20 s load run, a diagnostic outside the method | 75 s | 0.81, 12.2 | not committed: it failed |
 | The desktop connection's settle | 135 s | 0.97, 3.09 | none: it passed (section 2.8) |
+
+**The load files,** in `research/load/`, each copied unmodified from the file its run wrote (section 2.7). A load file names its build, in each page's report, not its commit. The A/B's predate the backlog watch, so they have no `backlog`, `pollMs` or `polls`.
+
+| File | Run | Commit | Build | LOAD_SECONDS, play measured | UTC |
+|---|---|---|---|---|---|
+| results.json | the 90 s run at the final tree | b43b154 with the backlog watch as first built | cf548d0c7dd1fcae | 90, 90.1 s | 2026-11-20T09:52:45.034Z |
+| ab/a90-1.json | the A/B's 1st | 4da2086 | 8024021691ad6ff4 | 90, 92.4 s | 2026-11-20T07:03:13.486Z |
+| ab/b90-1.json | its 2nd | 71bd4a7 | 9a8dba061bc319b7 | 90, 93.5 s | 2026-11-20T07:17:01.163Z |
+| ab/a90-2.json | its 3rd | 4da2086 | 8024021691ad6ff4 | 90, 93.6 s | 2026-11-20T07:30:07.127Z |
+| ab/b90-2.json | its 4th | 71bd4a7 | 9a8dba061bc319b7 | 90, 92.5 s | 2026-11-20T07:43:12.663Z |
+| ab/c90-1.json | its 5th | b43b154 | cf548d0c7dd1fcae | 90, 93.6 s | 2026-11-20T07:56:20.146Z |
+| ab/a20-1.json | its 6th | 4da2086 | 8024021691ad6ff4 | 20, 21.3 s | 2026-11-20T08:08:35.274Z |
+| ab/b20-1.json | its 7th | 71bd4a7 | 9a8dba061bc319b7 | 20, 20.1 s | 2026-11-20T08:20:28.640Z |
+| ab/a20-hot.json | its 8th, hot | 4da2086 | 8024021691ad6ff4 | 20, 21.3 s | 2026-11-20T08:42:02.508Z |
+| ab/b20-hot.json | its 9th, hot | 71bd4a7 | 9a8dba061bc319b7 | 20, 21.2 s | 2026-11-20T08:43:13.284Z |
+
+The runs after the measurement, outside its method: the A/B's in a copy of each commit, and the final tree's in the checkout, with the backlog watch not yet committed, as first built. Each load run and the desktop settle started once the 1-minute load had fallen under 1 and 8 more minutes had passed, but the hot pair, which ran straight after the heat soak; the builds came first, before any wait:
+
+| Run | Wall | 1-minute load, start and end | Its file |
+|---|---|---|---|
+| The A/B's builds of 4da2086, 71bd4a7 and b43b154, to 06:52 UTC | about 10 s each | | `dist/` in each copy, not kept |
+| a90-1, 4da2086 at 90 s | 146 s | 0.11, 9.69 | `research/load/ab/a90-1.json` |
+| b90-1, 71bd4a7 at 90 s | 144 s | 0.11, 7.89 | `research/load/ab/b90-1.json` |
+| a90-2, 4da2086 at 90 s | 143 s | 0.14, 5.40 | `research/load/ab/a90-2.json` |
+| b90-2, 71bd4a7 at 90 s | 144 s | 0.41, 6.85 | `research/load/ab/b90-2.json` |
+| c90-1, b43b154 at 90 s | 144 s | 0.14, 7.99 | `research/load/ab/c90-1.json` |
+| a20-1, 4da2086 at 20 s | 71 s | 0.54, 7.67 | `research/load/ab/a20-1.json` |
+| b20-1, 71bd4a7 at 20 s | 71 s | 0.26, 6.92 | `research/load/ab/b20-1.json` |
+| The heat soak: 10 busy cores, from 08:30:51 UTC | 600 s | | none |
+| a20-hot, 4da2086 at 20 s | 71 s | 10.52, 10.87 | `research/load/ab/a20-hot.json` |
+| b20-hot, 71bd4a7 at 20 s | 71 s | 10.87, 11.62 | `research/load/ab/b20-hot.json` |
+| `npm run build` at the final tree, from 09:30:10 UTC | 9 s | 0.10, 0.39 | `dist/`, ignored |
+| The warm-up, 20 s | 70 s | 0.14, 6.76 | not committed: it passed |
+| The load run, 90 s | 140 s | 0.26, 9.37 | `research/load/results.json`: it passed |
+| The desktop connection's settle | 127 s | 0.20, 1.11 | none: it passed (section 2.8) |

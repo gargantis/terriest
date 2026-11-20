@@ -4,7 +4,9 @@ import { buildInputs } from '../scripts/build-inputs.mjs';
 
 // The correction measurement only (M3's design §9, §1.38), never part of the
 // gate, which tests its arithmetic in dev/corrections.test.ts:
-//   TERRIEST_CORRECTIONS_OUT=research/corrections/results.json npx vitest run --config dev/corrections.vitest.config.ts
+//   TERRIEST_CORRECTIONS_OUT="$OUT/results.json" npx vitest run --config dev/corrections.vitest.config.ts
+// with $OUT a folder outside the repository, as research/corrections/
+// REPORT.md's section 1.12 runs it, so the tree stays clean between runs.
 // dev/corrections.measure.ts says what it runs, where it writes and how to
 // choose. TERRIEST_CORRECTIONS_MEASURING lets it register its tests, so the
 // gate's import of it registers none. The cap check collects garbage before

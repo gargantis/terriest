@@ -22,21 +22,37 @@
 //   timer run (the page's own figures, over its whole run), the match
 //   summary (§1.16), and traffic, messages and bytes a second by type, from
 //   NetGame's counting link (D-20's measurement).
-// - Its raw reports, both of each page's with the rates, go to the file
-//   TERRIEST_LOAD_OUT names. Without it the run refuses at once, before it
-//   opens a page, so research/load/results.json is written only on purpose,
-//   as dev/corrections.measure.ts refuses to overwrite its results.
+// - It watches the backlog, so a run that fails says whether the rig's
+//   message path fell behind before any input came late: every 2 s of the
+//   play measured it polls every page's report through the hook, keeping
+//   each page's time, TICKs sent and received, peers, local and final
+//   ticks, late inputs and clock jumps, and the machine's load
+//   (os.loadavg()). dev/load/backlog.ts reads each receiver's backlog from
+//   them, summed over its senders, in seconds of their output by their own
+//   ticks. Each page's line logs its largest, and the last line the largest
+//   of all, the first poll past d + w and the first that showed a late
+//   input. When a check fails, its message starts with what the backlog
+//   shows: past d + w no later than the first poll that showed a late
+//   input, the rig's message path fell behind, the machine's capacity
+//   rather than the protocol's; with inputs late before that, how many, and
+//   that the watch can't tell which failed first (verdictOf).
+// - Its raw reports, both of each page's with the rates, and the series with
+//   each poll's backlogs, go to the file TERRIEST_LOAD_OUT names. Without it
+//   the run refuses at once, before it opens a page, so
+//   research/load/results.json is written only on purpose, as
+//   dev/corrections.measure.ts refuses to overwrite its results.
 // phase 6 writes the run's row in docs/acceptance.md, with the machine and
 // the date.
 
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { availableParallelism, cpus } from 'node:os';
+import { availableParallelism, cpus, loadavg } from 'node:os';
 import { dirname, resolve } from 'node:path';
+import { backlogOf, type Poll, polledPage, verdictOf } from '../dev/load/backlog';
 import { T } from '../src/core/protocol/messages';
 import { IN_PLAY } from '../src/core/sim/state';
 import type { NetReport } from '../src/nettest-params';
 import { startNostrRelay } from '../vendor/hermet/nostr-relay.mjs';
-import { freshRoom, hashAt, launch, type NetPage, openNetPage, report, waitFor } from './lib/browsers';
+import { freshRoom, hashAt, launch, type NetPage, openNetPage, waitFor } from './lib/browsers';
 import { expect, expectEverywhere, test } from './lib/guards';
 
 const SECONDS = Number(process.env.LOAD_SECONDS ?? 90);
@@ -51,6 +67,7 @@ const READY_TICK = 2400; // not a setting: a tick, so the countdown starts at on
 /** From the last page's opening to every page in play: the Ready tick, the countdown, and margin. */
 const TO_PLAY_MS = 180_000; // not a setting
 const SAME_PHASE_MS = 10_000; // not a setting: a goal's celebration can start a tick apart on two pages
+const POLL_MS = 2000; // not a setting: the backlog watch's period
 /** The type bytes' names (src/core/protocol/messages.ts's T). */
 const TYPE_NAMES: Readonly<Record<number, string>> = Object.fromEntries(Object.entries(T).map(([name, code]) => [code, name]));
 
@@ -113,8 +130,20 @@ function rates(a: NetReport, b: NetReport, seconds: number): Rates {
   };
 }
 
-const reports = (pages: readonly NetPage[]): Promise<NetReport[]> => Promise.all(pages.map((p) => report(p.page)));
 const fixed = (n: number | undefined, digits = 2): string => (n === undefined ? '-' : n.toFixed(digits));
+const sleep = (ms: number): Promise<void> => new Promise((done) => setTimeout(done, Math.max(0, ms)));
+
+/** A page's report through its hook, and when the page made it: its Date.now(), the machine's clock,
+ *  as Node's, for the record, since that clock can step and the watch reads no rate from it. The
+ *  page runs nothing else meanwhile, so its counts hold for that moment. */
+function stamped(p: NetPage): Promise<{ readonly at: number; readonly report: NetReport }> {
+  return p.page.evaluate(() => {
+    const net = window.terriestTest?.net;
+    if (net === undefined) throw new Error('no window.terriestTest.net: the hook goes in before load, and the page adds net once started');
+    const report = net.report();
+    return { at: Date.now(), report };
+  });
+}
 
 test(`${PLAYERS} players and ${SPECTATORS} spectators stay in step for LOAD_SECONDS of play (design §8.5)`, async ({ baseURL }) => {
   if (OUT === undefined || OUT === '') {
@@ -138,21 +167,45 @@ test(`${PLAYERS} players and ${SPECTATORS} spectators stay in step for LOAD_SECO
     }
     const peers = PLAYERS + SPECTATORS - 1;
     await waitFor(pages, (rs) => rs.every((r) => r.peers === peers && r.phase === IN_PLAY), { timeoutMs: TO_PLAY_MS, fail: failure });
+    // The play measured, every page's report polled every POLL_MS for the backlog watch, from the
+    // first report to the last.
     const from = Date.now();
-    const start = await reports(pages);
-    await new Promise((done) => setTimeout(done, SECONDS * 1000));
-    const end = await reports(pages);
+    const polls: Poll[] = [];
+    const poll = async (): Promise<NetReport[]> => {
+      const ms = Date.now() - from;
+      const load = loadavg();
+      const got = await Promise.all(pages.map(stamped));
+      polls.push({ ms, load, pages: got.map((g) => polledPage(g.at - from, g.report)) });
+      return got.map((g) => g.report);
+    };
+    const start = await poll();
+    const until = from + SECONDS * 1000;
+    for (let due = from + POLL_MS; due < until; due += POLL_MS) {
+      await sleep(due - Date.now());
+      await poll();
+    }
+    await sleep(until - Date.now());
+    const end = await poll();
     const seconds = (Date.now() - from) / 1000;
     // One hash at the newest final tick every page holds, read before it leaves their histories.
     const tick = Math.min(...end.map((r) => r.finalTick));
     const hashes = await Promise.all(pages.map((p) => hashAt(p.page, tick)));
+    const backlog = backlogOf(polls);
+    const verdict = verdictOf(backlog);
+    const { limitSeconds, max, onset, lateOnset } = backlog;
 
     // The raw reports go out before the checks, so a failing run leaves its figures.
     const rows = pages.map((_, k) => ({ k, role: end[k]!.role, rates: rates(start[k]!, end[k]!, seconds) }));
     const machine = { cpu: cpus()[0]?.model ?? null, cores: availableParallelism(), node: process.version, browser: browser.version() };
     const out = resolve(OUT);
     mkdirSync(dirname(out), { recursive: true });
-    writeFileSync(out, `${JSON.stringify({ utc: new Date().toISOString(), ...machine, loadSeconds: SECONDS, seconds, readyTick: READY_TICK, seed: SEED, tick, hashes, pages: rows.map((r, k) => ({ ...r, start: start[k], end: end[k] })) }, null, 1)}\n`);
+    writeFileSync(out, `${JSON.stringify({
+      utc: new Date().toISOString(), ...machine, loadSeconds: SECONDS, seconds, readyTick: READY_TICK, seed: SEED, tick, hashes,
+      backlog: { limitSeconds, max, onset, lateOnset, skipped: backlog.skipped, largest: backlog.largest, verdict },
+      pages: rows.map((r, k) => ({ ...r, start: start[k], end: end[k] })),
+      // The series, each poll with each receiver's backlog then, in seconds of its senders' output.
+      pollMs: POLL_MS, polls: polls.map((p, i) => ({ ...p, backlog: backlog.seconds[i] })),
+    }, null, 1)}\n`);
     for (const [k, r] of end.entries()) {
       const x = rows[k]!.rates;
       console.log(
@@ -160,18 +213,35 @@ test(`${PLAYERS} players and ${SPECTATORS} spectators stay in step for LOAD_SECO
           `lateAbsent ${x.lateAbsent}, disagree ${x.disagree}, resyncs ${x.resyncs}, jumps ${x.jumps}; steps a tick ${fixed(x.stepsPerTick)} mean, ${x.maxStepsPerAdvance} max; ` +
           `cpu a timer run ${fixed(r.cpu?.mean)} mean, ${fixed(r.cpu?.p95)} p95, ${fixed(r.cpu?.max, 1)} max ms; ` +
           `sent ${fixed(x.traffic.sent, 0)} messages, ${fixed(x.traffic.sentBytes / 1000, 1)} kB a second (${Object.entries(x.traffic.byType).map(([t, c]) => `${t} ${fixed(c.sent, 0)}`).join(', ')}); ` +
-          `summary: corrections ${r.summary.corrections}, ball p95 ${fixed(r.summary.ball.p95, 3)} m, remote p95 ${fixed(r.summary.remote.p95, 3)} m`,
+          `summary: corrections ${r.summary.corrections}, ball p95 ${fixed(r.summary.ball.p95, 3)} m, remote p95 ${fixed(r.summary.remote.p95, 3)} m; ` +
+          `backlog ${fixed(backlog.largest[k], 3)} s at most`,
       );
     }
-    console.log(`Wrote ${out}: ${fixed(seconds, 1)} s of play, every page's hash at tick ${tick}: ${[...new Set(hashes)].join(', ')}`);
+    const when = (ms: number): string => `${fixed(ms / 1000, 1)} s`;
+    const limit = `d + w (${fixed(limitSeconds, 3)} s)`;
+    const loads = polls.map((p) => p.load[0]!);
+    console.log(
+      `Wrote ${out}: ${fixed(seconds, 1)} s of play, every page's hash at tick ${tick}: ${[...new Set(hashes)].join(', ')}; ` +
+        `the backlog ${fixed(max?.seconds, 3)} s at most (page ${max?.page ?? '-'}'s at ${max === null ? '-' : when(max.ms)}), ` +
+        `${onset === null ? `never past ${limit}` : `past ${limit} from ${when(onset.ms)} (page ${onset.page}'s)`}; ` +
+        `late inputs ${lateOnset === null ? 'none' : `from ${when(lateOnset.ms)}`}; ${backlog.skipped.length} of ${polls.length - 1} intervals skipped; ` +
+        `the 1-minute load ${fixed(loads[0])} at the first poll, ${fixed(Math.max(...loads))} at most`,
+    );
 
-    for (const r of [...start, ...end]) expect(r.peers, `${r.me}: connected to the other ${peers}`).toBe(peers);
-    for (const r of end) expect(r.roster.length, `${r.me}'s roster`).toBe(PLAYERS);
-    expect(hashes.every((h) => h !== ''), `every page holds tick ${tick}`).toBe(true);
-    expect(new Set(hashes).size, `one hash at tick ${tick}`).toBe(1);
-    // One phase on every page: a goal's celebration can begin a tick apart, so it's polled for.
-    await waitFor(pages, (rs) => new Set(rs.map((r) => r.phase)).size === 1, { timeoutMs: SAME_PHASE_MS, fail: failure });
-    for (const p of pages) expectEverywhere(p.watch);
+    try {
+      for (const r of [...start, ...end]) expect(r.peers, `${r.me}: connected to the other ${peers}`).toBe(peers);
+      for (const r of end) expect(r.roster.length, `${r.me}'s roster`).toBe(PLAYERS);
+      expect(hashes.every((h) => h !== ''), `every page holds tick ${tick}`).toBe(true);
+      expect(new Set(hashes).size, `one hash at tick ${tick}`).toBe(1);
+      // One phase on every page: a goal's celebration can begin a tick apart, so it's polled for.
+      await waitFor(pages, (rs) => new Set(rs.map((r) => r.phase)).size === 1, { timeoutMs: SAME_PHASE_MS, fail: failure });
+      for (const p of pages) expectEverywhere(p.watch);
+    } catch (e) {
+      // The check's own message, after what the backlog says of the failure: the machine's capacity
+      // when the rig's message path fell past d + w no later than the first late input (verdictOf).
+      if (e instanceof Error) e.message = `${verdict.text}\n\n${e.message}`;
+      throw e;
+    }
   } finally {
     await browser.close();
     await relay.close();

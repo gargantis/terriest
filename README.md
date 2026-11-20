@@ -152,13 +152,15 @@ Or the profiles run in seven processes at once, each with its own file, then the
 
 ### The load run
 
-12 Chromium pages on this machine play one 3-minute match through the network test page over the local relay: 8 players at 4 a side, each driven by the bots' brain, and 4 spectators, measured for 90 s of play. It checks that every page is connected to the other 11 at the start and the end of the play measured, and that all hold one state, and logs each page's late inputs, resyncs, steps a tick, CPU a timer run and traffic by message type:
+12 Chromium pages on this machine play one 3-minute match through the network test page over the local relay: 8 players at 4 a side, each driven by the bots' brain, and 4 spectators, measured for 90 s of play. It checks that every page is connected to the other 11 at the start and the end of the play measured, and that all hold one state, and logs each page's late inputs, resyncs, steps a tick, CPU a timer run and traffic by message type.
+
+Start it on a quiet machine: the 1-minute load under 1 and nothing else running, and on WSL2 the Windows side idle too, since WSL2's load doesn't see Windows'. 12 pages in one browser pass about 5,000 messages a second between them, and the machine may deliver fewer than they send: then every page hears the others late, and the run fails for the machine rather than the protocol. In M3's measurement it did, after an hour of CPU-bound runs, though the load was under 1 when each run began ([research/corrections/REPORT.md](research/corrections/REPORT.md) section 2.7). A cold first run may show some late inputs, disagreements and resyncs and still pass, its backlog flat, as the first of M3's A/B runs did.
 
 ```sh
 npm run build && TERRIEST_LOAD_OUT=research/load/results.json npx playwright test -c playwright.load.config.ts
 ```
 
-It refuses to run without `TERRIEST_LOAD_OUT`, which names the file its raw reports go to, and `LOAD_SECONDS` sets the play it measures. `docs/acceptance.md` logs its runs.
+It refuses to run without `TERRIEST_LOAD_OUT`, which names the file its raw reports go to, and `LOAD_SECONDS` sets the play it measures. It also watches the backlog: every 2 s of the play it reads each page's report, and `dev/load/backlog.ts` works out each receiver's backlog, how many more TICKs its senders have sent it than it has taken since the first poll, in seconds of their output by their own ticks. It's summed over the receiver's senders, so one link alone behind shows at its share. Each page's line ends with its largest backlog; the last line gives the largest of all, whether and when one passed d + w (0.233 s), when the first late input showed, the intervals it left out, with the mesh not whole through them, and the machine's 1-minute load; and the file holds every poll. When a check fails, its message starts with what the backlog shows: a backlog past d + w no later than the first late input means the rig's message path fell behind first, the machine's capacity rather than the protocol's; inputs late before that, and the message says how many, and that the watch can't tell which failed first. `docs/acceptance.md` logs its runs.
 
 ## Build
 

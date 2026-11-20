@@ -1,0 +1,7972 @@
+{
+ "utc": "2026-11-20T07:56:20.146Z",
+ "cpu": "12th Gen Intel(R) Core(TM) i7-1255U",
+ "cores": 12,
+ "node": "v22.23.4",
+ "browser": "156.0.8078.4",
+ "loadSeconds": 90,
+ "seconds": 93.641,
+ "readyTick": 2400,
+ "seed": 7,
+ "tick": 8126,
+ "hashes": [
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7",
+  "f07ab85f995a02e7"
+ ],
+ "pages": [
+  {
+   "k": 0,
+   "role": "keeper",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 37827,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0011102886750556,
+    "maxStepsPerAdvance": 4,
+    "cpu": {
+     "mean": 0.6301019585298107,
+     "p95": 1,
+     "max": 10.100000023841858
+    },
+    "traffic": {
+     "sent": 636.9218611505644,
+     "received": 406.07212652577397,
+     "sentBytes": 20816.843049518906,
+     "receivedBytes": 13292.104954026547,
+     "byType": {
+      "TICK": {
+       "sent": 634.8074027402527,
+       "received": 403.95766811546224,
+       "sentBytes": 20393.95136745656,
+       "receivedBytes": 12869.213271964203
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "dcab7b4a7b754773141e8a190688d792",
+    "role": "keeper",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 0,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 2735,
+     "received": 18670,
+     "receivedInputs": 18670,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2709,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 3,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2745,
+     "maxStepsPerAdvance": 4,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2723,
+     "steppedFinals": 0,
+     "rollbacks": 5,
+     "corrections": 5,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": -0.02952025876779001,
+     "warmMs": 0,
+     "joinedAt": 0,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2723,
+     "remoteInputs": 18670,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 5,
+     "corrections": 5,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 5,
+      "zero": 5,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 28,
+      "zero": 24,
+      "p50": 0.0007498942093324557,
+      "p95": 0.0047315125896148025,
+      "max": 0.004869931863418868
+     },
+     "own": {
+      "count": 5,
+      "zero": 5,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 28,
+      "zero": 24,
+      "p50": 11.88502227437019,
+      "p95": 11.88502227437019,
+      "max": 11.999999955296516
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6647166164963075,
+     "p95": 1.100000023841858,
+     "max": 7.299999952316284
+    },
+    "traffic": {
+     "sent": 29028,
+     "received": 18834,
+     "sentBytes": 892896,
+     "receivedBytes": 586723,
+     "byType": {
+      "16": {
+       "sent": 28871,
+       "received": 18666,
+       "sentBytes": 864174,
+       "receivedBytes": 558747
+      },
+      "17": {
+       "sent": 0,
+       "received": 5,
+       "sentBytes": 0,
+       "receivedBytes": 225
+      },
+      "18": {
+       "sent": 154,
+       "received": 160,
+       "sentBytes": 27280,
+       "receivedBytes": 27712
+      },
+      "32": {
+       "sent": 0,
+       "received": 3,
+       "sentBytes": 0,
+       "receivedBytes": 39
+      },
+      "33": {
+       "sent": 3,
+       "received": 0,
+       "sentBytes": 1442,
+       "receivedBytes": 0
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "dcab7b4a7b754773141e8a190688d792",
+    "role": "keeper",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8139,
+    "finalTick": 8127,
+    "headTick": 8139,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6141,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 0,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 8139,
+     "received": 56497,
+     "receivedInputs": 56497,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 8113,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 3,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 8155,
+     "maxStepsPerAdvance": 4,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 8127,
+     "steppedFinals": 0,
+     "rollbacks": 10,
+     "corrections": 10,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": -0.17319618701285577,
+     "warmMs": 0,
+     "joinedAt": 0,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 8127,
+     "remoteInputs": 56497,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 10,
+     "corrections": 10,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 10,
+      "zero": 10,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 63,
+      "zero": 53,
+      "p50": 0.0014962356560944327,
+      "p95": 0.009375000000003015,
+      "max": 0.009375000000003015
+     },
+     "own": {
+      "count": 10,
+      "zero": 10,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 63,
+      "zero": 54,
+      "p50": 11.88502227437019,
+      "p95": 23.71373705661655,
+      "max": 23.999999910593033
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6301019585298107,
+     "p95": 1,
+     "max": 10.100000023841858
+    },
+    "traffic": {
+     "sent": 88670,
+     "received": 56859,
+     "sentBytes": 2842206,
+     "receivedBytes": 1831409,
+     "byType": {
+      "16": {
+       "sent": 88315,
+       "received": 56493,
+       "sentBytes": 2773884,
+       "receivedBytes": 1763833
+      },
+      "17": {
+       "sent": 0,
+       "received": 5,
+       "sentBytes": 0,
+       "receivedBytes": 225
+      },
+      "18": {
+       "sent": 352,
+       "received": 358,
+       "sentBytes": 66880,
+       "receivedBytes": 67312
+      },
+      "32": {
+       "sent": 0,
+       "received": 3,
+       "sentBytes": 0,
+       "receivedBytes": 39
+      },
+      "33": {
+       "sent": 3,
+       "received": 0,
+       "sentBytes": 1442,
+       "receivedBytes": 0
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 1,
+   "role": "player",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5403,
+    "remoteInputs": 37825,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0011104941699056,
+    "maxStepsPerAdvance": 13,
+    "cpu": {
+     "mean": 0.6790245104370511,
+     "p95": 1.2000000476837158,
+     "max": 14.600000023841858
+    },
+    "traffic": {
+     "sent": 636.8043912388804,
+     "received": 406.0507683600132,
+     "sentBytes": 20754.583996326393,
+     "receivedBytes": 13296.654243333582,
+     "byType": {
+      "TICK": {
+       "sent": 634.6899328285687,
+       "received": 403.9363099497015,
+       "sentBytes": 20331.692314264048,
+       "receivedBytes": 12873.762561271238
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "6b1806ee2ced43c99f95c05980994eaf",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 6,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 2717,
+     "received": 18672,
+     "receivedInputs": 18672,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2705,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 3,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2779,
+     "maxStepsPerAdvance": 13,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2713,
+     "steppedFinals": 4,
+     "rollbacks": 5,
+     "corrections": 5,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.1262574198665653,
+     "warmMs": 12.799999952316284,
+     "joinedAt": 18,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2717,
+     "remoteInputs": 18672,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 5,
+     "corrections": 5,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 5,
+      "zero": 5,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 15,
+      "zero": 14,
+      "p50": 0.002247660860039181,
+      "p95": 0.002247660860039181,
+      "max": 0.002247660860039181
+     },
+     "own": {
+      "count": 4,
+      "zero": 4,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 15,
+      "zero": 14,
+      "p50": 11.25,
+      "p95": 11.25,
+      "max": 11.25
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.7232695152552384,
+     "p95": 1.399999976158142,
+     "max": 7.599999904632568
+    },
+    "traffic": {
+     "sent": 29044,
+     "received": 18844,
+     "sentBytes": 899975,
+     "receivedBytes": 587339,
+     "byType": {
+      "16": {
+       "sent": 28883,
+       "received": 18670,
+       "sentBytes": 867874,
+       "receivedBytes": 558336
+      },
+      "17": {
+       "sent": 2,
+       "received": 2,
+       "sentBytes": 94,
+       "receivedBytes": 90
+      },
+      "18": {
+       "sent": 155,
+       "received": 168,
+       "sentBytes": 27320,
+       "receivedBytes": 28512
+      },
+      "32": {
+       "sent": 1,
+       "received": 3,
+       "sentBytes": 13,
+       "receivedBytes": 39
+      },
+      "33": {
+       "sent": 3,
+       "received": 1,
+       "sentBytes": 4674,
+       "receivedBytes": 362
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "6b1806ee2ced43c99f95c05980994eaf",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8138,
+    "finalTick": 8126,
+    "headTick": 8138,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6142,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 6,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 8120,
+     "received": 56497,
+     "receivedInputs": 56497,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 8108,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 3,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 8188,
+     "maxStepsPerAdvance": 13,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 8116,
+     "steppedFinals": 4,
+     "rollbacks": 10,
+     "corrections": 10,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.17977886862060177,
+     "warmMs": 12.799999952316284,
+     "joinedAt": 18,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 8120,
+     "remoteInputs": 56497,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 10,
+     "corrections": 10,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 10,
+      "zero": 10,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 50,
+      "zero": 43,
+      "p50": 0.0014962356560944327,
+      "p95": 0.009375000000003015,
+      "max": 0.009375000000003015
+     },
+     "own": {
+      "count": 9,
+      "zero": 9,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 50,
+      "zero": 45,
+      "p50": 11.88502227437019,
+      "p95": 23.71373705661655,
+      "max": 23.999999910593033
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6790245104370511,
+     "p95": 1.2000000476837158,
+     "max": 14.600000023841858
+    },
+    "traffic": {
+     "sent": 88675,
+     "received": 56867,
+     "sentBytes": 2843455,
+     "receivedBytes": 1832451,
+     "byType": {
+      "16": {
+       "sent": 88316,
+       "received": 56495,
+       "sentBytes": 2771754,
+       "receivedBytes": 1763848
+      },
+      "17": {
+       "sent": 2,
+       "received": 2,
+       "sentBytes": 94,
+       "receivedBytes": 90
+      },
+      "18": {
+       "sent": 353,
+       "received": 366,
+       "sentBytes": 66920,
+       "receivedBytes": 68112
+      },
+      "32": {
+       "sent": 1,
+       "received": 3,
+       "sentBytes": 13,
+       "receivedBytes": 39
+      },
+      "33": {
+       "sent": 3,
+       "received": 1,
+       "sentBytes": 4674,
+       "receivedBytes": 362
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 2,
+   "role": "player",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 37826,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0011102886750556,
+    "maxStepsPerAdvance": 13,
+    "cpu": {
+     "mean": 0.6378731874516061,
+     "p95": 1.100000023841858,
+     "max": 8.200000047683716
+    },
+    "traffic": {
+     "sent": 636.9218611505644,
+     "received": 406.0614474428936,
+     "sentBytes": 21416.174538930594,
+     "receivedBytes": 13237.36397518181,
+     "byType": {
+      "TICK": {
+       "sent": 634.8074027402527,
+       "received": 403.9469890325819,
+       "sentBytes": 20993.282856868253,
+       "receivedBytes": 12814.472293119466
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "34f72940190c4f1014b4af52206b8663",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 21,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 2702,
+     "received": 18657,
+     "receivedInputs": 18657,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2690,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 1,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2768,
+     "maxStepsPerAdvance": 13,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2698,
+     "steppedFinals": 4,
+     "rollbacks": 7,
+     "corrections": 7,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": -0.1287394473064768,
+     "warmMs": 10,
+     "joinedAt": 33,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2702,
+     "remoteInputs": 18657,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 7,
+     "corrections": 7,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 7,
+      "zero": 7,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 32,
+      "zero": 29,
+      "p50": 0.0014962356560944327,
+      "p95": 0.0047315125896148025,
+      "max": 0.004869931863418868
+     },
+     "own": {
+      "count": 6,
+      "zero": 6,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 32,
+      "zero": 29,
+      "p50": 11.88502227437019,
+      "p95": 11.88502227437019,
+      "max": 11.999999955296516
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6881569283349174,
+     "p95": 1.2000000476837158,
+     "max": 8.200000047683716
+    },
+    "traffic": {
+     "sent": 29069,
+     "received": 18830,
+     "sentBytes": 891699,
+     "receivedBytes": 587855,
+     "byType": {
+      "16": {
+       "sent": 28871,
+       "received": 18657,
+       "sentBytes": 860871,
+       "receivedBytes": 558658
+      },
+      "17": {
+       "sent": 41,
+       "received": 0,
+       "sentBytes": 1917,
+       "receivedBytes": 0
+      },
+      "18": {
+       "sent": 155,
+       "received": 171,
+       "sentBytes": 27352,
+       "receivedBytes": 28744
+      },
+      "32": {
+       "sent": 1,
+       "received": 1,
+       "sentBytes": 13,
+       "receivedBytes": 13
+      },
+      "33": {
+       "sent": 1,
+       "received": 1,
+       "sentBytes": 1546,
+       "receivedBytes": 440
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "34f72940190c4f1014b4af52206b8663",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8139,
+    "finalTick": 8127,
+    "headTick": 8139,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6141,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 21,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 8106,
+     "received": 56483,
+     "receivedInputs": 56483,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 8094,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 1,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 8178,
+     "maxStepsPerAdvance": 13,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 8102,
+     "steppedFinals": 4,
+     "rollbacks": 12,
+     "corrections": 12,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": -0.0866691631490483,
+     "warmMs": 10,
+     "joinedAt": 33,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 8106,
+     "remoteInputs": 56483,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 12,
+     "corrections": 12,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 12,
+      "zero": 12,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 67,
+      "zero": 57,
+      "p50": 0.0026607250597988083,
+      "p95": 0.13335214321633237,
+      "max": 0.13763606309411394
+     },
+     "own": {
+      "count": 11,
+      "zero": 11,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 67,
+      "zero": 58,
+      "p50": 11.88502227437019,
+      "p95": 23.71373705661655,
+      "max": 23.999999910593033
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6378731874516061,
+     "p95": 1.100000023841858,
+     "max": 8.200000047683716
+    },
+    "traffic": {
+     "sent": 88711,
+     "received": 56854,
+     "sentBytes": 2897131,
+     "receivedBytes": 1827415,
+     "byType": {
+      "16": {
+       "sent": 88315,
+       "received": 56483,
+       "sentBytes": 2826703,
+       "receivedBytes": 1758618
+      },
+      "17": {
+       "sent": 41,
+       "received": 0,
+       "sentBytes": 1917,
+       "receivedBytes": 0
+      },
+      "18": {
+       "sent": 353,
+       "received": 369,
+       "sentBytes": 66952,
+       "receivedBytes": 68344
+      },
+      "32": {
+       "sent": 1,
+       "received": 1,
+       "sentBytes": 13,
+       "receivedBytes": 13
+      },
+      "33": {
+       "sent": 1,
+       "received": 1,
+       "sentBytes": 1546,
+       "receivedBytes": 440
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 3,
+   "role": "player",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 37826,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0012953367875648,
+    "maxStepsPerAdvance": 13,
+    "cpu": {
+     "mean": 0.6381952936923401,
+     "p95": 1.1999999284744263,
+     "max": 12.5
+    },
+    "traffic": {
+     "sent": 636.9218611505644,
+     "received": 406.0614474428936,
+     "sentBytes": 20752.469537916084,
+     "receivedBytes": 13297.828942450422,
+     "byType": {
+      "TICK": {
+       "sent": 634.8074027402527,
+       "received": 403.9469890325819,
+       "sentBytes": 20329.57785585374,
+       "receivedBytes": 12874.937260388077
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "3c461dbea34741d94855fbab223191bd",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 36,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 2687,
+     "received": 18629,
+     "receivedInputs": 18629,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2675,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 4,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2730,
+     "maxStepsPerAdvance": 13,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2686,
+     "steppedFinals": 1,
+     "rollbacks": 5,
+     "corrections": 5,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": -0.09558495377203749,
+     "warmMs": 16.600000023841858,
+     "joinedAt": 48,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2687,
+     "remoteInputs": 18629,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 5,
+     "corrections": 5,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 5,
+      "zero": 5,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 29,
+      "zero": 26,
+      "p50": 0.0029853826189179603,
+      "p95": 0.0047315125896148025,
+      "max": 0.004869931863418868
+     },
+     "own": {
+      "count": 4,
+      "zero": 4,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 29,
+      "zero": 26,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6818012556357148,
+     "p95": 1.2999999523162842,
+     "max": 8.600000023841858
+    },
+    "traffic": {
+     "sent": 29011,
+     "received": 18798,
+     "sentBytes": 900079,
+     "receivedBytes": 585921,
+     "byType": {
+      "16": {
+       "sent": 28839,
+       "received": 18629,
+       "sentBytes": 866295,
+       "receivedBytes": 557069
+      },
+      "17": {
+       "sent": 13,
+       "received": 0,
+       "sentBytes": 642,
+       "receivedBytes": 0
+      },
+      "18": {
+       "sent": 154,
+       "received": 164,
+       "sentBytes": 27344,
+       "receivedBytes": 28160
+      },
+      "32": {
+       "sent": 1,
+       "received": 4,
+       "sentBytes": 13,
+       "receivedBytes": 52
+      },
+      "33": {
+       "sent": 4,
+       "received": 1,
+       "sentBytes": 5785,
+       "receivedBytes": 640
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "3c461dbea34741d94855fbab223191bd",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8139,
+    "finalTick": 8127,
+    "headTick": 8139,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6141,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 36,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 8091,
+     "received": 56455,
+     "receivedInputs": 56455,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 8079,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 4,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 8141,
+     "maxStepsPerAdvance": 13,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 8090,
+     "steppedFinals": 1,
+     "rollbacks": 11,
+     "corrections": 11,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": -0.1569460492752389,
+     "warmMs": 16.600000023841858,
+     "joinedAt": 48,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 8091,
+     "remoteInputs": 56455,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 11,
+     "corrections": 11,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 11,
+      "zero": 11,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 71,
+      "zero": 62,
+      "p50": 0.0026607250597988083,
+      "p95": 0.13335214321633237,
+      "max": 0.13763606309411394
+     },
+     "own": {
+      "count": 10,
+      "zero": 10,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 71,
+      "zero": 64,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6381952936923401,
+     "p95": 1.1999999284744263,
+     "max": 12.5
+    },
+    "traffic": {
+     "sent": 88653,
+     "received": 56822,
+     "sentBytes": 2843361,
+     "receivedBytes": 1831143,
+     "byType": {
+      "16": {
+       "sent": 88283,
+       "received": 56455,
+       "sentBytes": 2769977,
+       "receivedBytes": 1762691
+      },
+      "17": {
+       "sent": 13,
+       "received": 0,
+       "sentBytes": 642,
+       "receivedBytes": 0
+      },
+      "18": {
+       "sent": 352,
+       "received": 362,
+       "sentBytes": 66944,
+       "receivedBytes": 67760
+      },
+      "32": {
+       "sent": 1,
+       "received": 4,
+       "sentBytes": 13,
+       "receivedBytes": 52
+      },
+      "33": {
+       "sent": 4,
+       "received": 1,
+       "sentBytes": 5785,
+       "receivedBytes": 640
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 4,
+   "role": "player",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 37826,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0011102886750556,
+    "maxStepsPerAdvance": 13,
+    "cpu": {
+     "mean": 0.6372182079993884,
+     "p95": 1,
+     "max": 12
+    },
+    "traffic": {
+     "sent": 636.9218611505644,
+     "received": 406.0614474428936,
+     "sentBytes": 19889.065687038797,
+     "receivedBytes": 13376.320201621083,
+     "byType": {
+      "TICK": {
+       "sent": 634.8074027402527,
+       "received": 403.9469890325819,
+       "sentBytes": 19466.174004976452,
+       "receivedBytes": 12953.42851955874
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "ab91e79bc2cd47a4eb453ad9448ad748",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 53,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 2670,
+     "received": 18581,
+     "receivedInputs": 18578,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2658,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2737,
+     "maxStepsPerAdvance": 13,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2667,
+     "steppedFinals": 3,
+     "rollbacks": 7,
+     "corrections": 7,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.05790224540095142,
+     "warmMs": 21.09999990463257,
+     "joinedAt": 65,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2670,
+     "remoteInputs": 18578,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 7,
+     "corrections": 7,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 7,
+      "zero": 7,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 38,
+      "zero": 35,
+      "p50": 0.0029853826189179603,
+      "p95": 0.0047315125896148025,
+      "max": 0.004869931863418868
+     },
+     "own": {
+      "count": 6,
+      "zero": 6,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 38,
+      "zero": 35,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6817977314584711,
+     "p95": 1.1999999284744263,
+     "max": 11.399999976158142
+    },
+    "traffic": {
+     "sent": 28929,
+     "received": 18734,
+     "sentBytes": 886729,
+     "receivedBytes": 584479,
+     "byType": {
+      "16": {
+       "sent": 28776,
+       "received": 18577,
+       "sentBytes": 859548,
+       "receivedBytes": 555937
+      },
+      "17": {
+       "sent": 0,
+       "received": 4,
+       "sentBytes": 0,
+       "receivedBytes": 180
+      },
+      "18": {
+       "sent": 152,
+       "received": 152,
+       "sentBytes": 27168,
+       "receivedBytes": 27408
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 954
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "ab91e79bc2cd47a4eb453ad9448ad748",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8139,
+    "finalTick": 8127,
+    "headTick": 8139,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6141,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 53,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 8074,
+     "received": 56407,
+     "receivedInputs": 56404,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 8062,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 8147,
+     "maxStepsPerAdvance": 13,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 8071,
+     "steppedFinals": 3,
+     "rollbacks": 12,
+     "corrections": 12,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.03972744435312949,
+     "warmMs": 21.09999990463257,
+     "joinedAt": 65,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 8074,
+     "remoteInputs": 56404,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 12,
+     "corrections": 12,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 12,
+      "zero": 12,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 73,
+      "zero": 63,
+      "p50": 0.0026607250597988083,
+      "p95": 0.13335214321633237,
+      "max": 0.13763606309411394
+     },
+     "own": {
+      "count": 11,
+      "zero": 11,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 73,
+      "zero": 64,
+      "p50": 11.88502227437019,
+      "p95": 23.71373705661655,
+      "max": 23.999999910593033
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6372182079993884,
+     "p95": 1,
+     "max": 12
+    },
+    "traffic": {
+     "sent": 88571,
+     "received": 56758,
+     "sentBytes": 2749161,
+     "receivedBytes": 1837051,
+     "byType": {
+      "16": {
+       "sent": 88220,
+       "received": 56403,
+       "sentBytes": 2682380,
+       "receivedBytes": 1768909
+      },
+      "17": {
+       "sent": 0,
+       "received": 4,
+       "sentBytes": 0,
+       "receivedBytes": 180
+      },
+      "18": {
+       "sent": 350,
+       "received": 350,
+       "sentBytes": 66768,
+       "receivedBytes": 67008
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 954
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 5,
+   "role": "player",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 37827,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0005551443375278,
+    "maxStepsPerAdvance": 14,
+    "cpu": {
+     "mean": 0.5203998305230985,
+     "p95": 1,
+     "max": 9.600000023841858
+    },
+    "traffic": {
+     "sent": 636.9218611505644,
+     "received": 406.07212652577397,
+     "sentBytes": 21169.25278457086,
+     "receivedBytes": 13260.259928877307,
+     "byType": {
+      "TICK": {
+       "sent": 634.8074027402527,
+       "received": 403.95766811546224,
+       "sentBytes": 20746.361102508516,
+       "receivedBytes": 12837.368246814964
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "156ce7e556794ad9b077d7170e53c405",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2734,
+    "finalTick": 2722,
+    "headTick": 2734,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10780,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2722,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2722,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2722,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2722,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2722,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2722,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2722,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2722,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 70,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 2651,
+     "received": 18512,
+     "receivedInputs": 18511,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2640,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2716,
+     "maxStepsPerAdvance": 14,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2649,
+     "steppedFinals": 3,
+     "rollbacks": 6,
+     "corrections": 6,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.5619928109262216,
+     "warmMs": 27.700000047683716,
+     "joinedAt": 83,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2652,
+     "remoteInputs": 18511,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 6,
+     "corrections": 6,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 6,
+      "zero": 6,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 34,
+      "zero": 32,
+      "p50": 0.00042905270518448093,
+      "p95": 0.0028196191889161017,
+      "max": 0.0028196191889161017
+     },
+     "own": {
+      "count": 5,
+      "zero": 5,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 34,
+      "zero": 32,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6454922850740851,
+     "p95": 1.1999999284744263,
+     "max": 8.5
+    },
+    "traffic": {
+     "sent": 28863,
+     "received": 18665,
+     "sentBytes": 882349,
+     "receivedBytes": 582703,
+     "byType": {
+      "16": {
+       "sent": 28696,
+       "received": 18505,
+       "sentBytes": 854667,
+       "receivedBytes": 553980
+      },
+      "17": {
+       "sent": 17,
+       "received": 11,
+       "sentBytes": 781,
+       "receivedBytes": 521
+      },
+      "18": {
+       "sent": 149,
+       "received": 148,
+       "sentBytes": 26888,
+       "receivedBytes": 27040
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1162
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "156ce7e556794ad9b077d7170e53c405",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8138,
+    "finalTick": 8126,
+    "headTick": 8138,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6142,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 70,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 8055,
+     "received": 56339,
+     "receivedInputs": 56338,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 8044,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 8123,
+     "maxStepsPerAdvance": 14,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 8053,
+     "steppedFinals": 3,
+     "rollbacks": 9,
+     "corrections": 9,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.6667827626678008,
+     "warmMs": 27.700000047683716,
+     "joinedAt": 83,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 8056,
+     "remoteInputs": 56338,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 9,
+     "corrections": 9,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 9,
+      "zero": 9,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 55,
+      "zero": 49,
+      "p50": 0.0006683439175686148,
+      "p95": 0.0028196191889161017,
+      "max": 0.0028196191889161017
+     },
+     "own": {
+      "count": 8,
+      "zero": 8,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 55,
+      "zero": 50,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.5203998305230985,
+     "p95": 1,
+     "max": 9.600000023841858
+    },
+    "traffic": {
+     "sent": 88505,
+     "received": 56690,
+     "sentBytes": 2864659,
+     "receivedBytes": 1824407,
+     "byType": {
+      "16": {
+       "sent": 88140,
+       "received": 56332,
+       "sentBytes": 2797377,
+       "receivedBytes": 1756084
+      },
+      "17": {
+       "sent": 17,
+       "received": 11,
+       "sentBytes": 781,
+       "receivedBytes": 521
+      },
+      "18": {
+       "sent": 347,
+       "received": 346,
+       "sentBytes": 66488,
+       "receivedBytes": 66640
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1162
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 6,
+   "role": "player",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 37828,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0009252405625462,
+    "maxStepsPerAdvance": 14,
+    "cpu": {
+     "mean": 0.6197859832396728,
+     "p95": 1,
+     "max": 9.799999952316284
+    },
+    "traffic": {
+     "sent": 636.9218611505644,
+     "received": 406.0828056086543,
+     "sentBytes": 20748.240621095458,
+     "receivedBytes": 13298.854134406936,
+     "byType": {
+      "TICK": {
+       "sent": 634.8074027402527,
+       "received": 403.9683471983426,
+       "sentBytes": 20325.348939033116,
+       "receivedBytes": 12875.962452344593
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "544fd13a84354aab4268c36b8c2cf4aa",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 88,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 2634,
+     "received": 18414,
+     "receivedInputs": 18414,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2623,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2679,
+     "maxStepsPerAdvance": 14,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2634,
+     "steppedFinals": 1,
+     "rollbacks": 6,
+     "corrections": 6,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": -0.07233994365747255,
+     "warmMs": 45.89999997615814,
+     "joinedAt": 101,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2635,
+     "remoteInputs": 18414,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 6,
+     "corrections": 6,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 6,
+      "zero": 6,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 40,
+      "zero": 36,
+      "p50": 0.00042169650342858224,
+      "p95": 0.005956621435290103,
+      "max": 0.006109174909317753
+     },
+     "own": {
+      "count": 5,
+      "zero": 5,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 40,
+      "zero": 36,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6622720546001359,
+     "p95": 1.100000023841858,
+     "max": 9.799999952316284
+    },
+    "traffic": {
+     "sent": 28764,
+     "received": 18569,
+     "sentBytes": 878781,
+     "receivedBytes": 579537,
+     "byType": {
+      "16": {
+       "sent": 28618,
+       "received": 18410,
+       "sentBytes": 852168,
+       "receivedBytes": 550873
+      },
+      "17": {
+       "sent": 0,
+       "received": 14,
+       "sentBytes": 0,
+       "receivedBytes": 685
+      },
+      "18": {
+       "sent": 145,
+       "received": 144,
+       "sentBytes": 26600,
+       "receivedBytes": 26624
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1355
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "544fd13a84354aab4268c36b8c2cf4aa",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8139,
+    "finalTick": 8127,
+    "headTick": 8139,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6141,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 88,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 8038,
+     "received": 56242,
+     "receivedInputs": 56242,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 8027,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 8088,
+     "maxStepsPerAdvance": 14,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 8038,
+     "steppedFinals": 1,
+     "rollbacks": 10,
+     "corrections": 10,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.0007919363416610571,
+     "warmMs": 45.89999997615814,
+     "joinedAt": 101,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 8039,
+     "remoteInputs": 56242,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 10,
+     "corrections": 10,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 10,
+      "zero": 10,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 68,
+      "zero": 57,
+      "p50": 0.002371373705661655,
+      "p95": 0.13335214321633237,
+      "max": 0.13763606309411394
+     },
+     "own": {
+      "count": 9,
+      "zero": 9,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 68,
+      "zero": 59,
+      "p50": 11.88502227437019,
+      "p95": 23.71373705661655,
+      "max": 23.999999910593033
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6197859832396728,
+     "p95": 1,
+     "max": 9.799999952316284
+    },
+    "traffic": {
+     "sent": 88406,
+     "received": 56595,
+     "sentBytes": 2821667,
+     "receivedBytes": 1824855,
+     "byType": {
+      "16": {
+       "sent": 88062,
+       "received": 56238,
+       "sentBytes": 2755454,
+       "receivedBytes": 1756591
+      },
+      "17": {
+       "sent": 0,
+       "received": 14,
+       "sentBytes": 0,
+       "receivedBytes": 685
+      },
+      "18": {
+       "sent": 343,
+       "received": 342,
+       "sentBytes": 66200,
+       "receivedBytes": 66224
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1355
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 7,
+   "role": "player",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 37828,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0018504811250926,
+    "maxStepsPerAdvance": 15,
+    "cpu": {
+     "mean": 0.5887835581899061,
+     "p95": 0.8999999761581421,
+     "max": 15.399999976158142
+    },
+    "traffic": {
+     "sent": 636.9218611505644,
+     "received": 406.0828056086543,
+     "sentBytes": 19793.91505857477,
+     "receivedBytes": 13385.611003727,
+     "byType": {
+      "TICK": {
+       "sent": 634.8074027402527,
+       "received": 403.9683471983426,
+       "sentBytes": 19371.023376512425,
+       "receivedBytes": 12962.719321664656
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "e0d4df31080e43d09af76a3ba127e5c9",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 109,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 2613,
+     "received": 18294,
+     "receivedInputs": 18293,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2602,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2663,
+     "maxStepsPerAdvance": 15,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2613,
+     "steppedFinals": 1,
+     "rollbacks": 9,
+     "corrections": 9,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": -0.32648272780593385,
+     "warmMs": 39.10000002384186,
+     "joinedAt": 122,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2614,
+     "remoteInputs": 18293,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 9,
+     "corrections": 9,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 9,
+      "zero": 9,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 63,
+      "zero": 56,
+      "p50": 0.002371373705661655,
+      "p95": 0.005956621435290103,
+      "max": 0.006109174909317753
+     },
+     "own": {
+      "count": 7,
+      "zero": 7,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 63,
+      "zero": 56,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.6106089892765426,
+     "p95": 1,
+     "max": 10.800000071525574
+    },
+    "traffic": {
+     "sent": 28628,
+     "received": 18435,
+     "sentBytes": 879774,
+     "receivedBytes": 574355,
+     "byType": {
+      "16": {
+       "sent": 28489,
+       "received": 18285,
+       "sentBytes": 854049,
+       "receivedBytes": 546464
+      },
+      "17": {
+       "sent": 0,
+       "received": 13,
+       "sentBytes": 0,
+       "receivedBytes": 617
+      },
+      "18": {
+       "sent": 138,
+       "received": 136,
+       "sentBytes": 25712,
+       "receivedBytes": 25728
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1546
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "e0d4df31080e43d09af76a3ba127e5c9",
+    "role": "player",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8139,
+    "finalTick": 8127,
+    "headTick": 8139,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6141,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 109,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 8017,
+     "received": 56122,
+     "receivedInputs": 56121,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 8006,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 8077,
+     "maxStepsPerAdvance": 15,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 8017,
+     "steppedFinals": 1,
+     "rollbacks": 17,
+     "corrections": 17,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": -0.28516351518556754,
+     "warmMs": 39.10000002384186,
+     "joinedAt": 122,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 8018,
+     "remoteInputs": 56121,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 17,
+     "corrections": 17,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 17,
+      "zero": 17,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 119,
+      "zero": 102,
+      "p50": 0.002371373705661655,
+      "p95": 0.13335214321633237,
+      "max": 0.13763606309411394
+     },
+     "own": {
+      "count": 15,
+      "zero": 15,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 119,
+      "zero": 104,
+      "p50": 11.88502227437019,
+      "p95": 23.71373705661655,
+      "max": 23.999999910593033
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.5887835581899061,
+     "p95": 0.8999999761581421,
+     "max": 15.399999976158142
+    },
+    "traffic": {
+     "sent": 88270,
+     "received": 56461,
+     "sentBytes": 2733296,
+     "receivedBytes": 1827797,
+     "byType": {
+      "16": {
+       "sent": 87933,
+       "received": 56113,
+       "sentBytes": 2667971,
+       "receivedBytes": 1760306
+      },
+      "17": {
+       "sent": 0,
+       "received": 13,
+       "sentBytes": 0,
+       "receivedBytes": 617
+      },
+      "18": {
+       "sent": 336,
+       "received": 334,
+       "sentBytes": 65312,
+       "receivedBytes": 65328
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1546
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 8,
+   "role": "spectator",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5403,
+    "remoteInputs": 43232,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.000185082361651,
+    "maxStepsPerAdvance": 12,
+    "cpu": {
+     "mean": 0.2243497000449058,
+     "p95": 0.3999999761581421,
+     "max": 7.600000023841858
+    },
+    "traffic": {
+     "sent": 2.1144584103117223,
+     "received": 463.79256949413184,
+     "sentBytes": 422.89168206234444,
+     "receivedBytes": 15146.613128864492,
+     "byType": {
+      "TICK": {
+       "sent": 0,
+       "received": 461.6781110838201,
+       "sentBytes": 0,
+       "receivedBytes": 14723.721446802148
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "ba82d68a6ebb4dcfe9202a743e73f936",
+    "role": "spectator",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 129,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 0,
+     "received": 20749,
+     "receivedInputs": 20749,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2582,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2611,
+     "maxStepsPerAdvance": 12,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2594,
+     "steppedFinals": 0,
+     "rollbacks": 4,
+     "corrections": 4,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.5750894951724586,
+     "warmMs": 40.39999997615814,
+     "joinedAt": 141,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2594,
+     "remoteInputs": 20749,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 4,
+     "corrections": 4,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 4,
+      "zero": 4,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 32,
+      "zero": 28,
+      "p50": 0.0005956621435290103,
+      "p95": 0.0028196191889161017,
+      "max": 0.0028196191889161017
+     },
+     "own": {
+      "count": 0,
+      "zero": 0,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 32,
+      "zero": 28,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.2772464467621291,
+     "p95": 0.5,
+     "max": 7.600000023841858
+    },
+    "traffic": {
+     "sent": 131,
+     "received": 20882,
+     "sentBytes": 24637,
+     "receivedBytes": 647200,
+     "byType": {
+      "16": {
+       "sent": 0,
+       "received": 20743,
+       "sentBytes": 0,
+       "receivedBytes": 620120
+      },
+      "17": {
+       "sent": 0,
+       "received": 6,
+       "sentBytes": 0,
+       "receivedBytes": 286
+      },
+      "18": {
+       "sent": 130,
+       "received": 132,
+       "sentBytes": 24624,
+       "receivedBytes": 25056
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1738
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "ba82d68a6ebb4dcfe9202a743e73f936",
+    "role": "spectator",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8138,
+    "finalTick": 8126,
+    "headTick": 8138,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6142,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8126,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 129,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 0,
+     "received": 63981,
+     "receivedInputs": 63981,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 7985,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 8015,
+     "maxStepsPerAdvance": 12,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 7997,
+     "steppedFinals": 0,
+     "rollbacks": 5,
+     "corrections": 5,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.5508446174856063,
+     "warmMs": 40.39999997615814,
+     "joinedAt": 141,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 7997,
+     "remoteInputs": 63981,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 5,
+     "corrections": 5,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 5,
+      "zero": 5,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 40,
+      "zero": 33,
+      "p50": 0.0006683439175686148,
+      "p95": 0.0028196191889161017,
+      "max": 0.0028196191889161017
+     },
+     "own": {
+      "count": 0,
+      "zero": 0,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 40,
+      "zero": 33,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.2243497000449058,
+     "p95": 0.3999999761581421,
+     "max": 7.600000023841858
+    },
+    "traffic": {
+     "sent": 329,
+     "received": 64312,
+     "sentBytes": 64237,
+     "receivedBytes": 2065544,
+     "byType": {
+      "16": {
+       "sent": 0,
+       "received": 63975,
+       "sentBytes": 0,
+       "receivedBytes": 1998864
+      },
+      "17": {
+       "sent": 0,
+       "received": 6,
+       "sentBytes": 0,
+       "receivedBytes": 286
+      },
+      "18": {
+       "sent": 328,
+       "received": 330,
+       "sentBytes": 64224,
+       "receivedBytes": 64656
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1738
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 9,
+   "role": "spectator",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 43232,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0012953367875648,
+    "maxStepsPerAdvance": 12,
+    "cpu": {
+     "mean": 0.30027619045782,
+     "p95": 0.5,
+     "max": 10.899999976158142
+    },
+    "traffic": {
+     "sent": 2.1144584103117223,
+     "received": 463.79256949413184,
+     "sentBytes": 422.89168206234444,
+     "receivedBytes": 15146.613128864492,
+     "byType": {
+      "TICK": {
+       "sent": 0,
+       "received": 461.6781110838201,
+       "sentBytes": 0,
+       "receivedBytes": 14723.721446802148
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "de42084680ee4fb22478df49b3856703",
+    "role": "spectator",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 158,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 0,
+     "received": 20516,
+     "receivedInputs": 20516,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2553,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2586,
+     "maxStepsPerAdvance": 12,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2565,
+     "steppedFinals": 0,
+     "rollbacks": 6,
+     "corrections": 6,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.09802572653184416,
+     "warmMs": 951.6000000238419,
+     "joinedAt": 170,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2565,
+     "remoteInputs": 20516,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 6,
+     "corrections": 6,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 6,
+      "zero": 6,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 48,
+      "zero": 42,
+      "p50": 0.00042169650342858224,
+      "p95": 0.005956621435290103,
+      "max": 0.006109174909317753
+     },
+     "own": {
+      "count": 0,
+      "zero": 0,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 48,
+      "zero": 42,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.31928932434038837,
+     "p95": 0.6000000238418579,
+     "max": 10.899999976158142
+    },
+    "traffic": {
+     "sent": 141,
+     "received": 20635,
+     "sentBytes": 25965,
+     "receivedBytes": 638003,
+     "byType": {
+      "16": {
+       "sent": 0,
+       "received": 20507,
+       "sentBytes": 0,
+       "receivedBytes": 612672
+      },
+      "17": {
+       "sent": 0,
+       "received": 9,
+       "sentBytes": 0,
+       "receivedBytes": 417
+      },
+      "18": {
+       "sent": 140,
+       "received": 118,
+       "sentBytes": 25952,
+       "receivedBytes": 23152
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1762
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "de42084680ee4fb22478df49b3856703",
+    "role": "spectator",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8139,
+    "finalTick": 8127,
+    "headTick": 8139,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6141,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 158,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 0,
+     "received": 63748,
+     "receivedInputs": 63748,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 7957,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 7997,
+     "maxStepsPerAdvance": 12,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 7969,
+     "steppedFinals": 0,
+     "rollbacks": 12,
+     "corrections": 12,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.0684618074859053,
+     "warmMs": 951.6000000238419,
+     "joinedAt": 170,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 7969,
+     "remoteInputs": 63748,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 12,
+     "corrections": 12,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 12,
+      "zero": 12,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 96,
+      "zero": 82,
+      "p50": 0.0014962356560944327,
+      "p95": 0.13335214321633237,
+      "max": 0.13763606309411394
+     },
+     "own": {
+      "count": 0,
+      "zero": 0,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 96,
+      "zero": 84,
+      "p50": 11.88502227437019,
+      "p95": 23.71373705661655,
+      "max": 23.999999910593033
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.30027619045782,
+     "p95": 0.5,
+     "max": 10.899999976158142
+    },
+    "traffic": {
+     "sent": 339,
+     "received": 64065,
+     "sentBytes": 65565,
+     "receivedBytes": 2056347,
+     "byType": {
+      "16": {
+       "sent": 0,
+       "received": 63739,
+       "sentBytes": 0,
+       "receivedBytes": 1991416
+      },
+      "17": {
+       "sent": 0,
+       "received": 9,
+       "sentBytes": 0,
+       "receivedBytes": 417
+      },
+      "18": {
+       "sent": 338,
+       "received": 316,
+       "sentBytes": 65552,
+       "receivedBytes": 62752
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1762
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 10,
+   "role": "spectator",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 43232,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0005551443375278,
+    "maxStepsPerAdvance": 12,
+    "cpu": {
+     "mean": 0.2503023137821602,
+     "p95": 0.3999999761581421,
+     "max": 5.800000071525574
+    },
+    "traffic": {
+     "sent": 2.1144584103117223,
+     "received": 463.79256949413184,
+     "sentBytes": 422.89168206234444,
+     "receivedBytes": 15146.613128864492,
+     "byType": {
+      "TICK": {
+       "sent": 0,
+       "received": 461.6781110838201,
+       "sentBytes": 0,
+       "receivedBytes": 14723.721446802148
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "264368ef33c24ee66e840b8ed040d60f",
+    "role": "spectator",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 186,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 0,
+     "received": 20298,
+     "receivedInputs": 20295,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2525,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2558,
+     "maxStepsPerAdvance": 12,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2537,
+     "steppedFinals": 0,
+     "rollbacks": 6,
+     "corrections": 6,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.28327256586050675,
+     "warmMs": 900.7000000476837,
+     "joinedAt": 198,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2537,
+     "remoteInputs": 20295,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 6,
+     "corrections": 6,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 6,
+      "zero": 6,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 48,
+      "zero": 42,
+      "p50": 0.001188502227437019,
+      "p95": 0.0028196191889161017,
+      "max": 0.0028196191889161017
+     },
+     "own": {
+      "count": 0,
+      "zero": 0,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 48,
+      "zero": 42,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.27029582631188265,
+     "p95": 0.5,
+     "max": 5.800000071525574
+    },
+    "traffic": {
+     "sent": 121,
+     "received": 20408,
+     "sentBytes": 22701,
+     "receivedBytes": 629751,
+     "byType": {
+      "16": {
+       "sent": 0,
+       "received": 20295,
+       "sentBytes": 0,
+       "receivedBytes": 606224
+      },
+      "17": {
+       "sent": 0,
+       "received": 3,
+       "sentBytes": 0,
+       "receivedBytes": 137
+      },
+      "18": {
+       "sent": 120,
+       "received": 109,
+       "sentBytes": 22688,
+       "receivedBytes": 21640
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1750
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "264368ef33c24ee66e840b8ed040d60f",
+    "role": "spectator",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8139,
+    "finalTick": 8127,
+    "headTick": 8139,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6141,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 186,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 0,
+     "received": 63530,
+     "receivedInputs": 63527,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 7929,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 7965,
+     "maxStepsPerAdvance": 12,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 7941,
+     "steppedFinals": 0,
+     "rollbacks": 9,
+     "corrections": 9,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.33387784845623275,
+     "warmMs": 900.7000000476837,
+     "joinedAt": 198,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 7941,
+     "remoteInputs": 63527,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 9,
+     "corrections": 9,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 9,
+      "zero": 9,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 72,
+      "zero": 62,
+      "p50": 0.001188502227437019,
+      "p95": 0.0028196191889161017,
+      "max": 0.0028196191889161017
+     },
+     "own": {
+      "count": 0,
+      "zero": 0,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 72,
+      "zero": 63,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.2503023137821602,
+     "p95": 0.3999999761581421,
+     "max": 5.800000071525574
+    },
+    "traffic": {
+     "sent": 319,
+     "received": 63838,
+     "sentBytes": 62301,
+     "receivedBytes": 2048095,
+     "byType": {
+      "16": {
+       "sent": 0,
+       "received": 63527,
+       "sentBytes": 0,
+       "receivedBytes": 1984968
+      },
+      "17": {
+       "sent": 0,
+       "received": 3,
+       "sentBytes": 0,
+       "receivedBytes": 137
+      },
+      "18": {
+       "sent": 318,
+       "received": 307,
+       "sentBytes": 62288,
+       "receivedBytes": 61240
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1750
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  },
+  {
+   "k": 11,
+   "role": "spectator",
+   "rates": {
+    "seconds": 93.641,
+    "ticks": 5404,
+    "remoteInputs": 43233,
+    "late": 0,
+    "lateShare": 0,
+    "lateBy": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "lateAbsent": 0,
+    "disagree": 0,
+    "resyncs": 0,
+    "resyncFailed": 0,
+    "jumps": 0,
+    "stepsPerTick": 1.0009252405625462,
+    "maxStepsPerAdvance": 12,
+    "cpu": {
+     "mean": 0.27974473469059125,
+     "p95": 0.5,
+     "max": 7.700000047683716
+    },
+    "traffic": {
+     "sent": 2.1144584103117223,
+     "received": 463.8032485770122,
+     "sentBytes": 422.89168206234444,
+     "receivedBytes": 15147.083008511228,
+     "byType": {
+      "TICK": {
+       "sent": 0,
+       "received": 461.68879016670047,
+       "sentBytes": 0,
+       "receivedBytes": 14724.191326448883
+      },
+      "FWD": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "PEERS": {
+       "sent": 2.1144584103117223,
+       "received": 2.1144584103117223,
+       "sentBytes": 422.89168206234444,
+       "receivedBytes": 422.89168206234444
+      },
+      "STATE_REQ": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      },
+      "STATE": {
+       "sent": 0,
+       "received": 0,
+       "sentBytes": 0,
+       "receivedBytes": 0
+      }
+     }
+    }
+   },
+   "start": {
+    "me": "d9399e8d94f84d4dc7e4a7fc41517bb6",
+    "role": "spectator",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 2735,
+    "finalTick": 2723,
+    "headTick": 2735,
+    "phase": 3,
+    "phaseStart": 2703,
+    "overtime": false,
+    "clock": 10779,
+    "score": [
+     0,
+     0
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 2723,
+      "goals": 0,
+      "touches": 0
+     }
+    ],
+    "goals": [],
+    "end": null,
+    "arrivedTick": 211,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 0,
+     "received": 20097,
+     "receivedInputs": 20095,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 2500,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 2535,
+     "maxStepsPerAdvance": 12,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 2512,
+     "steppedFinals": 0,
+     "rollbacks": 6,
+     "corrections": 6,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.05883619449582575,
+     "warmMs": 501.89999997615814,
+     "joinedAt": 223,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 2512,
+     "remoteInputs": 20095,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 6,
+     "corrections": 6,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 6,
+      "zero": 6,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 48,
+      "zero": 42,
+      "p50": 0.001188502227437019,
+      "p95": 0.005956621435290103,
+      "max": 0.006109174909317753
+     },
+     "own": {
+      "count": 0,
+      "zero": 0,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 48,
+      "zero": 42,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.28948624055255506,
+     "p95": 0.5,
+     "max": 5.799999952316284
+    },
+    "traffic": {
+     "sent": 110,
+     "received": 20197,
+     "sentBytes": 20661,
+     "receivedBytes": 622148,
+     "byType": {
+      "16": {
+       "sent": 0,
+       "received": 20091,
+       "sentBytes": 0,
+       "receivedBytes": 600334
+      },
+      "17": {
+       "sent": 0,
+       "received": 6,
+       "sentBytes": 0,
+       "receivedBytes": 276
+      },
+      "18": {
+       "sent": 109,
+       "received": 99,
+       "sentBytes": 20648,
+       "receivedBytes": 19800
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1738
+      }
+     }
+    },
+    "rtcConnections": null
+   },
+   "end": {
+    "me": "d9399e8d94f84d4dc7e4a7fc41517bb6",
+    "role": "spectator",
+    "mode": "net",
+    "build": "cf548d0c7dd1fcae",
+    "started": true,
+    "timeline": "693adcc641960ce8",
+    "localTick": 8139,
+    "finalTick": 8127,
+    "headTick": 8139,
+    "phase": 3,
+    "phaseStart": 6125,
+    "overtime": false,
+    "clock": 6141,
+    "score": [
+     1,
+     1
+    ],
+    "roster": [
+     {
+      "id": "34f72940190c4f1014b4af52206b8663",
+      "pack": 0,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 17
+     },
+     {
+      "id": "156ce7e556794ad9b077d7170e53c405",
+      "pack": 1,
+      "spot": 0,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "544fd13a84354aab4268c36b8c2cf4aa",
+      "pack": 0,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 3
+     },
+     {
+      "id": "3c461dbea34741d94855fbab223191bd",
+      "pack": 1,
+      "spot": 1,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 9
+     },
+     {
+      "id": "ab91e79bc2cd47a4eb453ad9448ad748",
+      "pack": 0,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 5
+     },
+     {
+      "id": "6b1806ee2ced43c99f95c05980994eaf",
+      "pack": 1,
+      "spot": 2,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "dcab7b4a7b754773141e8a190688d792",
+      "pack": 0,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 14
+     },
+     {
+      "id": "e0d4df31080e43d09af76a3ba127e5c9",
+      "pack": 1,
+      "spot": 3,
+      "sitting": false,
+      "lastInputTick": 8127,
+      "goals": 0,
+      "touches": 2
+     }
+    ],
+    "goals": [
+     {
+      "tick": 3212,
+      "pack": 0,
+      "ownGoal": true,
+      "scorers": []
+     },
+     {
+      "tick": 5741,
+      "pack": 1,
+      "ownGoal": true,
+      "scorers": []
+     }
+    ],
+    "end": null,
+    "arrivedTick": 211,
+    "peers": 11,
+    "refused": null,
+    "refusedBy": null,
+    "returning": false,
+    "spectatorsFull": false,
+    "abandoned": false,
+    "failed": false,
+    "stall": "none",
+    "stats": {
+     "sent": 0,
+     "received": 63330,
+     "receivedInputs": 63328,
+     "late": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lateAbsent": 0,
+     "agree": 7904,
+     "disagree": 0,
+     "split": 0,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "lateVoteFlips": 0,
+     "statesSent": 0,
+     "statesTruncated": 0,
+     "statesRefused": 0,
+     "steps": 7944,
+     "maxStepsPerAdvance": 12,
+     "spreadTicks": 0,
+     "holds": 0,
+     "reusedFinals": 7916,
+     "steppedFinals": 0,
+     "rollbacks": 11,
+     "corrections": 11,
+     "verifyMismatches": 0,
+     "jumps": 0,
+     "rateAdj": 0,
+     "medianOffset": 0.05819574760081371,
+     "warmMs": 501.89999997615814,
+     "joinedAt": 223,
+     "resyncMsMax": 0
+    },
+    "summary": {
+     "ticks": 7916,
+     "remoteInputs": 63328,
+     "late": 0,
+     "lateAbsent": 0,
+     "lateBy": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "rollbacks": 11,
+     "corrections": 11,
+     "resyncs": 0,
+     "resyncFailed": 0,
+     "ball": {
+      "count": 11,
+      "zero": 11,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "remote": {
+      "count": 88,
+      "zero": 75,
+      "p50": 0.001333521432163324,
+      "p95": 0.005956621435290103,
+      "max": 0.006109174909317753
+     },
+     "own": {
+      "count": 0,
+      "zero": 0,
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "headings": {
+      "count": 88,
+      "zero": 77,
+      "p50": 11.88502227437019,
+      "p95": 22.5,
+      "max": 22.5
+     },
+     "repair": {
+      "count": 0,
+      "ball": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "remote": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "own": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      },
+      "headings": {
+       "count": 0,
+       "zero": 0,
+       "p50": 0,
+       "p95": 0,
+       "max": 0
+      }
+     }
+    },
+    "duplicates": [],
+    "cpu": {
+     "mean": 0.27974473469059125,
+     "p95": 0.5,
+     "max": 7.700000047683716
+    },
+    "traffic": {
+     "sent": 308,
+     "received": 63628,
+     "sentBytes": 60261,
+     "receivedBytes": 2040536,
+     "byType": {
+      "16": {
+       "sent": 0,
+       "received": 63324,
+       "sentBytes": 0,
+       "receivedBytes": 1979122
+      },
+      "17": {
+       "sent": 0,
+       "received": 6,
+       "sentBytes": 0,
+       "receivedBytes": 276
+      },
+      "18": {
+       "sent": 307,
+       "received": 297,
+       "sentBytes": 60248,
+       "receivedBytes": 59400
+      },
+      "32": {
+       "sent": 1,
+       "received": 0,
+       "sentBytes": 13,
+       "receivedBytes": 0
+      },
+      "33": {
+       "sent": 0,
+       "received": 1,
+       "sentBytes": 0,
+       "receivedBytes": 1738
+      }
+     }
+    },
+    "rtcConnections": null
+   }
+  }
+ ]
+}

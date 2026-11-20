@@ -1,7 +1,12 @@
 // The correction measurement (M3's design, research/m3/DESIGN.md, §9 and
 // §1.38; PLAN D-11, D-16, §17's M3 entry), off the gate, in Node:
 //
-//   TERRIEST_CORRECTIONS_OUT=research/corrections/results.json npx vitest run --config dev/corrections.vitest.config.ts
+//   TERRIEST_CORRECTIONS_OUT="$OUT/results.json" npx vitest run --config dev/corrections.vitest.config.ts
+//
+// with $OUT a folder outside the repository, as research/corrections/
+// REPORT.md's section 1.12 runs it, so the tree stays clean from the first
+// run to the last; once the last is done, the files are copied unmodified
+// into research/corrections/ and committed together.
 //
 // research/corrections/REPORT.md's method section, §9.2–§9.6 made
 // concrete, is committed before a run counts (§9.1). Without
