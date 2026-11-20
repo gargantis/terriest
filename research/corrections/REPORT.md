@@ -133,18 +133,19 @@ The longest one-way latency at which a message whose trip takes `legs` one-way l
 
 ### 1.12 Running it
 
-From the repository's root, at this report's commit with the tree clean, on the development machine (WSL2), in Node 22.23.4 with vitest 4.1.12. `TERRIEST_CORRECTIONS_OUT` names the file a run writes. That file records the UTC time, Node's version, the CPU and its cores, the code, the base, the configuration and the method's figures.
+From the repository's root, at this report's commit with the tree clean, on the development machine (WSL2), in Node 22.23.4 with vitest 4.1.12. `TERRIEST_CORRECTIONS_OUT` names the file a run writes. That file records the UTC time, Node's version, the CPU and its cores, the code, the base, the configuration and the method's figures. Every run writes its file in a folder outside the repository, `$OUT` below, so the tree stays clean from the first run to the last (section 1.11).
 
 In one process, every profile, then the rules, then the cap check, on a quiet machine:
 
 ```sh
-TERRIEST_CORRECTIONS_OUT=research/corrections/results.json npx vitest run --config dev/corrections.vitest.config.ts
+OUT="$(mktemp -d)"
+TERRIEST_CORRECTIONS_OUT="$OUT/results.json" npx vitest run --config dev/corrections.vitest.config.ts
 ```
 
 Or run the profiles in seven groups at once, each in its own process and file, then the cap check alone once the machine is quiet, then the merge. The merge measures nothing: it takes the profiles and the cap check from the files, and decides the rules from them.
 
 ```sh
-PARTS="$(mktemp -d)"
+OUT="$(mktemp -d)" PARTS="$(mktemp -d)"
 run() {
   TERRIEST_CORRECTIONS_OUT="$PARTS/$1.json" TERRIEST_CORRECTIONS_ONLY="$2" \
     npx vitest run --config dev/corrections.vitest.config.ts > "$PARTS/$1.log" 2>&1
@@ -157,7 +158,7 @@ wait
 while [ "$(awk '{ print ($1 < 1) }' /proc/loadavg)" != 1 ]; do sleep 15; done
 run cap cap
 TERRIEST_CORRECTIONS_MERGE="$(ls "$PARTS"/*.json | paste -sd, -)" \
-TERRIEST_CORRECTIONS_OUT=research/corrections/results.json \
+TERRIEST_CORRECTIONS_OUT="$OUT/results.json" \
   npx vitest run --config dev/corrections.vitest.config.ts
 ```
 
@@ -165,10 +166,10 @@ TERRIEST_CORRECTIONS_OUT=research/corrections/results.json \
 - **The profiles run in virtual time,** so running them at once, or on a busy machine, changes only their wall times. **The cap check times Node,** so it runs alone, with nothing else running on the machine: no gate, and no other vitest. Its file records the load, and a busy one decides nothing (section 1.10).
 - **The other variables stay unset.** `TERRIEST_CORRECTIONS_SEEDS` (a limit on a profile's seeds) and `TERRIEST_CORRECTIONS_CAP_RUNS` (the cap check's runs) make a smoke run when below §9.2's seeds or 20 runs. `TERRIEST_CORRECTIONS_BASE` measures from other settings.
 - **The parts aren't committed:** results.json holds every profile and cap run they hold, and names each part with its time, Node, CPU and cores (`merged`).
-- **Each results file is committed** before the next run, so every run starts from a clean tree.
+- **The files are committed together** once the last run is done: results.json and every file for another base, copied unmodified from `$OUT` into `research/corrections/`. Until then the tree stays as this report's commit left it, so every run starts from a clean tree without a commit between runs.
 - **Another base:** each rule's text gives the setting to measure next. Each run writes a file named for its base, committed beside results.json, never results.json itself:
-  - Rule 3's next w: every profile and the cap check again, by the same commands with `TERRIEST_CORRECTIONS_BASE='{"lateWindowTicks":14}'` and `TERRIEST_CORRECTIONS_OUT=research/corrections/w14.json` in place of results.json, in the one-process command or the merge's.
-  - The cap rule's next cap: the cap check alone, on a quiet machine, with `TERRIEST_CORRECTIONS_ONLY=cap`, `TERRIEST_CORRECTIONS_BASE='{"spreadMaxStepsPerTick":<cap>}'` and `TERRIEST_CORRECTIONS_OUT=research/corrections/cap<cap>.json`.
+  - Rule 3's next w: every profile and the cap check again, by the same commands with `TERRIEST_CORRECTIONS_BASE='{"lateWindowTicks":14}'` and `TERRIEST_CORRECTIONS_OUT="$OUT/w14.json"` in place of results.json, in the one-process command or the merge's.
+  - The cap rule's next cap: the cap check alone, on a quiet machine, with `TERRIEST_CORRECTIONS_ONLY=cap`, `TERRIEST_CORRECTIONS_BASE='{"spreadMaxStepsPerTick":<cap>}'` and `TERRIEST_CORRECTIONS_OUT="$OUT/cap<cap>.json"`.
 
 ### 1.13 Where the decisions go (§9.7)
 
