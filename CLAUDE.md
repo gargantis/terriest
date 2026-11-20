@@ -8,7 +8,7 @@ This repo is **public**, and **unlicensed**: the owner keeps all rights (Q-1). N
 npm run check
 ```
 
-That is lint, public-scan, typecheck, unit tests (`vendor/hermet`'s included), the build with its licence notices and dist audit, and end-to-end tests in Chromium, Firefox and WebKit against the built page. It must pass before a commit lands. Never weaken it to make a build pass: fix the code. Its wall time is logged in `docs/acceptance.md` at each milestone's exit (§16).
+That is lint, public-scan, typecheck, unit tests (`vendor/hermet`'s included), the build with its licence notices and dist audit, and end-to-end tests in Chromium, Firefox and WebKit against the built page. It must pass before `/merge-to-main` lands a branch, at each milestone's exit and before a deploy (Q-18's alternative, the owner's decision of 2026-11-20). A commit on a session branch needs `npm run check:commit` green (lint, public-scan, typecheck and the unit tests) and every end-to-end spec it adds or changes run by path. Never weaken either to make a build pass: fix the code. The gate's wall time is logged in `docs/acceptance.md` at each milestone's exit (§16).
 
 ## Contracts that are easy to break
 

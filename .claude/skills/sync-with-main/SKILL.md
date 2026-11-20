@@ -40,9 +40,10 @@ rewritten. Rules: [session-branches.md](../../rules/session-branches.md).
      side silently.
    Then `git add <files>` and `git rebase --continue` (or `git commit` for a
    merge). Repeat until it finishes.
-6. **Gate.** `npm run check` (from M1; before that, the M0 spike's own tests if
-   the branch touches `research/spike/`). If it fails, fix on B and commit;
-   the sync is not done until it passes. Never weaken the gate to make it pass.
+6. **Check.** `npm run check:commit` (lint, public-scan, typecheck, unit
+   tests), as before any commit; `/merge-to-main` runs the full gate after it
+   (PLAN Q-18). If it fails, fix on B and commit; the sync is not done until
+   it passes. Never weaken a check to make it pass.
 7. **Report.** `git log --oneline main..B` is what B still carries. Say: "B is
    synced with main (rebased|merged, N conflicts resolved in <files>);
    /merge-to-main will fast-forward."

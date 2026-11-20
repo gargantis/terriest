@@ -48,11 +48,13 @@ tracked list would conflict on every merge.
   switch. Subject short and imperative, matching `git log`; body only when the
   why is not obvious from the diff; end with the attribution trailer the
   session specifies.
-- Before committing, run `npm run check` and fix any failure first. The gate
-  is the definition of done (CLAUDE.md, from M1); it must pass before any
-  commit lands, and it is never weakened to make a build pass. Until M1
-  creates the gate (PLAN §17), there is no `npm run check`: the M0 spike in
-  `research/spike/` runs its own tests, and a docs-only commit needs none.
+- Before committing, run `npm run check:commit` (lint, public-scan,
+  typecheck, unit tests) and every end-to-end spec the commit adds or
+  changes, by path, and fix any failure first. The full gate, `npm run
+  check`, is the definition of done (CLAUDE.md): it runs before
+  `/merge-to-main`, at each milestone's exit and before a deploy (PLAN Q-18's
+  alternative, the owner's decision of 2026-11-20). Neither is ever weakened
+  to make a build pass.
 - Never commit on `main`. The PreToolUse hook `.claude/hooks/guard-main.sh`
   refuses `git commit`, `git rebase`, `git cherry-pick`, `git revert`, and any
   non-`--ff-only` `git merge` while HEAD is main.
