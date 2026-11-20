@@ -140,12 +140,12 @@ export const config = deepFreeze({
   // The timeline (A.4; D-3, D-11, D-13).
   ticksPerSecond: 60,
   substepsPerTick: 4,
-  inputDelayTicks: 2, // chosen again from M3's measurement (D-16)
+  inputDelayTicks: 2, // kept by M3's correction measurement, rule 1 (D-16; research/corrections/REPORT.md)
   lateWindowTicks: 12,
   voteWindowTicks: 12,
   stateHistoryTicks: 256,
   inputHistoryTicks: 16, // in every TICK
-  spreadMaxStepsPerTick: 42, // a worst tick's steps, spread: a 270-step repair takes 7 ticks (D-11)
+  spreadMaxStepsPerTick: 14, // a timer run's steps for each tick its clock moved, and at least this: M3's cap check (D-11; research/corrections/REPORT.md)
   speedBoundMetresPerSecond: 25, // D-3: the fastest a body moves; §16's tunnelling fuzz shoots at it
 
   // The joiner's warm-up and the tick clock (A.4: Join warm-up and the tick
@@ -209,8 +209,8 @@ export const config = deepFreeze({
   touchEdgeMarginCssPx: 32, // from the side edges, inside the safe-area insets
 
   // The page (A.4; D-16, D-30, D-31, D-33, §13, Q-11, Q-17).
-  smoothingMs: 100, // a correction's offset decay; bodies in contact share one (D-16)
-  ownSmoothingMs: 50, // for your own terrier
+  smoothingMs: 200, // a correction's offset decay; bodies in contact share one: M3's correction measurement, rule 2 (D-16)
+  ownSmoothingMs: 100, // for your own terrier, by the same rule
   timerStallSeconds: 2, // a longer gap between timer runs is a stall (D-31)
   stallSendTicks: 3, // after a shorter catch-up, only the newest ticks' inputs go (A.4: Timer stall; D-10; roslambo D-11's 2026-10-25 fix)
   timelineTimerMs: 4, // the timeline's timer period, never animation frames (D-31; roslambo's ADVANCE_EVERY_MS)

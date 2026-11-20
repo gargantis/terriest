@@ -434,9 +434,11 @@ const A4: Readonly<Record<string, Row>> = {
   'Tick rate, substeps': { keys: ['ticksPerSecond', 'substepsPerTick'], numbers: (c) => [c.ticksPerSecond, c.substepsPerTick, c.substepsPerTick] },
   'Input delay d, late window w, vote window v': { keys: ['inputDelayTicks', 'lateWindowTicks', 'voteWindowTicks'] },
   'State history, input history per TICK': { keys: ['stateHistoryTicks', 'inputHistoryTicks'] },
+  // The cap for each tick a timer run's clock moved, the cap when it moved
+  // none or a STATE is adopted, then a 270-step repair's runs (M3, by measurement).
   'Worst-tick spread': {
     keys: ['spreadMaxStepsPerTick'],
-    numbers: (c) => [c.spreadMaxStepsPerTick, 270, Math.ceil(270 / c.spreadMaxStepsPerTick)],
+    numbers: (c) => [c.spreadMaxStepsPerTick, c.spreadMaxStepsPerTick, 270, Math.ceil(270 / c.spreadMaxStepsPerTick)],
   },
   'Solver iterations (forward and back sweeps over mirror pairs), position passes (also in mirror pairs)': {
     keys: ['solverIterations', 'positionPasses', 'floorContactsInSolve'],

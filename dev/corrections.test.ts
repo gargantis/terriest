@@ -584,11 +584,18 @@ function dWithMatches(matches: number): RuleFigures[] {
 describe("a profile's configuration (M3 phase 5, harness-F6)", () => {
   it("refuses one whose TICK history doesn't cover d + w, past TICK's masks, or whose spread cap is under w + 1", () => {
     expect([profileProblems({ d: 2 }, config), profileProblems({ d: 3 }, config)]).toEqual([[], []]);
+    // A w with the configured cap, raised to w + 1 where it's under that, so each case below breaks
+    // only its own clause: M3's cap check set the cap to 14, under w = 14's 15 (§10's check).
+    const atW = (w: number, over: Partial<Config> = {}): Config =>
+      configWith({ lateWindowTicks: w, spreadMaxStepsPerTick: Math.max(config.spreadMaxStepsPerTick, w + 1), ...over });
     // §9.5: w = 14 fits at d = 2, and at d = 3 takes protocol 2's 32-tick history first.
-    const w14 = configWith({ lateWindowTicks: 14 });
+    const w14 = atW(14);
     expect(profileProblems({ d: 2 }, w14)).toEqual([]);
     expect(profileProblems({ d: 3 }, w14)).toEqual([expect.stringMatching(/^a TICK's 16-tick input history doesn't cover d \+ w = 17 ticks/)]);
-    expect(profileProblems({ d: 2 }, configWith({ inputHistoryTicks: 32, lateWindowTicks: 18 }))).toEqual([expect.stringMatching(/doesn't fit TICK's 16-bit masks/)]);
+    expect(profileProblems({ d: 2 }, atW(18, { inputHistoryTicks: 32 }))).toEqual([expect.stringMatching(/doesn't fit TICK's 16-bit masks/)]);
+    expect(profileProblems({ d: 2 }, configWith({ lateWindowTicks: 14, spreadMaxStepsPerTick: 14 }))).toEqual([
+      "the spread's cap, 14 steps a tick, is under a normal tick's worst, w + 1 = 15",
+    ]);
     expect(profileProblems({ d: 2 }, configWith({ spreadMaxStepsPerTick: 12 }))).toEqual([
       "the spread's cap, 12 steps a tick, is under a normal tick's worst, w + 1 = 13",
     ]);

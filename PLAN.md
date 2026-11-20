@@ -1815,9 +1815,9 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Constant | Value |
 |---|---|
 | Tick rate, substeps | 60 a second, 4 a tick (M0 kept 4, D-3) |
-| Input delay d, late window w, vote window v | 2, 12, 12 ticks (roslambo); d is chosen again from M3's correction measurement (D-16) |
+| Input delay d, late window w, vote window v | 2, 12, 12 ticks (roslambo); d kept and w confirmed by the correction measurement (M3, by measurement: research/corrections/REPORT.md, D-16) |
 | State history, input history per TICK | 256 ticks, 16 ticks (roslambo's code) |
-| Worst-tick spread | at most 42 steps a tick to start, so a 270-step repair takes 7 ticks; M3 checks the cap (D-11) |
+| Worst-tick spread | at most 14 steps a timer run for each tick its clock moved, and 14 when it moved none or adopts a STATE, so a 270-step repair takes about 20 runs (M3, by measurement: the cap check, research/corrections/REPORT.md, D-11) |
 | Join warm-up and the tick clock | a joiner holds finalisation until every active player has been heard from, at most 0.5 s; a peer's clock offset counts once heard for 2 s, smoothed by 0.1 of each new sample; the clock runs fast or slow by 0.5% for each tick of the median offset, at most 2%, with a 1-tick deadband, and checks the median every 1 s, jumping once it's past the middle of the late window (roslambo D-11, M0, M3) |
 | Resync and joining | a peer that lost a vote asks the next voter for the winning state after 0.5 s; a joiner asks the next peer that holds the match after 1 s; JOIN, SWITCH, READY and UNREADY go again once 30 ticks pass after their tick is final without the state showing them (roslambo §8.3, M3) |
 | Solver iterations (forward and back sweeps over mirror pairs), position passes (also in mirror pairs) | 8, 2, with the floor's contacts in both (M0 kept them, D-5) |
@@ -1826,7 +1826,7 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Ball overhead | enter under 0.3 m, leave above 0.4 m (horizontal centre distance) |
 | Gait and running | the gait turns a cycle per 0.6 m run on the floor; a terrier draws as running above 0.2 m/s, or while its drive is on (M2, from M0, D-9) |
 | Stick | 32 steps, half-step hysteresis, 0.2 dead zone; chase view re-reads at 45° |
-| Smoothing | 100 ms; 50 ms for your own terrier; bodies in contact share one decay; chosen from M3's correction measurement (D-16) |
+| Smoothing | 200 ms; 100 ms for your own terrier; bodies in contact share one decay (M3, by measurement: research/corrections/REPORT.md, D-16) |
 | Removal before the start countdown | 180 silent ticks (roslambo Q-15) |
 | Sitting, from the start countdown | 120 silent ticks |
 | Warm-up arrivals | the pack's next free spot if it's clear, else the first clear point in 1 m steps from it toward the pack's own goal line, else the spot itself (M2, D-8) |

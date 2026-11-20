@@ -1,0 +1,5767 @@
+{
+ "utc": "2026-11-20T03:46:40.973Z",
+ "node": "v22.23.4",
+ "cpu": "12th Gen Intel(R) Core(TM) i7-1255U",
+ "cores": 12,
+ "code": {
+  "commit": "71bd4a79c439c0dcf4bcb5d8253da9a803e1eb9f",
+  "trees": {
+   "src": "fb6a2f2e97a2871860bc1bf7d4e634ca869476ca",
+   "dev": "6b8288dcb9ffec0dba05dfb1720ffb7a94b0444b",
+   "scripts": "d2c2551dad19b584758e41067491d00f90a70883"
+  },
+  "clean": true
+ },
+ "base": {
+  "spreadMaxStepsPerTick": 18
+ },
+ "configuration": {
+  "packSizeMin": 1,
+  "packSizeMax": 4,
+  "packSizeDefault": 2,
+  "matchLengthMinMinutes": 1,
+  "matchLengthMaxMinutes": 10,
+  "matchLengthDefaultMinutes": 3,
+  "readyExpirySeconds": 60,
+  "startCountdownSeconds": 5,
+  "kickoffCountdownSeconds": 3,
+  "celebrationSeenSeconds": 3,
+  "kickoffSpotsMetres": [
+   [],
+   [
+    [-10,0]
+   ],
+   [
+    [-9,4],
+    [-9,-4]
+   ],
+   [
+    [-9,5],
+    [-9,-5],
+    [-15,0]
+   ],
+   [
+    [-8,6],
+    [-8,-6],
+    [-14,3],
+    [-14,-3]
+   ]
+  ],
+  "warmUpArrivalStepMetres": 1,
+  "pitch": {
+   "lengthMetres": 40,
+   "widthMetres": 28,
+   "heightMetres": 6,
+   "cornerCutsMetres": [4,4,4,4],
+   "mouthWidthMetres": 8,
+   "mouthHeightMetres": 3,
+   "goalDepthMetres": 2,
+   "postRadiusMetres": 0.1
+  },
+  "ballRadiusMetres": 0.8,
+  "ballMassKg": 2,
+  "terrierRadiusMetres": 0.25,
+  "terrierMassKg": 1,
+  "terrierShoulderHeightMetres": 0.3,
+  "terrierLengthMetres": 0.6,
+  "ballRestitution": 0.7,
+  "goalNetRestitution": 0,
+  "terrierBallRestitution": 0.5,
+  "terrierRestitution": 0.3,
+  "terrierFloorRestitution": 0,
+  "gravityMetresPerSecond2": 9.8,
+  "accelerationMetresPerSecond2": 15,
+  "idleFrictionMetresPerSecond2": 8,
+  "rollingSlowdownMetresPerSecond2": 0.5,
+  "runSpeedMetresPerSecond": 6,
+  "zoomiesSpeedMetresPerSecond": 9,
+  "turnRateTurnsPerSecond": 2,
+  "noseTurnRateTurnsPerSecond": 1,
+  "noseReverseMetresPerSecond": 3,
+  "steering": "anchored",
+  "zoomiesFullSeconds": 3,
+  "zoomiesRefillSeconds": 6,
+  "zoomiesMeterUnitsPerTick": 2,
+  "jumpHeightMetres": 1,
+  "pounceSpeedMetresPerSecond": 10,
+  "lungeSeconds": 0.3,
+  "pounceWaitSeconds": 1.5,
+  "bowlingSpeedMetresPerSecond": 4,
+  "tumbleSeconds": 1.5,
+  "getUpSeconds": 0.5,
+  "tumbleGuardSeconds": 1.5,
+  "rearmGapMetres": 0.6,
+  "barkMaxPerSecond": 1,
+  "ballOverheadEnterMetres": 0.3,
+  "ballOverheadLeaveMetres": 0.4,
+  "pushAssistCapMetresPerSecond": 9,
+  "gaitCycleMetres": 0.6,
+  "runningMinSpeedMetresPerSecond": 0.2,
+  "chaseSwingTimeConstantSeconds": 0.3,
+  "chaseSwingMaxTurnsPerSecond": 1,
+  "chaseCalmerTimeConstantSeconds": 0.6,
+  "chaseCalmerMaxTurnsPerSecond": 0.5,
+  "ballViewSwingMaxTurnsPerSecond": 1,
+  "ballViewCalmerMaxTurnsPerSecond": 0.5,
+  "ticksPerSecond": 60,
+  "substepsPerTick": 4,
+  "inputDelayTicks": 2,
+  "lateWindowTicks": 12,
+  "voteWindowTicks": 12,
+  "stateHistoryTicks": 256,
+  "inputHistoryTicks": 16,
+  "spreadMaxStepsPerTick": 18,
+  "speedBoundMetresPerSecond": 25,
+  "joinWarmupSeconds": 0.5,
+  "clockSettleSeconds": 2,
+  "clockSmoothing": 0.1,
+  "clockGainPerTick": 0.005,
+  "clockRateMax": 0.02,
+  "clockDeadbandTicks": 1,
+  "clockRebalanceSeconds": 1,
+  "resyncRetrySeconds": 0.5,
+  "stateRequestRetrySeconds": 1,
+  "eventRetryTicks": 30,
+  "solverIterations": 8,
+  "positionPasses": 2,
+  "floorContactsInSolve": true,
+  "restitutionThresholdMetresPerSecond": 0.3,
+  "slipOutConeDegrees": 42,
+  "slipOutSpeedMetresPerSecond": 2,
+  "slipHoldOffMetres": 0.6,
+  "removalSilentTicks": 180,
+  "sittingSilentTicks": 120,
+  "abandonedSeconds": 30,
+  "duplicateIdSilentSeconds": 2,
+  "handshakeTimeoutSeconds": 10,
+  "connectionFailureSeconds": 20,
+  "meshPlayersMax": 8,
+  "spectatorsMax": 4,
+  "messageMaxBytes": 16000,
+  "maxReceiveBytes": 1048576,
+  "displayNameMaxChars": 20,
+  "displayNameMaxBytes": 32,
+  "peersEverySeconds": 5,
+  "pingEverySeconds": 1,
+  "floodTicksPerTick": 3,
+  "floodSeconds": 2,
+  "invalidMessagesMax": 20,
+  "leaveGraceSeconds": 0.4,
+  "botReadyRenewSeconds": 10,
+  "stickSteps": 32,
+  "stickHysteresisSteps": 0.5,
+  "stickDeadZoneFraction": 0.2,
+  "chaseRereadDegrees": 45,
+  "touchEdgeMarginCssPx": 32,
+  "smoothingMs": 100,
+  "ownSmoothingMs": 50,
+  "timerStallSeconds": 2,
+  "stallSendTicks": 3,
+  "timelineTimerMs": 4,
+  "phoneShortSideCssPx": 600,
+  "resultsPressGuardSeconds": 0.5,
+  "lostGraphicsSeconds": 5,
+  "renderQualityDefault": "high",
+  "renderQuality": {
+   "high": {
+    "pixelRatioMax": 2,
+    "msaa": true
+   },
+   "low": {
+    "pixelRatioMax": 1,
+    "msaa": false
+   }
+  },
+  "soundShiftTicksMax": 3,
+  "coatCount": 8,
+  "botReactionSeconds": 0.25,
+  "botAimNoiseDegrees": 10,
+  "botZoomiesBeyondMetres": 5,
+  "botPounceWithinMetres": 2,
+  "botPounceAlignDegrees": 20,
+  "botSupportMetres": 5,
+  "botDefendMetres": 6,
+  "botBarkEverySeconds": 5,
+  "botStuckSeconds": 2,
+  "botStuckMetres": 0.5
+ },
+ "method": {
+  "readyTick": 360,
+  "joinEveryMs": 200,
+  "matchMinutes": 1,
+  "clockOffsetMs": 30,
+  "clockDrift": 0.001,
+  "resamples": 1000,
+  "intervalPercent": 90,
+  "matchCapMs": 600000,
+  "cap": {
+   "seed": 1,
+   "dissenter": 3,
+   "holdAtMs": 15000,
+   "holdMs": 4100,
+   "runs": 20,
+   "loadQuiet": 1
+  },
+  "seedsMax": null
+ },
+ "profiles": [],
+ "rules": {
+  "d": {
+   "decided": false,
+   "value": null,
+   "text": "rule 1 (d): undecided, pack1-80ms-d2-loss0, pack1-80ms-d3-loss0, pack2-80ms-d2-loss0, pack2-80ms-d3-loss0, pack3-80ms-d2-loss0, pack3-80ms-d3-loss0, pack4-80ms-d2-loss0, pack4-80ms-d3-loss0 not measured",
+   "figures": []
+  },
+  "glide": {
+   "bodies": {
+    "decided": false,
+    "value": null,
+    "text": "rule 2 (the bodies, smoothingMs, at d = 2): undecided, pack1-80ms-d2-loss0, pack2-80ms-d2-loss0, pack3-80ms-d2-loss0, pack4-80ms-d2-loss0 not measured",
+    "figures": []
+   },
+   "own": {
+    "decided": false,
+    "value": null,
+    "text": "rule 2 (your own terrier, ownSmoothingMs, at d = 2): undecided, pack1-80ms-d2-loss0, pack2-80ms-d2-loss0, pack3-80ms-d2-loss0, pack4-80ms-d2-loss0 not measured",
+    "figures": []
+   }
+  },
+  "w": {
+   "decided": false,
+   "value": null,
+   "text": "rule 3 (w = 12, at d = 2): undecided, pack1-30ms-d2-loss0, pack1-80ms-d2-loss0, pack1-30ms-d2-loss0.1, pack1-30ms-d2-loss0.5, pack2-30ms-d2-loss0, pack2-80ms-d2-loss0, pack2-30ms-d2-loss0.1, pack2-30ms-d2-loss0.5, pack3-30ms-d2-loss0, pack3-80ms-d2-loss0, pack3-30ms-d2-loss0.1, pack3-30ms-d2-loss0.5, pack4-30ms-d2-loss0, pack4-80ms-d2-loss0, pack4-30ms-d2-loss0.1, pack4-30ms-d2-loss0.5 not measured",
+   "figures": []
+  },
+  "note": "rules 2 and 3 at d = 2, since rule 1 is undecided",
+  "withPlacements": {
+   "d": {
+    "decided": false,
+    "value": null,
+    "text": "rule 1 (d): undecided, pack1-80ms-d2-loss0, pack1-80ms-d3-loss0, pack2-80ms-d2-loss0, pack2-80ms-d3-loss0, pack3-80ms-d2-loss0, pack3-80ms-d3-loss0, pack4-80ms-d2-loss0, pack4-80ms-d3-loss0 not measured",
+    "figures": []
+   },
+   "glide": {
+    "bodies": {
+     "decided": false,
+     "value": null,
+     "text": "rule 2 (the bodies, smoothingMs, at d = 2): undecided, pack1-80ms-d2-loss0, pack2-80ms-d2-loss0, pack3-80ms-d2-loss0, pack4-80ms-d2-loss0 not measured",
+     "figures": []
+    },
+    "own": {
+     "decided": false,
+     "value": null,
+     "text": "rule 2 (your own terrier, ownSmoothingMs, at d = 2): undecided, pack1-80ms-d2-loss0, pack2-80ms-d2-loss0, pack3-80ms-d2-loss0, pack4-80ms-d2-loss0 not measured",
+     "figures": []
+    }
+   },
+   "w": {
+    "decided": false,
+    "value": null,
+    "text": "rule 3 (w = 12, at d = 2): undecided, pack1-30ms-d2-loss0, pack1-80ms-d2-loss0, pack1-30ms-d2-loss0.1, pack1-30ms-d2-loss0.5, pack2-30ms-d2-loss0, pack2-80ms-d2-loss0, pack2-30ms-d2-loss0.1, pack2-30ms-d2-loss0.5, pack3-30ms-d2-loss0, pack3-80ms-d2-loss0, pack3-30ms-d2-loss0.1, pack3-30ms-d2-loss0.5, pack4-30ms-d2-loss0, pack4-80ms-d2-loss0, pack4-30ms-d2-loss0.1, pack4-30ms-d2-loss0.5 not measured",
+    "figures": []
+   }
+  }
+ },
+ "cap": {
+  "load": {
+   "before": 0.78,
+   "after": 1.46
+  },
+  "runs": [
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 4.52454
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.03118
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006417
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.586861
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005943
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.531356
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005407
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.526428
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006742
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004017
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003378
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.503013
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.696885
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00646
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.559306
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006521
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004844
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003976
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.501971
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005379
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.502579
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005144
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.498454
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00531
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003962
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.601886
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.014133
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004548
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.644457
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00576
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00432
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.626688
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006689
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003903
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005148
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.29062
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.052349
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.421151
+     }
+    ],
+    "worst": {
+     "ms": 4.52454,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 2.07695,
+      "steps": 1
+     },
+     {
+      "ms": 1.57065,
+      "steps": 1
+     },
+     {
+      "ms": 0.990826,
+      "steps": 1
+     },
+     {
+      "ms": 0.767825,
+      "steps": 2
+     },
+     {
+      "ms": 0.713772,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.78,
+     "after": 0.96
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 3.64484
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.02363
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007421
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.786408
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009202
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.54048
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006558
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.541142
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00782
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003899
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003158
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.52179
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.520115
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008103
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.642151
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.016589
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006827
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004732
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.651892
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006588
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.504265
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005626
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.531514
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00624
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00425
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.550731
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004362
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00346
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.508576
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012598
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004834
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.737961
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008125
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004507
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005481
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.739901
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012454
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.218373
+     }
+    ],
+    "worst": {
+     "ms": 3.64484,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 0.78717,
+      "steps": 2
+     },
+     {
+      "ms": 0.616331,
+      "steps": 1
+     },
+     {
+      "ms": 0.530248,
+      "steps": 1
+     },
+     {
+      "ms": 0.482514,
+      "steps": 2
+     },
+     {
+      "ms": 0.332673,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.96,
+     "after": 0.96
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 3.48844
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.023269
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007723
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.666897
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007571
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.604659
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006476
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.724507
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008875
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005205
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005181
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.725767
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.668451
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010457
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.698358
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009961
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008259
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005727
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.612479
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.024031
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.00561
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.027172
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.734342
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009597
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005091
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.535909
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006352
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004775
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.731295
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008502
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005177
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.51397
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007544
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004218
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005471
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.52344
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006661
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.106273
+     }
+    ],
+    "worst": {
+     "ms": 3.48844,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.60812,
+      "steps": 1
+     },
+     {
+      "ms": 1.57351,
+      "steps": 1
+     },
+     {
+      "ms": 1.36959,
+      "steps": 1
+     },
+     {
+      "ms": 0.488435,
+      "steps": 1
+     },
+     {
+      "ms": 0.374962,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.96,
+     "after": 0.96
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 17.6597
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.087289
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.01906
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 2.06574
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.029936
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 2.57359
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.051161
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 6.63477
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.05635
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.016583
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010414
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.5492
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.42248
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.024164
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.52381
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.033083
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.024976
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.018754
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.18635
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.037235
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.43642
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.048387
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.80723
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.02089
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012158
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.67008
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.02348
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.014915
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.966772
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.013259
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008398
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.834706
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011971
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005847
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008523
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.789172
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008443
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.146528
+     }
+    ],
+    "worst": {
+     "ms": 17.6597,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 2.03579,
+      "steps": 2
+     },
+     {
+      "ms": 1.60171,
+      "steps": 3
+     },
+     {
+      "ms": 0.551383,
+      "steps": 2
+     },
+     {
+      "ms": 0.533936,
+      "steps": 1
+     },
+     {
+      "ms": 0.483621,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.96,
+     "after": 0.96
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 16.9519
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.092585
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.024739
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 2.21016
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.023234
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.86576
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.023847
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.82647
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.031884
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015011
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.016338
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.14975
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.37707
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.047856
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.66457
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.020314
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012303
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015141
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 3.10912
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.041263
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.92002
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.028197
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.27995
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.019671
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008959
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.936738
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.013404
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007167
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.787497
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.024168
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011984
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.2522
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.020944
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007472
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011554
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.73163
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.027185
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.576843
+     }
+    ],
+    "worst": {
+     "ms": 16.9519,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.35499,
+      "steps": 2
+     },
+     {
+      "ms": 1.29124,
+      "steps": 1
+     },
+     {
+      "ms": 0.706671,
+      "steps": 2
+     },
+     {
+      "ms": 0.593573,
+      "steps": 1
+     },
+     {
+      "ms": 0.552631,
+      "steps": 0
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.96,
+     "after": 0.96
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 6.61053
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.063602
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.018054
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.56059
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.017011
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.32213
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009499
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.765795
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010517
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006769
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005823
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.48556
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.81788
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.013678
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.708207
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.017774
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008622
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.01151
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.883402
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.013975
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.716639
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010989
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.683682
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008726
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006348
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.88749
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008613
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007037
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.669978
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009292
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007388
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.683995
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009522
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005623
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008314
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.03065
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009915
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.216685
+     }
+    ],
+    "worst": {
+     "ms": 6.61053,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 2.11133,
+      "steps": 1
+     },
+     {
+      "ms": 1.27866,
+      "steps": 1
+     },
+     {
+      "ms": 0.808025,
+      "steps": 1
+     },
+     {
+      "ms": 0.643339,
+      "steps": 1
+     },
+     {
+      "ms": 0.552225,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.96,
+     "after": 0.97
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 5.84765
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.122143
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.014179
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.976897
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011827
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.905443
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010939
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.868646
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012627
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008554
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006067
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.11611
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.05429
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.017967
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.80232
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.033399
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.022787
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.030736
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.762579
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011293
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 3.77706
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011594
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.848746
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012191
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007143
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.713664
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.032817
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006548
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.656144
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012258
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006629
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.890701
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.026325
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011192
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.020791
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.824267
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.01158
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.329935
+     }
+    ],
+    "worst": {
+     "ms": 5.84765,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.33629,
+      "steps": 2
+     },
+     {
+      "ms": 1.26716,
+      "steps": 2
+     },
+     {
+      "ms": 0.801687,
+      "steps": 2
+     },
+     {
+      "ms": 0.610664,
+      "steps": 3
+     },
+     {
+      "ms": 0.527616,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.97,
+     "after": 0.97
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 3.33963
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.023101
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006848
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.641043
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006731
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.571573
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005396
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.607377
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.026554
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00763
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005507
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.59456
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.30468
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012856
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.618072
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.028077
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009374
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006846
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.726406
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007997
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.496157
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006987
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.498686
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005789
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004511
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.548205
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007163
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004222
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.631946
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006726
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004714
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.682229
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006552
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003915
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004756
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.525738
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004771
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.106635
+     }
+    ],
+    "worst": {
+     "ms": 3.33963,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.28828,
+      "steps": 1
+     },
+     {
+      "ms": 1.17049,
+      "steps": 1
+     },
+     {
+      "ms": 1.08997,
+      "steps": 2
+     },
+     {
+      "ms": 0.616922,
+      "steps": 1
+     },
+     {
+      "ms": 0.578035,
+      "steps": 2
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.97,
+     "after": 0.97
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 11.9935
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.050567
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012091
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.22859
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015231
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.07457
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011759
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.760134
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.029195
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010501
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008081
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.41953
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.842695
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.018355
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.909753
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.058317
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.018505
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.086531
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.48006
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011976
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.554277
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008536
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.700267
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.014175
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004732
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.574362
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00694
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005209
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.00478
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.029585
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.021216
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.857509
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.020965
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008091
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015103
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.710332
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.021921
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.307194
+     }
+    ],
+    "worst": {
+     "ms": 11.9935,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.95151,
+      "steps": 2
+     },
+     {
+      "ms": 1.87016,
+      "steps": 1
+     },
+     {
+      "ms": 0.863566,
+      "steps": 1
+     },
+     {
+      "ms": 0.798841,
+      "steps": 2
+     },
+     {
+      "ms": 0.480633,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.97,
+     "after": 0.97
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 3.011
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.067062
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008186
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.616977
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005836
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.541237
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008386
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.56854
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008274
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005501
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006693
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.547125
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.613809
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015088
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.813991
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009936
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006758
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008796
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.660716
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009567
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.726909
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007662
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.575662
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007339
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004929
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.725144
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007254
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004713
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.751778
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007855
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008112
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.522262
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.0074
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004209
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004054
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.566692
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005307
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.11176
+     }
+    ],
+    "worst": {
+     "ms": 3.011,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.84693,
+      "steps": 1
+     },
+     {
+      "ms": 0.785303,
+      "steps": 2
+     },
+     {
+      "ms": 0.711675,
+      "steps": 1
+     },
+     {
+      "ms": 0.64308,
+      "steps": 1
+     },
+     {
+      "ms": 0.560137,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.97,
+     "after": 0.97
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 5.63403
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.063186
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.038255
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.42019
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009407
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.642859
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007688
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.689113
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008616
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006101
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004521
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.634618
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.591875
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007553
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.813359
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008424
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005993
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005359
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.642143
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008518
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.652763
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006209
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.781586
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012882
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010281
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.04858
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011729
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007322
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.856299
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.018497
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006771
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.43919
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010958
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005295
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007511
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.695275
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00898
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.142504
+     }
+    ],
+    "worst": {
+     "ms": 5.63403,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 4.9348,
+      "steps": 2
+     },
+     {
+      "ms": 2.50149,
+      "steps": 1
+     },
+     {
+      "ms": 1.71036,
+      "steps": 2
+     },
+     {
+      "ms": 1.32403,
+      "steps": 1
+     },
+     {
+      "ms": 1.07155,
+      "steps": 2
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.97,
+     "after": 0.97
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 7.27354
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.07297
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.022227
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.66127
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.017328
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.69612
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.01239
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.879359
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011995
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00595
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.065943
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.864238
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.883409
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009775
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.579791
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008259
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00829
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005921
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.625553
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010505
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.835784
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.016528
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.04554
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.014589
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008355
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.934069
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.018
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007967
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.763896
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.013254
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008777
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.817691
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.01251
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006577
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008749
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.27023
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.01877
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.481537
+     }
+    ],
+    "worst": {
+     "ms": 7.27354,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 0.866831,
+      "steps": 1
+     },
+     {
+      "ms": 0.805025,
+      "steps": 1
+     },
+     {
+      "ms": 0.781387,
+      "steps": 1
+     },
+     {
+      "ms": 0.748224,
+      "steps": 1
+     },
+     {
+      "ms": 0.74322,
+      "steps": 2
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.97,
+     "after": 0.97
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 3.95077
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.041453
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009116
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.676855
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00913
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.654433
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006623
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.688564
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.016831
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.023286
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006024
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.672449
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.661398
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012038
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.66385
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00846
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006169
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006592
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.571867
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009301
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.567974
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008478
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.654471
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.046169
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.021099
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.70621
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.016706
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008401
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.915953
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011916
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008186
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.693788
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010367
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004003
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00581
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.507266
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006126
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.118483
+     }
+    ],
+    "worst": {
+     "ms": 3.95077,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.80143,
+      "steps": 1
+     },
+     {
+      "ms": 1.38754,
+      "steps": 1
+     },
+     {
+      "ms": 0.707641,
+      "steps": 1
+     },
+     {
+      "ms": 0.52854,
+      "steps": 1
+     },
+     {
+      "ms": 0.462796,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 0.97,
+     "after": 1.29
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 5.9171
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.03887
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009618
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.77227
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010383
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.639949
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008478
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.933922
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015099
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011706
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005097
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.862949
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.659375
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.032208
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.61712
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.025429
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.017743
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.017473
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.50382
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.014779
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.610349
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011881
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.66639
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015207
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007527
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.11602
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.01598
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011418
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.84359
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012276
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006465
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.576329
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007184
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005294
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005125
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.738861
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012223
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.213693
+     }
+    ],
+    "worst": {
+     "ms": 5.9171,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.48896,
+      "steps": 1
+     },
+     {
+      "ms": 0.848074,
+      "steps": 2
+     },
+     {
+      "ms": 0.679197,
+      "steps": 1
+     },
+     {
+      "ms": 0.65748,
+      "steps": 2
+     },
+     {
+      "ms": 0.646903,
+      "steps": 2
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 1.29,
+     "after": 1.29
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 2.3882
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.018715
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006349
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.680068
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006142
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.18502
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.030938
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.59385
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.040052
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007646
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005078
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.981015
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.779564
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.013091
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.826964
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012054
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008449
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011133
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.727468
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009015
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.508824
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007129
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.539411
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006808
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004789
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.530936
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005484
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003696
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.540689
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00539
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003933
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.548995
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007031
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.003846
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004724
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.443469
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004573
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.108434
+     }
+    ],
+    "worst": {
+     "ms": 2.3882,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 2.37498,
+      "steps": 1
+     },
+     {
+      "ms": 1.75175,
+      "steps": 1
+     },
+     {
+      "ms": 1.592,
+      "steps": 1
+     },
+     {
+      "ms": 0.587752,
+      "steps": 1
+     },
+     {
+      "ms": 0.556197,
+      "steps": 2
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 1.29,
+     "after": 1.27
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 3.90368
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.042448
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009027
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.67985
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00961
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.656443
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008783
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.744745
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010801
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00757
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004609
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.672093
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.626143
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010049
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.696029
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009337
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008326
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007058
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.689521
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011145
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.677168
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010111
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.625457
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008717
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007202
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.850523
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010138
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008384
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.746828
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.0161
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00808
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.662994
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009464
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005348
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007272
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.692237
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008161
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.143084
+     }
+    ],
+    "worst": {
+     "ms": 3.90368,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 2.88465,
+      "steps": 1
+     },
+     {
+      "ms": 1.93485,
+      "steps": 2
+     },
+     {
+      "ms": 1.89616,
+      "steps": 1
+     },
+     {
+      "ms": 1.82958,
+      "steps": 2
+     },
+     {
+      "ms": 1.70903,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 1.27,
+     "after": 1.27
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 4.34637
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.059136
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010847
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.776204
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009691
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.702589
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010256
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.725164
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010256
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008511
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005125
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.02312
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.701616
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011798
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 4.08744
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.030318
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.020663
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.019208
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 2.07804
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.039527
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.09478
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.018499
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.711154
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008573
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006121
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.691191
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008423
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006474
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.603498
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007319
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005795
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.729463
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007893
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005243
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005944
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.57547
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005582
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.122152
+     }
+    ],
+    "worst": {
+     "ms": 4.34637,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 2.13533,
+      "steps": 2
+     },
+     {
+      "ms": 0.752885,
+      "steps": 1
+     },
+     {
+      "ms": 0.714726,
+      "steps": 2
+     },
+     {
+      "ms": 0.694118,
+      "steps": 1
+     },
+     {
+      "ms": 0.606829,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 1.27,
+     "after": 1.33
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 5.37266
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.037165
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008852
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 1.16192
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.014573
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.822913
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010136
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.748508
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.020103
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012433
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006089
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.59422
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.96185
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.061756
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.73542
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009686
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007963
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008852
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.56976
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009472
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.79675
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.014374
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.726334
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010727
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006452
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.935701
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.01189
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009958
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.705085
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011812
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008314
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.651415
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010235
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005336
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006053
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.704768
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009008
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.1656
+     }
+    ],
+    "worst": {
+     "ms": 5.37266,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.33614,
+      "steps": 2
+     },
+     {
+      "ms": 0.978227,
+      "steps": 2
+     },
+     {
+      "ms": 0.76258,
+      "steps": 1
+     },
+     {
+      "ms": 0.545627,
+      "steps": 1
+     },
+     {
+      "ms": 0.524291,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 1.33,
+     "after": 1.33
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 3.69519
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.024687
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008195
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.650357
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009765
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.604002
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006615
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.581291
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012247
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006387
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.004011
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.666823
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.685802
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.034887
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.620264
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007253
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00604
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00609
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.50076
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006881
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.514132
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015735
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.595782
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015323
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005771
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.4876
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.017486
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00732
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.932736
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.041512
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.016101
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.99458
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012679
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005186
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008846
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.566887
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010082
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.120195
+     }
+    ],
+    "worst": {
+     "ms": 3.69519,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.73307,
+      "steps": 2
+     },
+     {
+      "ms": 1.28196,
+      "steps": 2
+     },
+     {
+      "ms": 0.33981,
+      "steps": 1
+     },
+     {
+      "ms": 0.325459,
+      "steps": 2
+     },
+     {
+      "ms": 0.300268,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 1.33,
+     "after": 1.33
+    }
+   },
+   {
+    "g": 902,
+    "back": 238,
+    "steps": 250,
+    "repairSteps": 254,
+    "calls": [
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 18,
+      "ms": 5.9856
+     },
+     {
+      "at": 19214.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.045284
+     },
+     {
+      "at": 19215.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.009325
+     },
+     {
+      "at": 19218.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.800784
+     },
+     {
+      "at": 19221.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008643
+     },
+     {
+      "at": 19222.2,
+      "message": false,
+      "steps": 18,
+      "ms": 0.662956
+     },
+     {
+      "at": 19225.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00753
+     },
+     {
+      "at": 19226.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.733622
+     },
+     {
+      "at": 19227.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010047
+     },
+     {
+      "at": 19227.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005244
+     },
+     {
+      "at": 19228.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010565
+     },
+     {
+      "at": 19230.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.775289
+     },
+     {
+      "at": 19234.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.740071
+     },
+     {
+      "at": 19235.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010894
+     },
+     {
+      "at": 19238.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.84528
+     },
+     {
+      "at": 19239.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011855
+     },
+     {
+      "at": 19239.7,
+      "message": true,
+      "steps": 0,
+      "ms": 0.00749
+     },
+     {
+      "at": 19242,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007297
+     },
+     {
+      "at": 19242.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.762186
+     },
+     {
+      "at": 19243,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011591
+     },
+     {
+      "at": 19246.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.962913
+     },
+     {
+      "at": 19250.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.013146
+     },
+     {
+      "at": 19250.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.760717
+     },
+     {
+      "at": 19252.6,
+      "message": true,
+      "steps": 0,
+      "ms": 0.011182
+     },
+     {
+      "at": 19253.3,
+      "message": true,
+      "steps": 0,
+      "ms": 0.006755
+     },
+     {
+      "at": 19254.3,
+      "message": false,
+      "steps": 18,
+      "ms": 1.15297
+     },
+     {
+      "at": 19255.1,
+      "message": true,
+      "steps": 0,
+      "ms": 0.013219
+     },
+     {
+      "at": 19256.8,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007068
+     },
+     {
+      "at": 19258.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.697447
+     },
+     {
+      "at": 19260.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.010965
+     },
+     {
+      "at": 19261.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.012451
+     },
+     {
+      "at": 19262.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.720808
+     },
+     {
+      "at": 19263.2,
+      "message": true,
+      "steps": 0,
+      "ms": 0.015655
+     },
+     {
+      "at": 19264,
+      "message": true,
+      "steps": 0,
+      "ms": 0.005663
+     },
+     {
+      "at": 19264.9,
+      "message": true,
+      "steps": 0,
+      "ms": 0.007234
+     },
+     {
+      "at": 19266.3,
+      "message": false,
+      "steps": 18,
+      "ms": 0.748357
+     },
+     {
+      "at": 19267.4,
+      "message": true,
+      "steps": 0,
+      "ms": 0.008074
+     },
+     {
+      "at": 19270.3,
+      "message": false,
+      "steps": 2,
+      "ms": 0.152851
+     }
+    ],
+    "worst": {
+     "ms": 5.9856,
+     "steps": 18
+    },
+    "worstNormal": [
+     {
+      "ms": 1.49202,
+      "steps": 1
+     },
+     {
+      "ms": 1.48163,
+      "steps": 2
+     },
+     {
+      "ms": 0.383955,
+      "steps": 1
+     },
+     {
+      "ms": 0.377575,
+      "steps": 1
+     },
+     {
+      "ms": 0.35315,
+      "steps": 1
+     }
+    ],
+    "inPlayAtHold": true,
+    "others": {
+     "resyncs": 0,
+     "disagree": 0,
+     "first": []
+    },
+    "heldAtTick": 899,
+    "drops": [],
+    "load": {
+     "before": 1.33,
+     "after": 1.46
+    }
+   }
+  ],
+  "decision": {
+   "decided": true,
+   "value": 14,
+   "text": "the cap check (§9.6): the cap of 18 fails: the median of 20 runs' worst spread advance 4.95 ms in Node, × 6.3 = 31.2 ms against 25 ms; their maximum 17.7 ms; at 0.275 ms a step the largest cap that meets it is 14, below 18 and at least w + 1 = 13; measure it again there (TERRIEST_CORRECTIONS_BASE='{\"spreadMaxStepsPerTick\":14}')",
+   "figures": [
+    {
+     "runs": 20,
+     "medianWorstMs": 4.9486,
+     "drawnMs": 31.1762,
+     "maxWorstMs": 17.6597,
+     "medianMsAStep": 0.274922
+    }
+   ]
+  }
+ }
+}

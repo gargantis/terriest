@@ -101,6 +101,19 @@ class Solo {
     }
   }
 
+  /** Timer runs at this local tick, its clock not moving, while a spread is pending (§2.8), the watch
+   *  checking after each: how many it took. */
+  spreadOut(): number {
+    let runs = 0;
+    while (this.t.repairing && runs < 1000) {
+      const b = this.watch.before(this.t);
+      this.t.advance(at(this.n));
+      this.watch.advanced(this.t, `${this.n}`, b);
+      runs++;
+    }
+    return runs;
+  }
+
   validTo(): number {
     return inside(this.t).validTo;
   }
@@ -281,7 +294,10 @@ describe('a STATE (§2.7, §3.4)', () => {
       const wire = encodeStateMessage({ timeline: MATCH, senderTick: s.n, phase: 0, g, senderFinal: s.n - W, state: bytes, inputs: records }, theirs.terriers.map((x) => x.id), WIRE);
       const fired = s.corrections.length;
       expect(s.t.onState('peer-b', decode(wire.bytes, P, WIRE) as StateMsg, 0, at(s.n))).toBe(true);
-      // Caught up in the same call: a resync fits the spread's budget (§2.8).
+      // Caught up within the spread's budget (§2.8): s.n − g steps at the cap a call, the adoption's
+      // and then timer runs whose clock doesn't move, so in the same call while the cap covers them.
+      const calls = 1 + s.spreadOut();
+      expect(calls).toBe(Math.ceil((s.n - g) / NET.timeline.spreadCap));
       seen.push([s.t.repairing, s.t.stats.resyncs, s.t.hashAt(g) === win]);
       seen.push(...firedSince(s, fired).map(([tick, from, repair]) => [tick - s.n, from - g, repair]));
       return seen;

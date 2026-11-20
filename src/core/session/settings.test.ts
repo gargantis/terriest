@@ -60,7 +60,8 @@ describe('netSettings (design §1.13)', () => {
       timerMs: 4,
       stallMs: 2000,
       timeline: {
-        delay: 2, window: 12, voteWindow: 12, history: 256, inputHistory: 16, spreadCap: 42, inputSpan: 1024,
+        // The spread's cap as M3's cap check set it (D-11), read from the configuration.
+        delay: 2, window: 12, voteWindow: 12, history: 256, inputHistory: 16, spreadCap: config.spreadMaxStepsPerTick, inputSpan: 1024,
         warmupMs: 500, resyncRetryMs: 500, stallSendTicks: 3,
         clock: { tickMs: 1000 / 60, settleMs: 2000, smoothing: 0.1, gainPerTick: 0.005, rateMax: 0.02, deadbandTicks: 1, rebalanceMs: 1000, sampleMaxTicks: 742 },
       },

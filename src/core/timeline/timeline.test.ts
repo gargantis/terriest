@@ -117,7 +117,10 @@ describe("the joiner's warm-up (§3.4, roslambo M0)", () => {
       expect(c.t.repairing).toBe(true);
       const g = c.t.finalTick;
       expect(c.t.localTick).toBeGreaterThan(g + W);
-      q.until(() => !c.t.repairing, 1000);
+      // Its warm-up, then the spread of its catch-up, done within 1 s. The full replay steps every
+      // final, so a catch-up over the spread's cap ends later there (twin): both runs wait the same.
+      q.run(1000);
+      expect(c.t.repairing).toBe(false);
       // Every active sender heard, well before warmupMs runs out.
       expect(c.t.stats.warmMs).toBeGreaterThan(0);
       expect(c.t.stats.warmMs).toBeLessThan(NET.timeline.warmupMs);
@@ -335,8 +338,13 @@ describe('the late boundary (§2.8)', () => {
     // Past ⌊clock⌋ − w, which would make them late outside a warm-up, inputs for g + 1 and lo are taken.
     j.onTick(b, tickOf(new Map([[g + 1, 9], [lo, 9]]), lo), at(40), true);
     expect([j.receivedInput(b, g + 1), j.receivedInput(b, lo), j.stats.late]).toEqual([9, 9, 0]);
-    // b heard, the warm-up ends at the next advance; then the clock's boundary holds again.
+    // b heard, the warm-up ends at the next advance, which re-simulates from g + 1 at the spread's
+    // cap, as do timer runs after it whose clock doesn't move, until the chain reaches the head
+    // (§2.8); then the clock's boundary holds again.
     j.advance(at(40));
+    expect(j.warming).toBe(false);
+    const runs = Math.ceil((j.localTick - g) / NET.timeline.spreadCap);
+    for (let k = 1; k < runs; k++) j.advance(at(40));
     expect(j.repairing).toBe(false);
     const f = j.finalTick;
     // Five ticks on, without an advance: f + 1 is at or before ⌊clock⌋ − w, and in the TICK's history.
