@@ -80,7 +80,7 @@ import { InputStore, type PutResult, type Recorded } from './inputs';
 import { type TallyResult, VoteBook } from './votes';
 
 /** settings.ts's TimelineSettings: d, w and v (A.4), the 256-tick state history, the TICK's 16-tick
- *  history, the stores' span, the spread's cap (42), the joiner's warm-up, the resync's retry,
+ *  history, the stores' span, the spread's cap (A.4), the joiner's warm-up, the resync's retry,
  *  stallSendTicks (Infinity in Practice, D-22) and the clock's settings. */
 export interface TimelineConfig extends TimelineSettings {
   readonly P: SimParams;

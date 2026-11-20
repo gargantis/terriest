@@ -1,7 +1,7 @@
 # terriest
 Rocket League with terriers: two packs of small dogs corral a giant rubber ball into goals. Terri. Terrier. Terriest.
 
-**Status:** in development, and nothing is playable yet. [REQUIREMENTS.md](REQUIREMENTS.md) says what the game must do; [PLAN.md](PLAN.md) says how, and lists the milestones. Numbers such as Q-5 or C-14 below are the plan's. Done so far: M0, the physics and rendering spike ([research/spike/REPORT.md](research/spike/REPORT.md)); M1, the skeleton and its test gate, with a page that draws an empty pitch; and M2, the deterministic simulation, its goldens, the bot brain and the tuning page, all running offline. Next: M3, the timeline, networking and Practice. [docs/acceptance.md](docs/acceptance.md) holds the acceptance criteria and the log of runs the gate doesn't make.
+**Status:** in development, and nothing is playable yet. [REQUIREMENTS.md](REQUIREMENTS.md) says what the game must do; [PLAN.md](PLAN.md) says how, and lists the milestones. Numbers such as Q-5 or C-14 below are the plan's. Done so far: M0, the physics and rendering spike ([research/spike/REPORT.md](research/spike/REPORT.md)); M1, the skeleton and its test gate, with a page that draws an empty pitch; M2, the deterministic simulation, its goldens, the bot brain and the tuning page, all running offline; and M3, the rollback timeline, the protocol, matches between browsers over Trystero with consensus, bots hosted in them, and Practice, with the correction measurement ([research/corrections/REPORT.md](research/corrections/REPORT.md)). Until M4's screens, a match plays only between scripted pages, through the network test page (below). Next: M4, the drawing, input, screens and sound. [docs/acceptance.md](docs/acceptance.md) holds the acceptance criteria and the log of runs the gate doesn't make.
 
 ## Run
 
@@ -19,7 +19,7 @@ In a clone made without `--recurse-submodules`, fetch it once before building:
 git submodule update --init
 ```
 
-Without it, `npm run build` and `npm run check` stop at once and name that command. The dev server is `npm run dev`, at http://localhost:5173/. Until Settings arrive at M4, the address picks the render quality: `?quality=low` or `?quality=high`, high by default (D-33).
+Without it, `npm run build` and `npm run check` stop at once and name that command. The dev server is `npm run dev`, at http://localhost:5173/. Until Settings arrive at M4, the address picks the render quality: `?quality=low` or `?quality=high`, high by default (D-33). `npm run dev:local` is the dev server with hermet's local Nostr relay beside it, so browsers on this machine can play each other through the network test page without a public relay (below).
 
 ## Test
 
@@ -28,9 +28,9 @@ npx playwright install --with-deps chromium firefox webkit   # once
 npm run check
 ```
 
-`npm run check` is the gate, and the definition of done. In order, it runs ESLint, with the plan's import and purity boundaries (D-38); public-scan; the typecheck; the unit tests, hermet's included; the build; and the end-to-end tests against the built page in headless Chromium, Firefox and WebKit. A page that requests anything outside the local servers its test names fails the test, so the gate contacts no public host. At M2 it takes about 2 minutes on the development machine, and longer while the machine is busy: most of its unit tests' time is the bots playing whole matches. It will grow once the end-to-end tests play whole matches too (Q-18), and `docs/acceptance.md` logs its wall time at each milestone's exit.
+`npm run check` is the gate, and the definition of done. In order, it runs ESLint, with the plan's import and purity boundaries (D-38); public-scan; the typecheck; the unit tests, hermet's included; the build; and the end-to-end tests against the built page in headless Chromium, Firefox and WebKit. A page that requests anything outside the local servers its test names fails the test, so the gate contacts no public host: the networked tests use hermet's local Nostr relay on 127.0.0.1. At M3 it takes about 9 minutes on the development machine, and longer while the machine is busy: most of its unit tests' time is whole matches, the bots' and the network simulator's, played in virtual time, and one end-to-end test plays a whole networked match. It grows again at M4, whose end-to-end tests play matches through the screens (Q-18), and `docs/acceptance.md` logs its wall time at each milestone's exit.
 
-At M2 there are 14 end-to-end tests in each engine: `e2e/boot.spec.ts`, the boot page's four failure messages (D-30); `e2e/determinism.spec.ts`, the golden runs replayed through the built page (below); `e2e/pitch.spec.ts`, the empty pitch, its size, its render quality, what assistive technology reads of the started page, and its frame rate, which is reported, never judged; and `e2e/smoke.spec.ts`, the page served by `vite preview`, under `dist/_headers`, and from a subpath. `npm run e2e` runs them alone, against the last build.
+At M3 there are 20 end-to-end tests in each engine, and one more that runs once: `e2e/boot.spec.ts`, the boot page's four failure messages (D-30); `e2e/determinism.spec.ts`, the golden runs replayed through the built page (below); `e2e/pitch.spec.ts`, the empty pitch, its size, its render quality, what assistive technology reads of the started page, and its frame rate, which is reported, never judged; `e2e/smoke.spec.ts`, the page served by `vite preview`, under `dist/_headers`, and from a subpath; `e2e/nettest.spec.ts`, the network test page's edges: a normal page loads no test page and no Trystero, a refused address contacts nothing, and the page carries the build hash of the sources it was built from; and `e2e/practice-net.spec.ts`, Practice played to the bot's first confirmed goal with no peer connection, WebSocket or outside request, in Chromium only, so it's skipped in the other two. `e2e/match.net.spec.ts` runs once, in the `net` project: a scripted 1-minute match through the network test page between Chromium, Firefox and WebKit over the local relay, a fourth page joining as a spectator and WebKit's reloading mid-match, to one confirmed end on all four. `npm run e2e` runs them alone, against the last build.
 
 ### The goldens
 
@@ -49,6 +49,40 @@ npm run build && npx vite preview   # then open http://127.0.0.1:4339/#test=dete
 ```
 
 CI (`.github/workflows/check.yml`) runs the gate under `xvfb-run` on each push and pull request, and the unit tests on arm64. `docs/acceptance.md` logs its runs.
+
+### The network test page
+
+`#test=net` plays a match without the screens, for the end-to-end tests, the load run and the checks by hand ([M3's design](research/m3/DESIGN.md) §7): over Trystero and the one Nostr relay its address names, or over Practice's local transport, which contacts nothing. Each page drives its own terrier with a script, and may host bots. It draws nothing, and shows a status, refreshed every half second: its peers, its ticks, the score, the state's hash at a whole second's final tick, so that two windows can be compared, and its late inputs, disagreements and resyncs. Its parameters follow `#test=net&`:
+
+| Parameter | Meaning |
+|---|---|
+| `room` | the match ID, such as `TERR-1EST-DESK-T0PM-3000-4` |
+| `relay` | the only relay, a `ws:` or `wss:` URL. A built page takes only `third-party.json`'s relays, or a `ws:` relay on this machine; under `npm run dev:local`, leave it out for the local relay |
+| `ice` | `default`, `third-party.json`'s STUN servers; `none`, no STUN server; or `local`, the end-to-end tests' loopback. `local` when `relay` is given, else `default` |
+| `role`, `pack` | `keeper` proposes the match, and plays in `pack`, 0 or 1, or watches without one; `player` plays in `pack`; `spectator` watches |
+| `packSize`, `minutes` | the keeper's or Practice's match: 1 to 4 a side, 2 by default, and 1 to 10 minutes, 3 by default |
+| `k`, `seed` | the page's player ID, made from both; seed 7 by default |
+| `script` | the page's own input: `none`; `back` or `sideways`, the end-to-end setups'; or `brain`, the bots' brain |
+| `ready` | the match tick at which the page presses Ready, once its terrier is in the roster; without it, never |
+| `bots` | a pack for each bot the page hosts, such as `0,1` |
+| `name`, `coat` | its name and coat: `P<k>` and coat k mod 8 by default |
+| `mode` | `net`, or `practice`: the page in pack A and bots in every other place, with no `room`, `relay`, `ice`, `role`, `pack` or `bots` |
+
+An address it can't take, a parameter it doesn't know or one given twice among them, gets a message saying what's wrong, and the page contacts nothing.
+
+**Two browsers over the local relay:**
+
+```sh
+npm run dev:local   # the dev server, with hermet's local relay on 127.0.0.1
+```
+
+It prints the relay's port, then the dev server's address, http://localhost:5173/ unless that port is taken. A `#test=net` page there without a `relay` uses the local relay, whose address it builds from its own host name, so a Windows browser that reaches WSL2's dev server through `localhost` should reach the relay the same way, by WSL2's localhost forwarding. No run has tested that yet, so it's the first suspect when a Windows browser's page shows no peer: `docs/acceptance.md` says how to tell. No public relay is contacted. With the default ICE, a deployed page's, each browser also asks `third-party.json`'s STUN servers for its public address; with `ice=none` it asks none, and the pages contact nothing outside this machine. `docs/acceptance.md` gives the two addresses of M3's check by hand, a keeper and a player at 1 a side, each terrier driven by the bots' brain, with the default ICE. Until the owner's run, `e2e/dev-local.run.ts` stands in for it, playing that match between headless Chromium and Firefox with `ice=none`:
+
+```sh
+GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts   # starts npm run dev:local itself
+```
+
+`GALLIUM_DRIVER=d3d12` puts the engines on WSL2's GPU path (below), as M3's design §15 has that run take it; the network test page draws nothing either way.
 
 ### Without a display
 
@@ -99,13 +133,40 @@ TERRIEST_TUNING_OUT=research/tuning/results.json npx vitest run --config dev/vit
 
 `TERRIEST_TUNING_OUT` names the file they write. Without it they write `research/tuning/results.json`, and refuse to overwrite it, so while that file is committed a bare run stops at once. `TERRIEST_TUNING_ONLY` runs only the sections it names, `TERRIEST_TUNING_BASE` measures from settings other than `src/config.ts`'s, and `TERRIEST_TUNING_CANDIDATES` replaces candidate lists, as `dev/tuning.metrics.ts`'s header says. The report holds M2's method, its commands and its results.
 
+## Measure the network
+
+M3's two measurements stay off the gate: they take minutes, want a quiet machine, and write into the repo only on purpose.
+
+### The correction measurement
+
+How far a rollback moves what you see (D-16): seeded bot matches of real sessions over the network simulator, in Node, at every pack size, 30, 80 and 150 ms one way with 20 ms of jitter, d = 2 and 3, and loss at 0, 0.1% and 0.5% of messages, 72 profiles and 336 matches, with four partial meshes, 24 matches more, reported beside them; then a forced repair, timed 20 times, for the spread cap (D-11). [research/corrections/REPORT.md](research/corrections/REPORT.md) holds its method, committed before anything was measured, its results, and what they decided: d, the glide, w and the cap. Its section 1.12 says how it runs: from the repository's root, at the method's commit with the tree clean, every run writing its file outside the repository. In one process, on a quiet machine:
+
+```sh
+OUT="$(mktemp -d)"
+TERRIEST_CORRECTIONS_OUT="$OUT/results.json" npx vitest run --config dev/corrections.vitest.config.ts
+```
+
+Or the profiles run in seven processes at once, each with its own file, then the cap check alone, then a merge of the files, as the report gives it. M3's measurement ran that way: the seven processes took about 25 minutes, the slowest one's time, and each round of the cap check under a minute alone. One process hasn't been timed. Once the last run is done, its files are copied unmodified from `$OUT` into `research/corrections/` and committed together, so no commit falls between runs. Each file records the commit, the trees of `src`, `dev` and `scripts` there, and whether the tree was clean, and a run counts only at the method's commit with the tree clean, or at a later commit with the same three trees.
+
+`TERRIEST_CORRECTIONS_OUT` names the file a run writes. Without it, a run writes `research/corrections/results.json`, and refuses to overwrite it, so while that file is committed a bare run stops at once. `TERRIEST_CORRECTIONS_ONLY` runs only the profiles it names, such as `pack2-80ms-d2-loss0` or `pack4-*`, and `cap` for the cap check; `TERRIEST_CORRECTIONS_SEEDS` and `TERRIEST_CORRECTIONS_CAP_RUNS` cut the seeds and the cap check's runs, for a smoke run, which decides nothing; `TERRIEST_CORRECTIONS_BASE` measures from settings other than `src/config.ts`'s, as a rule's next w or cap is measured; and `TERRIEST_CORRECTIONS_MERGE` measures nothing, deciding from the files of runs made in several processes. The matches run in virtual time, so a busy machine only slows them. The cap check times Node, so it runs alone, with no gate or other vitest running: its file records the machine's 1-minute load, and it decides nothing unless that was under 1 before its first run and under 2 after its last. On WSL2 that's the virtual machine's load, which doesn't see Windows', so Windows is kept idle too. `dev/corrections.measure.ts`'s header lists the variables.
+
+### The load run
+
+12 Chromium pages on this machine play one 3-minute match through the network test page over the local relay: 8 players at 4 a side, each driven by the bots' brain, and 4 spectators, measured for 90 s of play. It checks that every page is connected to the other 11 at the start and the end of the play measured, and that all hold one state, and logs each page's late inputs, resyncs, steps a tick, CPU a timer run and traffic by message type:
+
+```sh
+npm run build && TERRIEST_LOAD_OUT=research/load/results.json npx playwright test -c playwright.load.config.ts
+```
+
+It refuses to run without `TERRIEST_LOAD_OUT`, which names the file its raw reports go to, and `LOAD_SECONDS` sets the play it measures. `docs/acceptance.md` logs its runs.
+
 ## Build
 
 ```sh
 npm run build   # emits dist/, a fully static folder
 ```
 
-It typechecks, builds with Vite, and writes the bundled packages' licence notices to `dist/THIRD-PARTY-LICENSES.txt`. Then hermet's dist audit checks `dist/`: relative references only, no host outside `third-party.json`, no secrets, only allowed file types, and exactly the expected notices, each with its licence text.
+It typechecks, builds with Vite, and writes the bundled packages' licence notices to `dist/THIRD-PARTY-LICENSES.txt`. Then hermet's dist audit checks `dist/`: relative references only, no host outside `third-party.json`, no secrets, only allowed file types, and exactly the expected notices, each with its licence text. terriest's own check after it fails a `dist/` that would ship `npm run dev:local`'s relay (`scripts/dev-relay-audit.mjs`).
 
 ## Deploy
 
@@ -121,17 +182,17 @@ It deploys `dist/` to Cloudflare Workers static assets, at terriest.com: assets 
 
 No accounts, analytics or tracking.
 
-- **At M1** the page contacts only the server it's loaded from, and the gate fails a page that requests anything else.
-- **From M3,** with matches, nothing is contacted until you propose or join one. Opening a `#join=` link or entering a code counts as joining. Then these see the following (PLAN §20; the relays and STUN servers are in [third-party.json](third-party.json)):
+- **The game's page** contacts only the server it's loaded from, and the gate fails a page that requests anything else. Proposing and joining a match arrive with M4's screens. From then, nothing is contacted until you propose or join one, and opening a `#join=` link or entering a code counts as joining.
+- **A networked match,** at M3 only through the network test page, uses the one relay its address names: in a built page, one of `third-party.json`'s or one on this machine, so a link can't send a browser to any other; under `npm run dev:local`, the local relay. With `ice=default`, its default only when no relay is given, so under `npm run dev:local`, it also asks `third-party.json`'s STUN servers for the browser's public address; with `ice=none` or `ice=local`, none. These see the following (PLAN §20; the relays and STUN servers are in [third-party.json](third-party.json)):
 
 | Who | Why | What they see |
 |---|---|---|
-| Six public Nostr relays, and any you add in Settings | signalling, so browsers can find each other | your IP address, Origin, User-Agent and timing, a hashed room topic, a Nostr key and Trystero peer ID made for each page load, and the sizes of encrypted session descriptions |
+| The six public Nostr relays, and from M4 any you add in Settings; the network test page uses only the one its address names | signalling, so browsers can find each other | your IP address, Origin, User-Agent and timing, a hashed room topic, a Nostr key and Trystero peer ID made for each page load, and the sizes of encrypted session descriptions |
 | stun.cloudflare.com and stun.l.google.com | STUN: your public address, for direct connections | your IP address and port |
-| Your own TURN server, if you add one | relaying between browsers that can't connect directly | your IP address and traffic volume |
-| The other browsers in the match | the game | your IP address, player ID, name, coat and inputs |
+| Your own TURN server, if you add one in Settings, from M4 | relaying between browsers that can't connect directly | your IP address and traffic volume |
+| The other browsers in the match | the game | your IP address, player ID, name, coat and inputs; your build's hash, your role and the timeline you hold (its ID, kind, tick and hash); and which other players your browser is connected to |
 
-- **Practice** (from M3) contacts no one.
+- **Practice** contacts no one: no relay, STUN server or other browser (P10), which `e2e/practice-net.spec.ts` checks. At M3 it plays through the network test page, with `mode=practice`.
 - **Hosting:** once deployed, Cloudflare serves terriest.com. It sees each HTTP request, never the `#join=` fragment, and request logs are off.
 
 ## Licence

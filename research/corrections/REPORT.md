@@ -223,7 +223,7 @@ Measured on 2026-11-20, from 03:15 to 04:37 UTC, at 71bd4a7, whose `src`, `dev` 
 - **Rule 2, your own terrier:** "100 ms, the smallest of 25, 50, 100 that passes: the p95s at their intervals' upper ends, pack size 1: own 0.0985 m, ownHeadings 21.8 °; pack size 2: own 0.0626 m, ownHeadings 12.0 °; pack size 3: own 0.0343 m, ownHeadings 29.1 °; pack size 4: own 0.0314 m, ownHeadings 24.2 °; over the glide each at most own 3.00 m/s, ownHeadings 360 °/s". The headings need 33 to 81 ms, so 50 ms fails at three pack sizes.
 - **Rule 3:** "w = 12, at d = 2: confirmed: lateAbsent at most 0.5% of the remote inputs and resyncs at most 1 a browser-minute at every pack size; the most: lateAbsent 0.0% of the remote inputs, resyncs 0 a browser-minute". At all 16 profiles it reads, at both caps, no input was finalised absent here and then arrived, and no browser resynced. So no next w was measured, and the goldens stay.
 - **The cap:** "the cap of 14 stands: the median of 20 runs' worst spread advance 3.90 ms in Node, × 6.3 = 24.5 ms against 25 ms; their maximum 5.74 ms".
-- **As known before it:** phase 5a's runs had fixed rule 2's values at d = 2 (this report's header), and the measurement agrees. None of the values is an attended step (section 1.13).
+- **As known before it:** phase 5a's runs had fixed rule 2's values at d = 2 (this report's header), and the measurement agrees on the values. Its figures differ, since those runs were of code before a87b4c0's last fixes: at the measured code `pack4-80ms-d2-loss0`'s steady p95 ball correction is 0.171 m [0.152, 0.201] and its remote headings' upper end 60.0°, against the header's 0.217 m [0.192, 0.230] and 56.3°. None of the values is an attended step (section 1.13).
 
 ### 2.2 The decisive figures
 
@@ -343,7 +343,7 @@ The steady p95s with their 90% intervals at the loss-free 80 ms profiles:
 | pack4-80ms-d2-blocked1 | 167512 | 0.00193 / 0.207 / 0.937 | 0.0137 / 0.0741 / 6 | 11.3 / 56.3 / 179 | 0.0025 / 0.0273 / 6 | 24.2 / 60 / 60 | 4 / 6 / 83 |
 | pack4-80ms-d2-blocked2 | 213937 | 0.00223 / 0.218 / 0.98 | 0.0143 / 0.103 / 6 | 11.3 / 60 / 180 | 0.00255 / 0.029 / 6 | 22.6 / 24.2 / 24.2 | 4 / 10 / 82 |
 
-**The placed corrections,** across a phase's start. None moved the ball.
+**The placed corrections,** across a phase's start. They moved the ball only at two lossy 150 ms profiles, so the table leaves the ball out: 1 of `pack2-150ms-d2-loss0.5`'s 15, by 0.016 m, and 11 of `pack4-150ms-d3-loss0.1`'s 41, by 0.056 m at the p50 and 0.073 m at the p95 and the max. At the cap of 42 none moved it (`results.json`).
 
 | Profile | n | Remote terriers, m | Their headings, ° | Driven terrier, m | Its heading, ° |
 |---|---|---|---|---|---|
@@ -570,7 +570,7 @@ Each round is 20 runs of the forced repair, alone, on a quiet machine, the 1-min
 | cap18-check.json | 18 | 20 | 4.95 | 31.2 | 17.7 | 0.275 | 0.78, 1.46 | 238 back, 250 steps, 38 calls | 14 |
 | cap14-check.json | 14 | 20 | 3.9 | 24.5 | 5.74 | 0.278 | 0.81, 1.04 | 238 back, 250 steps, 48 calls | 14 |
 
-- **The worst call** was the STATE's adoption in 17, 18, 20, 20 and 20 of each round's 20 runs, as in every run known before the method. Its cost falls with the cap less than its steps do: its median ms a step rose from 0.124 at 42 to 0.278 at 14.
+- **The worst call** was the STATE's adoption in 17, 18, 20, 20 and 20 of each round's 20 runs, as in every run known before the method. Its cost a step rose at every round, its median from 0.124 ms at 42 to 0.278 at 14, and the median worst call itself rose at 31 and at 18, so the rounds vary by more than the cap of 14's margin, under 2% below 25 ms.
 - **The worst calls,** run by run: at 42, 3.02 to 14.5 ms; at 31, 4.18 to 15.6; at 20, 2.89 to 7.96; at 18, 2.39 to 17.7; at 14, 2.79 to 5.74. The slowest normal timer run, in the 5 s either side, took 5.25, 10.1, 5.51, 4.93 and 7.81 ms.
 - **The files:** the method names a cap check alone `cap<cap>.json`. At the settled cap there is both a check alone and every profile measured beside it, so each check alone is named `cap<N>-check.json`, and `cap14.json` holds every profile at 14 with that cap check, merged from the seven groups at 14 and `cap14-check.json`. Its cap decision is the check's own, from the same runs and load.
 - **In the browser,** M4's frame bench repeats a forced repair in throttled Chromium (M3-Q14). A cap of 14 also spreads a joiner's catch-up, which neither confirms nor votes while it runs (§2.8).
@@ -607,7 +607,7 @@ lateAbsent's share of the remote inputs and resyncs a browser-minute, at the cap
 
 ### 2.7 The load run (design §8.5)
 
-`npm run build`, then `TERRIEST_LOAD_OUT=… npx playwright test -c playwright.load.config.ts`, LOAD_SECONDS 90: 12 Chromium pages through `#test=net`, 8 players at 4 a side with the brain and 4 spectators, against `vite preview` and the local relay. **It failed its checks,** in both runs on a quiet machine, the 1-minute load under 1 at the start. `research/load/results.json` is the second run's, which stayed connected throughout:
+`npm run build`, then `TERRIEST_LOAD_OUT=… npx playwright test -c playwright.load.config.ts`, LOAD_SECONDS 90: 12 Chromium pages through `#test=net`, 8 players at 4 a side with the brain and 4 spectators, against `vite preview` and the local relay, at 71bd4a7, before this report's values reached `src/config.ts`, so at the spread cap of 42. **It failed its checks,** in both runs on a quiet machine, the 1-minute load under 1 at the start. `research/load/results.json` is the second run's, which stayed connected throughout:
 
 | Page | Role | Peers | Late | lateAbsent | Disagree | Resyncs | Jumps | Steps a tick, mean and max | A timer run, ms: mean, p95, max | Sent a second | kB a second |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -624,13 +624,13 @@ lateAbsent's share of the remote inputs and resyncs a browser-minute, at the cap
 | 10 | spectator | 11 | 8640 (26.5%) | 8811 | 290 | 17 | 46 | 2.37, 84 | 0.76, 2.0, 60 | 3 | 0.4 |
 | 11 | spectator | 11 | 8855 (27.1%) | 9166 | 265 | 19 | 44 | 2.38, 53 | 0.76, 2.0, 99 | 3 | 0.4 |
 
-- **What failed:** every page held its 11 peers, but at their common final tick, 6897, the 12 pages held 12 hashes. Over 93.5 s of play each page's clock advanced 45 ticks a second, not 60: every page's median offset read its peers 34 to 47 ticks behind, and it jumped back, 41 to 49 times in the run. 26% to 30% of each page's remote inputs came past the late boundary, two thirds or more of them 16 ticks late or more, and were finalised absent.
-- **The machine:** the run took the 1-minute load from 0.91 to 15–16, each page's renderer at 50–90% of a thread. A timer run cost 1.8–2.0 ms at a player, against 0.72–0.80 in phase 5's 20 s smoke run at 4da2086, which passed. That reads as pages handling their messages hundreds of ms late, so that each reads every other's clock as behind and the room's clocks fall back together; whether that is this machine's limit or the clock's (D-15) isn't settled here.
-- **The other runs,** whose files aren't committed: the first, 90 s, began clean (no late input or jump at the measured play's start) and broke down during it, its pages ending with 0 to 11 peers, 10 of the 12 no longer holding their common final tick, 5800, and the other two at two hashes, its clocks at 33–38 ticks a second; a 20 s diagnostic run, outside the method, failed as the second did, with 12 hashes at tick 3587 and its clocks at 41–42 ticks a second.
+- **What failed:** every page held its 11 peers, but at their common final tick, 6897, the 12 pages held 12 hashes. Over 93.5 s of play each page's clock advanced 45 ticks a second, not 60: every page's median offset read its peers 34 to 47 ticks behind, and it jumped back, 41 to 49 times in the run. 26% to 30% of each page's remote inputs came past the late boundary, 66% to 75% of them 16 ticks late or more, and 7,355 to 9,212 a page were for ticks already finalised absent (lateAbsent, which also counts those a later TICK's history brought).
+- **The machine:** the run took the 1-minute load from 0.91 to 15–16, each page's renderer at 50–90% of a thread. A timer run cost 1.8–2.0 ms at a player, against 0.72–0.80 in phase 5's 20 s smoke run at 4da2086, which passed. That reads as pages handling their messages hundreds of ms late, so that each reads every other's clock as behind and the room's clocks fall back together; whether that is this machine's limit or the clock's (D-15) isn't settled here. PLAN §16 names the leading candidate, M3's round-trip rules, and gives the diagnosis to M4.
+- **The other runs,** whose files aren't committed: the first, 90 s, began clean (no late input or jump at the measured play's start) and broke down during it, while another process, the M0 spike's server, started too, its pages ending with 0 to 11 peers, 10 of the 12 no longer holding their common final tick, 5800, and the other two at two hashes, its clocks at 33–38 ticks a second; a 20 s diagnostic run, outside the method, failed as the second did, with 12 hashes at tick 3587 and its clocks at 41–42 ticks a second.
 
 ### 2.8 The desktop connection, settled provisionally (PLAN §15, §17)
 
-`GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts`, once: passed in 2.1 minutes. A Chromium keeper and a Firefox player, at 1 a side with `script=brain` and `ice=none`, through `npm run dev:local` with its local relay only, so nothing public was contacted: 37 checks found both connected, ticking and in agreement, and both reached one confirmed end, 3–2 at tick 6871. The owner's own two desktop browsers are owner-pending (§17).
+`GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts`, once, at 71bd4a7, so at the spread cap of 42: passed in 2.1 minutes. A Chromium keeper and a Firefox player, at 1 a side with `script=brain` and `ice=none`, through `npm run dev:local` with its local relay only, so nothing public was contacted: 37 checks found both connected, ticking and in agreement, and both reached one confirmed end, 3–2 at tick 6871. The owner's own two desktop browsers are owner-pending (§17).
 
 ### 2.9 The files and their code
 
