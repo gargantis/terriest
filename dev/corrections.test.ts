@@ -10,10 +10,11 @@ import type { Correction } from '../src/core/timeline/timeline';
 import { type LinkSpec, LoopbackNet, mulberry32, type LoopNode } from '../src/net/loopback';
 import type { Transport } from '../src/net/transport';
 import {
-  addBins, BODIES, type Body, BODY_GLIDES_MS, bootstrapPercentile, binCounts, type BrowserFigures, CAP_RUNS, capRule, crossesPhase, dropsNote, fallInterval,
-  intervalOf, JITTER_MS, linkSpec, LOSSES, LOSS_FREE_SEEDS, LOSSY_SEEDS, median, OWN_GLIDES_MS, PACK_SIZES, percentile, pick, type Played,
-  pooledPercentile, pooledSizes, type Profile, profileName, profileProblems, profiles, reachesOf, reachMs, reportOf, RESAMPLES, resampleCounts, Rig,
-  roundTrip, type RuleFigures, ruleD, ruleGlide, ruleW, seedOf, seedsWanted, Sizes, sizesByKind, sortCorrection, sortedUnion,
+  addBins, BODIES, type Body, BODY_GLIDES_MS, bootstrapPercentile, binCounts, type BrowserFigures, CAP_RUNS, capRule, type Code, crossesPhase, decideRules,
+  dropsNote, exactP95, fallInterval, intervalOf, JITTER_MS, linkSpec, LOAD_QUIET, LOSSES, LOSS_FREE_SEEDS, LOSSY_SEEDS, median, mergeRuns, OWN_GLIDES_MS,
+  PACK_SIZES, percentile, pick, type Played, pooledPercentile, pooledSizes, type Profile, type ProfileReport, profileName, profileProblems, profiles,
+  reachesOf, reachMs, reportOf, RESAMPLES, resampleCounts, Rig, roundTrip, type Run, type RuleFigures, type RulesInput, ruleD, ruleGlide, ruleW, seedOf,
+  seedsWanted, sig, Sizes, sizesByKind, sortCorrection, sortedUnion,
 } from './corrections.measure';
 import { configWith } from './tuning/model';
 
@@ -24,8 +25,10 @@ import { configWith } from './tuning/model';
 // waiting an extra round trip with the profile's chance and FIFO holding
 // the messages behind it; the percentiles by nearest rank, a resample's
 // pooled percentile, the bins and the bootstrap over matches (§9.4); and
-// §9.5's three rules, the reach and §9.6's cap rule. The measurement
-// itself runs off the gate (dev/corrections.vitest.config.ts).
+// §9.5's three rules, the reach and §9.6's cap rule, decided as
+// research/corrections/REPORT.md's method says, with the merge of a
+// parallel run's parts. The measurement itself runs off the gate
+// (dev/corrections.vitest.config.ts).
 
 // --- The profiles (§9.2) ---
 
@@ -446,11 +449,86 @@ describe("§9.5's rules on synthetic figures", () => {
     const glides = PACK_SIZES.map((packSize) => figures(profileName(packSize, 80, 3, 0), { ball: { p95: 0.1 } }));
     expect([ruleGlide(glides, 3, config).bodies.decided, ruleGlide(glides, 3, config).own.decided]).toEqual([true, true]);
     expect([ruleGlide(glides, 2, config).bodies.decided, ruleGlide(glides, 2, config).own.decided]).toEqual([false, false]);
-    // Failing at d = 3, the next w, 14, takes protocol 2's 32-tick history there first (§9.5).
+    // Failing at d = 3, the next w, 14, takes protocol 2's 32-tick history there first (§9.5), which the
+    // harness can't measure without: it decides nothing, and the figures go to the owner (method-F4).
     const fails = ruleW(wAt(3, 'pack1-30ms-d3-loss0'), 3, config);
-    expect(fails.value).toBe(14);
-    expect(fails.text).toMatch(/; at w = 14, d = 3 take the TICK's 32-tick history first, protocol 2, without which those profiles aren't measured$/);
-    expect(ruleW(wAt(2, 'pack1-30ms-d2-loss0'), 2, config).text).toMatch(/; at w = 14, d = 3 take the TICK's 32-tick history first/);
+    expect(fails).toMatchObject({ decided: false, value: null });
+    expect(fails.text).toMatch(/; the next w, 14, takes at d = 3 the TICK's 32-tick history first \(protocol 2\), .*the figures go to the owner in the C-row: protocol 2 and w = 14 measured, or w = 12 kept with its residual$/);
+    // At d = 2, 14 is measured next, where d = 3's profiles aren't, so rule 1 is undecided there.
+    const next = ruleW(wAt(2, 'pack1-30ms-d2-loss0'), 2, config);
+    expect(next).toMatchObject({ decided: true, value: 14 });
+    expect(next.text).toMatch(/; at w = 14, d = 3 take the TICK's 32-tick history first, protocol 2, without which those profiles aren't measured, so rule 1 is undecided there and d stays 2$/);
+  });
+
+  it("rule 3 never decides a w the harness can't measure: protocol 2 first, or none left, go to the owner (method-F4)", () => {
+    // Failing at w = 14, d = 2: 16 takes protocol 2's history at d = 2.
+    const at14 = ruleW(wAt(2, 'pack2-80ms-d2-loss0'), 2, configWith({ lateWindowTicks: 14 }));
+    expect(at14).toMatchObject({ decided: false, value: null });
+    expect(at14.text).toMatch(/^rule 3 \(w = 14, at d = 2\): fails at pack2-80ms-d2-loss0 .*; the next w, 16, takes at d = 2 the TICK's 32-tick history first \(protocol 2\)/);
+    // Failing at w = 18, with protocol 2's history: none left.
+    const at18 = ruleW(wAt(2, 'pack2-80ms-d2-loss0'), 2, configWith({ lateWindowTicks: 18, inputHistoryTicks: 32 }));
+    expect(at18).toMatchObject({ decided: false, value: null });
+    expect(at18.text).toMatch(/; no w is left past 18 \(14, 16, 18\), so this decides nothing, and the figures go to the owner in the C-row$/);
+    // With protocol 2's history, 16 after 14 is measured.
+    expect(ruleW(wAt(2, 'pack2-80ms-d2-loss0'), 2, configWith({ lateWindowTicks: 14, inputHistoryTicks: 32 }))).toMatchObject({ decided: true, value: 16 });
+  });
+
+  it('rule 1 names every profile it lacks (method-F3)', () => {
+    const only = dProfiles([0.3, 0.3, 0.32, 0.4]).filter((r) => !r.profile.name.startsWith('pack2-') && !r.profile.name.startsWith('pack4-80ms-d3'));
+    expect(ruleD(only).text).toMatch(/^rule 1 \(d\): undecided, pack2-80ms-d2-loss0, pack2-80ms-d3-loss0, pack4-80ms-d3-loss0 not measured/);
+  });
+
+  it('compares each derived figure to 6 significant figures, so an edge decides as the text says (method-F5)', () => {
+    // 0.00448 to 0.00336 m is a fall of 25% exactly, 0.2499999999999999 in floating point: it passes.
+    const pair = (p2: number, p3: number, r2: number, r3: number): RuleFigures[] =>
+      PACK_SIZES.flatMap((packSize) => [
+        figures(profileName(packSize, 80, 2, 0), { ball: { p95: p2, replicates: new Array<number>(1000).fill(r2) } }),
+        figures(profileName(packSize, 80, 3, 0), { ball: { p95: p3, replicates: new Array<number>(1000).fill(r3) } }),
+      ]);
+    expect(1 - 0.00336 / 0.00448).toBeLessThan(0.25);
+    expect(ruleD(pair(0.00448, 0.00336, 1, 0.5)).value).toBe(3);
+    // Replicates falling 0.2 to 0.15, 0.2500000000000001: an interval reaching down to 25%, not wholly above.
+    expect(1 - 0.15 / 0.2).toBeGreaterThan(0.25);
+    expect(ruleD(pair(1, 0.5, 0.2, 0.15)).value).toBe(2);
+    expect(sig(1 - 0.15 / 0.2)).toBe(0.25);
+    // The cap rule: 3.96826 ms × 6.3 is 25.000038 ms, 25.0000 to 6 figures: the cap stands; 3.96827 ms's
+    // 25.0001 ms doesn't. And it reads the runs as written: 3.96825397 ms and 3.96825 ms decide alike.
+    const runs = (ms: number): { worst: { ms: number; steps: number } }[] => [{ worst: { ms, steps: 42 } }, { worst: { ms, steps: 42 } }];
+    expect([capRule(runs(3.96826), 42, 12).value, capRule(runs(3.96827), 42, 12).value]).toEqual([42, 41]);
+    expect([capRule(roundTrip(runs(3.96825397)), 42, 12).value, capRule(runs(3.96825), 42, 12).value]).toEqual([42, 42]);
+  });
+});
+
+/** A profile's figures as decideRules reads them: every correction that wasn't a repair's, and the
+ *  steady ones apart. */
+function both(name: string, all: number, steady: number, late = 0.001, resyncs = 0.2): RulesInput {
+  const of = (p95: number): RuleFigures['bodies'] => figures(name, { ball: { p95, replicates: new Array<number>(1000).fill(p95) } }).bodies;
+  return { ...figures(name, {}, late, resyncs), bodies: of(all), steady: { bodies: of(steady) }, matches: new Array<number>(seedsWanted(name)).fill(0) };
+}
+
+describe("the rules as REPORT.md's method decides them (method-F1)", () => {
+  /** The steady ball p95 falls from 1 m at d = 2 to 0.1 m at d = 3; with the placements, from 1 to
+   *  0.9 m. Rule 3's profiles pass at d = 3, and at d = 2 all but pack3-30ms-d2-loss0.5, at 0.6%. */
+  const reports = PACK_SIZES.flatMap((n) => [
+    both(profileName(n, 80, 2, 0), 1, 1),
+    both(profileName(n, 80, 3, 0), 0.9, 0.1),
+    ...[2, 3].flatMap((d) =>
+      ([[30, 0], [30, 0.001], [30, 0.005]] as const).map(([ms, loss]) => both(profileName(n, ms, d, loss), 0.01, 0.01, d === 2 && n === 3 && loss === 0.005 ? 0.006 : 0.001)),
+    ),
+  ]);
+
+  it('reads rules 1 and 2 on the steady corrections, and rule 3 at their d, the rest beside them', () => {
+    const r = decideRules(reports, config);
+    expect([r.d.value, r.w.value, r.glide.bodies.value, r.glide.own.value, r.note]).toEqual([3, 12, 50, 25, null]);
+    expect(r.w.text).toMatch(/^rule 3 \(w = 12, at d = 3\): confirmed/);
+    // With the placements, d stays 2, where rule 3 fails at pack3-30ms-d2-loss0.5: reported, deciding nothing.
+    expect([r.withPlacements.d.value, r.withPlacements.w.value]).toEqual([2, 14]);
+    expect(r.withPlacements.w.text).toMatch(/fails at pack3-30ms-d2-loss0\.5/);
+  });
+
+  it('reads rules 2 and 3 at d = 2 while rule 1 is undecided, and says so', () => {
+    const r = decideRules(reports.filter((x) => x.profile.name !== 'pack4-80ms-d3-loss0'), config);
+    expect([r.d.decided, r.w.value, r.note]).toEqual([false, 14, 'rules 2 and 3 at d = 2, since rule 1 is undecided']);
   });
 });
 
@@ -547,6 +625,27 @@ describe("§9.6's cap rule", () => {
     expect(mixed.value).toBe(16);
   });
 
+  it('steps below the cap measured after a failure, even for a worst call that stepped more than it (method-F6)', () => {
+    // A timer run whose clock moved two ticks steps 84: 5 ms for 84 steps would give 66, at most 41.
+    const over = capRule([{ worst: { ms: 5, steps: 84 } }, { worst: { ms: 5.2, steps: 84 } }, { worst: { ms: 4.8, steps: 84 } }], 42, 12);
+    expect(over).toMatchObject({ decided: true, value: 41 });
+    expect(over.text).toMatch(/the largest cap that meets it is 41, below 42 and at least w \+ 1 = 13; measure it again there \(TERRIEST_CORRECTIONS_BASE='\{"spreadMaxStepsPerTick":41\}'\)$/);
+    // At w + 1 itself, failing: even w + 1 fails.
+    expect(capRule(runs([5, 5]), 13, 12)).toMatchObject({ decided: true, value: 13 });
+    expect(capRule(runs([5, 5]), 13, 12).text).toMatch(/even w \+ 1 = 13 fails/);
+  });
+
+  it('decides nothing from a busy machine: a 1-minute load from 1 before the first run, or from 2 after the last (method-F10)', () => {
+    expect(LOAD_QUIET).toBe(1);
+    const twenty = runs(new Array<number>(CAP_RUNS).fill(3));
+    expect(capRule(twenty, 42, 12, CAP_RUNS, { before: 0.4, after: 1.6 })).toMatchObject({ decided: true, value: 42 });
+    for (const load of [{ before: 1, after: 1.2 }, { before: 0.5, after: 2 }]) {
+      const busy = capRule(twenty, 42, 12, CAP_RUNS, load);
+      expect(busy, JSON.stringify(load)).toMatchObject({ decided: false, value: null });
+      expect(busy.text).toMatch(/; the machine was busy, its 1-minute load .* before the first run and .* after the last \(under 1 and 2 wanted\), so it decides nothing: run it again alone$/);
+    }
+  });
+
   it('says beside its decision which runs closed connections, which no honest run does (harness-F1)', () => {
     expect(dropsNote([{ drops: [] }, { drops: [] }, {}])).toBe('');
     const note = dropsNote([{ drops: [{ by: 3, peer: 'n6', at: 21_040 }, { by: 3, peer: 'n1', at: 21_041 }] }, { drops: [] }]);
@@ -603,6 +702,16 @@ describe("a correction's sizes, by kind (§9.3, §9.4)", () => {
     expect([s.moved.ball, s.zero.ball, s.moved.remote, s.zero.remote, s.moved.headings, s.zero.headings]).toEqual([[0.5], 2, [0.25], 2, [10], 2]);
     expect([s.moved.own, s.zero.own, s.moved.ownHeadings, s.zero.ownHeadings]).toEqual([[], 3, [], 3]);
   });
+
+  it("gives a browser's exact p95s over the samples that moved each body, the population its summary bins (method-F8)", () => {
+    const s = new Sizes();
+    const sizes = (ball: number, remote: number): CorrectionSizes => ({ ball, ballFlat: ball, remote: [{ metres: remote, degrees: remote * 10 }], own: { metres: ball / 2, degrees: 0 } });
+    for (let k = 1; k <= 40; k++) s.add(sizes(k / 100, k % 2 === 0 ? k / 1000 : 0), 1);
+    for (let k = 0; k < 60; k++) s.add(sizes(0, 0), 1);
+    // 40 moved balls 0.01 to 0.40 m: the 38th; 20 moved remotes 0.002 to 0.040 m: the 19th, zeros left out.
+    expect(exactP95(s)).toEqual({ ball: 0.38, remote: 0.038, own: 0.19, headings: 0.38 });
+    expect(exactP95(new Sizes())).toEqual({ ball: 0, remote: 0, own: 0, headings: 0 });
+  });
 });
 
 /** A browser's figures as a match gives them: what reportOf pools over (§9.3). */
@@ -614,6 +723,7 @@ function browserFigures(k: number): BrowserFigures {
     late: { remoteInputs: 1000, count: 2, share: 0.002, lateBy: [2], lateAbsent: 1, lateAbsentShare: 0.001 },
     traffic: { sentPerSecond: 60, sentBytesPerSecond: 2000, receivedPerSecond: 60, receivedBytesPerSecond: 2000, fwdSent: 0 },
     summaryP95: { ball: 0, remote: 0, own: 0, headings: 0 },
+    exactP95: { ball: 0, remote: 0, own: 0, headings: 0 },
   };
 }
 
@@ -688,5 +798,42 @@ describe("a match's network (§9.2)", () => {
       expect(new Set(clocks.map((c) => c.offset)).size, `${name}: the offsets`).toBe(clocks.length);
       expect(clocks.every((c) => c.drift !== 0), `${name}: the drifts`).toBe(true);
     }
+  });
+});
+
+describe("a parallel run's merge (method-F3, method-F11)", () => {
+  const CODE: Code = { commit: '0123456789abcdef0123456789abcdef01234567', clean: true };
+  const order = profiles().map((p) => p.name);
+  const report = (name: string): ProfileReport => ({ profile: { name } }) as unknown as ProfileReport;
+  const part = (o: Omit<Partial<Run>, 'profiles'> & { profiles: readonly string[] }): Run => ({
+    utc: '2026-11-19T00:00:00.000Z', node: 'v22', cpu: 'cpu', cores: 12, code: CODE, base: 'src/config.ts', configuration: { a: 1 }, method: { m: 1 },
+    ...o, profiles: o.profiles.map(report),
+  });
+
+  it("takes each part's profiles in the profiles' order, the cap check from its one part, and every part's refusals", () => {
+    const m = mergeRuns(
+      [
+        { f: '/x/b.json', run: part({ profiles: ['pack2-30ms-d2-loss0'], refused: [{ name: 'pack1-30ms-d3-loss0', problems: ['history'] }] }) },
+        { f: '/x/a.json', run: part({ profiles: ['pack1-30ms-d2-loss0'], refused: [{ name: 'pack1-30ms-d3-loss0', problems: ['history'] }, { name: 'pack1-80ms-d3-loss0', problems: ['history'] }] }) },
+        { f: '/x/cap.json', run: part({ profiles: [], cap: { runs: [] } }) },
+      ],
+      CODE, order,
+    );
+    expect(m.profiles.map((r) => r.profile.name)).toEqual(['pack1-30ms-d2-loss0', 'pack2-30ms-d2-loss0']);
+    expect(m.refused).toEqual([{ name: 'pack1-30ms-d3-loss0', problems: ['history'] }, { name: 'pack1-80ms-d3-loss0', problems: ['history'] }]);
+    expect([m.cap, m.code, m.merged.map((x) => x.file)]).toEqual([{ runs: [] }, CODE, ['b.json', 'a.json', 'cap.json']]);
+  });
+
+  it('refuses parts of another configuration, base, method or code, or this merge of another code, a profile twice and two cap checks', () => {
+    const a = { f: 'a.json', run: part({ profiles: ['pack1-30ms-d2-loss0'] }) };
+    const merge = (b: Run, own: Code = CODE): unknown => mergeRuns([a, { f: 'b.json', run: b }], own, order);
+    expect(() => merge(part({ profiles: [], configuration: { a: 2 } }))).toThrow(/^b\.json was measured with another configuration than a\.json$/);
+    expect(() => merge(part({ profiles: [], base: { lateWindowTicks: 14 } }))).toThrow(/another base/);
+    expect(() => merge(part({ profiles: [], method: { m: 2 } }))).toThrow(/another method/);
+    expect(() => merge(part({ profiles: [], code: { ...CODE, clean: false } }))).toThrow(/another code than a\.json/);
+    expect(() => merge(part({ profiles: [] }), { ...CODE, commit: 'f'.repeat(40) })).toThrow(/^a\.json was measured with another code than this merge's/);
+    expect(() => merge(part({ profiles: ['pack1-30ms-d2-loss0'] }))).toThrow(/^pack1-30ms-d2-loss0 is in two of a\.json, b\.json$/);
+    expect(() => mergeRuns([{ f: 'a.json', run: part({ profiles: [], cap: {} }) }, { f: 'b.json', run: part({ profiles: [], cap: {} }) }], CODE, order)).toThrow(/^the cap check is in a\.json and b\.json$/);
+    expect(() => mergeRuns([], CODE, order)).toThrow(/names no file/);
   });
 });

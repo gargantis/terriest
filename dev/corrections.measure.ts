@@ -58,17 +58,23 @@
 // also reported split: those across a phase's start, where a late Ready or
 // input moved a countdown or a goal by a tick, so the head shows a kickoff
 // placement before or after it, metres for the driven terrier; and the
-// steady rest. §9.5's three rules and §9.6's cap rule are computed from the
-// results and printed as decisions with their figures, rules 1 and 2 again
-// on the steady corrections; phase 6's method decides which count.
+// steady rest. §9.5's three rules and §9.6's cap rule are decided from the
+// results as research/corrections/REPORT.md's method says (decideRules,
+// capRule): rules 1 and 2 read the steady corrections, rule 3 reads rule
+// 1's d, and the same rules on every correction that wasn't a repair's,
+// placements included, are reported beside them and decide nothing. Each
+// results file records the commit it was measured at and whether the tree
+// was clean, and the cap check the machine's load, so a busy machine's
+// check decides nothing.
 //
 // This file is the measurement and the functions dev/corrections.test.ts
 // checks in the gate. It registers the measurement's tests only under its
 // own config, which sets TERRIEST_CORRECTIONS_MEASURING, so the gate's
 // import of it registers nothing.
 
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { availableParallelism, cpus } from 'node:os';
+import { availableParallelism, cpus, loadavg } from 'node:os';
 import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, it } from 'vitest';
@@ -129,6 +135,9 @@ export const W_NEXT = [14, 16, 18] as const; // not a setting: rule 3's candidat
 export const DRAWN_RATIO = 6.3; // not a setting: research/spike/REPORT.md §5.3's 183–195 µs against 27.8–31.2 µs
 export const CAP_LIMIT_MS = 25; // not a setting: half of L286's 50 ms frame
 export const CAP_RUNS = 20; // not a setting: §9.6's
+/** §9.6's quiet machine: the 1-minute load average under this before the cap check's first run, and
+ *  under it plus the check's own process, 1, after its last (method-F10). */
+export const LOAD_QUIET = 1; // not a setting: the method's
 const DEGREES_A_TURN = 360; // not a setting
 
 // The cap check's match (§9.6): 4 a side over the loss-free 30 ms links; at HOLD_AT_MS, in play,
@@ -465,10 +474,10 @@ export interface MatchSizes {
   readonly depths: Float64Array;
 }
 
-/** A browser's corrections by kind (§9.4): those that weren't a repair's, the decisive kind; a
- *  repair's, apart; and the first again, split by whether the correction crossed a phase's start, as
- *  when a late Ready or a remote input moves a goal or a countdown by a tick and the head shows a
- *  kickoff placement before or after it (placed), or not (steady). */
+/** A browser's corrections by kind (§9.4): those that weren't a repair's; a repair's, apart; and the
+ *  first again, split by whether the correction crossed a phase's start, as when a late Ready or a
+ *  remote input moves a goal or a countdown by a tick and the head shows a kickoff placement before
+ *  or after it (placed), or not (steady), the kind rules 1 and 2 read (REPORT.md's method, 1.9). */
 export interface SizesByKind {
   readonly predicted: Sizes;
   readonly repair: Sizes;
@@ -489,6 +498,14 @@ export function sortCorrection(into: SizesByKind, c: Correction, me: string): vo
     into.predicted.add(sizes, depth);
     (crossesPhase(c) ? into.placed : into.steady).add(sizes, depth);
   }
+}
+
+/** A browser's exact p95s of one kind's corrections, by nearest rank over the samples that moved each
+ *  body: the population its match summary bins (§1.16), so the two can be read side by side
+ *  (method-F8). */
+export function exactP95(s: Sizes): { readonly ball: number; readonly remote: number; readonly own: number; readonly headings: number } {
+  const p95 = (b: Body): number => percentile(Float64Array.from(s.moved[b]).sort(), 95);
+  return { ball: p95('ball'), remote: p95('remote'), own: p95('own'), headings: p95('headings') };
 }
 
 export function pooledSizes(list: readonly Sizes[]): MatchSizes {
@@ -769,8 +786,10 @@ export interface BrowserFigures {
     readonly fwdSent: number;
   };
   /** Its own match summary's p95s of the corrections that weren't a repair's, from the summary's bins
-   *  (§1.16), beside the profile's exact ones. */
+   *  (§1.16), and beside them the exact ones of the same samples, those that moved the body, as a
+   *  check of the bins (method-F8). */
   readonly summaryP95: { readonly ball: number; readonly remote: number; readonly own: number; readonly headings: number };
+  readonly exactP95: { readonly ball: number; readonly remote: number; readonly own: number; readonly headings: number };
 }
 
 export interface MatchFigures {
@@ -852,6 +871,7 @@ export function playMatch(p: Profile, seed: number, c: Config): Played {
         receivedPerSecond: b.traffic.received / online, receivedBytesPerSecond: b.traffic.receivedBytes / online, fwdSent: b.traffic.fwd,
       },
       summaryP95: { ball: summary.ball.p95, remote: summary.remote.p95, own: summary.own.p95, headings: summary.headings.p95 },
+      exactP95: exactP95(b.sizes.predicted),
     };
   });
   const stepping = new Map<number, number>();
@@ -891,8 +911,9 @@ export interface KindFigures {
   readonly depth: { readonly p50: number; readonly p95: number; readonly max: number; readonly histogram: readonly number[] };
 }
 
-/** A profile, pooled over its seeds (§9.4). bodies are the corrections that weren't a repair's, the
- *  decisive figures; a repair's are apart. */
+/** A profile, pooled over its seeds (§9.4). bodies are the corrections that weren't a repair's,
+ *  placements included, reported beside the steady ones that rules 1 and 2 read; a repair's are
+ *  apart. */
 export interface ProfileReport {
   readonly profile: Profile & { readonly w: number; readonly v: number; readonly cap: number };
   readonly matches: readonly MatchFigures[];
@@ -901,8 +922,8 @@ export interface ProfileReport {
   readonly depth: KindFigures['depth'];
   readonly repair: KindFigures;
   /** bodies' corrections split: those across a phase's start (crossesPhase), apart, and the rest, the
-   *  steady ones, with the replicates the rules read, so the rules can be read without the
-   *  placements too (phase 6's method decides which). */
+   *  steady ones, with the replicates the rules read: rules 1 and 2 read the steady ones (REPORT.md's
+   *  method, 1.9). */
   readonly placed: KindFigures;
   readonly steady: KindFigures;
   readonly late: {
@@ -1043,20 +1064,25 @@ export interface Decision {
 }
 
 const byName = (reports: readonly RuleFigures[], name: string): RuleFigures | undefined => reports.find((r) => r.profile.name === name);
+/** A figure a rule derives, a fall, a rate or a drawn time, to the 6 significant figures results.json
+ *  holds, before it's compared with its limit: at a limit's edge the text decides, not floating-point
+ *  noise (method-F5). */
+export const sig = (x: number): number => (Number.isFinite(x) ? Number(x.toPrecision(6)) : x);
 const pct = (x: number): string => `${(100 * x).toFixed(1)}%`;
 const num = (x: number): string => (x === 0 ? '0' : Math.abs(x) >= 100 ? x.toFixed(0) : x.toPrecision(3));
 
 /** Each replicate's fall from a to b, 1 − b / a, paired by index: independent resamples of two
- *  profiles' matches. null without replicates. */
+ *  profiles' matches, each fall to 6 significant figures (sig). null without replicates. */
 export function fallInterval(a: readonly number[] | undefined, b: readonly number[] | undefined): Interval | null {
   if (a === undefined || b === undefined || a.length === 0 || a.length !== b.length) return null;
-  const falls = a.map((x, i) => (x > 0 ? 1 - b[i]! / x : NaN)).filter((x) => Number.isFinite(x));
+  const falls = a.map((x, i) => (x > 0 ? sig(1 - b[i]! / x) : NaN)).filter((x) => Number.isFinite(x));
   return falls.length === a.length ? intervalOf(falls) : null;
 }
 
 /** Rule 1 (d): d = 3 replaces 2 only if, at the loss-free 80 ms profiles, the p95 ball correction
  *  falls by at least 25% at every pack size, and at each the bootstrap interval of that fall lies
- *  wholly above 25%. */
+ *  wholly above 25%, each fall to 6 significant figures (sig). decideRules gives it the steady
+ *  corrections' figures. */
 export function ruleD(reports: readonly RuleFigures[]): Decision {
   const [from, to] = D_VALUES;
   const figures: Record<string, unknown>[] = [];
@@ -1068,12 +1094,14 @@ export function ruleD(reports: readonly RuleFigures[]): Decision {
     const b = byName(reports, profileName(packSize, 80, to, 0));
     read.push(a, b);
     if (a === undefined || b === undefined) {
-      missing.push(a === undefined ? profileName(packSize, 80, from, 0) : profileName(packSize, 80, to, 0));
+      // Every profile it reads and lacks, named (method-F3).
+      if (a === undefined) missing.push(profileName(packSize, 80, from, 0));
+      if (b === undefined) missing.push(profileName(packSize, 80, to, 0));
       continue;
     }
     const p2 = a.bodies.ball.p95;
     const p3 = b.bodies.ball.p95;
-    const fall = p2 > 0 ? 1 - p3 / p2 : NaN;
+    const fall = p2 > 0 ? sig(1 - p3 / p2) : NaN;
     const interval = fallInterval(a.bodies.ball.replicates, b.bodies.ball.replicates);
     const passes = fall >= D_FALL && interval !== null && interval.lo > D_FALL;
     all &&= passes;
@@ -1095,7 +1123,8 @@ export function ruleD(reports: readonly RuleFigures[]): Decision {
  *  the upper end of its interval: the smallest candidate glide over which the p95 corrections of the
  *  bodies (the ball in 3D, the remote terriers' positions) are at most half the run speed, and the
  *  remote headings' at most half the turn rate; and for your own terrier, by the same rule on the
- *  driven terrier's. None passing: the largest candidate, and the figures go to M4's check. */
+ *  driven terrier's. None passing: the largest candidate, and the figures go to M4's check.
+ *  decideRules gives it the steady corrections' figures. */
 export function ruleGlide(reports: readonly RuleFigures[], d: number, c: Config): { readonly bodies: Decision; readonly own: Decision } {
   const speed = c.runSpeedMetresPerSecond / 2;
   const turn = (c.turnRateTurnsPerSecond / 2) * DEGREES_A_TURN;
@@ -1132,7 +1161,11 @@ export function ruleGlide(reports: readonly RuleFigures[], d: number, c: Config)
 
 /** Rule 3 (w): w is confirmed if, at every pack size, lateAbsent is at most 0.5% of the remote inputs
  *  and resyncs are at most 1 a browser-minute, at rule 1's d, at the loss-free 30 and 80 ms profiles
- *  and the 30 ms profiles with either loss rate, which the model's reach covers. */
+ *  and the 30 ms profiles with either loss rate, which the model's reach covers. If one fails, the
+ *  next of W_NEXT is measured, with rules 1 and 2 again, and becomes w if rule 3 confirms it there.
+ *  A next w that takes, at this d, the TICK's 32-tick history (protocol 2), without which the
+ *  harness measures none of its profiles, or no next w at all, decides nothing: the figures go to
+ *  the owner in the C-row (method-F4). */
 export function ruleW(reports: readonly RuleFigures[], d: number, c: Config): Decision {
   const w = c.lateWindowTicks;
   const figures: Record<string, unknown>[] = [];
@@ -1155,18 +1188,65 @@ export function ruleW(reports: readonly RuleFigures[], d: number, c: Config): De
   }
   const worst = figures.length === 0 ? '' : `; the most: lateAbsent ${pct(Math.max(...figures.map((f) => f.lateAbsentShare as number)))} of the remote inputs, resyncs ${num(Math.max(...figures.map((f) => f.resyncsPerBrowserMinute as number)))} a browser-minute`;
   const limits = `lateAbsent at most ${pct(LATE_ABSENT_SHARE_MAX)} of the remote inputs and resyncs at most ${RESYNCS_PER_MINUTE_MAX} a browser-minute`;
-  if (missing.length > 0) return { decided: false, value: null, text: `rule 3 (w = ${w}, at d = ${d}): undecided, ${missing.join(', ')} not measured${worst}`, figures };
-  if (failing.length === 0) return unlessSmoke({ decided: true, value: w, text: `rule 3 (w = ${w}, at d = ${d}): confirmed: ${limits} at every pack size${worst}`, figures }, read);
-  const next = W_NEXT.filter((x) => x > w);
+  const head = `rule 3 (w = ${w}, at d = ${d})`;
+  if (missing.length > 0) return { decided: false, value: null, text: `${head}: undecided, ${missing.join(', ')} not measured${worst}`, figures };
+  if (failing.length === 0) return unlessSmoke({ decided: true, value: w, text: `${head}: confirmed: ${limits} at every pack size${worst}`, figures }, read);
+  const fails = `${head}: fails at ${failing.join(', ')} (${limits})${worst}`;
+  const next = W_NEXT.find((x) => x > w);
   // §9.5: past the history's 16 − d ticks, a w takes protocol 2's 32-tick history, which the harness
   // won't measure without (profileProblems): w = 14 fits at d = 2, any w over 13 at d = 3 doesn't.
-  const wider = next[0] === undefined ? [] : D_VALUES.filter((x) => x + next[0]! > c.inputHistoryTicks);
-  const history = wider.length === 0 ? '' : `; at w = ${next[0]}, d = ${wider.join(' and ')} take the TICK's 32-tick history first, protocol 2, without which those profiles aren't measured`;
+  if (next === undefined) {
+    return unlessSmoke({ decided: false, value: null, text: `${fails}; no w is left past ${w} (${W_NEXT.join(', ')}), so this decides nothing, and the figures go to the owner in the C-row`, figures }, read);
+  }
+  if (d + next > c.inputHistoryTicks) {
+    const text =
+      `${fails}; the next w, ${next}, takes at d = ${d} the TICK's 32-tick history first (protocol 2), without which none of its profiles is measured, ` +
+      `so this decides nothing, and the figures go to the owner in the C-row: protocol 2 and w = ${next} measured, or w = ${w} kept with its residual`;
+    return unlessSmoke({ decided: false, value: null, text, figures }, read);
+  }
+  const wider = D_VALUES.filter((x) => x + next > c.inputHistoryTicks);
+  const history = wider.length === 0 ? '' : `; at w = ${next}, d = ${wider.join(' and ')} take the TICK's 32-tick history first, protocol 2, without which those profiles aren't measured, so rule 1 is undecided there and d stays ${D_VALUES[0]}`;
   const text =
-    `rule 3 (w = ${w}, at d = ${d}): fails at ${failing.join(', ')} (${limits})${worst}; w becomes the smallest of ${next.join(', ')} that passes, ` +
-    `measured again at it (TERRIEST_CORRECTIONS_BASE='{"lateWindowTicks":${next[0] ?? w}}'), with rules 1 and 2 run again at it, and the plan states its costs: ` +
-    `the goldens re-emitted, the confirmation delay (w + v) / 60 s, a normal tick's worst w + 1 steps, and past 16 − d the TICK's 32-tick history (protocol 2)${history}`;
-  return unlessSmoke({ decided: true, value: next[0] ?? null, text, figures }, read);
+    `${fails}; w = ${next} is measured next (TERRIEST_CORRECTIONS_BASE='{"lateWindowTicks":${next}}'), with rules 1 and 2 run again at it, and becomes w if rule 3 confirms it there; ` +
+    `the plan states its costs: the goldens re-emitted, the confirmation delay (w + v) / 60 s, a normal tick's worst w + 1 steps, and past 16 − d the TICK's 32-tick history (protocol 2)${history}`;
+  return unlessSmoke({ decided: true, value: next, text, figures }, read);
+}
+
+/** What decideRules reads of a profile's report: rule 1's and rule 2's figures, those of every
+ *  correction that wasn't a repair's (bodies) and the steady ones apart, and rule 3's. */
+export interface RulesInput extends RuleFigures {
+  readonly steady: { readonly bodies: RuleFigures['bodies'] };
+}
+
+/** Rules 1 to 3 at one reading of the corrections. */
+export interface RuleSet {
+  readonly d: Decision;
+  readonly glide: { readonly bodies: Decision; readonly own: Decision };
+  readonly w: Decision;
+}
+
+export interface Rules extends RuleSet {
+  /** Why rules 2 and 3 read d = 2, when rule 1 is undecided. */
+  readonly note: string | null;
+  /** The same rules on every correction that wasn't a repair's, placements included: reported, deciding
+   *  nothing (REPORT.md's method, 1.9). */
+  readonly withPlacements: RuleSet;
+}
+
+function ruleSet(reports: readonly RuleFigures[], c: Config): { readonly set: RuleSet; readonly atD: number } {
+  const d = ruleD(reports);
+  const atD = d.value ?? D_VALUES[0];
+  return { set: { d, glide: ruleGlide(reports, atD, c), w: ruleW(reports, atD, c) }, atD };
+}
+
+/** §9.5's rules as REPORT.md's method decides them (1.9): rules 1 and 2 on the steady corrections,
+ *  those that moved the body, weren't a repair's and didn't cross a phase's start; rule 3 at rule 1's
+ *  d, d = 2 while rule 1 is undecided; and beside them, deciding nothing, the same rules on every
+ *  correction that wasn't a repair's (method-F1). */
+export function decideRules(reports: readonly RulesInput[], c: Config): Rules {
+  const steady = ruleSet(reports.map((r) => ({ ...r, bodies: r.steady.bodies })), c);
+  const note = steady.set.d.decided ? null : `rules 2 and 3 at d = ${steady.atD}, since rule 1 is undecided`;
+  return { ...steady.set, note, withPlacements: ruleSet(reports, c).set };
 }
 
 // ---- The cap check (§9.6) ----
@@ -1192,6 +1272,15 @@ export interface CapRun {
    *  counts by arrival (M3 phase 5's review, harness-F1); its connections are then gone for the rest
    *  of the run, so the others' lost tallies after it are the close's, not the hold's. */
   readonly drops: readonly { readonly by: number; readonly peer: string; readonly at: number }[];
+  /** The 1-minute load average just before the run and just after it (method-F10). */
+  readonly load?: { readonly before: number; readonly after: number };
+}
+
+/** The machine's load around the cap check (method-F10): the 1-minute load average before its first
+ *  run and after its last. */
+export interface CapLoad {
+  readonly before: number;
+  readonly after: number;
 }
 
 /** The forced repair (§9.6), once: a 4-a-side match into play, the dissenter's incoming TICKs held
@@ -1263,32 +1352,42 @@ export function dropsNote(runs: readonly { readonly drops?: CapRun['drops'] }[])
 
 /** §9.6's rule: the cap stands if the median over the runs of each run's worst spread advance, times
  *  M0's ratio, is at most half L286's frame; otherwise the largest cap that meets it, by the median
- *  ms a step of those advances, but never under w + 1. Even w + 1 failing, the figures go to M4's
- *  bench and the phone's run. Fewer runs than `wanted`, §9.6's 20 in the measurement, are a smoke
- *  run's, which decides nothing. */
-export function capRule(runs: readonly Pick<CapRun, 'worst'>[], cap: number, w: number, wanted = 0): Decision {
+ *  ms a step of those advances, below the cap measured and never under w + 1, measured again there.
+ *  Even w + 1 failing, the figures go to M4's bench and the phone's run. Fewer runs than `wanted`,
+ *  §9.6's 20 in the measurement, are a smoke run's, and a check on a busy machine, its 1-minute load
+ *  at LOAD_QUIET or more before its first run or at LOAD_QUIET + 1 or more after its last, timed
+ *  more than Node; either decides nothing (method-F10). */
+export function capRule(runs: readonly Pick<CapRun, 'worst'>[], cap: number, w: number, wanted = 0, load?: CapLoad): Decision {
   const d = capDecision(runs, cap, w);
-  if (runs.length === 0 || runs.length >= wanted) return d;
-  return { decided: false, value: null, text: `${d.text}; a smoke run, so it decides nothing: ${runs.length} of ${wanted} runs`, figures: d.figures };
+  if (runs.length > 0 && runs.length < wanted) {
+    return { decided: false, value: null, text: `${d.text}; a smoke run, so it decides nothing: ${runs.length} of ${wanted} runs`, figures: d.figures };
+  }
+  if (runs.length > 0 && load !== undefined && !(load.before < LOAD_QUIET && load.after < LOAD_QUIET + 1)) {
+    const text = `${d.text}; the machine was busy, its 1-minute load ${num(load.before)} before the first run and ${num(load.after)} after the last (under ${LOAD_QUIET} and ${LOAD_QUIET + 1} wanted), so it decides nothing: run it again alone`;
+    return { decided: false, value: null, text, figures: d.figures };
+  }
+  return d;
 }
 
 function capDecision(runs: readonly Pick<CapRun, 'worst'>[], cap: number, w: number): Decision {
   if (runs.length === 0) return { decided: false, value: null, text: 'the cap check (§9.6): undecided, no run', figures: [] };
   const worst = runs.map((r) => r.worst.ms);
   const med = median(worst);
-  const drawn = med * DRAWN_RATIO;
+  const drawn = sig(med * DRAWN_RATIO);
   const most = Math.max(...worst);
   const perStep = median(runs.map((r) => (r.worst.steps > 0 ? r.worst.ms / r.worst.steps : 0)));
   const figures = [{ runs: runs.length, medianWorstMs: med, drawnMs: drawn, maxWorstMs: most, medianMsAStep: perStep }];
   const shown = `the median of ${runs.length} runs' worst spread advance ${num(med)} ms in Node, × ${DRAWN_RATIO} = ${num(drawn)} ms against ${CAP_LIMIT_MS} ms; their maximum ${num(most)} ms`;
   if (drawn <= CAP_LIMIT_MS) return { decided: true, value: cap, text: `the cap check (§9.6): the cap of ${cap} stands: ${shown}`, figures };
-  const largest = perStep > 0 ? Math.floor(CAP_LIMIT_MS / DRAWN_RATIO / perStep) : cap;
+  // Below the cap measured, so the check steps down even when a worst call stepped more than the cap,
+  // as a timer run whose clock moved two ticks may (method-F6).
+  const largest = Math.min(perStep > 0 ? Math.floor(sig(CAP_LIMIT_MS / DRAWN_RATIO / perStep)) : cap, cap - 1);
   if (largest < w + 1) {
     return { decided: true, value: w + 1, text: `the cap check (§9.6): even w + 1 = ${w + 1} fails, ${num(perStep)} ms a step: the figures go to M4's bench and the phone's run; ${shown}`, figures };
   }
   return {
-    decided: true, value: Math.min(largest, cap),
-    text: `the cap check (§9.6): the cap of ${cap} fails: ${shown}; at ${num(perStep)} ms a step the largest cap that meets it is ${Math.min(largest, cap)}, at least w + 1 = ${w + 1}; measure it again there (TERRIEST_CORRECTIONS_BASE='{"spreadMaxStepsPerTick":${Math.min(largest, cap)}}')`,
+    decided: true, value: largest,
+    text: `the cap check (§9.6): the cap of ${cap} fails: ${shown}; at ${num(perStep)} ms a step the largest cap that meets it is ${largest}, below ${cap} and at least w + 1 = ${w + 1}; measure it again there (TERRIEST_CORRECTIONS_BASE='{"spreadMaxStepsPerTick":${largest}}')`,
     figures,
   };
 }
@@ -1309,6 +1408,82 @@ function baseConfig(text: string | undefined): { c: Config; changes: Record<stri
     if (was === undefined || typeof was === 'object' || typeof was !== typeof v) throw new Error(`TERRIEST_CORRECTIONS_BASE: ${key} is no setting of that type in src/config.ts`);
   }
   return { c: configWith(changes), changes };
+}
+
+/** The code a run measured with (§9.1, method-F11): the commit, the trees of src, dev and scripts at
+ *  it, which a later commit changing none of them keeps, and whether the tree was clean, so the
+ *  harness and the simulation are the commit's; null where git can't say. */
+export interface Code {
+  readonly commit: string | null;
+  readonly trees?: { readonly src: string; readonly dev: string; readonly scripts: string } | null;
+  readonly clean: boolean | null;
+}
+
+function codeOf(root: string): Code {
+  const git = (...args: string[]): string | null => {
+    try {
+      return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch {
+      return null;
+    }
+  };
+  const commit = git('rev-parse', 'HEAD');
+  const trees = git('rev-parse', 'HEAD:src', 'HEAD:dev', 'HEAD:scripts')?.trim().split('\n') ?? [];
+  const status = git('status', '--porcelain');
+  return {
+    commit: commit === null ? null : commit.trim(),
+    trees: trees.length === 3 ? { src: trees[0]!, dev: trees[1]!, scripts: trees[2]! } : null,
+    clean: status === null ? null : status.trim() === '',
+  };
+}
+
+/** A results file as a merge reads it. */
+export interface Run {
+  readonly utc?: string;
+  readonly node?: string;
+  readonly cpu?: string | null;
+  readonly cores?: number;
+  readonly code?: Code;
+  readonly base: unknown;
+  readonly configuration: unknown;
+  readonly method: unknown;
+  readonly refused?: readonly { readonly name: string; readonly problems: readonly string[] }[];
+  readonly profiles: readonly ProfileReport[];
+  readonly cap?: unknown;
+}
+
+/** Runs merged (§1.12 of the method): one configuration, base, method and code, the merging process's
+ *  own code too, each profile once, in `order`, the cap check from at most one, and every part's
+ *  refused profiles carried; otherwise an error, and nothing is written. The result records the
+ *  method, base and code they were measured with, and each part's file, time and machine. */
+export function mergeRuns(
+  files: readonly { readonly f: string; readonly run: Run }[], own: Code, order: readonly string[],
+): Pick<Run, 'base' | 'configuration' | 'method' | 'code' | 'refused' | 'profiles' | 'cap'> & { readonly merged: readonly Record<string, unknown>[] } {
+  const first = files[0];
+  if (first === undefined) throw new Error('TERRIEST_CORRECTIONS_MERGE names no file');
+  const profiles: ProfileReport[] = [];
+  const refused: { name: string; problems: readonly string[] }[] = [];
+  for (const { f, run } of files) {
+    for (const key of ['configuration', 'base', 'method', 'code'] as const) {
+      if (JSON.stringify(run[key] ?? null) !== JSON.stringify(first.run[key] ?? null)) throw new Error(`${f} was measured with another ${key} than ${first.f}`);
+    }
+    for (const r of run.profiles) {
+      if (profiles.some((x) => x.profile.name === r.profile.name)) throw new Error(`${r.profile.name} is in two of ${files.map((x) => x.f).join(', ')}`);
+      profiles.push(r);
+    }
+    for (const x of run.refused ?? []) if (!refused.some((y) => y.name === x.name)) refused.push({ name: x.name, problems: x.problems });
+  }
+  if (JSON.stringify(own) !== JSON.stringify(first.run.code ?? null)) throw new Error(`${first.f} was measured with another code than this merge's: ${JSON.stringify(first.run.code ?? null)} against ${JSON.stringify(own)}`);
+  const caps = files.filter(({ run }) => run.cap !== undefined && run.cap !== null);
+  if (caps.length > 1) throw new Error(`the cap check is in ${caps.map((x) => x.f).join(' and ')}`);
+  const at = (name: string): number => order.indexOf(name);
+  profiles.sort((a, b) => at(a.profile.name) - at(b.profile.name));
+  refused.sort((a, b) => at(a.name) - at(b.name));
+  return {
+    base: first.run.base, configuration: first.run.configuration, method: first.run.method, code: own,
+    ...(refused.length > 0 ? { refused } : {}), profiles, ...(caps[0] ? { cap: caps[0].run.cap } : {}),
+    merged: files.map(({ f, run }) => ({ file: basename(f), utc: run.utc ?? null, node: run.node ?? null, cpu: run.cpu ?? null, cores: run.cores ?? null })),
+  };
 }
 
 /** Arrays of numbers on one line each: the replicates and histograms stay readable. */
@@ -1351,17 +1526,18 @@ if (process.env.TERRIEST_CORRECTIONS_MEASURING === '1') {
   let measuredAt: Config = BASE;
   const out: Record<string, unknown> = {
     utc: new Date().toISOString(), node: process.version, cpu: cpus()[0]?.model ?? null, cores: availableParallelism(),
-    base: changes ?? 'src/config.ts', configuration: BASE,
+    code: codeOf(ROOT), base: changes ?? 'src/config.ts', configuration: BASE,
     method: {
       readyTick: READY_TICK, joinEveryMs: JOIN_EVERY_MS, matchMinutes: MATCH_MINUTES, clockOffsetMs: CLOCK_OFFSET_MS, clockDrift: CLOCK_DRIFT,
       resamples: RESAMPLES, intervalPercent: INTERVAL_PERCENT, matchCapMs: MATCH_CAP_MS,
-      cap: { seed: CAP_SEED, dissenter: CAP_DISSENTER, holdAtMs: HOLD_AT_MS, holdMs: HOLD_MS, runs: capRuns },
+      cap: { seed: CAP_SEED, dissenter: CAP_DISSENTER, holdAtMs: HOLD_AT_MS, holdMs: HOLD_MS, runs: capRuns, loadQuiet: LOAD_QUIET },
       seedsMax: Number.isFinite(seedsMax) ? seedsMax : null,
     },
     ...(refused.length > 0 ? { refused } : {}),
     profiles: reports,
   };
-  let ran = 0;
+  // Set once the overwrite guard and the checks have passed: only then is anything written.
+  let writing = false;
 
   describe('the correction measurement (design §9)', () => {
     beforeAll(() => {
@@ -1370,35 +1546,20 @@ if (process.env.TERRIEST_CORRECTIONS_MEASURING === '1') {
       }
       if (capProblems.length > 0) throw new Error(`the cap check's configuration: ${capProblems.join('; ')}`);
       for (const x of refused) console.log(`${x.name}: not measured, its configuration: ${x.problems.join('; ')}`);
-      if (merging.length === 0) return;
-      // Merged runs: one configuration, base and method, each profile once, the cap check from at most
-      // one; the result records the method and base they were measured with, not this process's.
-      type Run = { configuration: unknown; base: unknown; method: unknown; utc?: string; node?: string; cpu?: string | null; cores?: number; profiles: ProfileReport[]; cap?: unknown };
-      const files = merging.map((f) => ({ f, run: JSON.parse(readFileSync(resolve(ROOT, f), 'utf8')) as Run }));
-      const first = files[0]!;
-      for (const { f, run } of files) {
-        for (const key of ['configuration', 'base', 'method'] as const) {
-          if (JSON.stringify(run[key]) !== JSON.stringify(first.run[key])) throw new Error(`${f} was measured with another ${key} than ${first.f}`);
-        }
-        for (const r of run.profiles) {
-          if (reports.some((x) => x.profile.name === r.profile.name)) throw new Error(`${r.profile.name} is in two of ${merging.join(', ')}`);
-          reports.push(r);
-        }
+      if (merging.length > 0) {
+        const files = merging.map((f) => ({ f, run: JSON.parse(readFileSync(resolve(ROOT, f), 'utf8')) as Run }));
+        const m = mergeRuns(files, out.code as Code, all.map((p) => p.name));
+        Object.assign(out, m);
+        reports.splice(0, reports.length, ...m.profiles);
+        out.profiles = reports;
+        measuredAt = m.configuration as Config;
       }
-      const caps = files.filter(({ run }) => run.cap !== undefined && run.cap !== null);
-      if (caps.length > 1) throw new Error(`the cap check is in ${caps.map((x) => x.f).join(' and ')}`);
-      out.configuration = first.run.configuration;
-      out.base = first.run.base;
-      out.method = first.run.method;
-      measuredAt = first.run.configuration as Config;
-      if (caps[0]) out.cap = caps[0].run.cap;
-      out.merged = files.map(({ f, run }) => ({ file: basename(f), utc: run.utc ?? null, node: run.node ?? null, cpu: run.cpu ?? null, cores: run.cores ?? null }));
-      reports.sort((a, b) => all.findIndex((p) => p.name === a.profile.name) - all.findIndex((p) => p.name === b.profile.name));
-      ran++;
+      // A file whenever anything was picked, if only its refusals (method-F3).
+      writing = true;
     });
 
     afterAll(() => {
-      if (ran === 0) return;
+      if (!writing) return;
       mkdirSync(dirname(OUT), { recursive: true });
       writeFileSync(OUT, written(out));
       console.log(`Wrote ${OUT}`);
@@ -1406,7 +1567,6 @@ if (process.env.TERRIEST_CORRECTIONS_MEASURING === '1') {
 
     for (const p of measured) {
       it(`${p.name}: ${p.seeds} matches (§9.2–§9.4)`, () => {
-        ran++;
         const played: Played[] = [];
         for (let seed = 1; seed <= p.seeds; seed++) {
           const m = playMatch(p, seed, BASE);
@@ -1420,26 +1580,17 @@ if (process.env.TERRIEST_CORRECTIONS_MEASURING === '1') {
       });
     }
 
-    it("§9.5's rules, computed from the results (phase 6 decides)", () => {
-      const d = ruleD(reports);
-      const atD = d.value ?? D_VALUES[0];
-      const glide = ruleGlide(reports, atD, measuredAt);
-      const w = ruleW(reports, atD, measuredAt);
-      // Rules 1 and 2 again on the steady corrections, without those across a phase's start, for
-      // phase 6's method to choose between (ProfileReport's placed and steady).
-      const steadyReports = reports.map((r) => ({ ...r, bodies: r.steady.bodies }));
-      const dSteady = ruleD(steadyReports);
-      const glideSteady = ruleGlide(steadyReports, dSteady.value ?? D_VALUES[0], measuredAt);
-      out.rules = {
-        d, glide, w, note: d.decided ? null : `rules 2 and 3 at d = ${atD}, since rule 1 is undecided`,
-        withoutPlacements: { d: dSteady, glide: glideSteady },
-      };
-      for (const x of [d, glide.bodies, glide.own, w]) console.log(x.text);
-      for (const x of [dSteady, glideSteady.bodies, glideSteady.own]) console.log(`without the corrections across a phase's start, ${x.text}`);
-      // A merged cap check's decision, from its own runs.
-      const cap = out.cap as { runs: CapRun[] } | undefined;
+    it("§9.5's rules, decided from the results as the method says (REPORT.md, 1.9)", () => {
+      const rules = decideRules(reports, measuredAt);
+      out.rules = rules;
+      for (const x of [rules.d, rules.glide.bodies, rules.glide.own, rules.w]) console.log(x.text);
+      if (rules.note !== null) console.log(rules.note);
+      const w = rules.withPlacements;
+      for (const x of [w.d, w.glide.bodies, w.glide.own, w.w]) console.log(`with the corrections across a phase's start, deciding nothing: ${x.text}`);
+      // A merged cap check's decision, from its own runs and load.
+      const cap = out.cap as { runs: CapRun[]; load?: CapLoad } | undefined;
       if (merging.length > 0 && cap !== undefined) {
-        const decision = capRule(cap.runs, measuredAt.spreadMaxStepsPerTick, measuredAt.lateWindowTicks, CAP_RUNS);
+        const decision = capRule(cap.runs, measuredAt.spreadMaxStepsPerTick, measuredAt.lateWindowTicks, CAP_RUNS, cap.load);
         out.cap = { ...cap, decision: { ...decision, text: `${decision.text}${dropsNote(cap.runs)}` } };
         console.log(`${decision.text}${dropsNote(cap.runs)}`);
       }
@@ -1447,19 +1598,22 @@ if (process.env.TERRIEST_CORRECTIONS_MEASURING === '1') {
 
     if (!runsCap) return;
     it(`§9.6's cap check: the forced repair, ${capRuns} runs, a garbage collection before each`, () => {
-      ran++;
       const runs: CapRun[] = [];
+      const before = loadavg()[0]!;
       for (let k = 0; k < capRuns; k++) {
-        const r = capRun(BASE, HOLD_MS);
+        const at = loadavg()[0]!;
+        const r = { ...capRun(BASE, HOLD_MS), load: { before: at, after: loadavg()[0]! } };
         const closed = r.drops.length === 0 ? '' : `; ${r.drops.length} connections closed, the first by browser ${r.drops[0]!.by} at ${num(r.drops[0]!.at)} ms`;
         console.log(
           `cap run ${k + 1}: from ${r.back} ticks back, ${r.steps} steps with prediction, in ${r.calls.length} calls; the worst ${num(r.worst.ms)} ms for ${r.worst.steps} steps; ` +
-            `the worst normal ${r.worstNormal.map((x) => `${num(x.ms)} ms (${x.steps})`).join(', ')}${closed}`,
+            `the worst normal ${r.worstNormal.map((x) => `${num(x.ms)} ms (${x.steps})`).join(', ')}; the load ${num(r.load.before)} to ${num(r.load.after)}${closed}`,
         );
         runs.push(r);
       }
-      const decision = capRule(runs, BASE.spreadMaxStepsPerTick, BASE.lateWindowTicks, CAP_RUNS);
-      out.cap = { runs, decision: { ...decision, text: `${decision.text}${dropsNote(runs)}` } };
+      const load: CapLoad = { before, after: loadavg()[0]! };
+      // The rule reads the runs as results.json holds them, as a merge does (method-F5).
+      const decision = capRule(roundTrip(runs), BASE.spreadMaxStepsPerTick, BASE.lateWindowTicks, CAP_RUNS, roundTrip(load));
+      out.cap = { load, runs, decision: { ...decision, text: `${decision.text}${dropsNote(runs)}` } };
       console.log(`${decision.text}${dropsNote(runs)}`);
     });
   });
