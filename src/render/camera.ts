@@ -1,26 +1,75 @@
-// The spectators' camera (PLAN D-28, L91): high above one side of the
-// pitch, outside the walls. At M1 it's fixed, on the whole empty pitch;
-// from M4 it follows the ball or the chosen terrier. It looks across the
-// pitch from the −y side, pack A's goal on the left, down at a fixed
-// angle, from the nearest point at which the floor, the walls' tops and
-// both goals fit the view at the canvas's aspect, so the pitch shows whole
-// at any window size (D-30). Metres, z up (D-4).
+// Where each camera goes (PLAN D-28, L87–L91; M4's design,
+// research/m4/DESIGN.md, §1.9, §3.2, §3.3, M4-Q34).
 //
-// That point is always outside the walls and above the net: the angle
-// down is steeper than half the field of view, so the view's lower edge
-// still points down and ahead, and with the near wall's foot in view the
-// camera is behind it; the far wall's top is below the view's upper edge,
-// which points down too, so the camera is above the net.
+// The overview (M1's, the empty pitch, for prepare()'s first frame and a
+// pitch screen's view until its match's state arrives) looks across the
+// pitch from the −y side, pack A's goal on the left, down at a fixed angle,
+// from the nearest point at which the floor, the walls' tops and both goals
+// fit the view at the canvas's aspect, so the pitch shows whole at any
+// window size (D-30). That point is always outside the walls and above the
+// net: the angle down is steeper than half the field of view, so the
+// view's lower edge still points down and ahead, and with the near wall's
+// foot in view the camera is behind it; the far wall's top is below the
+// view's upper edge, which points down too, so the camera is above the net.
+//
+// A player's camera sits cameraBehindMetres behind the terrier's floor
+// point along the rig's yaw and cameraAboveMetres above it, with a vertical
+// field of cameraFovDegrees (the spike's camera); ball view looks at the
+// drawn ball, chase view at a point chaseLookAheadMetres ahead of the
+// terrier along the yaw at its height, so the terrier sits low in the view
+// with the pitch ahead. The camera is moved inside the pitch's real region,
+// the walls, cut corners and overhead net and each goal's back, side and top
+// netting, by cameraWallMarginMetres (L89), so a camera behind a terrier at
+// a wall or in a goal comes closer rather than pass the wall or the netting;
+// nearer the terrier than cameraNearestMetres in plan, it rises in the
+// yaw's vertical plane toward ceilingAt, under the net or under a goal's
+// roof, and its aim turns to keep the terrier in view. The aim's pitch is
+// held within ±60° of the horizontal, a drawing constant, but keeping the
+// terrier in view comes first: with its back to a wall the terrier is below
+// a raised camera. The view's up is the yaw's, so a steep look stays level
+// with the pitch.
+//
+// Spectators (L91) watch from high above the near side, outside the walls
+// and above the net, at the overview's 50° down and 40° field, framing a
+// window spectatorViewLengthMetres long whose centre the rig eases along
+// the pitch's length (src/render/camera-rig.ts) and which stays on the
+// pitch, the goals included, its aim following the body across; further
+// out if that's what keeps it outside the walls and above the net.
+//
+// Which numbers are settings (M4-Q34): those the owner tunes with the swing
+// on the feel page, from src/config.ts; the overview's fit, its elevation
+// and field, the ±60° limit and the insets keep the maths and the layout
+// valid, and stay drawing constants here, as M1's did. Metres, z up (D-4).
+// The players' placement is new at M4, from the spike's
+// research/spike/src/scene/camera.ts, whose box clamp it replaces.
 
 import { PerspectiveCamera, Vector3 } from 'three';
-import type { Pitch } from '../core/sim/pitch';
+import { config } from '../config';
+import { defaultParams } from '../core/sim/params';
+import { CAPSULE, GOAL_NET, type Goal, insideRegion, NET, type Pitch, QUAD } from '../core/sim/pitch';
+import { spectatorCentreLimit } from './camera-rig';
+import type { CameraFrame, ScreenPoint, ViewMode } from './frame';
 
-const FOV_DEGREES = 40; // vertical
+const FOV_DEGREES = 40; // vertical: the overview's and the spectators'
 const ELEVATION_DEGREES = 50; // the view's angle below the horizontal: more than half the field of view
 /** The share of the view's half-width and half-height left clear at each edge. */
 const EDGE_MARGIN = 0.05;
+/** A player's aim at its target stays within this of the horizontal. */
+const AIM_PITCH_LIMIT_DEGREES = 60;
+/** A player's terrier is kept inside this share of the view's half-field. */
+const SUBJECT_INSET = 0.8;
+/** Steeper than this from the horizontal, the view's up comes from the yaw. */
+const STEEP_DEGREES = 80;
+const PLAYER_NEAR_METRES = 0.05;
+const SPECTATOR_NEAR_METRES = 0.5;
+const FAR_METRES = 200;
+/** insidePitch's passes over the pieces before it falls back on the pitch's box. */
+const PUSH_PASSES = 8;
+/** A projected point inside this much of the view's half-width and half-height is in view. */
+const IN_VIEW = 0.95;
 
 const UP = new Vector3(0, 0, 1);
+const RADIANS = Math.PI / 180;
 
 export function spectatorCamera(): PerspectiveCamera {
   const camera = new PerspectiveCamera(FOV_DEGREES, 1, 1, 1000);
@@ -48,11 +97,11 @@ export function framedPoints(p: Pitch): Vector3[] {
  * each axis, so the pitch reaches the margin at both edges on one axis.
  */
 export function fitSpectator(camera: PerspectiveCamera, aspect: number, p: Pitch): void {
-  const el = (ELEVATION_DEGREES * Math.PI) / 180;
+  const el = ELEVATION_DEGREES * RADIANS;
   const w = new Vector3(0, Math.cos(el), -Math.sin(el)); // forward
   const x = new Vector3(1, 0, 0); // right
   const y = new Vector3().crossVectors(x, w); // up, in the view
-  const ty = Math.tan(((FOV_DEGREES * Math.PI) / 180) / 2) * (1 - EDGE_MARGIN);
+  const ty = Math.tan((FOV_DEGREES * RADIANS) / 2) * (1 - EDGE_MARGIN);
   const tx = ty * aspect;
   const points = framedPoints(p);
   const tightest = (axis: Vector3, t: number): { across: number; along: number } => {
@@ -82,4 +131,281 @@ export function fitSpectator(camera: PerspectiveCamera, aspect: number, p: Pitch
   camera.far = far + 50;
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
+}
+
+// --- Inside the pitch (L89) ---
+
+const PUSH_SLACK = 1e-9;
+
+/** A point moved inside the region the pitch's pieces bound (src/core/sim/pitch.ts: the walls, the cut
+ *  corners, the end walls beside and above each mouth, each goal's back, side and top netting, the floor
+ *  and the overhead net), by a margin: each piece's plane pushes it back to the margin on its inner side
+ *  where the point lies across the piece's face, in turn, until none does. The walls come before the
+ *  netting in the pieces' list, so a point behind an end wall goes back onto the pitch, and one behind a
+ *  goal's back or sides into the goal. Not the spike's box, whose x clamp of ±19.6 m put the camera in
+ *  front of a terrier standing in a goal. A point no piece brings inside, too far out for any face, is
+ *  clamped into the pitch's box with its cut corners. */
+export function insidePitch(v: Vector3, p: Pitch, margin: number): Vector3 {
+  for (let pass = 0; pass < PUSH_PASSES; pass++) {
+    let moved = false;
+    for (const q of p.pieces) {
+      if (q.kind === CAPSULE) continue;
+      const dx = v.x - q.ox;
+      const dy = v.y - q.oy;
+      const dz = v.z - q.oz;
+      const h = dx * q.nx + dy * q.ny + dz * q.nz;
+      if (h >= margin - PUSH_SLACK) continue;
+      if (q.kind === QUAD) {
+        const u = (dx * q.e1x + dy * q.e1y + dz * q.e1z) * q.inv1;
+        const w = (dx * q.e2x + dy * q.e2y + dz * q.e2z) * q.inv2;
+        if (u < 0 || u > 1 || w < 0 || w > 1) continue;
+      }
+      const push = margin - h;
+      v.x += push * q.nx;
+      v.y += push * q.ny;
+      v.z += push * q.nz;
+      moved = true;
+    }
+    if (!moved) break;
+  }
+  if (!insideRegion(p.shape, v.x, v.y, v.z, PUSH_SLACK)) intoBox(v, p, margin);
+  return v;
+}
+
+/** The fallback: v clamped into the pitch's box, its cut corners and under the net, by the margin. */
+function intoBox(v: Vector3, p: Pitch, margin: number): void {
+  const hx = p.goalLineX;
+  const hy = p.shape.widthMetres / 2;
+  v.x = Math.max(margin - hx, Math.min(hx - margin, v.x));
+  v.y = Math.max(margin - hy, Math.min(hy - margin, v.y));
+  // Each cut corner, (−x,−y), (+x,−y), (+x,+y), (−x,+y): sx·x + sy·y at most hx + hy − cut − margin·√2.
+  const corners: readonly [number, number][] = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  corners.forEach(([sx, sy], k) => {
+    const most = hx + hy - p.shape.cornerCutsMetres[k]! - margin * Math.SQRT2;
+    const over = sx * v.x + sy * v.y - most;
+    if (over > 0) {
+      v.x -= (sx * over) / 2;
+      v.y -= (sy * over) / 2;
+    }
+  });
+  v.z = Math.max(margin, Math.min(netHeight(p) - margin, v.z));
+}
+
+function netHeight(p: Pitch): number {
+  return p.pieces.find((q) => q.surface === NET)?.oz ?? p.shape.heightMetres;
+}
+
+/** A goal's roof: its top netting, as built. */
+function roofOf(p: Pitch, g: Goal): number {
+  for (const k of g.pieces) {
+    const q = p.pieces[k]!;
+    if (q.surface === GOAL_NET && q.nz < 0) return q.oz;
+  }
+  return g.mouthHeight;
+}
+
+/** The highest a camera may sit at (x, y): under the overhead net, or under the goal's roof inside a
+ *  goal, less the margin. */
+export function ceilingAt(p: Pitch, x: number, y: number, margin: number): number {
+  for (const g of p.goals) {
+    const behind = g.lineX < 0 ? x < g.lineX : x > g.lineX;
+    if (behind && Math.abs(y) < g.mouthWidth / 2) return roofOf(p, g) - margin;
+  }
+  return netHeight(p) - margin;
+}
+
+// --- Placement (D-28, §3.2) ---
+
+/** Where the camera goes for a frame. The vectors are placeCamera's to write. */
+export interface Placed {
+  readonly position: Vector3;
+  readonly lookAt: Vector3;
+  /** The view's up: square to the aim. */
+  readonly up: Vector3;
+  fovDegrees: number;
+  near: number;
+  far: number;
+  /** A player's camera risen toward the ceiling, nearer its terrier than cameraNearestMetres (§3.2). */
+  raised: boolean;
+}
+
+export function newPlaced(): Placed {
+  return { position: new Vector3(), lookAt: new Vector3(), up: new Vector3(0, 0, 1), fovDegrees: FOV_DEGREES, near: 1, far: FAR_METRES, raised: false };
+}
+
+const aim = new Vector3();
+const dir = new Vector3();
+const toSubject = new Vector3();
+const right = new Vector3();
+const overviewCamera = spectatorCamera();
+let overviewFor: { p: Pitch; aspect: number } | null = null;
+
+/** Where the camera goes for a frame (D-28, §3.2): a player's behind and above its terrier along the
+ *  yaw, moved inside the pitch's region, the goals included, by cameraWallMarginMetres (L89); raised in
+ *  the yaw's vertical plane toward ceilingAt when that leaves it nearer the terrier than
+ *  cameraNearestMetres, and aimed so the terrier stays in view; the spectators' high above the near
+ *  side, outside the walls; the overview M1's. A player's frame with no subject, its terrier not in the
+ *  drawn match, watches its target as a spectator would. */
+export function placeCamera(f: CameraFrame, p: Pitch, aspect: number, out: Placed): Placed {
+  const m = f.mode;
+  if (m.kind === 'overview') return placeOverview(p, aspect, out);
+  if (m.kind === 'player' && f.subject !== null) return placePlayer(f, m.view, f.subject, p, aspect, out);
+  return placeSpectator(f.target, p, aspect, out);
+}
+
+function placeOverview(p: Pitch, aspect: number, out: Placed): Placed {
+  if (overviewFor?.p !== p || overviewFor.aspect !== aspect) {
+    fitSpectator(overviewCamera, aspect, p);
+    overviewFor = { p, aspect };
+  }
+  out.position.copy(overviewCamera.position);
+  overviewCamera.getWorldDirection(out.lookAt).add(overviewCamera.position);
+  out.up.copy(UP);
+  out.fovDegrees = FOV_DEGREES;
+  out.near = overviewCamera.near;
+  out.far = overviewCamera.far;
+  out.raised = false;
+  return out;
+}
+
+type Point3 = { readonly x: number; readonly y: number; readonly z: number };
+
+function placePlayer(f: CameraFrame, view: ViewMode, s: Point3, p: Pitch, aspect: number, out: Placed): Placed {
+  const c = config;
+  const margin = c.cameraWallMarginMetres;
+  const cx = Math.cos(f.yaw);
+  const cy = Math.sin(f.yaw);
+  const floor = s.z - defaultParams.terrierRadius;
+  const pos = out.position.set(s.x - c.cameraBehindMetres * cx, s.y - c.cameraBehindMetres * cy, floor + c.cameraAboveMetres);
+  insidePitch(pos, p, margin);
+  const ceiling = ceilingAt(p, pos.x, pos.y, margin);
+  const near = Math.hypot(pos.x - s.x, pos.y - s.y);
+  out.raised = near < c.cameraNearestMetres;
+  if (out.raised) {
+    // Toward the ceiling, from nothing at cameraNearestMetres to all of it over the terrier, smoothly.
+    const t = 1 - near / c.cameraNearestMetres;
+    pos.z += Math.max(0, ceiling - pos.z) * t * t * (3 - 2 * t);
+  }
+  if (pos.z > ceiling) pos.z = ceiling;
+
+  if (view === 'ball') aim.set(f.target.x, f.target.y, f.target.z);
+  else aim.set(s.x + c.chaseLookAheadMetres * cx, s.y + c.chaseLookAheadMetres * cy, floor + c.terrierShoulderHeightMetres);
+  dir.subVectors(aim, pos);
+  if (dir.lengthSq() < 1e-12) dir.set(cx, cy, 0);
+  dir.normalize();
+  limitPitch(dir, cx, cy);
+  keepInView(dir, toSubject.set(s.x - pos.x, s.y - pos.y, s.z - pos.z), subjectCone(aspect));
+  out.lookAt.copy(pos).add(dir);
+  viewUp(dir, f.yaw, out.up);
+  out.fovDegrees = c.cameraFovDegrees;
+  out.near = PLAYER_NEAR_METRES;
+  out.far = FAR_METRES;
+  return out;
+}
+
+/** The half-angle round a player's aim its terrier is kept inside: SUBJECT_INSET of the smaller of the
+ *  view's half-fields at the aspect. */
+export function subjectCone(aspect: number): number {
+  const halfV = (config.cameraFovDegrees * RADIANS) / 2;
+  return Math.min(halfV, Math.atan(Math.tan(halfV) * aspect)) * SUBJECT_INSET;
+}
+
+/** The aim's pitch held within ±60° of the horizontal, along its own heading, or the yaw's if vertical. */
+function limitPitch(d: Vector3, cx: number, cy: number): void {
+  const most = Math.sin(AIM_PITCH_LIMIT_DEGREES * RADIANS);
+  if (Math.abs(d.z) <= most) return;
+  const across = Math.hypot(d.x, d.y);
+  const hx = across > 1e-9 ? d.x / across : cx;
+  const hy = across > 1e-9 ? d.y / across : cy;
+  const level = Math.cos(AIM_PITCH_LIMIT_DEGREES * RADIANS);
+  d.set(hx * level, hy * level, Math.sign(d.z) * most);
+}
+
+/** The aim d turned toward the subject, the shortest way, until the subject is within `limit` of it. */
+function keepInView(d: Vector3, to: Vector3, limit: number): void {
+  const length = to.length();
+  if (length < 1e-9) return;
+  to.divideScalar(length);
+  const theta = Math.acos(Math.max(-1, Math.min(1, d.dot(to))));
+  if (theta <= limit) return;
+  const sinTheta = Math.sin(theta);
+  if (sinTheta < 1e-9) {
+    d.copy(to);
+    return;
+  }
+  const turn = theta - limit;
+  const a = Math.sin(theta - turn) / sinTheta;
+  const b = Math.sin(turn) / sinTheta;
+  d.multiplyScalar(a).addScaledVector(to, b).normalize();
+}
+
+/** The view's up for the unit aim d: square to it, from the aim's right in plan, or from the yaw's right
+ *  when the aim is steep, so a camera looking down at its terrier keeps the yaw's way up the screen, and
+ *  one looking straight down still has an up. */
+export function viewUp(d: Vector3, yaw: number, out: Vector3): Vector3 {
+  const cx = Math.cos(yaw);
+  const cy = Math.sin(yaw);
+  if (Math.abs(d.z) < Math.sin(STEEP_DEGREES * RADIANS)) right.crossVectors(d, UP);
+  else right.set(cy, -cx, 0).addScaledVector(d, -(cy * d.x - cx * d.y));
+  if (right.lengthSq() < 1e-12) right.crossVectors(d, UP);
+  right.normalize();
+  return out.crossVectors(right, d).normalize();
+}
+
+function placeSpectator(t: Point3, p: Pitch, aspect: number, out: Placed): Placed {
+  const el = ELEVATION_DEGREES * RADIANS;
+  const ce = Math.cos(el);
+  const se = Math.sin(el);
+  const margin = config.cameraWallMarginMetres;
+  const limit = spectatorCentreLimit(p);
+  const hy = p.shape.widthMetres / 2;
+  const height = netHeight(p);
+  const ax = Math.max(-limit, Math.min(limit, t.x));
+  const ay = Math.max(-hy, Math.min(hy, t.y));
+  const az = Math.max(0, Math.min(height, t.z));
+  const across = Math.tan((FOV_DEGREES * RADIANS) / 2) * (1 - EDGE_MARGIN) * aspect;
+  // Near enough to frame the window across the view, but outside the near wall and above the net.
+  let d = config.spectatorViewLengthMetres / 2 / across;
+  d = Math.max(d, (ay + hy + margin) / ce, (height + margin - az) / se);
+  out.position.set(ax, ay - d * ce, az + d * se);
+  out.lookAt.set(ax, ay, az);
+  out.up.copy(UP);
+  out.fovDegrees = FOV_DEGREES;
+  out.near = SPECTATOR_NEAR_METRES;
+  out.far = FAR_METRES;
+  out.raised = false;
+  return out;
+}
+
+// --- Projections, for the DOM overlay (§3.3, M4-Q10) ---
+
+const viewPoint = new Vector3();
+
+/** Where a point shows on a camera's canvas, in CSS px from its top left, and whether it's in view: in
+ *  front of the camera and inside 95% of the view's half-width and half-height. `angle` is the way to
+ *  the point from the canvas's centre, for the off-screen arrow (D-28): radians clockwise from the
+ *  canvas's right, as CSS's rotate() turns, y down. A point behind the camera is put on the canvas's edge
+ *  the way it lies round the view, straight behind pointing down. The camera's matrices are current. */
+export function project(camera: PerspectiveCamera, x: number, y: number, z: number, cssWidth: number, cssHeight: number): ScreenPoint {
+  const v = viewPoint.set(x, y, z).applyMatrix4(camera.matrixWorldInverse);
+  const halfW = cssWidth / 2;
+  const halfH = cssHeight / 2;
+  if (v.z < -camera.near) {
+    v.applyMatrix4(camera.projectionMatrix);
+    const dx = v.x * halfW;
+    const dy = -v.y * halfH;
+    return {
+      x: halfW + dx, y: halfH + dy,
+      inView: Math.abs(v.x) <= IN_VIEW && Math.abs(v.y) <= IN_VIEW,
+      angle: Math.atan2(dy, dx),
+    };
+  }
+  let dx = v.x;
+  let dy = -v.y;
+  if (dx * dx + dy * dy < 1e-12) {
+    dx = 0;
+    dy = 1;
+  }
+  const reach = Math.min(dx === 0 ? Infinity : halfW / Math.abs(dx), dy === 0 ? Infinity : halfH / Math.abs(dy));
+  return { x: halfW + dx * reach, y: halfH + dy * reach, inView: false, angle: Math.atan2(dy, dx) };
 }
