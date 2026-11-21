@@ -152,3 +152,5 @@ vite.config.ts.timestamp-*
 test-results/
 playwright-report/
 .wrangler/
+# npm run play's copy of the build, served on its own port (M4's design, M4-Q40)
+dist-play/

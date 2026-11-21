@@ -5,12 +5,14 @@
   "description": "Two packs of terriers corral a giant rubber ball into goals: a browser-based, peer-to-peer multiplayer game",
   "license": "UNLICENSED",
   "type": "module",
+  "sideEffects": false,
   "engines": {
     "node": ">=22.12"
   },
   "scripts": {
     "dev": "vite",
     "dev:local": "node scripts/dev-local.mjs",
+    "play": "vite build --outDir dist-play && vite preview --outDir dist-play --port 4340 --strictPort",
     "lint": "eslint .",
     "public-scan": "node scripts/public-scan.mjs",
     "typecheck": "tsc --noEmit",

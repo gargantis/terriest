@@ -18,10 +18,15 @@
         font: 0.9em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         background: #2f4232; padding: 0.1em 0.3em; border-radius: 3px; overflow-wrap: anywhere;
       }
-      /* The pitch fills the window (D-30), shown once the app has started:
-         until then its landmark is hidden, from assistive technology too. */
-      #pitch canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
-      html:not([data-boot="started"]) #pitch { visibility: hidden; }
+      /* The app's landmark, <main id="app">, which src/main.ts makes on the normal
+         page only (M4-Q1), is hidden until the app has started, from assistive
+         technology too. The stage's canvas fills the window (D-30), its box shown
+         only on Pre-match and Match (M4-Q9), and there the screen covers the
+         canvas's box exactly, so the marks placed in CSS px from the canvas's top
+         left land on it; every other screen is in the page's flow. */
+      html:not([data-boot="started"]) #app { visibility: hidden; }
+      #stage canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+      #app.pitch #screen { position: fixed; inset: 0; }
     </style>
   </head>
   <body>

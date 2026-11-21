@@ -5,9 +5,8 @@
 // theirs, so the drawing budget's triangle counts don't depend on the
 // setting. The caps are src/config.ts's; the detail is the look's, drawing
 // constants that no one tunes. From M4 the quality is the stored setting's
-// (D-33, M4-Q4); until phase 1c moves the page onto the screens, M1's page
-// still takes it from the URL: ?quality=low or ?quality=high, high by
-// default.
+// (D-33, M4-Q4), which src/main.ts hands the stage and Home's Settings
+// changes: M1's ?quality= is gone.
 
 import { config, type RenderQuality } from '../config';
 
@@ -32,13 +31,6 @@ const DETAIL = {
   high: { ropeSpacingMetres: 1, nettingSpacingMetres: 0.25, anisotropyMax: 8, dustPuffs: 64, ballWidthSegments: 40, ballHeightSegments: 28 },
   low: { ropeSpacingMetres: 2, nettingSpacingMetres: 0.5, anisotropyMax: 1, dustPuffs: 32, ballWidthSegments: 24, ballHeightSegments: 16 },
 } as const;
-
-/** The quality a page's query string asks for: `quality=low` or `quality=high`, else the default. Phase
- *  1c removes it, when the stored setting takes over (M4-Q4). */
-export function qualityFrom(search: string): RenderQuality {
-  const asked = new URLSearchParams(search).get('quality');
-  return asked === 'low' || asked === 'high' ? asked : config.renderQualityDefault;
-}
 
 export function qualityDetail(quality: RenderQuality): QualityDetail {
   return { quality, ...config.renderQuality[quality], ...DETAIL[quality] };

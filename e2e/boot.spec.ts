@@ -3,7 +3,10 @@
 // the main landmark, focused, the app's canvas never made, and axe. All
 // four run in every engine, because the engines differ here: on file://,
 // Chromium and WebKit refuse the module script, while Firefox runs it,
-// and it must then do nothing. Each first asserts that the engine has
+// and it must then do nothing. From M4 the insecure context's page is
+// answered by mountDist with the strict server's content types (M4's design
+// §9.3), and the file:// refusals allowed are the engines' own for the
+// module and any chunk it imports statically. Each first asserts that the engine has
 // WebGL 2 (C-6), so a run without a display fails here at once, and the
 // test that switches WebGL 2 off shows the switch did it, not the engine.
 
@@ -11,7 +14,7 @@ import type { Browser, Page } from '@playwright/test';
 import { pathToFileURL } from 'node:url';
 import { CHROMIUM_GL_ARGS } from './lib/gl';
 import { expect, expectEverywhere, expectWebGL2, test, watchPage } from './lib/guards';
-import { expectBootMessage, moduleScript, mountDist } from './lib/page';
+import { expectBootMessage, moduleScript, moduleScripts, mountDist } from './lib/page';
 import { DIST } from './lib/serve.mjs';
 
 const escaped = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -74,12 +77,12 @@ test('in an insecure context, the page says to use https or localhost', async ({
 
 test('opened as a file, the page says how to serve it', async ({ page, guard, browserName }) => {
   const dir = `${pathToFileURL(DIST).href}/`;
-  const module = escaped(new URL(await moduleScript(), dir).href);
+  const scripts = (await moduleScripts()).map((s) => escaped(new URL(s, dir).href));
   guard.allowed = [dir];
-  // The engines' own errors as they refuse the module from file://.
+  // The engines' own errors as they refuse the module, and any chunk it imports statically, from file://.
   guard.allowedErrors = {
     chromium: [
-      new RegExp(`Access to script at '${module}' from origin 'null' has been blocked by CORS policy: .*`),
+      new RegExp(`Access to script at '(?:${scripts.join('|')})' from origin 'null' has been blocked by CORS policy: .*`),
       /Failed to load resource: net::ERR_FAILED/,
     ],
     firefox: [],

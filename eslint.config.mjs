@@ -1,5 +1,7 @@
 // PLAN D-38's lint boundaries, on hermet's shared base (D-37), which also
-// keeps research/ out: the M0 spike lints itself (D-36).
+// keeps research/ out: the M0 spike lints itself (D-36), and, beside the
+// base's dist/, npm run play's built copy, dist-play/ (M4's design §1.55,
+// M4-Q40).
 //
 // One list per file group: in a flat config, a later object's options for a
 // rule replace an earlier one's for every file both match, so bans in
@@ -320,7 +322,7 @@ const coreLanguage = { globals: readonly(CORE_ALLOWED) };
 const SRC_NOT_TS = ['src/**/*.{tsx,mts,cts,js,jsx,mjs,cjs}'];
 
 export default defineConfig(
-  ...baseConfig(),
+  ...baseConfig({ ignores: ['dist-play/**'] }),
   {
     // The TypeScript parser for every script in src and dev, whatever its extension.
     files: [...SRC, ...DEV],

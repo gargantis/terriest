@@ -1,7 +1,7 @@
 # terriest
 Rocket League with terriers: two packs of small dogs corral a giant rubber ball into goals. Terri. Terrier. Terriest.
 
-**Status:** in development, and nothing is playable yet. [REQUIREMENTS.md](REQUIREMENTS.md) says what the game must do; [PLAN.md](PLAN.md) says how, and lists the milestones. Numbers such as Q-5 or C-14 below are the plan's. Done so far: M0, the physics and rendering spike ([research/spike/REPORT.md](research/spike/REPORT.md)); M1, the skeleton and its test gate, with a page that draws an empty pitch; M2, the deterministic simulation, its goldens, the bot brain and the tuning page, all running offline; and M3, the rollback timeline, the protocol, matches between browsers over Trystero with consensus, bots hosted in them, and Practice, with the correction measurement ([research/corrections/REPORT.md](research/corrections/REPORT.md)). Until M4's screens, a match plays only between scripted pages, through the network test page (below). Next: M4, the drawing, input, screens and sound. [docs/acceptance.md](docs/acceptance.md) holds the acceptance criteria and the log of runs the gate doesn't make.
+**Status:** in development. Practice against the bots is playable on the keyboard (Play, below), and matches with others aren't yet. [REQUIREMENTS.md](REQUIREMENTS.md) says what the game must do; [PLAN.md](PLAN.md) says how, and lists the milestones. Numbers such as Q-5 or C-14 below are the plan's. Done so far: M0, the physics and rendering spike ([research/spike/REPORT.md](research/spike/REPORT.md)); M1, the skeleton and its test gate, with a page that draws an empty pitch; M2, the deterministic simulation, its goldens, the bot brain and the tuning page, all running offline; and M3, the rollback timeline, the protocol, matches between browsers over Trystero with consensus, bots hosted in them, and Practice, with the correction measurement ([research/corrections/REPORT.md](research/corrections/REPORT.md)). Under way: M4, the drawing, input, screens and sound. Its first phase is in: Practice through the screens, drawn in 3D with code-built terriers, on the keyboard. Until its networked screens, a match with others plays only between scripted pages, through the network test page (below). [docs/acceptance.md](docs/acceptance.md) holds the acceptance criteria and the log of runs the gate doesn't make.
 
 ## Run
 
@@ -19,7 +19,22 @@ In a clone made without `--recurse-submodules`, fetch it once before building:
 git submodule update --init
 ```
 
-Without it, `npm run build` and `npm run check` stop at once and name that command. The dev server is `npm run dev`, at http://localhost:5173/. Until Settings arrive at M4, the address picks the render quality: `?quality=low` or `?quality=high`, high by default (D-33). `npm run dev:local` is the dev server with hermet's local Nostr relay beside it, so browsers on this machine can play each other through the network test page without a public relay (below).
+Without it, `npm run build` and `npm run check` stop at once and name that command. The dev server is `npm run dev`, at http://localhost:5173/; it reloads the page when a file changes, as when another session edits the checkout. `npm run dev:local` is the dev server with hermet's local Nostr relay beside it, so browsers on this machine can play each other through the network test page without a public relay (below).
+
+### Play
+
+```sh
+npm run play   # builds the checkout into dist-play/ and serves it at http://localhost:4340/
+```
+
+It builds the checkout as it stands into `dist-play/`, which git ignores, and serves that copy on a port of its own, 4340, so a later edit or branch switch doesn't reload the match under you, and the gate's server, on 4339, isn't blocked by it (M4-Q40). On WSL2, open http://localhost:4340/ in Chrome, Edge or Firefox on Windows. Stop it with Ctrl+C.
+
+On Home, press **Practice**, pick 1 to 4 a side and a length, and **Start**. You play in the blue pack, and bots take every other place. Warm up, then press **Ready**, which has the focus, so Enter presses it; the bots are always ready, so a 5 s countdown starts, and then the match. The keys:
+- **W, A, S and D** run, relative to the screen; **Shift**, either, is zoomies while the meter lasts;
+- **Space** jumps, **E** pounces, **Q** barks, and **C** switches between ball view, where W runs at the ball, and chase view, behind your terrier;
+- **Escape** opens the menu, which pauses Practice: Resume, or Escape again, carries on, and Leave goes Home.
+
+Home's **Settings** holds the render quality: high, the default, or low, for a slower device (D-33). It applies at once, and the browser keeps it, with your name and coat. On Windows, Shift pressed five times opens the Sticky Keys prompt, which takes the focus and stops your terrier: [Windows: the Sticky Keys shortcut](#windows-the-sticky-keys-shortcut), below, says how to turn it off. Sound, a gamepad, touch and matches with others come in M4's next phase.
 
 ## Test
 
@@ -29,6 +44,13 @@ npm run check
 ```
 
 `npm run check` is the gate, and the definition of done. It runs before each merge to main, at each milestone's exit and before a deploy; a commit on a session branch runs `npm run check:commit`, the gate's lint, public-scan, typecheck and unit tests, and the end-to-end specs it adds or changes (PLAN Q-18). In order, it runs ESLint, with the plan's import and purity boundaries (D-38); public-scan; the typecheck; the unit tests, hermet's included; the build; and the end-to-end tests against the built page in headless Chromium, Firefox and WebKit. A page that requests anything outside the local servers its test names fails the test, so the gate contacts no public host: the networked tests use hermet's local Nostr relay on 127.0.0.1. At M3 it takes about 9 minutes on the development machine, and longer while the machine is busy: most of its unit tests' time is whole matches, the bots' and the network simulator's, played in virtual time, and one end-to-end test plays a whole networked match. It grows again at M4, whose end-to-end tests play matches through the screens (Q-18), and `docs/acceptance.md` logs its wall time at each milestone's exit.
+
+Every end-to-end run starts `vite preview` on port 4339 and reads the one `dist/`, which a build rewrites. So when several sessions share the checkout, each build and each Playwright run, the gate's included, goes one at a time under one machine-wide lock, a build in the same locked command as the runs that read its `dist/`:
+
+```sh
+flock /tmp/terriest-e2e.lock npm run check
+flock /tmp/terriest-e2e.lock sh -c 'npm run build && npx playwright test e2e/smoke.spec.ts'
+```
 
 At M3 there are 20 end-to-end tests in each engine, and one more that runs once: `e2e/boot.spec.ts`, the boot page's four failure messages (D-30); `e2e/determinism.spec.ts`, the golden runs replayed through the built page (below); `e2e/pitch.spec.ts`, the empty pitch, its size, its render quality, what assistive technology reads of the started page, and its frame rate, which is reported, never judged; `e2e/smoke.spec.ts`, the page served by `vite preview`, under `dist/_headers`, and from a subpath; `e2e/nettest.spec.ts`, the network test page's edges: a normal page loads no test page and no Trystero, a refused address contacts nothing, and the page carries the build hash of the sources it was built from; and `e2e/practice-net.spec.ts`, Practice played to the bot's first confirmed goal with no peer connection, WebSocket or outside request, in Chromium only, so it's skipped in the other two. `e2e/match.net.spec.ts` runs once, in the `net` project: a scripted 1-minute match through the network test page between Chromium, Firefox and WebKit over the local relay, a fourth page joining as a spectator and WebKit's reloading mid-match, to one confirmed end on all four. `npm run e2e` runs them alone, against the last build.
 
@@ -194,7 +216,7 @@ No accounts, analytics or tracking.
 | Your own TURN server, if you add one in Settings, from M4 | relaying between browsers that can't connect directly | your IP address and traffic volume |
 | The other browsers in the match | the game | your IP address, player ID, name, coat and inputs; your build's hash, your role and the timeline you hold (its ID, kind, tick and hash); and which other players your browser is connected to |
 
-- **Practice** contacts no one: no relay, STUN server or other browser (P10), which `e2e/practice-net.spec.ts` checks. At M3 it plays through the network test page, with `mode=practice`.
+- **Practice** contacts no one: no relay, STUN server or other browser (P10), which `e2e/practice-net.spec.ts` checks through the network test page, with `mode=practice`. From M4 it plays through the screens, and sets no `#join=` fragment, so a reload goes Home and contacts no one either.
 - **Hosting:** once deployed, Cloudflare serves terriest.com. It sees each HTTP request, never the `#join=` fragment, and request logs are off.
 
 ## Licence
@@ -209,6 +231,6 @@ None. All rights reserved: this repository is public so it can be read, but no l
 
 ## Windows: the Sticky Keys shortcut
 
-Shift will be zoomies (from M4). On Windows, pressing Shift five times opens the Sticky Keys prompt. The prompt takes focus, so every key is released and your terrier stops until you dismiss it (C-52). To turn the shortcut off:
+Shift is zoomies. On Windows, pressing Shift five times opens the Sticky Keys prompt. The prompt takes focus, so every key is released and your terrier stops until you dismiss it (C-52). To turn the shortcut off:
 - **Windows 11:** Settings > Accessibility > Keyboard > Sticky keys, then turn off **Keyboard shortcut for Sticky keys**.
 - **Windows 10:** Settings > Ease of Access > Keyboard, then clear **Allow the shortcut key to start Sticky Keys**.

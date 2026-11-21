@@ -1,26 +1,72 @@
-// What the specs that load the page share (PLAN §16, D-30): the test hook,
-// set before load (window.terriestTest, which never changes what a normal
-// page does); waiting for the app to start; a boot failure's message,
-// checked with axe; and the built page answered from dist/ by request
-// interception, at an address no server here answers: an insecure host,
-// or a subpath of the preview's origin (§16).
+// What the specs that load the page share (PLAN §16, D-30; M4's design,
+// research/m4/DESIGN.md, §1.62, §9.1): the test hook, set before load
+// (window.terriestTest, which never changes what a normal page does but by
+// the fields the plan allows); the storage a player would have, seeded once
+// per context and only where absent (M4-Q4); the gate's small viewport;
+// waiting for the app to start, and for a screen; Practice opened through
+// the real screens; a key held and let go by the hook's state, polled every
+// 50 ms, never on animation frames (C-6); the leave prompt accepted; a boot
+// failure's message, checked with axe; and the built page answered from
+// dist/ by request interception, at an address no server here answers: an
+// insecure host, or a subpath of the preview's origin (§16).
 
 import AxeBuilder from '@axe-core/playwright';
 import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { extname, join, normalize, posix } from 'node:path';
 import type { Page } from '@playwright/test';
-import type { Inspection } from '../../src/main';
+import type { Inspection, TerriestTest } from '../../src/main';
+import { DEFAULT_SETTINGS, type Profile, PROFILE_KEY, SETTINGS_KEY, type StoredSettings } from '../../src/storage/schema';
+import type { HudInspection, OverlayInspection, ScreenName } from '../../src/ui/inspect';
 import { expect } from './guards';
 import { DIST, headersFor, parseHeadersFile } from './serve.mjs';
 
 /** The boot failures' codes (D-30): file://, insecure context, no WebGL 2, the load timeout. */
 export type BootCode = 'F' | 'S' | 'W' | 'L';
 
-/** Sets window.terriestTest before the page's scripts run; the page adds inspect() once it has started. */
-export async function installHook(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    window.terriestTest = {};
-  });
+/** The gate's window for every spec that plays (C-6, §9.1): a real window's size, a quarter of
+ *  Playwright's 1280 × 720 to fill in software GL. */
+export const smallViewport = { width: 640, height: 360 } as const;
+
+/** How often the specs read the hook: never on animation frames (C-6, §9.1). */
+export const POLL_MS = 50;
+
+/** The fields a spec may set on the hook before load (CLAUDE.md's test hook): modelUrl (D-27), and from
+ *  phase 2 relay and ice (M4-Q3). */
+export type HookFields = Pick<TerriestTest, 'modelUrl' | 'relay' | 'ice'>;
+
+/** Sets window.terriestTest before the page's scripts run, with any fields the plan allows; the page adds
+ *  inspect() and hashAt() once it has started. */
+export async function installHook(page: Page, fields: HookFields = {}): Promise<void> {
+  await page.addInitScript((f) => {
+    window.terriestTest = { ...f };
+  }, fields);
+}
+
+/** What a spec seeds: a profile's fields over a fresh one's, and settings over the defaults. */
+export interface Seed {
+  readonly profile?: Partial<Profile> & Pick<Profile, 'playerId'>;
+  readonly settings?: Partial<StoredSettings>;
+}
+
+/** A.3's records written before the page's scripts run, each only while its key is absent, so a reload
+ *  reads what the page stored and never the seed again, as a player's own stored choices would be
+ *  (§1.62, M4-Q4): the gate's low quality, and a fixed player ID, so a setup's bots are the validated
+ *  ones (§6). Once per context: localStorage is the origin's. */
+export async function seedStorage(page: Page, seed: Seed): Promise<void> {
+  const records: [string, string][] = [];
+  if (seed.profile) {
+    const p: Profile = { v: 1, name: '', coat: 0, hints: { keyboard: 0, touch: 0, gamepad: 0 }, ...seed.profile };
+    records.push([PROFILE_KEY, JSON.stringify(p)]);
+  }
+  if (seed.settings) records.push([SETTINGS_KEY, JSON.stringify({ ...DEFAULT_SETTINGS, ...seed.settings, v: 1 })]);
+  await page.addInitScript((all) => {
+    try {
+      for (const [key, value] of all) if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
+    } catch {
+      // Storage blocked: the page plays from memory, as a player's would (PLAN §10).
+    }
+  }, records);
 }
 
 /** What the page reports through the hook. */
@@ -32,10 +78,103 @@ export function inspect(page: Page): Promise<Inspection> {
   });
 }
 
-/** Waits for the app to start: its first frame drawn, and boot.js's message gone. Software GL compiles slowly. */
+/** The pitch screen's layers as the hook reports them, by name (§1.40): null off the pitch screens. */
+export const hudOf = (i: Inspection): HudInspection | null => (i.layers['hud'] as HudInspection | undefined) ?? null;
+export const overlayOf = (i: Inspection): OverlayInspection | null => (i.layers['overlay'] as OverlayInspection | undefined) ?? null;
+export const menuOf = (i: Inspection): { readonly shown: boolean; readonly buttons: readonly string[] } | null =>
+  (i.layers['menu'] as { shown: boolean; buttons: string[] } | undefined) ?? null;
+
+/** The held timeline's final hash at t, '' if not held (P1, P2). */
+export function hashAt(page: Page, t: number): Promise<string> {
+  return page.evaluate((tick) => window.terriestTest?.hashAt?.(tick) ?? '', t);
+}
+
+/** Polls the hook every 50 ms until `until` holds of it, and returns that inspection; on a timeout, fails
+ *  with `what` and the match's figures, never waiting on animation frames (§9.1). */
+export async function waitForInspection(page: Page, until: (i: Inspection) => boolean, o: { what: string; timeoutMs?: number }): Promise<Inspection> {
+  const deadline = Date.now() + (o.timeoutMs ?? 30_000);
+  let last = await inspect(page);
+  while (!until(last)) {
+    if (Date.now() > deadline) {
+      const m = last.match;
+      const at = m === null ? 'no match' : `tick ${m.localTick}, phase ${m.phase}, score ${m.score.join('–')}, clock ${m.clock}, timer ${JSON.stringify(m.timer)}`;
+      throw new Error(`${o.what}: not reached within ${o.timeoutMs ?? 30_000} ms (screen ${last.screen}, ${at})`);
+    }
+    await page.waitForTimeout(POLL_MS);
+    last = await inspect(page);
+  }
+  return last;
+}
+
+/** Waits for the hook to report a screen. */
+export function waitForScreen(page: Page, name: ScreenName, timeoutMs = 30_000): Promise<Inspection> {
+  return waitForInspection(page, (i) => i.screen === name, { what: `the ${name} screen`, timeoutMs });
+}
+
+/** Waits for the app to start: boot.js's message gone, the first screen shown. Software GL compiles slowly,
+ *  but the compile comes after the start now (M4-Q38). */
 export async function expectStarted(page: Page): Promise<void> {
   await expect(page.locator('html')).toHaveAttribute('data-boot', 'started', { timeout: 30_000 });
   await expect(page.locator('#fallback')).toHaveCount(0);
+}
+
+/**
+ * From Home through Practice's setup to its Pre-match, by keys on the real screens: Practice focused and
+ * Enter pressed, the pack size and the length chosen, Start focused and Enter pressed, the browser's own
+ * activation on those screens (§4.9). Returns Pre-match's first inspection.
+ */
+export async function openPractice(page: Page, o: { packSize: number; minutes: number }): Promise<Inspection> {
+  await waitForScreen(page, 'home');
+  const practice = page.locator('[data-test="practice"]');
+  await practice.focus();
+  await page.keyboard.press('Enter');
+  await waitForScreen(page, 'practice');
+  await page.locator('[data-test="pack-size"]').selectOption(String(o.packSize));
+  await page.locator('[data-test="match-length"]').selectOption(String(o.minutes));
+  await page.locator('[data-test="start"]').focus();
+  await page.keyboard.press('Enter');
+  return waitForScreen(page, 'prematch');
+}
+
+/** Every dialog accepted, the leave prompt among them (§5.11): a spec that reloads or leaves a match. */
+export function acceptLeavePrompt(page: Page): void {
+  page.on('dialog', (d) => void d.accept());
+}
+
+/** A key held down, by its code (KeyA, Space, ShiftLeft …), until released. */
+export interface HeldKey {
+  readonly code: string;
+  /** The inspection read just after the key went down. */
+  readonly at: Inspection;
+  release(): Promise<Inspection>;
+}
+
+/** Presses `code` down and keeps it held, as a player's finger does: no repeats. */
+export async function holdKey(page: Page, code: string): Promise<HeldKey> {
+  await page.keyboard.down(code);
+  const at = await inspect(page);
+  let released = false;
+  return {
+    code,
+    at,
+    release: async () => {
+      if (!released) {
+        released = true;
+        await page.keyboard.up(code);
+      }
+      return inspect(page);
+    },
+  };
+}
+
+/** Lets go of a held key at the first poll whose inspection satisfies `until`, polled every 50 ms;
+ *  returns the inspection that released it. */
+export async function releaseWhen(page: Page, held: HeldKey, until: (i: Inspection) => boolean, o: { what: string; timeoutMs?: number }): Promise<Inspection> {
+  try {
+    return await waitForInspection(page, until, o);
+  } finally {
+    await held.release();
+  }
 }
 
 /**
@@ -66,10 +205,41 @@ export async function moduleScript(): Promise<string> {
   return src;
 }
 
+/** The page's module and every chunk it imports statically, transitively, each as dist/ names it
+ *  ('./assets/…'): the scripts a normal page loads, which its dynamic imports never add to (§9.3). */
+export async function moduleScripts(): Promise<string[]> {
+  const first = posix.normalize(await moduleScript());
+  const seen = new Set<string>([first]);
+  const queue = [first];
+  for (let path = queue.shift(); path !== undefined; path = queue.shift()) {
+    const text = readFileSync(join(DIST, path), 'utf8');
+    // A bundle's static imports and re-exports, `import … from "./x.js"` and `export … from "./x.js"`;
+    // an import("./x.js") is dynamic, and left out.
+    for (const m of text.matchAll(/(?:^|[;}\s])(?:import|export)\s*(?:[\w*{}\s,$]+\s*from\s*)?["']([^"']+\.js)["']/g)) {
+      const next = posix.normalize(posix.join(posix.dirname(path), m[1]!));
+      if (!seen.has(next)) {
+        seen.add(next);
+        queue.push(next);
+      }
+    }
+  }
+  return [...seen].map((p) => (p.startsWith('.') ? p : `./${p}`));
+}
+
+/** e2e/lib/serve.mjs's content types, so the interception serves each file as the strict server does: a
+ *  stylesheet as text/css, never application/octet-stream under nosniff (§1.62). Keep the two in step. */
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json',
   '.txt': 'text/plain; charset=utf-8',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+  '.glb': 'model/gltf-binary',
 };
 
 /**

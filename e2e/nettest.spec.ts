@@ -1,9 +1,11 @@
 // The #test=net page's edges, in each engine (M3's design §1.35, §6.7,
 // §8.4, R-15; PLAN §16):
-// - a normal page loads neither test page's chunk, nor the chunk the two
-//   share, nor Trystero's, has no window.terriestTest without a spec's hook
-//   and no window.terriestTest.net with it, and its module holds no
-//   Trystero code;
+// - a normal page loads neither test page's chunk, nor a chunk the two
+//   share, nor Trystero's: its scripts are boot.js, its module and the
+//   chunks that imports statically, none of them a test page's (M4's design
+//   §9.3); it has no window.terriestTest without a spec's hook, and with it
+//   inspect() and hashAt() but no net; and its module holds no Trystero
+//   code;
 // - #test=net without a relay, with a malformed room, or with a wss: relay
 //   third-party.json doesn't list shows its message and starts, and
 //   contacts nothing: the guard allows only the preview's own origin, and
@@ -22,7 +24,7 @@ import { config } from '../src/config';
 import { buildHash } from '../src/core/session/build';
 import { freshRoom, report } from './lib/browsers';
 import { expect, expectWebGL2, test } from './lib/guards';
-import { expectStarted, installHook, moduleScript } from './lib/page';
+import { expectStarted, installHook, moduleScript, moduleScripts } from './lib/page';
 import { DIST } from './lib/serve.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -46,28 +48,31 @@ async function expectNetPage(page: Page): Promise<void> {
 }
 
 test('a normal page loads no test page and no Trystero, and has no net hook', async ({ page, guard, baseURL }) => {
-  await page.goto('./?quality=low');
+  await page.goto('./');
   await expectStarted(page);
-  await expect(page.getByRole('main')).toHaveAttribute('id', 'pitch');
+  await expect(page.getByRole('main')).toHaveAttribute('id', 'app');
   expect(await page.evaluate(() => window.terriestTest === undefined), 'window.terriestTest without a spec').toBe(true);
-  // With a spec's hook, the normal page adds inspect() alone (CLAUDE.md's test hook).
+  // With a spec's hook, the normal page adds inspect() and hashAt(), and no net (CLAUDE.md's test hook).
   await installHook(page);
   await page.reload();
   await expectStarted(page);
-  expect(await page.evaluate(() => [typeof window.terriestTest?.inspect, typeof window.terriestTest?.net])).toEqual(['function', 'undefined']);
-  // Its scripts are boot.js and its own module, both times: no test page's chunk, no chunk the two
-  // share and no Trystero (R-15, L238).
+  const hook = await page.evaluate(() => [typeof window.terriestTest?.inspect, typeof window.terriestTest?.hashAt, typeof window.terriestTest?.net]);
+  expect(hook).toEqual(['function', 'function', 'undefined']);
+  // Its scripts are boot.js, its module and the chunks that imports statically, both times: no test
+  // page's chunk, no chunk the two share and no Trystero (R-15, L238).
   const module = await moduleScript();
-  const own = [new URL('boot.js', baseURL).href, new URL(module, baseURL).href].sort();
+  const statics = await moduleScripts();
+  const own = [new URL('boot.js', baseURL).href, ...statics.map((s) => new URL(s, baseURL).href)].sort();
   const scripts = [...new Set(guard.requests.filter((u) => new URL(u).pathname.endsWith('.js')))].sort();
   expect(scripts, "the normal page's scripts").toEqual(own);
+  for (const s of statics) expect(s, "a chunk the normal page imports statically").not.toMatch(/\/(nettest|determinism|trystero|golden)-[\w-]+\.js$/);
   // The build has the chunks the normal page leaves alone, and its module holds no Trystero code,
   // which the Trystero chunk shows the marker finds.
   expect(chunks('nettest'), 'the net page chunk').toHaveLength(1);
   const trystero = chunks('trystero');
   expect(trystero, 'the Trystero chunk').toHaveLength(1);
   expect(readFileSync(join(DIST, 'assets', trystero[0]!), 'utf8')).toContain(TRYSTERO_CODE);
-  expect(readFileSync(join(DIST, module), 'utf8').includes(TRYSTERO_CODE), "Trystero's code in the page's module").toBe(false);
+  for (const s of [module, ...statics]) expect(readFileSync(join(DIST, s), 'utf8').includes(TRYSTERO_CODE), `Trystero's code in ${s}`).toBe(false);
 });
 
 // Each refusal with the start of parseNetParams' words for it in a production build, which `vite

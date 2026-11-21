@@ -5,7 +5,10 @@
 // suite in the unit stage (golden.test.ts), here and on CI's arm64. The
 // page draws nothing: it makes no canvas, so WebGL is asserted only as
 // every spec's first step (C-6). And a normal page never loads its chunk,
-// which the built page's own module never holds.
+// which the built page's own module never holds: from M4 that page is the
+// app's, its landmark #app, its stage's canvas in #stage (M4-Q1), and its
+// module holds the simulation Practice plays, but still none of the goldens'
+// runs (M2's design §7.5, M4-Q5); phase 2 adds the canary's hash alone.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -48,11 +51,11 @@ test('the production bundle replays every golden run and the canary as Node did'
   await expect(page.locator('canvas')).toHaveCount(0);
 });
 
-test('a normal page has no determinism page: no chunk, no report, and its pitch', async ({ page, guard }) => {
-  await page.goto('./?quality=low');
+test("a normal page has no determinism page: no chunk, no report, and the app's landmark", async ({ page, guard }) => {
+  await page.goto('./');
   await expectStarted(page);
-  await expect(page.getByRole('main')).toHaveAttribute('id', 'pitch');
-  await expect(page.locator('#pitch canvas')).toHaveCount(1);
+  await expect(page.getByRole('main')).toHaveAttribute('id', 'app');
+  await expect(page.locator('#stage canvas')).toHaveCount(1);
   expect(await page.evaluate(() => window.terriestDeterminism === undefined)).toBe(true);
   await expect(page.locator('html')).not.toHaveAttribute('data-determinism');
   expect(guard.requests.filter((u) => /determinism/.test(u)), 'requests for the determinism chunk').toEqual([]);
