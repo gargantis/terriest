@@ -9,15 +9,17 @@
 // Each asserts WebGL 2 first (C-6), loads the page as a visitor would, at
 // the default render quality and the gate's small window, waits for it to
 // start on Home, its heading focused, with the page's sound made, an
-// AudioContext the hook reports (D-32, §1.27), goes through Practice's setup
-// to its Pre-match by keys,
+// AudioContext the hook reports, following Settings' sound from start-up:
+// on for a first visit, and off where a visitor turned it off, as the one
+// served under dist/_headers has (D-32, §1.27), goes through Practice's
+// setup to its Pre-match by keys,
 // which draws the pitch (Home draws nothing, M4-Q9), and runs on for a
 // second, so an error from the frame loop reaches the guard, which checks
 // "Everywhere" as each test ends.
 
 import { startServer, type Server } from './lib/serve.mjs';
 import { expect, expectWebGL2, test } from './lib/guards';
-import { expectStarted, inspect, installHook, mountDist, openPractice, smallViewport, waitForInspection } from './lib/page';
+import { expectStarted, inspect, installHook, mountDist, openPractice, seedStorage, smallViewport, waitForInspection } from './lib/page';
 
 test.use({ viewport: smallViewport });
 
@@ -33,6 +35,9 @@ for (const served of ['vite preview', 'dist/_headers', 'a subpath'] as const) {
   test(`the page starts on Home and draws Practice's Pre-match, served by ${served}`, async ({ page, baseURL, guard }) => {
     await expectWebGL2(page);
     await installHook(page);
+    // A visitor who turned the sound off, on one of the three: the page's sound follows it from start-up.
+    const sound = served !== 'dist/_headers';
+    if (!sound) await seedStorage(page, { settings: { sound: false } });
     const base = served === 'vite preview' ? baseURL! : served === 'dist/_headers' ? strict.url : new URL('a/b/', baseURL).href;
     guard.allowed = [base];
     if (served === 'a subpath') await mountDist(page, base);
@@ -49,7 +54,7 @@ for (const served of ['vite preview', 'dist/_headers', 'a subpath'] as const) {
     const home = await inspect(page);
     expect(home.screen).toBe('home');
     // The page's sound, made at start-up, before any pitch screen, following Settings' sound: nothing decided yet.
-    expect(home.audio, "the hook's audio on Home").toMatchObject({ enabled: true, paused: false, prompt: false });
+    expect(home.audio, "the hook's audio on Home").toMatchObject({ enabled: sound, paused: false, prompt: false });
     expect(home.audio!.state, "the page's AudioContext").not.toBe('none');
     expect(Object.values(home.audio!.decided).filter((n) => n !== 0), 'cues decided on Home').toEqual([]);
     await openPractice(page, { packSize: 1, minutes: 1 });

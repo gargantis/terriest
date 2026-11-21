@@ -19,8 +19,9 @@ import { isMenuLayer, matchMenu, MENU, type MenuHost, type MenuLayer, type MenuS
 // buttons alone; its Back returning to the match as Resume does; the menu
 // opening on its buttons again however it was closed; the panel's changes
 // stored at once, the settings in force shown afresh at each press, and its
-// subscription ended with the layer; and from each of the panel's controls
-// but its text fields, Escape the menu's command, which closes it.
+// subscription ended with the layer; from each of the panel's controls but
+// its text fields, Escape the menu's command, which closes it; and Tab and
+// Shift+Tab kept inside the modal dialog, round its controls.
 
 const ME = personId(7, 0);
 const PRESS = (kind: UiCommand['kind'], at = 0): UiCommand => ({ kind, pressedAt: at, source: 'keyboard', repeat: false });
@@ -204,6 +205,35 @@ describe("the match menu's Settings (§5.8, PLAN §11)", () => {
     for (const t of closes) expect(escape(only(r.el, `[data-test="${t}"]`)), t).toEqual(['menu']);
     for (const t of keeps) expect(escape(only(r.el, `[data-test="${t}"]`)), t).toEqual([]);
     keyboard.dispose();
+  });
+
+  it('keeps Tab inside the modal dialog, round its controls from the last to the first and back (§5.14)', () => {
+    const r = rig();
+    r.open();
+    expect(r.el.getAttribute('aria-modal')).toBe('true');
+    /** A Tab from the focused control, as the browser hears it: whether the page kept its default. */
+    const tab = (shiftKey = false): boolean => {
+      const e = Object.assign(new FakeEvent('keydown', { bubbles: true, cancelable: true }), { key: 'Tab', code: 'Tab', shiftKey, altKey: false, ctrlKey: false, metaKey: false });
+      dom.document.activeElement.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    // Its buttons: Resume, Settings, Leave, the last's Tab back to the first, and Shift+Tab the other way.
+    expect(focused()).toBe('resume');
+    expect(tab(true)).toBe(true);
+    expect(focused()).toBe('leave');
+    expect(tab()).toBe(true);
+    expect(focused()).toBe('resume');
+    // Between them the browser's own Tab moves the focus.
+    expect(tab()).toBe(false);
+    // The panel: from its heading back to its last field, and from its last field round to its Back.
+    only(r.el, 'button[data-test="menu-settings"]').click();
+    expect(focused()).toBe('H2 Settings');
+    expect(tab(true)).toBe(true);
+    expect(focused()).toBe('turn-credential');
+    expect(tab()).toBe(true);
+    expect(focused()).toBe('back');
+    expect(tab(true)).toBe(true);
+    expect(focused()).toBe('turn-credential');
   });
 
   it('is found among the layers by its name and its opened()', () => {

@@ -18,6 +18,9 @@
 .settings-panel {
   width: min(32rem, 100%); max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
   background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 14px;
+  /* A control scrolled to, by the nav or by Tab, clear of the sticky head: its Back's 46px, its padding
+     twice, its border and the focus ring's 5px (§5.14). */
+  scroll-padding: 76px 0 8px;
 }
 .settings-panel-head {
   position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 12px;

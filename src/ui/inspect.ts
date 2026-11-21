@@ -17,6 +17,7 @@ import type { IceMode } from '../net/transport';
 import type { NetHook } from '../nettest-params';
 import type { MatchViewApi, RenderInfo } from '../render/stage-types';
 import type { OwnFigures } from './match-types';
+import type { WakeLockInspection } from './phone';
 
 export type ScreenName = 'home' | 'settings' | 'propose' | 'created' | 'practice' | 'join' | 'prematch' | 'match' | 'results' | 'message';
 
@@ -41,6 +42,9 @@ export interface Inspection {
   readonly layers: Readonly<Record<string, unknown>>;
   /** The page's, on every screen; null before phase 2. */
   readonly audio: AudioInspection | null;
+  /** The app's screen wake lock, Created's until someone joins, on every screen, its refusals among it
+   *  (M4's design §0, §5.13); null where the page has none. Pre-match's and Match's is layers.turn's. */
+  readonly wakeLock: WakeLockInspection | null;
   readonly frames: {
     readonly frames: number; readonly scale: number; readonly skipping: boolean; readonly actions: number;
     readonly log: readonly { readonly atMs: number; readonly scale: number; readonly skipping: boolean; readonly why: 'skipped' | 'gaps' | 'recovered' }[];

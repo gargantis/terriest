@@ -1,11 +1,13 @@
-/* The sound's prompt (M4's design §1.27, §5.8, §5.14; D-32): "Press a key or
-   tap for sound", at the left under the HUD's top bar, clear of Pre-match's
-   panel on the right, the gauges at the bottom left and the countdown in the
-   middle; level with the HUD, over the bark marks and under the menu; on an
-   opaque backing, so axe judges its contrast. It takes no pointer: a tap
-   anywhere starts the sound. */
+/* The sound's prompt (M4's design §1.27, §5.8, §5.13, §5.14; D-32): "Press a
+   key or tap for sound", at the left under the HUD's top bar, inside the
+   safe area as the HUD is, clear of Pre-match's panel on the right, the
+   gauges at the bottom left and the countdown in the middle; level with the
+   HUD, over the bark marks and under the menu; on an opaque backing, so axe
+   judges its contrast. It takes no pointer: a tap anywhere starts the
+   sound. */
 .sound-prompt {
-  position: absolute; left: 8px; top: 56px; z-index: 20; margin: 0; max-width: calc(55% - 16px);
+  position: absolute; left: calc(env(safe-area-inset-left, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 56px);
+  z-index: 20; margin: 0; max-width: calc(55% - 16px);
   padding: 6px 12px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 10px;
   font-size: 14px; font-weight: 600; pointer-events: none;
 }

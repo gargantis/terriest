@@ -3,11 +3,13 @@
 // and matches in virtual time, with a fake for each part the page would
 // hand it: a stage that records its prepares, animation frames the test
 // runs, a keyboard-like device, the fragment as a page's (its hashchange a
-// task after the change), the leave guard, one browser's Web Locks for its
-// tabs, the canary, results-hud's message screens by their shape, and a
-// room's transport: one that reaches no one, or the test's, M3's network
-// simulator's (src/ui/world-testing.ts). Only tests import it, so no build
-// bundles it. New at M4, by phase 2's net-screens.
+// task after the change), the leave guard, or the App's own on a window the
+// test gives, one browser's Web Locks for its tabs, the canary,
+// results-hud's message screens by their shape, the real screen wake lock
+// over a browser that refuses it, and a room's transport: one that reaches
+// no one, or the test's, M3's network simulator's
+// (src/ui/world-testing.ts). Only tests import it, so no build bundles it.
+// New at M4, by phase 2's net-screens.
 
 import { personId } from '../core/bot/bot-id';
 import { TEST_BUILD } from '../core/timeline/testing';
@@ -27,6 +29,7 @@ import type { AnimationFrames } from './frame-loop';
 import type { TransportFactory } from './game';
 import type { TerriestTest } from './inspect';
 import type { LeaveGuard } from './leave-guard';
+import { WakeLock } from './phone';
 import type { InviteOptions } from './screens/invite';
 import { FakeStage } from './pitch-testing';
 
@@ -52,7 +55,7 @@ export class RecordingStage extends FakeStage {
   }
 
   override info(): RenderInfo {
-    return { quality: this.quality, frames: this.drawn.length } as RenderInfo;
+    return { quality: this.quality, frames: this.drawn.length, lost: this.lost } as RenderInfo;
   }
 
   override dispose(): void {
@@ -249,6 +252,9 @@ export interface AppRigOptions {
   readonly transport?: (rooms: TransportOptions[]) => TransportFactory;
   /** The hook a spec would set: the relay and ICE among it. */
   readonly test?: TerriestTest;
+  /** The App installs its own leave guard, on the global window the test has set, as a page's does
+   *  (installLeaveGuard); the rig's guard is then left unused. */
+  readonly realGuard?: boolean;
 }
 
 /** An App in the document `doc`, with every fake, its landmark hidden until boot says started. */
@@ -300,10 +306,19 @@ export function appRig(o: AppRigOptions): AppRig {
     share: null,
   };
   const first = makeStage(settings.get().quality);
+  // The real wake lock, which this browser refuses, as headless engines do: its refusal for the hook.
+  const wakeLock = new WakeLock({ request: () => Promise.reject(new DOMException('No wake lock here', 'NotAllowedError')), page });
   const app = new App({
     root: root as unknown as HTMLElement, stage: first, makeStage, profile, settings, test, build: TEST_BUILD, clock, page, boot,
-    location, devices, frames, guard, messages: FAKE_MESSAGES, invite,
-    wake: { want: (on) => wakes.push(on) },
+    location, devices, frames, messages: FAKE_MESSAGES, invite,
+    ...(o.realGuard === true ? {} : { guard }),
+    wake: {
+      want: (on) => {
+        wakes.push(on);
+        wakeLock.want(on);
+      },
+      inspect: () => wakeLock.inspect(),
+    },
     lock: (steal, onLost) => {
       order.push(steal ? 'steal' : 'lock');
       return holdTabLock(steal, onLost, o.locks ?? null);

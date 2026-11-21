@@ -6,11 +6,13 @@
 // element's attributes, classes, style, hidden flag and text; the focus,
 // which a hidden, detached or disabled element can't take, as in a
 // browser, where Q-17's aria-disabled buttons keep it (§1.42); the
-// window's scroll, each scrollTo and scrollIntoView recorded; and
-// events dispatched through capture, target and bubble, with
-// preventDefault and both stops, so src/ui/nav.ts's capture listeners act
-// as they do on a page. Selectors are the simple ones the screens use: a
-// tag, .class, [attr] and [attr="v"], compounded. And for the layout no
+// window's scroll, each scrollTo and scrollIntoView recorded; events
+// dispatched through capture, target and bubble, with preventDefault and
+// both stops, so src/ui/nav.ts's capture listeners act as they do on a
+// page; and click()'s activation of a checkbox or a radio, its change
+// fired, as a pad's Start presses one through the nav. Selectors are the
+// simple ones the screens use: a tag, .class, [attr] and [attr="v"],
+// compounded, a comma between several. And for the layout no
 // Node test can draw, a stylesheet's declarations by selector and their
 // lengths, so a test checks what the CSS asks of a box (cssDeclarations,
 // cssLength); a browser confirms it. Only tests import it, so no build
@@ -309,10 +311,26 @@ export class FakeElement extends FakeNode {
     if (this.ownerDocument.activeElement === this) this.ownerDocument.activeElement = this.ownerDocument.body;
   }
 
-  /** As HTMLElement.click(): a bubbling, cancelable click; a disabled control dispatches none. */
+  /** As HTMLElement.click(): a bubbling, cancelable click; a disabled control dispatches none. A click not
+   *  cancelled activates a checkbox, which toggles, or a radio, which is checked, its group's others
+   *  unchecked, each firing input and change when it changed. (A browser toggles a checkbox before the
+   *  click's listeners and undoes it if cancelled; nothing here reads it from a click.) */
   click(timeStamp = 0): void {
     if (this.disabled) return;
-    this.dispatchEvent(new FakeEvent('click', { bubbles: true, cancelable: true, timeStamp }));
+    const kept = this.dispatchEvent(new FakeEvent('click', { bubbles: true, cancelable: true, timeStamp }));
+    if (!kept || this.tagName !== 'INPUT') return;
+    const type = this.getAttribute('type');
+    if (type === 'checkbox') this.checked = !this.checked;
+    else if (type === 'radio' && !this.checked) {
+      // Its group: the radios of its name in its form, or in its tree when it has none.
+      let group: FakeElement | null = this.parentNode;
+      while (group !== null && group.tagName !== 'FORM' && group.parentNode !== null) group = group.parentNode;
+      const name = this.getAttribute('name');
+      for (const other of group?.querySelectorAll('input[type="radio"]') ?? []) if (other.getAttribute('name') === name) other.checked = false;
+      this.checked = true;
+    } else return;
+    this.dispatchEvent(new FakeEvent('input', { bubbles: true }));
+    this.dispatchEvent(new FakeEvent('change', { bubbles: true }));
   }
 
   querySelectorAll(selector: string): FakeElement[] {

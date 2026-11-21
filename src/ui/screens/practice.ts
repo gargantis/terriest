@@ -2,11 +2,15 @@
 // Q-15, D-22; L158, L164): the pack size and the match length, from the
 // configuration's ranges and defaults, then Start, which goes to Pre-match
 // with Practice's match made, or Back, Home. Native controls, so the
-// browser's own keys work them (Q-17 names no nav here). New at M4.
+// browser's own keys work them; the gamepad's d-pad moves between Start and
+// Back and its Start presses, as on Propose, so a pad player who comes here
+// from Home's nav isn't left needing a mouse (L82, §4.4); the two choices
+// stay at their defaults for a pad alone. New at M4.
 
 import { config } from '../../config';
 import type { MatchSettings } from '../../core/sim/index';
 import { h } from '../dom';
+import { ButtonNav, padOnly } from '../nav';
 import { type Screen, screenStyles } from './screen';
 
 export interface PracticeHost {
@@ -38,15 +42,18 @@ export function practiceScreen(host: PracticeHost): Screen {
   };
   const size = select(c.sizes, c.start.packSize, sizeText, 'pack-size');
   const minutes = select(c.minutes, c.start.matchMinutes, minutesText, 'match-length');
-  const start = (): void => host.start({ packSize: Number(size.value), matchMinutes: Number(minutes.value) });
+  const go = h('button', {
+    type: 'button', class: 'primary', 'data-test': 'start',
+    onclick: () => host.start({ packSize: Number(size.value), matchMinutes: Number(minutes.value) }),
+  }, 'Start');
+  const back = h('button', { type: 'button', class: 'secondary', 'data-test': 'back', onclick: () => host.home() }, 'Back');
+  const nav = new ButtonNav(() => [go, back]);
   const el = h('section', { class: 'screen practice' },
     h('h1', {}, 'Practice'),
     h('p', { class: 'muted' }, 'A match against bots in this browser, contacting no one: you play in the first pack, and bots take every other place.'),
     h('label', { class: 'field' }, h('span', {}, 'Pack size'), size),
     h('label', { class: 'field' }, h('span', {}, 'Match length'), minutes),
-    h('div', { class: 'row' },
-      h('button', { type: 'button', class: 'primary', 'data-test': 'start', onclick: start }, 'Start'),
-      h('button', { type: 'button', class: 'secondary', 'data-test': 'back', onclick: () => host.home() }, 'Back')),
+    h('div', { class: 'row' }, go, back),
   );
-  return { el, name: 'practice' };
+  return { el, name: 'practice', ui: padOnly(nav) };
 }

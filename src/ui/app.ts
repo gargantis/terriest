@@ -82,6 +82,7 @@ import { PITCH_LAYERS } from './layers/index';
 import { installLeaveGuard, type LeaveGuard } from './leave-guard';
 import { arrivalOf, type NetMatch, openNetMatch, practiceMatch, type RoomChoice, roomChoice } from './match';
 import type { Match } from './match-types';
+import type { WakeLockInspection } from './phone';
 import { homeScreen } from './screens/home';
 import type { InviteOptions } from './screens/invite';
 import { type JoinScreen, joinScreen } from './screens/join';
@@ -154,8 +155,9 @@ export interface AppDeps {
   /** The message screens, results-hud's module: src/main.ts passes it (§5.10). */
   readonly messages?: MessageScreens;
   /** The screen wake lock (devices' src/ui/phone.ts's WakeLock): wanted on Created until someone joins
-   *  (§5.13, D-30); Pre-match's and Match's is the turn prompt's layer's. */
-  readonly wake?: { want(on: boolean): void };
+   *  (§5.13, D-30), its figures, refusals and all, the hook's wakeLock (§0); Pre-match's and Match's is the
+   *  turn prompt's layer's. */
+  readonly wake?: { want(on: boolean): void; inspect(): WakeLockInspection };
   /** The page's sound (sound's src/ui/layers/sound.ts's audioOut()): its inspect() is the hook's audio. */
   readonly audio?: { inspect(): AudioInspection | null };
   /** Tests: the look (PLACEHOLDER_LOOK), the fragment, the devices and the animation frames. */
@@ -408,6 +410,7 @@ export class App {
       gamepad: this.devices.gamepad(),
       layers: shown?.layers ?? {},
       audio: this.d.audio?.inspect() ?? null,
+      wakeLock: this.d.wake?.inspect() ?? null,
       frames: { ...frames, headHashMismatches: this.mismatchesBefore + (shown?.headHashMismatches ?? 0) },
       startMs: { started: this.startedAt, prepared: this.preparedAt },
     };

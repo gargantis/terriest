@@ -23,7 +23,8 @@ import { playerOf, type Tab, World } from './world-testing';
 // timeline for the tick its input is for, and the rebase a return hands
 // it; own() over a frozen page's catch-up, counting every sender it sends
 // for; Leave, its LEAVE out and the room closed leaveGraceMs later; Play
-// again's derived room; and a joiner refused a full pack, then watching.
+// again's derived room; a joiner refused a full pack, then watching; and a
+// page a peer refused for the spectators' cap, which status() says.
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -339,6 +340,20 @@ describe("the networked Match (M4's design §1.37)", () => {
     expect(alone.match.status()).toMatchObject({ failed: true, refusal: null, peers: 0 });
     expect(REFUSAL.SPECTATORS_FULL).toBe(4);
     alone.match.close();
+  });
+
+  it("says a page a peer refused for the spectators' cap is refused so, the spectators' message's status (REFUSE 4, C-11, §5.6)", async () => {
+    // The room's transport as Trystero's leaves it once its only peer has refused this page.
+    const refusing: Transport = { send: () => {}, broadcast: () => {}, peerCount: () => 0, refusedBy: REFUSAL.SPECTATORS_FULL, leave: () => Promise.resolve() };
+    const clock = new FakeClock(0);
+    const match = await openNetMatch({
+      matchId: ROOM, me: playerOf(0), name: 'P0', coat: 0, build: TEST_BUILD, relays: null, extraRelays: [], ice: 'local', clock, page: fakePage(),
+      transport: () => Promise.resolve(refusing),
+    });
+    match.watch();
+    clock.advance(NET.timerMs);
+    expect(match.status()).toMatchObject({ refusal: REFUSAL.SPECTATORS_FULL, spectatorsFull: true, failed: false, peers: 0 });
+    match.close();
   });
 
   it('wraps a game already open with asMatch, on the clock it runs on', async () => {

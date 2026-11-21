@@ -49,6 +49,8 @@ export class FakeStage implements Stage {
   readonly drawn: (StageFrame | null)[] = [];
   out: FrameOut = { ball: point(320, 180), terriers: [], yaw: 0, cssWidth: 640, cssHeight: 360 };
   onGraphics: ((state: 'lost' | 'restored') => void) | null = null;
+  /** The context lost, as the stage keeps it whoever was told (src/render/scene.ts's watch). */
+  lost = false;
   private readonly calls: Calls;
   private readonly settled: Promise<void>;
   private settle: { ok: () => void; fail: (e: unknown) => void } | null = null;
@@ -86,8 +88,9 @@ export class FakeStage implements Stage {
     return this.out;
   }
 
+  /** Whether the context is lost, which a pitch screen reads as it's made (§5.8); no other figure. */
   info(): RenderInfo {
-    throw new Error('the fake stage keeps no figures');
+    return { lost: this.lost } as RenderInfo;
   }
 
   setModel(): void {}

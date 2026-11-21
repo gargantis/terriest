@@ -174,6 +174,24 @@ describe("Practice's setup (§5.4)", () => {
     only(el, 'button[data-test="back"]').click();
     expect([started, went]).toEqual([[{ packSize: 1, matchMinutes: 1 }], ['home']]);
   });
+
+  it("takes the gamepad's d-pad between Start and Back and its Start presses, so a pad player who came from Home goes on (L82), the keys left to the browser", () => {
+    const started: MatchSettings[] = [];
+    const went: string[] = [];
+    const screen = practiceScreen({ start: (s) => started.push(s), home: () => went.push('home') });
+    dom.document.body.append(fake(screen.el));
+    const cmd = (kind: 'down' | 'up' | 'press', source: 'gamepad' | 'keyboard' = 'gamepad'): void => screen.ui!({ kind, pressedAt: 0, source, repeat: false });
+    const focused = (): string | null => dom.document.activeElement.getAttribute('data-test');
+    cmd('down');
+    expect(focused()).toBe('start');
+    cmd('down');
+    expect(focused()).toBe('back');
+    cmd('press', 'keyboard'); // the browser's own Enter presses it there, never the nav too
+    expect(went).toEqual([]);
+    cmd('up');
+    cmd('press');
+    expect(started).toEqual([{ packSize: config.packSizeDefault, matchMinutes: config.matchLengthDefaultMinutes }]);
+  });
 });
 
 describe("Settings' minimal screen (§1.43, §6)", () => {

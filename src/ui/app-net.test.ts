@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { personId } from '../core/bot/bot-id';
 import { formatMatchId } from '../core/match-id';
+import { ROLE } from '../core/session/index';
 import { findTerrier, LEAVE } from '../core/sim/index';
 import type { RoomPeer } from '../core/session/room-peer';
 import { CURATED_RELAYS } from '../net/room-config';
@@ -11,6 +12,7 @@ import { FakeClock } from './clock-testing';
 import { type FakeDocument, type FakeElement, FakeEvent, installDom, only } from './dom-testing';
 import type { TransportFactory } from './game';
 import type { Inspection } from './inspect';
+import { OFFER_TEXT } from './layers/net';
 import type { Match } from './match-types';
 import { type Tab, World } from './world-testing';
 
@@ -26,10 +28,12 @@ import { type Tab, World } from './world-testing';
 // Pre-match with Invite and the bots' buttons, a spectator's without Ready;
 // the hook's networked fields, the arrival a joiner's adopted STATE gives;
 // a page that comes back by the same link skipping Join, its terrier taken
-// back; a JOIN given up watching, the other pack's Play making the page a
-// player again; Leave, its LEAVE out and the fragment cleared; and the tab
-// lock lost mid-match, the match closed without a LEAVE, and the tab that
-// took it over playing the same terrier.
+// back, and one whose bot alone is in the roster coming back to watch it;
+// a JOIN given up watching, the other pack's Play making the page a player
+// again; Leave, its LEAVE out and the fragment cleared; the tab lock lost
+// mid-match, the match closed without a LEAVE, and the tab that took it
+// over playing the same terrier; and on a page with no hook, Create's and
+// Join's rooms on the curated relays with Settings' extra ones and TURN.
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -143,6 +147,11 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     expect(text(a, 'invite-code')).toBe(formatMatchId(id));
     expect(text(a, 'created-status')).toBe('Nobody has joined yet.');
     expect(a.r.wakes).toEqual([true]);
+    // The wake lock's refusal, this browser's, caught and reported through the hook (§0, §5.13); and the
+    // guard asks nothing on Created (§5.11).
+    await settle();
+    expect(a.look().wakeLock).toMatchObject({ wanted: true, state: 'refused', refusals: 1, lastRefusal: 'NotAllowedError' });
+    expect(a.r.guard.active).toBe(false);
     button(a, 'copy-code').click();
     await settle();
     expect(a.r.copied).toEqual([formatMatchId(id)]);
@@ -154,6 +163,7 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     void b.r.stages[0]!.finish(); // its compile, behind Join
     expect(b.look().screen).toBe('join');
     expect(text(b, 'join-status')).toBe('Connecting to the match…');
+    expect(b.r.guard.active).toBe(false); // nothing asked on Join (§5.11)
     expect(button(b, 'watch').hidden).toBe(true); // no choice before the state is known (M4-Q2)
     expect(button(b, 'play-0').hidden).toBe(false);
     expect(only(screenOf(b), '.join-packs').hidden).toBe(true);
@@ -173,6 +183,7 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     // Created counts the joiner, and the wake lock goes.
     await until(world, () => text(a, 'created-status') === '1 person has joined.', 2000);
     expect(a.r.wakes).toEqual([true, false]);
+    expect(a.look().wakeLock).toMatchObject({ wanted: false, state: 'off' });
 
     // The proposer plays in pack A: its Pre-match, Ready focused, the guard on; the app's wake lock
     // stays off, the pitch's being the turn prompt's layer's (src/ui/phone.ts).
@@ -241,6 +252,60 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     expect(again.look().controls).not.toBeNull();
   });
 
+  it("takes a page whose bot alone is in the roster back to watch, skipping Join, its bot driven again and its Remove shown (D-17, D-39)", async () => {
+    const world = new World(73);
+    const a = page(world, 0);
+    await started(a);
+    const id = await propose(world, a);
+    button(a, 'play-0').click();
+    const storage = new MemoryStorage();
+    const b = page(world, 1, { hash: `#join=${id}`, storage });
+    await started(b);
+    await until(world, () => only(screenOf(b), '.join-packs').hidden === false, 5000);
+    button(b, 'watch').click();
+    button(b, 'add-bot-1').click();
+    const bot = (p: Page): string | undefined => held(p).session.hostedBots()[0];
+    await until(world, () => bot(b) !== undefined && inRosterOf(a, bot(b)!), 5000);
+    const botId = bot(b)!;
+    // The page goes, as a reload does, and the same browser opens the link again.
+    const room = b.tab.rooms.get(id)!;
+    room.net.leave(room.node, world.now);
+    world.tabs.splice(world.tabs.indexOf(b.tab), 1);
+    world.run(200);
+    const again = page(world, 1, { hash: `#join=${id}`, storage });
+    await started(again);
+    expect(again.look().screen).toBe('join');
+    await until(world, () => again.look().screen === 'prematch', 5000);
+    // A spectator's pitch screen: no play controls, its bot's Remove shown, the session watching.
+    expect(again.look()).toMatchObject({ controls: null, match: { inRoster: false } });
+    expect(held(again).session.role()).toBe(ROLE.SPECTATOR);
+    expect(button(again, 'remove-bot-1').hidden).toBe(false);
+    // Its bot driven again from this page: the proposer takes its inputs.
+    const lastInput = (): number => held(a).session.timeline.final.terriers.find((T) => T.id === botId)!.lastInputTick;
+    const before = lastInput();
+    world.run(1000);
+    await settle();
+    expect(lastInput()).toBeGreaterThan(before);
+    expect(inRosterOf(a, botId)).toBe(true);
+  });
+
+  it("opens Create's and Join's rooms on the curated relays with Settings' extra ones, and Settings' TURN, on a page with no hook (§5.5, §5.12, §6)", async () => {
+    const world = new World(79);
+    const extra = 'wss://extra.example';
+    const turn = { urls: 'turns:turn.example:443', username: 'u', credential: 'c' };
+    const a = page(world, 0);
+    expect(a.r.settings.set({ relays: [extra], turn: [turn] })).toBeNull();
+    await started(a);
+    const id = await propose(world, a);
+    expect(a.r.rooms).toEqual([{ matchId: id, relays: [...CURATED_RELAYS, extra], ice: 'default', turn: [turn], settings: expect.anything() }]);
+    // A joiner by the link, its own Settings' connections, read as its room opens.
+    const b = page(world, 1, { hash: `#join=${id}` });
+    expect(b.r.settings.set({ relays: [extra, 'wss://another.example'], turn: [turn] })).toBeNull();
+    await b.r.app.start();
+    await settle();
+    expect(b.r.rooms.map((o) => [o.matchId, o.relays, o.turn, o.ice])).toEqual([[id, [...CURATED_RELAYS, extra, 'wss://another.example'], [turn], 'default']]);
+  });
+
   it('watches without play controls, adds and removes a bot as a spectator, and leaves with its LEAVE out, the fragment cleared', async () => {
     const world = new World(41);
     const a = page(world, 0);
@@ -297,7 +362,7 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     expect(b.look().layers['net']).toEqual({ watching: true, offer: 1 });
     const notes = only(screenOf(b), '[data-test="watching"]');
     expect([notes.hidden, notes.getAttribute('role')]).toEqual([false, 'status']);
-    expect(notes.textContent).toBe('This match is full, so you’re watching it.Play in the Orange pack');
+    expect(notes.textContent).toBe(`${OFFER_TEXT}Play in the Orange pack`); // the other pack has a place: not full (§5.6)
     expect(button(b, 'ready').hidden).toBe(true);
     expect(inRosterOf(b, b.tab.me)).toBe(false);
     // The other pack's Play: a player's pitch screen again, Ready focused, and into the roster.

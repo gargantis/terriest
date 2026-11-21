@@ -292,6 +292,20 @@ describe('nothing held off the pitch (D-29, D-31, §4.8)', () => {
     expect(r.g.read()).toMatchObject({ stickStep: 8, zoomies: true, pounce: false });
   });
 
+  it("holds nothing on a spectator's screen, as a player's is while the graphics are lost, its session still sampling (D-30)", () => {
+    // The app gives a player's pitch the spectator's screen while the graphics are lost, so no play key acts
+    // unseen; the networked session goes on sampling meanwhile.
+    for (const screen of ['spectator', 'results', 'other'] as const) {
+      const r = rig({ screen, sampling: true });
+      r.pad.stick(8);
+      r.pad.set(PAD.zoomies, 1);
+      r.pad.set(PAD.jump, 1);
+      r.pad.set(PAD.pounce, 1);
+      r.pad.set(PAD.bark, 1);
+      expect(r.g.read(), screen).toMatchObject({ direction: null, stickStep: null, zoomies: false, jump: false, pounce: false, bark: false, view: false });
+    }
+  });
+
   it('reads nothing held on a hidden page, and makes no command', () => {
     const r = rig();
     r.v.hidden = true;

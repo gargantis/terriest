@@ -18,7 +18,9 @@ import { audioOut, LAYERS, SOUND_PROMPT, soundFollows, soundLayer } from './soun
 // once however often the scoreboard is read, and the end once it's
 // confirmed, never a predicted one; the barks the view found, and yours at
 // the press; another timeline resetting the cues, with nothing replayed
-// from its adopted state nor from the scoreboard it keeps; Settings' sound
+// from its adopted state nor from the scoreboard it keeps; a layer made over
+// a scoreboard that has latched already, as Watch on Join makes one,
+// whistling none of it; Settings' sound
 // and Practice's pause on the page's AudioOut; "Press a key or tap for
 // sound" while sound is on and the context waits, on an opaque backing,
 // reported as the hook's audio.prompt; and the pitch screen handing it its
@@ -83,8 +85,9 @@ const hit = (tick: number) => (s: MatchState): void => {
   s.ball.lastHitStrength = 6;
 };
 
-function rig(o: { state?: 'suspended' | 'running'; sound?: boolean; first?: MatchState } = {}): Rig {
+function rig(o: { state?: 'suspended' | 'running'; sound?: boolean; first?: MatchState; latched?: (m: Swapped) => void } = {}): Rig {
   const match = new Swapped(o.first ?? play(10));
+  o.latched?.(match);
   const settings = new MemorySettings();
   if (o.sound === false) settings.value = { ...settings.value, sound: false };
   const calls: Calls = [];
@@ -171,6 +174,20 @@ describe('the cues after each timer run (§7)', () => {
     r.run();
     r.run();
     expect([r.decided('whistleEnd'), r.played('whistleEnd')]).toEqual([1, 1]);
+  });
+
+  it('whistles nothing the scoreboard latched before the layer was made, as Watch on Join or a role\'s new pitch screen makes it, and each goal after (§7)', () => {
+    const r = rig({ latched: (m) => m.board.goals.push(goal(500, 0), goal(900, 1)) });
+    r.run();
+    r.run();
+    expect([r.decided('whistleGoal'), r.decided('chorus'), r.played('whistleGoal')]).toEqual([0, 0, 0]);
+    r.match.board.goals.push(goal(1300, 0));
+    r.run();
+    expect([r.decided('whistleGoal'), r.decided('chorus')]).toEqual([1, 1]);
+    // An end confirmed before the layer was made, as a page arriving on Results has it, is no new end.
+    const ended = rig({ latched: (m) => (m.board.end = END) });
+    ended.run();
+    expect(ended.decided('whistleEnd')).toBe(0);
   });
 
   it("blows no end whistle for the head's predicted end, nor a goal whistle for its predicted goal", () => {
@@ -344,7 +361,7 @@ describe('"Press a key or tap for sound" (D-32)', () => {
     expect([fake(layer.el).hidden, out.inspect().prompt]).toEqual([true, false]);
   });
 
-  it("sits on an opaque backing at the left under the HUD's top bar, over the bark marks and under the menu", () => {
+  it("sits on an opaque backing at the left under the HUD's top bar, inside the safe area, over the bark marks and under the menu", () => {
     const css = (file: string): string => readFileSync(new URL(file, import.meta.url), 'utf8');
     const d = cssDeclarations(css('./sound.css'), '.sound-prompt');
     expect([d.background, d.color, d['pointer-events'], d.position]).toEqual(['var(--bg)', 'var(--fg)', 'none', 'absolute']);
@@ -355,7 +372,10 @@ describe('"Press a key or tap for sound" (D-32)', () => {
     expect(z).toBeGreaterThan(Number(cssDeclarations(css('../overlay.css'), '.overlay-bark')['z-index']));
     expect(z).toBeLessThan(Number(cssDeclarations(css('../screens/menu.css'), '.match-menu')['z-index']));
     // On the left, at most a little over half the width, so Pre-match's panel on the right stays clear of it.
-    expect([d.left, d['max-width']]).toEqual(['8px', 'calc(55% - 16px)']);
+    expect([cssLength(d.left, 640), d['max-width']]).toEqual([8, 'calc(55% - 16px)']);
+    // Inside the safe area, as the HUD is (§5.13): each inset its own term, 0 at the gate's sizes.
+    expect(d.left).toContain('env(safe-area-inset-left, 0px)');
+    expect(d.top).toContain('env(safe-area-inset-top, 0px)');
   });
 });
 

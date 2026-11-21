@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../../config';
 import { personId } from '../../core/bot/bot-id';
@@ -12,10 +13,10 @@ import type { Transport } from '../../net/transport';
 import { PLACEHOLDER_LOOK } from '../../render/look';
 import { FakeClock, fakePage } from '../clock-testing';
 import { h } from '../dom';
-import { fake, type FakeDocument, type FakeElement, installDom, only } from '../dom-testing';
+import { cssDeclarations, cssLength, fake, type FakeDocument, type FakeElement, installDom, only, shownText } from '../dom-testing';
 import { hudLayer } from '../hud';
 import type { Layer, LayerFactory, PitchContext, PitchHost } from '../layer';
-import { netLayer } from '../layers/net';
+import { netLayer, OFFER_TEXT, WATCHING_TEXT } from '../layers/net';
 import { type NetMatch, openNetMatch } from '../match';
 import { FakeControls, FakeStage, FakeView, stateWith, StateMatch, testHost } from '../pitch-testing';
 import { addBotButton, removeBotButton } from '../prematch';
@@ -112,6 +113,10 @@ describe("a networked Pre-match's bots and Invite (§5.7, D-39)", () => {
     world.until(() => findTerrier(match.session.timeline.final, ME) >= 0, 3000);
     world.run(20);
     expect([shown(screen, 'invite-button'), only(screen.el, '[data-test="invite"]').shown]).toEqual([true, false]);
+    // The invite closed, the pad's nav passes over its buttons, which a browser won't focus, to the bots'.
+    button(screen, 'invite-button').focus();
+    screen.ui(key('down', 'gamepad'));
+    expect(dom.document.activeElement.getAttribute('data-test')).toBe('add-bot-0');
     button(screen, 'invite-button').click();
     expect([only(screen.el, '[data-test="invite"]').shown, button(screen, 'invite-button').getAttribute('aria-expanded')]).toEqual([true, 'true']);
     expect(only(screen.el, '[data-test="invite-code"]').textContent).toBe(formatMatchId(ROOM));
@@ -130,11 +135,14 @@ describe("a networked Pre-match's bots and Invite (§5.7, D-39)", () => {
       screen.ui(key('down'));
       expect(dom.document.activeElement.getAttribute('data-test')).toBe(want);
     }
-    // Remove: its LEAVE, and once the state no longer shows the bot, Remove goes, the focus to its pack's Add.
+    // Remove: the bot no longer wanted, Remove goes at once, the focus to its pack's Add, before the state
+    // has taken the bot out (the session's rule, D-39); then its LEAVE does.
     screen.ui(key('press'));
-    world.until(() => match.session.timeline.final.terriers.length === 1, 3000);
-    world.until(() => !shown(screen, 'remove-bot-1'), 1000);
+    expect([shown(screen, 'remove-bot-1'), match.session.timeline.final.terriers.length]).toEqual([false, 2]);
     expect(dom.document.activeElement.getAttribute('data-test')).toBe('add-bot-1');
+    world.until(() => match.session.timeline.final.terriers.length === 1, 3000);
+    world.run(20);
+    expect(shown(screen, 'remove-bot-1')).toBe(false);
     // Fill both packs with bots, Ready, and the countdown locks the roster: every bots' button says so.
     button(screen, 'add-bot-0').click();
     button(screen, 'add-bot-1').click();
@@ -259,6 +267,46 @@ describe('the graphics (§5.8, D-30, C-36)', () => {
     r.screen.dispose();
   });
 
+  it('starts restoring when the context was lost before the screen was made, which the stage kept, and says so after lostGraphicsSeconds', async () => {
+    // A context lost on Home, on Results, or between a role's two screens, was told to no screen: the stage
+    // keeps it (src/render/scene.ts), and the next screen reads it as it's made (D-30).
+    const calls: string[] = [];
+    const match = new StateMatch(ME, stateWith(1, 100, [{ id: ME, pack: 0 }, { id: OTHER, pack: 1 }]));
+    const stage = new FakeStage(calls);
+    stage.lost = true;
+    const controls = new FakeControls(calls);
+    const host = testHost({ match, view: new FakeView(calls, match), stage, controls });
+    const screen = pitchScreen({ ...host, leave: () => {}, results: () => {}, page: fakePage(), graphicsMessage }, [menuLayer]);
+    dom.document.body.append(fake(screen.el));
+    expect([screen.graphics, [...match.reasons], controls.releases]).toEqual(['restoring', ['graphics'], 1]);
+    match.clock.advance(LOST_MS);
+    expect([screen.message, screen.graphics]).toEqual(['graphics', 'lost']);
+    stage.lost = false;
+    stage.onGraphics!('restored');
+    expect([screen.message, screen.graphics, [...match.reasons]]).toEqual([null, 'ok', []]);
+    screen.dispose();
+  });
+
+  it("leaves the stage's callback to a newer screen when an older one goes after it, as a role's rebuild does (§5.6)", () => {
+    // Two screens over one stage, the newer made before the older goes, as the app's show() orders it.
+    const calls: string[] = [];
+    const match = new StateMatch(ME, stateWith(1, 100, [{ id: ME, pack: 0 }]));
+    match.kind = 'net';
+    const stage = new FakeStage(calls);
+    const make = (playing: boolean): PitchScreen => {
+      const host = testHost({ match, view: new FakeView(calls, match), stage, controls: playing ? new FakeControls(calls) : null });
+      return pitchScreen({ ...host, leave: () => {}, results: () => {}, page: fakePage(), graphicsMessage }, [menuLayer]);
+    };
+    const player = make(true);
+    const spectator = make(false);
+    player.dispose();
+    expect(stage.onGraphics).not.toBeNull();
+    stage.onGraphics!('lost');
+    expect([player.graphics, spectator.graphics]).toEqual(['ok', 'restoring']);
+    spectator.dispose();
+    expect(stage.onGraphics).toBeNull();
+  });
+
   it('never pauses a networked match, only releasing what is held, and hands the stage its callback back on dispose', async () => {
     const r = rig({ kind: 'net' });
     await r.stage.finish();
@@ -345,7 +393,9 @@ describe('the networked notes (§5.6, M4-Q39)', () => {
     dom.document.body.append(fake(layer.el!));
     const el = fake(layer.el!);
     expect([el.shown, el.getAttribute('role'), layer.inspect!()]).toEqual([true, 'status', { watching: true, offer: 1 }]);
-    expect(el.textContent).toBe('This match is full, so you’re watching it.Play in the Orange pack');
+    // A place in the other pack: the notice says so, never that the match is full (§5.6).
+    expect(el.textContent).toBe(`${OFFER_TEXT}Play in the Orange pack`);
+    expect(el.textContent).not.toContain('full,');
     only(el, 'button[data-test="play-other"]').click();
     expect(net.played).toEqual([1]);
     layer.run!({} as PitchContext);
@@ -355,5 +405,27 @@ describe('the networked notes (§5.6, M4-Q39)', () => {
     net.state = { ...net.state, phase: IN_PLAY } as MatchState;
     layer.run!({} as PitchContext);
     expect([el.shown, layer.inspect!(), only(el, 'button[data-test="play-other"]').shown]).toEqual([true, { watching: true, offer: null }, false]);
+    // No place to offer: the match is full, and the notice says so.
+    expect(shownText(el)).toBe(WATCHING_TEXT);
+  });
+
+  it("keeps the notice inside the safe area, below the sound's prompt and the HUD's graphics note while either shows (§5.13, D-32)", () => {
+    const css = (file: string): string => readFileSync(new URL(file, import.meta.url), 'utf8');
+    const net = css('../layers/net.css');
+    /** A one-line note's bottom, as index.html's body sets lines (16px/1.5): its top, line, padding and border. */
+    const bottom = (d: Readonly<Record<string, string>>): number =>
+      cssLength(d.top, 360) + cssLength(d['font-size'] ?? '16px', 360) * 1.5 + 2 * cssLength(d.padding!.split(' ')[0], 360) + 2 * cssLength(d.border!.split(' ')[0], 360);
+    const prompt = cssDeclarations(css('../layers/sound.css'), '.sound-prompt');
+    const note = cssDeclarations(css('../hud.css'), '.hud-graphics');
+    const notes = cssDeclarations(net, '.net-notes');
+    const top = (selector: string): number => cssLength(cssDeclarations(net, selector).top, 360);
+    expect(top('.net-notes')).toBe(cssLength(prompt.top, 360)); // where the prompt is: moved only while it shows
+    expect(top('.pitch-screen:has(> .sound-prompt:not([hidden])) > .net-notes')).toBeGreaterThanOrEqual(bottom(prompt));
+    expect(top('.pitch-screen:has(.hud-graphics:not([hidden])) > .net-notes')).toBeGreaterThanOrEqual(bottom({ ...note, border: '1px' }));
+    // The note's rule comes later, so it wins when both show.
+    expect(net.indexOf('.pitch-screen:has(.hud-graphics')).toBeGreaterThan(net.indexOf('.pitch-screen:has(> .sound-prompt'));
+    // Inside the safe area, the HUD's own insets, each 0 at the gate's sizes.
+    expect(notes.left).toContain('env(safe-area-inset-left, 0px)');
+    expect(notes.top).toContain('env(safe-area-inset-top, 0px)');
   });
 });

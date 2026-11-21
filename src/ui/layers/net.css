@@ -1,9 +1,16 @@
-/* The networked notes (M4's design §5.6, §5.8, §5.14): top left, under the
-   HUD's top bar, clear of Pre-match's panel on the right and the countdown
-   in the middle, on an opaque backing. */
+/* The networked notes (M4's design §5.6, §5.8, §5.13, §5.14): top left,
+   under the HUD's top bar, inside the safe area, clear of Pre-match's panel
+   on the right and the countdown in the middle, on an opaque backing. */
 .net-notes {
-  position: absolute; top: 56px; left: 8px; z-index: 16; display: grid; gap: 8px; max-width: min(16rem, 38%);
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 56px); left: calc(env(safe-area-inset-left, 0px) + 8px);
+  z-index: 16; display: grid; gap: 8px; max-width: min(16rem, 38%);
   padding: 8px 10px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 12px;
 }
+/* Below the sound's prompt (layers/sound.css: a line at 56px) while it shows, and below the HUD's graphics
+   note (hud.css: a line at 96px) while that shows, as the control hints go (touch.css): a pad's Play on
+   Join starts no sound, so a joiner whose JOIN is given up can meet the prompt and the notice at once
+   (D-32). The note's rule comes later, so it wins when both show. */
+.pitch-screen:has(> .sound-prompt:not([hidden])) > .net-notes { top: calc(env(safe-area-inset-top, 0px) + 96px); }
+.pitch-screen:has(.hud-graphics:not([hidden])) > .net-notes { top: calc(env(safe-area-inset-top, 0px) + 136px); }
 .net-notes p { margin: 0; font-size: 14px; }
 .net-notes button { padding: 6px 12px; }

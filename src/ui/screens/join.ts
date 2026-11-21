@@ -21,10 +21,10 @@ import { type MatchState, type Pack, packCount, WARM_UP } from '../../core/sim/i
 import type { Look } from '../../render/look';
 import { h, isEnabled, setShown, setText } from '../dom';
 import type { Match } from '../match-types';
-import { ButtonNav } from '../nav';
+import { ButtonNav, padOnly } from '../nav';
 import { addStyle } from '../style';
 import css from './join.css?inline';
-import { padOnly, playButton, playText } from './propose';
+import { playButton, playText } from './propose';
 import { coatName, coatSwatch, packName, packSwatch, type Screen, screenStyles } from './screen';
 
 export interface JoinHost {

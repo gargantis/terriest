@@ -9,13 +9,29 @@
 // screen showed acts, a pointer's included, so a jump held or mashed at the
 // final whistle presses nothing; every press is reported with its time, its
 // source and whether it acted, for the app's announcements log (§1.40).
-// New at M4.
+// A button that's hidden, or inside something hidden, is passed over, as a
+// browser won't focus it; one the nav moves to is brought into view, its
+// window's or its panel's scroll, so a short window never hides the focus
+// (§5.14). Settings' pad nav holds its checkboxes and radios too, each
+// pressed as a pointer would press it (padOnly, L82). New at M4.
 
 import type { InputKind, UiCommand } from '../input/source';
 import { browserClock, type Clock } from './clock';
 import { isEnabled } from './dom';
 
 export type PressSource = InputKind | 'pointer';
+
+/** What a nav moves among and presses: buttons, and Settings' checkboxes and radios (L82). */
+export type NavControl = HTMLButtonElement | HTMLInputElement;
+
+/** Shown: neither it nor an element holding it hidden, as setShown hides them; a browser focuses no other.
+ *  Elements only: the document's own hidden is the page's visibility, and a hidden page still opens
+ *  Practice's menu on its buttons (Q-15). */
+function shown(el: Element): boolean {
+  if ((el as HTMLElement).hidden) return false;
+  for (let n = el.parentNode; n !== null && 'tagName' in n; n = n.parentNode) if ((n as HTMLElement).hidden) return false;
+  return true;
+}
 
 export interface NavOptions {
   /** Only a press that began at least this long after shownAtMs acts (Q-17's guard, M4-Q26). */
@@ -28,18 +44,18 @@ export interface NavOptions {
 }
 
 export class ButtonNav {
-  private readonly buttons: () => readonly HTMLButtonElement[];
+  private readonly buttons: () => readonly NavControl[];
   private readonly guardMs: number;
   private readonly shownAtMs: number;
   private readonly onPress: ((atMs: number, source: PressSource, accepted: boolean) => void) | null;
   /** The nav's own click() is under way: the click it dispatches has been decided already. */
   private clicking = false;
   /** The last pointerdown on one of the buttons: where a pointer's press began. */
-  private down: { readonly button: HTMLButtonElement; readonly atMs: number } | null = null;
+  private down: { readonly button: NavControl; readonly atMs: number } | null = null;
 
   /** buttons: the screen's, in order, read again at each command, so buttons that come and go are
-   *  followed; a hidden one is passed over. */
-  constructor(buttons: () => readonly HTMLButtonElement[], o: NavOptions = {}) {
+   *  followed; a hidden one, or one inside something hidden, is passed over. */
+  constructor(buttons: () => readonly NavControl[], o: NavOptions = {}) {
     this.buttons = buttons;
     this.guardMs = o.guardMs ?? 0;
     this.shownAtMs = o.shownAtMs ?? (o.clock ?? browserClock).now();
@@ -99,21 +115,24 @@ export class ButtonNav {
     };
   }
 
-  private list(): readonly HTMLButtonElement[] {
-    return this.buttons().filter((b) => !b.hidden);
+  private list(): readonly NavControl[] {
+    return this.buttons().filter(shown);
   }
 
-  private focusedIn(list: readonly HTMLButtonElement[]): number {
+  private focusedIn(list: readonly NavControl[]): number {
     const active = list[0]?.ownerDocument.activeElement ?? null;
-    return active === null ? -1 : list.indexOf(active as HTMLButtonElement);
+    return active === null ? -1 : list.indexOf(active as NavControl);
   }
 
+  /** The focus to the next button, or the one before, brought into view as little as it takes: the
+   *  window's scroll on a long screen, Results' Copy at its foot, or a panel's, Settings' over the pitch. */
   private move(step: 1 | -1): void {
     const list = this.list();
     if (list.length === 0) return;
     const at = this.focusedIn(list);
-    const next = at < 0 ? (step > 0 ? 0 : list.length - 1) : (at + step + list.length) % list.length;
-    list[next]!.focus({ preventScroll: true });
+    const next = list[at < 0 ? (step > 0 ? 0 : list.length - 1) : (at + step + list.length) % list.length]!;
+    next.focus({ preventScroll: true });
+    next.scrollIntoView({ block: 'nearest' });
   }
 
   private pressFocused(c: UiCommand): void {
@@ -131,16 +150,25 @@ export class ButtonNav {
   }
 
   /** Whether a press that began at `began` acts, reported either way. */
-  private decide(b: HTMLButtonElement, began: number, source: PressSource): boolean {
+  private decide(b: NavControl, began: number, source: PressSource): boolean {
     const guarded = this.guardMs > 0 && began - this.shownAtMs < this.guardMs;
     const accepted = !guarded && isEnabled(b);
     this.onPress?.(began, source, accepted);
     return accepted;
   }
 
-  private owner(target: EventTarget | null): HTMLButtonElement | null {
+  private owner(target: EventTarget | null): NavControl | null {
     if (target === null) return null;
     for (const b of this.buttons()) if (b === target || b.contains(target as Node)) return b;
     return null;
   }
+}
+
+/** The gamepad's commands to a screen whose keys the browser keeps: the keyboard's Enter already presses the
+ *  focused button there, by the browser's own activation, and its Tab moves among every control, so only
+ *  another device's are the nav's (§4.9, L82). */
+export function padOnly(nav: ButtonNav): (c: UiCommand) => void {
+  return (c) => {
+    if (c.source !== 'keyboard') nav.ui(c);
+  };
 }

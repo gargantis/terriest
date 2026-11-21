@@ -30,15 +30,20 @@
 // the keyboard leaves every key but Escape to a focused checkbox or radio
 // and every key to a text field, so Escape and the gamepad's Back close
 // the panel from all but a text field, and Q-17's nav moves among the
-// panel's buttons (§4.9). roslambo's settings screen, with terriest's
-// settings and checks as typed. New at M4 (phase 1's minimal screen);
-// phase 2's settings builder completed it and added the panel.
+// panel's buttons (§4.9). The gamepad's d-pad moves among every control but
+// the text fields, on the screen and in the panel alike, and its Start
+// checks a box or picks a radio as it presses a button, so a pad player
+// sets all but the typed ones without a mouse (L82, §4.4); the screen's
+// keys stay the browser's (padOnly). roslambo's settings screen, with
+// terriest's settings and checks as typed. New at M4 (phase 1's minimal
+// screen); phase 2's settings builder completed it and added the panel.
 
 import type { RenderQuality } from '../../config';
 import type { Profile, ProfileSource, Settings, SettingsSource, StoredSettings, TurnServer } from '../../storage/schema';
 import { RELAYS_MAX, relaysProblem, type TurnField, turnProblemAt } from '../../storage/settings';
 import { h, setShown, setText } from '../dom';
 import type { Layer } from '../layer';
+import { ButtonNav, type NavControl, padOnly } from '../nav';
 import { addStyle } from '../style';
 import { type Screen, screenStyles } from './screen';
 import css from './settings.css?inline';
@@ -112,6 +117,8 @@ function showProblem(line: HTMLElement, problem: string | null): void {
 interface Body {
   readonly form: HTMLFormElement;
   readonly message: HTMLElement;
+  /** What a pad's nav moves among, in order: the radios, the checks and Show control hints again (L82). */
+  readonly controls: readonly NavControl[];
   dispose(): void;
 }
 
@@ -247,21 +254,25 @@ function settingsBody(host: SettingsHost, where: 'home' | 'match'): Body {
     setShown(calmNote, host.settings.stored().calmCamera === null);
   };
   const stop = host.settings.subscribe(sync);
-  return { form, message, dispose: stop };
+  const controls = [...qualities.map((q) => q.radio), sound, names, ballView, calm, mirror, hintsAgain];
+  return { form, message, controls, dispose: stop };
 }
 
-/** Settings from Home (§6): Back returns Home. */
+/** Settings from Home (§6): Back returns Home. The gamepad's d-pad moves among its controls, Back last,
+ *  and its Start presses, checks or picks the one focused (padOnly). */
 export function settingsScreen(host: SettingsHost): Screen {
   screenStyles();
   addStyle(css);
   const body = settingsBody(host, 'home');
+  const back = h('button', { type: 'button', class: 'secondary', 'data-test': 'back', onclick: () => host.back() }, 'Back');
+  const nav = new ButtonNav(() => [...body.controls, back]);
   const el = h('section', { class: 'screen settings' },
     h('h1', {}, 'Settings'),
     body.form,
     body.message,
-    h('div', { class: 'row' }, h('button', { type: 'button', class: 'secondary', 'data-test': 'back', onclick: () => host.back() }, 'Back')),
+    h('div', { class: 'row' }, back),
   );
-  return { el, name: 'settings', dispose: () => body.dispose() };
+  return { el, name: 'settings', ui: padOnly(nav), dispose: () => body.dispose() };
 }
 
 /** Settings in a match (§5.8, PLAN §11): the panel the menu shows over the pitch, its heading and Back at

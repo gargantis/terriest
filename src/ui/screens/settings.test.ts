@@ -5,7 +5,8 @@ import { MemoryStorage } from '../../storage/kv';
 import { ProfileStore } from '../../storage/profile';
 import { DEFAULT_SETTINGS, PROFILE_KEY, SETTINGS_KEY, type StoredSettings } from '../../storage/schema';
 import { type SettingsEnv, SettingsStore } from '../../storage/settings';
-import { cssDeclarations, fake, FakeEvent, type FakeDocument, type FakeElement, installDom, only } from '../dom-testing';
+import type { UiCommand } from '../../input/source';
+import { cssDeclarations, cssLength, fake, FakeEvent, type FakeDocument, type FakeElement, installDom, only } from '../dom-testing';
 import { APPLIES, HINTS_AGAIN, NOT_SAVED, relayList, SAVED, type SettingsHost, settingsPanel, settingsScreen } from './settings';
 
 // Settings (M4's design §1.43, §2.8, §4.7, §5.8, §6, §9.2; PLAN §10, §11,
@@ -16,8 +17,10 @@ import { APPLIES, HINTS_AGAIN, NOT_SAVED, relayList, SAVED, type SettingsHost, s
 // calmer camera following the system live until chosen; the relays and the
 // TURN server checked as they're typed, what passes stored at once and what
 // fails said beside its field and stored nowhere; Show control hints again
-// clearing all three kinds; Back; the subscription ended with the screen;
-// and the panel's heading, Back and scrolling box.
+// clearing all three kinds; Back; the gamepad's d-pad and Start through
+// every control but the text fields, the keyboard's keys left to the
+// browser; the subscription ended with the screen; and the panel's heading,
+// Back and scrolling box, a control scrolled to kept clear of its head.
 
 const ME = personId(7, 0);
 const fire = (el: FakeElement, type: 'input' | 'change'): boolean => el.dispatchEvent(new FakeEvent(type, { bubbles: true }));
@@ -260,6 +263,40 @@ describe('Settings from Home (§6, PLAN §11)', () => {
     expect(only(s.el, 'input[data-test="calm-camera"]').checked).toBe(false);
   });
 
+  it("takes the gamepad's d-pad through every control but the text fields, Back last, its Start pressing, checking or picking, and leaves the keys to the browser (L82, §4.4)", () => {
+    const r = rig();
+    const s = settingsScreen(r.host);
+    dom.document.body.append(fake(s.el));
+    const cmd = (kind: UiCommand['kind'], source: UiCommand['source'] = 'gamepad'): void => s.ui!({ kind, pressedAt: 0, source, repeat: false });
+    const focused = (): string | null => dom.document.activeElement.getAttribute('data-test');
+    const order: string[] = [];
+    for (let k = 0; k < 9; k++) {
+      cmd('down');
+      order.push(focused()!);
+    }
+    expect(order).toEqual(['quality-high', 'quality-low', ...CHECKS, 'hints-again', 'back']);
+    cmd('down');
+    expect(focused()).toBe('quality-high'); // round the end
+    // Start on a radio picks it, and on a check toggles it, each stored as a pointer's click would.
+    cmd('down');
+    cmd('press');
+    expect([r.settings.stored().quality, only(s.el, '[data-test="settings-message"]').textContent]).toEqual(['low', SAVED]);
+    cmd('down');
+    cmd('press');
+    expect(r.settings.get().sound).toBe(false);
+    cmd('press');
+    expect(r.settings.get().sound).toBe(true);
+    // The keyboard's arrows and Enter are the browser's here: its Tab and Space work the form natively.
+    cmd('down', 'keyboard');
+    expect(focused()).toBe('sound');
+    cmd('up');
+    cmd('up');
+    cmd('up');
+    expect(focused()).toBe('back');
+    cmd('press');
+    expect(r.went).toEqual(['back']);
+  });
+
   it('reads the relays one a line, as roslambo did, spaces and commas parting them too', () => {
     expect(relayList(' wss://a.example.org\r\nwss://b.example.org,wss://c.example.org  wss://d.example.org,\n')).toEqual([
       'wss://a.example.org', 'wss://b.example.org', 'wss://c.example.org', 'wss://d.example.org',
@@ -313,6 +350,11 @@ describe("Settings' look (§5.13, §5.14)", () => {
     for (const side of ['top', 'right', 'bottom', 'left']) expect(menu['padding'], side).toContain(`max(16px, env(safe-area-inset-${side}))`);
     const buttons = cssDeclarations(css('./menu.css'), '.match-menu-panel');
     expect([buttons['max-height'], buttons['overflow-y']]).toEqual(['100%', 'auto']);
+    // A control the nav or Tab scrolls to stays clear of the sticky head: its padding twice, Back's height
+    // at least, and its border (§5.14).
+    const button = cssDeclarations(css('../screens.css'), 'button');
+    const pad = cssLength(head['padding']!.split(' ')[0], 0);
+    expect(cssLength(panel['scroll-padding']!.split(' ')[0], 0)).toBeGreaterThanOrEqual(2 * pad + cssLength(button['min-height'], 0) + 1);
   });
 
   it("styles the relays' and the credential's fields as the text fields are, 16 px so a phone doesn't zoom", () => {

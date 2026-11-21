@@ -174,6 +174,15 @@ describe('Join (§5.6, M4-Q2)', () => {
     s.update(m);
     expect([only(el, '.join-packs').hidden, button(el, 'watch').hidden, button(el, 'join-home').hidden]).toEqual([true, true, false]);
     expect(status.textContent).toBe('Connecting to the match…');
+    // The pad meanwhile: its only choice is Home, the Play buttons inside the hidden packs passed over, so
+    // the focus moves at all (Q-17, L82); and once the packs show, it reaches them.
+    s.ui?.(pad('down'));
+    expect(dom.document.activeElement.getAttribute('data-test')).toBe('join-home');
+    s.ui?.(pad('up'));
+    expect(dom.document.activeElement.getAttribute('data-test')).toBe('join-home');
+    s.update(new StateMatch(ME, stateWith(2, 100, [])));
+    s.ui?.(pad('down'));
+    expect(dom.document.activeElement.getAttribute('data-test')).toBe('play-0');
   });
 
   it("shows each pack's places and who's in it, the smaller suggested, a full pack's Play marked and pressing nothing", () => {
@@ -227,6 +236,11 @@ describe('the invite (§5.5, §5.7, C-15)', () => {
     };
     const el = fake(invitePanel(ID, { href: 'https://terriest.test/#join=OLD', clipboard, share: null }));
     dom.document.body.append(el);
+    // What a refusal selects for copying by hand: the link's field by its own select(), the code by the
+    // window's selection.
+    const selected: string[] = [];
+    Object.assign(only(el, 'input[data-test="invite-link"]'), { select: () => selected.push('link') });
+    Object.assign(dom.document.defaultView, { getSelection: () => ({ selectAllChildren: (n: FakeElement) => selected.push(n.getAttribute('data-test')!) }) });
     const said = only(el, '[data-test="invite-said"]');
     expect(said.getAttribute('role')).toBe('status');
     button(el, 'copy-link').click();
@@ -235,10 +249,14 @@ describe('the invite (§5.5, §5.7, C-15)', () => {
     button(el, 'copy-code').click();
     await settle();
     expect([wrote.at(-1), said.textContent, el.getAttribute('data-copied')]).toEqual(['TERR-1EST-J01N-BYC0-DE00-6', COPIED.code, 'code']);
+    expect(selected).toEqual([]); // a copy that worked selects nothing
     refuse = true;
     button(el, 'copy-link').click();
     await settle();
     expect([said.textContent, el.getAttribute('data-copied')]).toEqual([NOT_COPIED.link, 'refused']);
+    button(el, 'copy-code').click();
+    await settle();
+    expect([said.textContent, selected]).toEqual([NOT_COPIED.code, ['link', 'invite-code']]);
     // No clipboard at all: said at once.
     const none = fake(invitePanel(ID, { href: 'https://terriest.test/', clipboard: null, share: null }));
     button(none, 'copy-code').click();

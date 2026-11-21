@@ -16,8 +16,10 @@
 // made at each Settings press, so it shows the settings in force, and goes
 // when the menu shows its buttons again: at its Back, and at opened(),
 // which the pitch screen calls as it opens the menu, so the menu always
-// opens on its buttons, Resume or Settings first. New at M4; phase 2's
-// settings builder added Settings and its panel.
+// opens on its buttons, Resume or Settings first. It's a modal dialog
+// (aria-modal), so Tab and Shift+Tab go round its controls, never out to
+// the HUD's buttons behind its backdrop or off the page (§5.14). New at
+// M4; phase 2's settings builder added Settings and its panel.
 
 import { h } from '../dom';
 import type { Layer } from '../layer';
@@ -58,6 +60,31 @@ export function isMenuLayer(l: Layer): l is MenuLayer {
 
 let menus = 0;
 
+/** What Tab moves among inside the dialog: its controls that show. */
+function tabStops(root: HTMLElement): HTMLElement[] {
+  const shown = (el: Element): boolean => {
+    for (let n: Node | null = el; n !== null && n !== root && 'tagName' in n; n = n.parentNode) if ((n as HTMLElement).hidden) return false;
+    return true;
+  };
+  return Array.from(root.querySelectorAll<HTMLElement>('button, input, select, textarea')).filter((el) => shown(el) && !(el as HTMLInputElement).disabled);
+}
+
+/** Tab past the dialog's last control comes round to its first, and Shift+Tab before its first, or from its
+ *  heading, to its last; the browser moves the focus everywhere in between. */
+function keepTab(root: HTMLElement, e: KeyboardEvent): void {
+  if (e.key !== 'Tab' || e.altKey || e.ctrlKey || e.metaKey) return;
+  const stops = tabStops(root);
+  const active = root.ownerDocument.activeElement;
+  const first = stops[0];
+  const last = stops.at(-1);
+  if (first === undefined || last === undefined) return;
+  const to = e.shiftKey ? (active === first || !stops.includes(active as HTMLElement) ? last : null) : active === last ? first : null;
+  if (to === null) return;
+  e.preventDefault();
+  to.focus({ preventScroll: true });
+  to.scrollIntoView({ block: 'nearest' });
+}
+
 export function matchMenu(host: MenuHost): MenuLayer {
   addStyle(css);
   const titleId = `match-menu-title-${++menus}`;
@@ -73,7 +100,8 @@ export function matchMenu(host: MenuHost): MenuLayer {
     h('h2', { id: titleId }, host.practice ? 'Paused' : 'Menu'),
     host.practice ? h('p', {}, 'Play, the clock and the terriers wait until you resume.') : null,
     h('div', { class: 'match-menu-buttons' }, ...buttons));
-  const el = h('div', { class: 'match-menu', role: 'dialog', 'aria-labelledby': titleId, 'data-test': 'menu', hidden: true }, menuPanel);
+  const el = h('div', { class: 'match-menu', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId, 'data-test': 'menu', hidden: true }, menuPanel);
+  el.addEventListener('keydown', (e: Event) => keepTab(el, e as KeyboardEvent));
 
   /** The Settings panel while it shows in the menu's place. */
   let shown: SettingsPanel | null = null;

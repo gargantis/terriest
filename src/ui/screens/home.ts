@@ -19,10 +19,9 @@ import { fitName, shownName } from '../../core/names';
 import type { Look } from '../../render/look';
 import type { ProfileSource } from '../../storage/schema';
 import { h, setShown, setText } from '../dom';
-import { ButtonNav } from '../nav';
+import { ButtonNav, padOnly } from '../nav';
 import { addStyle } from '../style';
 import css from './home.css?inline';
-import { padOnly } from './propose';
 import { coatSwatch, type Screen, screenStyles } from './screen';
 
 export interface HomeHost {

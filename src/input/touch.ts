@@ -91,7 +91,9 @@ export class TouchState {
   private pressed: Record<TouchButton, boolean> = { jump: false, pounce: false, bark: false, view: false };
   /** Every press since the state was made, for the hook. */
   readonly presses: Record<TouchButton, number> = { jump: 0, pounce: 0, bark: 0, view: 0 };
-  /** Thumbs the stick's area didn't take: in the edge margin, or a second one while it holds one. */
+  /** Thumbs the stick didn't take: a second one while it holds one, or one outside its area. In the page an
+   *  edge-margin touch never reaches it, as the area's box leaves the margin out (touch.css), so only a
+   *  second thumb counts there. */
   refused = 0;
   private changedAt: number | null = null;
 
@@ -203,7 +205,8 @@ export interface TouchInspection {
   readonly stick: { readonly held: boolean; readonly base: { readonly x: number; readonly y: number } | null; readonly step: number | null; readonly zoomies: boolean };
   readonly held: readonly TouchButton[];
   readonly presses: Readonly<Record<TouchButton, number>>;
-  /** Thumbs the stick's area refused: in the edge margin, or a second one. */
+  /** Thumbs the stick refused: in the page, a second one while it holds one, since an edge-margin touch
+   *  never reaches the stick (TouchState.refused). */
   readonly refused: number;
 }
 

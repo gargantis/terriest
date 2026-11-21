@@ -3,13 +3,17 @@ import { config } from '../config';
 import { findTerrier, IN_PLAY, LUNGING, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
 import type { UiCommand } from '../input/source';
 import type { Timeline } from '../core/session/index';
-import { type AppRig, appRig, type AppRigOptions, Frames, Locks, ME } from './app-testing';
+import { MemoryStorage } from '../storage/kv';
+import { browserLocation } from './app';
+import { type AppRig, appRig, type AppRigOptions, Frames, Locks, ME, nowhere } from './app-testing';
 import { FakeClock } from './clock-testing';
 import { pageDevices } from './devices';
 import { fake, FakeEvent, type FakeDocument, FakeNode, installDom, only } from './dom-testing';
 import { FrameLoop } from './frame-loop';
 import type { Inspection } from './inspect';
+import type { HudInspection } from './inspect';
 import { PITCH_LAYERS, pitchLayers } from './layers/index';
+import { NOT_SAVED, SAVED } from './screens/settings';
 import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-testing';
 
 // The app (M4's design §1.41, §1.47, §1.49, §1.63, §2.8, §5.1–§5.4,
@@ -34,10 +38,16 @@ import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-te
 // the final state's, a lunge latched, each match's from its opening, P11's
 // count and the timer's gaps past the freeze and the stall; Settings'
 // quality re-creating the stage behind Home, the old one disposed only once
-// its own prepare has settled. And the frame loop's phase-1 fallback,
-// every other frame drawn however long the gaps stay late, its log capped;
-// the layers' order and the page's devices. The networked screens over
-// M3's network simulator are app-net.test.ts's.
+// its own prepare has settled, and one chosen in a match's Settings panel
+// once the pitch screen goes, the hook reading the panel; Settings saying
+// when the browser keeps nothing, from Home and in the match; the pad alone
+// from Home to Settings and back, and to Practice's Pre-match; the graphics
+// message a networked match gets, and a context lost before the pitch
+// screen; the page's fragment set by location.replace; and the page's own
+// leave guard on the window before any room. And the frame loop's phase-1
+// fallback, every other frame drawn however long the gaps stay late, its
+// log capped; the layers' order and the page's devices. The networked
+// screens over M3's network simulator are app-net.test.ts's.
 
 let dom: { readonly document: FakeDocument; restore(): void };
 beforeEach(() => {
@@ -58,6 +68,15 @@ const screenEl = (r: Rig): ReturnType<typeof fake> => only(r.root, '[id="screen"
 const stageBox = (r: Rig): ReturnType<typeof fake> => only(r.root, '[id="stage"]');
 const button = (r: Rig, test: string): ReturnType<typeof fake> => only(screenEl(r), `button[data-test="${test}"]`);
 const press = (kind: UiCommand['kind'], pressedAt = 0): UiCommand => ({ kind, pressedAt, source: 'keyboard', repeat: false });
+const pad = (kind: UiCommand['kind'], pressedAt = 0): UiCommand => ({ kind, pressedAt, source: 'gamepad', repeat: false });
+const focused = (): string | null => dom.document.activeElement.getAttribute('data-test');
+const hudOf = (i: Inspection): HudInspection => i.layers['hud'] as HudInspection;
+/** A check or a radio as a click leaves it: checked, and a change event. */
+const tick = (el: ReturnType<typeof fake>, on: boolean): void => {
+  el.checked = on;
+  el.dispatchEvent(new FakeEvent('change', { bubbles: true }));
+};
+const LOST_MS = config.lostGraphicsSeconds * 1000;
 const settle = async (): Promise<void> => {
   for (let k = 0; k < 5; k++) await Promise.resolve();
 };
@@ -131,6 +150,12 @@ describe('the start-up order (§5.1, M4-Q38)', () => {
     second.frames.run();
     second.clock.advance(5000);
     expect([second.stages[0]!.prepares, second.canaries, second.rooms]).toEqual([0, [], []]);
+    // Nor does a link followed meanwhile route: a room here would put a second tab under the player's ID,
+    // the duplicate the lock rules out (C-12).
+    second.location.set('#join=TERR1ESTSCREENS20000V');
+    second.clock.advance(0);
+    await settle();
+    expect([look(second).screen, look(second).message, second.rooms, second.canaries]).toEqual(['message', 'other-tab', [], []]);
     // The first tab plays Practice; Use here here takes the lock from it.
     startPractice(first);
     expect(look(first).screen).toBe('prematch');
@@ -138,9 +163,10 @@ describe('the start-up order (§5.1, M4-Q38)', () => {
     button(second, 'message-useHere').click();
     await settle();
     expect(second.order.at(-1)).toBe('steal');
-    // The second routes its fragment, its Join's room opened at once, and starts its compile behind it.
+    // The second routes its fragment, the link followed last, its Join's room opened at once, and starts
+    // its compile behind it.
     expect(look(second).screen).toBe('join');
-    expect(second.rooms.map((x) => x.matchId)).toEqual(['TERR1ESTDESKT0PM30004']);
+    expect(second.rooms.map((x) => x.matchId)).toEqual(['TERR1ESTSCREENS20000V']);
     second.frames.run();
     second.clock.advance(0);
     expect(second.stages[0]!.prepares).toBe(1);
@@ -159,6 +185,52 @@ describe('the start-up order (§5.1, M4-Q38)', () => {
     const r = rig();
     await r.app.start();
     expect([look(r).screen, r.order[0]]).toEqual(['home', 'lock']);
+  });
+
+  it("installs the page's own guard on the window before any room, whose listener then never hears a prompt the pitch answers, and asks nothing on Created or Join (§1.49, §5.11)", async () => {
+    // The window, and a room's transport that adds its own beforeunload listener as it opens, as
+    // Trystero's room.mjs does.
+    const win = new EventTarget();
+    const g = globalThis as { window?: unknown };
+    const heard: string[] = [];
+    g.window = win;
+    let r: Rig;
+    try {
+      r = rig({
+        realGuard: true,
+        transport: (rooms) => (peer, now, o) => {
+          win.addEventListener('beforeunload', () => heard.push(o.matchId));
+          return nowhere(rooms)(peer, now, o);
+        },
+      });
+    } finally {
+      delete g.window;
+    }
+    const unload = (): boolean => {
+      const e = new Event('beforeunload', { cancelable: true });
+      win.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    await r.app.start();
+    expect(unload()).toBe(false);
+    // Created: the room open, nothing asked, the room's listener hears the page go.
+    button(r, 'propose').click();
+    button(r, 'create').click();
+    await settle();
+    expect(look(r).screen).toBe('created');
+    const id = look(r).match!.matchId!;
+    expect([unload(), heard]).toEqual([false, [id]]);
+    // Pre-match: asked, and the event stopped before the room's listener, the guard's being the first.
+    button(r, 'play-0').click();
+    expect(look(r).screen).toBe('prematch');
+    expect([unload(), heard]).toEqual([true, [id]]);
+    // Join: nothing asked again.
+    button(r, 'prematch-leave').click();
+    only(screenEl(r), 'input[data-test="code"]').value = 'TERR1ESTJ01NBYC0DE006';
+    only(screenEl(r), 'form').dispatchEvent(new FakeEvent('submit', { bubbles: true, cancelable: true }));
+    await settle();
+    expect(look(r).screen).toBe('join');
+    expect([unload(), heard]).toEqual([false, [id, id, 'TERR1ESTJ01NBYC0DE006']]);
   });
 
   it('installs the leave guard before any room, asking only on Pre-match and Match, Practice\'s too (§1.49, M4-Q30)', async () => {
@@ -237,6 +309,44 @@ describe("the fragment's routes (§5.2)", () => {
     await settle();
     expect([screenEl(r).children[0], r.rooms.map((x) => x.matchId)]).toEqual([join, ['TERR1ESTJ01NBYC0DE006']]);
     expect(look(r).match?.matchId).toBe('TERR1ESTJ01NBYC0DE006');
+  });
+});
+
+describe("the page's own fragment (§5.2, D-38, PLAN §11)", () => {
+  it('sets it by location.replace, never by assigning location.hash, which would add a history entry Back walks to an old match', () => {
+    const g = globalThis as { location?: unknown; window?: unknown };
+    const replaced: string[] = [];
+    let assigned = 0;
+    const loc = { href: 'https://terriest.test/play/#join=TERR1ESTDESKT0PM30004', replace: (u: string) => replaced.push(u) };
+    Object.defineProperty(loc, 'hash', {
+      get: () => '#join=TERR1ESTDESKT0PM30004',
+      set: () => {
+        assigned++;
+      },
+    });
+    const win = new EventTarget();
+    g.location = loc;
+    g.window = win;
+    try {
+      browserLocation.replace('#join=TERR1ESTSCREENS20000V');
+      browserLocation.replace('#');
+      expect([replaced, assigned]).toEqual([['#join=TERR1ESTSCREENS20000V', '#'], 0]);
+      expect([browserLocation.hash(), browserLocation.href()]).toEqual(['#join=TERR1ESTDESKT0PM30004', loc.href]);
+      // Each hashchange hands on its new address's fragment, '' for none, until removed.
+      const heard: string[] = [];
+      const stop = browserLocation.onHashChange((h) => heard.push(h));
+      const change = (newURL: string): void => {
+        win.dispatchEvent(Object.assign(new Event('hashchange'), { newURL, oldURL: loc.href }));
+      };
+      change('https://terriest.test/play/#join=TERR1ESTJ01NBYC0DE006');
+      change('https://terriest.test/play/');
+      stop();
+      change('https://terriest.test/play/#anything');
+      expect(heard).toEqual(['#join=TERR1ESTJ01NBYC0DE006', '']);
+    } finally {
+      delete g.location;
+      delete g.window;
+    }
   });
 });
 
@@ -516,6 +626,77 @@ describe('the graphics lost, through the app (§5.8, D-30)', () => {
   });
 });
 
+describe('the graphics lost, through the app, beyond Practice (§5.8, §5.10, D-30)', () => {
+  it("gives a networked match the message that says it goes on for the others, never Practice's", async () => {
+    const r = rig();
+    await r.app.start();
+    button(r, 'propose').click();
+    button(r, 'create').click();
+    await settle();
+    button(r, 'play-0').click();
+    expect([look(r).screen, look(r).match!.kind]).toEqual(['prematch', 'net']);
+    r.stages[0]!.onGraphics!('lost');
+    play(r, LOST_MS + 100);
+    expect(look(r)).toMatchObject({ screen: 'message', message: 'graphics' });
+    expect(only(screenEl(r), '[data-message="graphics"]').shown).toBe(true);
+    expect(screenEl(r).querySelectorAll('[data-message="practice-graphics"]')).toHaveLength(0);
+  });
+
+  it('shows a context lost on Home, which no pitch screen heard, on the Practice that follows: restoring, paused, then the message', async () => {
+    const r = rig();
+    await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
+    // The stage keeps the loss it told nobody (src/render/scene.ts): Home has no onGraphics.
+    expect(r.stages[0]!.onGraphics).toBeNull();
+    r.stages[0]!.lost = true;
+    startPractice(r);
+    await settle();
+    play(r, 50); // the HUD writes what a frame and a run hand it
+    expect([hudOf(look(r)).graphics, look(r).match!.paused, r.host().sampling(), r.host().uiActive()]).toEqual(['restoring', true, false, 'spectator']);
+    play(r, LOST_MS + 100);
+    expect(look(r)).toMatchObject({ screen: 'message', message: 'graphics' });
+    r.stages[0]!.lost = false;
+    r.stages[0]!.onGraphics!('restored');
+    play(r, 50);
+    expect([look(r).screen, look(r).match!.paused, hudOf(look(r)).graphics]).toEqual(['prematch', false, 'ok']);
+  });
+});
+
+describe('the gamepad alone, from Home (L82, Q-17, §4.4)', () => {
+  it('reaches Settings and comes back, changing a setting on the way, then Practice\'s setup and its Pre-match', async () => {
+    const r = rig();
+    await r.app.start();
+    // Home: its heading focused; the pad's downs go Propose, Join, Practice, Settings.
+    for (let k = 0; k < 4; k++) r.app.ui(pad('down'));
+    expect(focused()).toBe('settings');
+    r.app.ui(pad('press'));
+    expect(look(r).screen).toBe('settings');
+    // Settings: Sound by the d-pad, off by Start, then Back, the last of its controls.
+    for (let k = 0; k < 3; k++) r.app.ui(pad('down'));
+    expect(focused()).toBe('sound');
+    r.app.ui(pad('press'));
+    expect([r.settings.get().sound, only(screenEl(r), '[data-test="settings-message"]').textContent]).toEqual([false, SAVED]);
+    r.app.ui(pad('up'));
+    r.app.ui(pad('up'));
+    r.app.ui(pad('up'));
+    expect(focused()).toBe('back');
+    r.app.ui(pad('press'));
+    expect(look(r).screen).toBe('home');
+    // Practice's setup: Start by the d-pad and pressed.
+    for (let k = 0; k < 3; k++) r.app.ui(pad('down'));
+    expect(focused()).toBe('practice');
+    r.app.ui(pad('press'));
+    expect(look(r).screen).toBe('practice');
+    r.app.ui(pad('down'));
+    expect(focused()).toBe('start');
+    r.app.ui(pad('press'));
+    expect([look(r).screen, look(r).match!.kind]).toEqual(['prematch', 'practice']);
+  });
+});
+
 describe("Settings' render quality from Home (§2.8, D-33)", () => {
   it('re-creates the stage at once, preparing the new one behind Home, the old disposed only once its own prepare has settled', async () => {
     const r = rig();
@@ -557,6 +738,61 @@ describe("Settings' render quality from Home (§2.8, D-33)", () => {
     dom.document.defaultView.scrollTo(0, 90);
     button(r, 'back').click();
     expect([look(r).screen, dom.document.defaultView.scrollY]).toEqual(['home', 0]);
+  });
+});
+
+describe("Settings in a match's menu, through the app (§5.8, §6, PLAN §10, §11)", () => {
+  /** A Practice's Pre-match, its compile done, and the menu's Settings panel open on it. */
+  async function panelOpen(r: Rig): Promise<void> {
+    await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
+    startPractice(r);
+    await settle();
+    r.app.ui(press('menu'));
+    r.app.ui(press('down'));
+    expect(focused()).toBe('menu-settings');
+    r.app.ui(press('press'));
+  }
+
+  it("reads 'settings' in the hook while the panel shows, and applies a quality it chose once the pitch screen goes, never under it (phase 2)", async () => {
+    const r = rig();
+    await panelOpen(r);
+    expect([look(r).menu, look(r).match!.paused]).toEqual(['settings', true]);
+    tick(only(screenEl(r), 'input[data-test="quality-low"]'), true);
+    expect(r.settings.stored().quality).toBe('low');
+    // The stage stays as it is while the pitch screen shows, the panel and the match after it.
+    expect(r.stages.length).toBe(1);
+    only(screenEl(r), 'button[data-test="back"]').click();
+    expect([look(r).menu, look(r).match!.paused]).toEqual(['closed', false]);
+    play(r, 200);
+    expect([r.stages.length, look(r).render.quality]).toEqual([1, 'high']);
+    // Leave: Home, and the new stage at the quality chosen, the old disposed once its prepare has settled.
+    button(r, 'prematch-leave').click();
+    expect([look(r).screen, r.stages.map((x) => x.quality), look(r).render.quality]).toEqual(['home', ['high', 'low'], 'low']);
+    await settle();
+    expect(r.stages[0]!.disposed).toBe(true);
+  });
+
+  it("says a change is in use for this visit alone when the browser keeps nothing, from Home's Settings and from the panel", async () => {
+    const storage = new MemoryStorage();
+    const r = rig({ storage });
+    storage.full = true; // every write from now on refused, as a full quota's are
+    await panelOpen(r);
+    const sound = only(screenEl(r), 'input[data-test="sound"]');
+    tick(sound, false);
+    expect([r.settings.get().sound, only(screenEl(r), '[data-test="settings-message"]').textContent]).toEqual([false, NOT_SAVED]);
+    only(screenEl(r), 'button[data-test="back"]').click();
+    button(r, 'prematch-leave').click();
+    button(r, 'settings').click();
+    tick(only(screenEl(r), 'input[data-test="names"]'), true);
+    expect(only(screenEl(r), '[data-test="settings-message"]').textContent).toBe(NOT_SAVED);
+    // And once the browser keeps them again, saved.
+    storage.full = false;
+    tick(only(screenEl(r), 'input[data-test="names"]'), false);
+    expect(only(screenEl(r), '[data-test="settings-message"]').textContent).toBe(SAVED);
   });
 });
 

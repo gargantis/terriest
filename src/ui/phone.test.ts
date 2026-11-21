@@ -96,6 +96,52 @@ describe('a phone (D-30)', () => {
     expect(isPhone(win(false, 412, 915))).toBe(false);
   });
 
+  it("reads the page's own window: its pointer and screen, its orientation live, Android by its user agent, fullscreen, then the lock to landscape", async () => {
+    /** A media query list the test turns, telling its listeners as a browser does. */
+    const query = (matches: boolean) => {
+      const fns = new Set<() => void>();
+      return {
+        matches,
+        addEventListener: (_t: string, fn: () => void) => fns.add(fn),
+        removeEventListener: (_t: string, fn: () => void) => fns.delete(fn),
+        set(on: boolean): void {
+          this.matches = on;
+          for (const fn of [...fns]) fn();
+        },
+      };
+    };
+    const coarse = query(true);
+    const portrait = query(true);
+    const calls: unknown[] = [];
+    const resize = new EventTarget();
+    const w = Object.assign(resize, {
+      matchMedia: (q: string) => (q === '(pointer: coarse)' ? coarse : q === '(orientation: portrait)' ? portrait : query(false)),
+      screen: { width: 412, height: 915, orientation: { lock: (o: string) => (calls.push(['lock', o]), Promise.resolve()) } },
+      navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/131 Mobile Safari/537.36' },
+      document: { documentElement: { requestFullscreen: (o: unknown) => (calls.push(['fullscreen', o]), Promise.resolve()) } },
+    });
+    const page = browserPhone(w as unknown as Window);
+    expect([page.phone(), page.upright(), page.android()]).toEqual([true, true, true]);
+    // The orientation followed as it turns, each resize and each turn told, until removed.
+    const told: string[] = [];
+    const stop = page.onChange(() => told.push(page.upright() ? 'upright' : 'sideways'));
+    portrait.set(false);
+    resize.dispatchEvent(new Event('resize'));
+    stop();
+    portrait.set(true);
+    expect([told, page.upright()]).toEqual([['sideways', 'sideways'], true]);
+    await page.enterFullscreen();
+    await page.lockLandscape();
+    expect(calls).toEqual([['fullscreen', { navigationUI: 'hide' }], ['lock', 'landscape']]);
+    // A desktop's user agent and pointer: no phone, no Android.
+    coarse.set(false);
+    w.navigator.userAgent = 'Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/133.0';
+    expect([page.phone(), page.android()]).toEqual([false, false]);
+    // No orientation lock in this engine: refused as NotSupportedError, never thrown.
+    (w.screen as { orientation?: unknown }).orientation = undefined;
+    await expect(page.lockLandscape()).rejects.toThrow('NotSupportedError');
+  });
+
   it('is never one, and asks for nothing, where the page has no window', async () => {
     const page = browserPhone(null);
     expect([page.phone(), page.upright(), page.android()]).toEqual([false, false, false]);

@@ -13,10 +13,9 @@
 // created screens, with packs, Watch at once, and Share…. New at M4.
 
 import type { MatchSettings, Pack } from '../../core/sim/index';
-import type { UiCommand } from '../../input/source';
 import type { Look } from '../../render/look';
 import { h, setEnabled, setText } from '../dom';
-import { ButtonNav } from '../nav';
+import { ButtonNav, padOnly } from '../nav';
 import { addStyle } from '../style';
 import { invitePanel, inviteButtons, type InviteOptions } from './invite';
 import css from './join.css?inline';
@@ -37,14 +36,6 @@ export function playButton(look: Look, pack: Pack, act: () => void): HTMLButtonE
   const label = h('span', { class: 'play-label' }, playText(look, pack));
   const b = h('button', { type: 'button', class: 'secondary play', 'data-test': `play-${pack}`, onclick: act }, packSwatch(look.packs[pack]), label);
   return b;
-}
-
-/** The gamepad's commands to a screen whose keys the browser keeps: the keyboard's Enter already presses the
- *  focused button there, by the browser's own activation, so only another device's are the nav's (§4.9). */
-export function padOnly(nav: ButtonNav): (c: UiCommand) => void {
-  return (c) => {
-    if (c.source !== 'keyboard') nav.ui(c);
-  };
 }
 
 export function proposeScreen(host: ProposeHost): Screen {

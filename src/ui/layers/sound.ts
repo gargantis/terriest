@@ -6,7 +6,10 @@
 //   goal latched since the last run and the end once it's confirmed (D-14);
 //   and from PitchContext.barks, the barks MatchView.run found in received
 //   and recorded inputs (D-16). Another timeline, a merge's or a rejoin's,
-//   resets the cues, so nothing replays from its adopted state (§7);
+//   resets the cues, so nothing replays from its adopted state (§7); and
+//   what the scoreboard latched before the layer was made, while a joiner
+//   read Join or before a role's new pitch screen, has had its whistle, or
+//   came before this page could hear it, so none is blown again;
 // - your own bark at the press, from Layer.ownBark, as the drawing shows it;
 // - Settings' sound through SettingsSource.subscribe, and Practice's pause
 //   (Q-15), on the AudioOut, each frame and each run;
@@ -72,9 +75,11 @@ export function soundLayer(host: PitchHost, out: AudioOut = audioOut()): Layer {
   /** The timeline last seen, and its ID: another resets the cues. */
   let timeline: object | null = null;
   let timelineId = '';
-  /** The scoreboard's goals' ticks at the last run, and its end: what's latched since is new. */
-  let goalTicks: number[] = [];
-  let end: ConfirmedEnd | null = null;
+  /** The scoreboard's goals' ticks at the last run, and its end: what's latched since is new, and what it
+   *  held as the layer was made is not, so Watch on Join, or a role's new pitch screen, whistles none of
+   *  it again (§7). */
+  let goalTicks: number[] = match.scoreboard.goals.map((g) => g.tick);
+  let end: ConfirmedEnd | null = match.scoreboard.end;
 
   const play = (list: readonly Cue[]): void => {
     for (const c of list) out.play(c);

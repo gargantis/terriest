@@ -23,15 +23,17 @@
 //   button, and when a stall or a hidden page paused Practice (Q-15):
 //   while it's open Practice is paused, nothing is held (§4.8) and Q-17's
 //   nav works its buttons, the first focused, or its Settings panel's in
-//   their place (§5.8, §6), the menu then reading 'settings'; it always
+//   their place (§5.8, §6), the menu then reading 'settings', the pad's
+//   d-pad reaching the panel's checks and radios too (L82); it always
 //   opens on its buttons; closing it resumes and gives the focus back;
 // - the graphics (§5.8, D-30, C-36): stage.onGraphics as PitchContext's
-//   graphics, 'restoring' from a lost context, the HUD's "Graphics were
-//   lost; restoring", held inputs released and Practice paused until it's
-//   back; and once lostGraphicsSeconds have passed with the page visible,
-//   'lost', the plain message with Leave over the pitch and every layer,
-//   the match going on for the others; a context that comes back puts the
-//   pitch back in place of the message;
+//   graphics, 'restoring' from a lost context, a context lost before the
+//   screen was made included, as the stage keeps it, the HUD's "Graphics
+//   were lost; restoring", held inputs released and Practice paused until
+//   it's back; and once lostGraphicsSeconds have passed with the page
+//   visible, 'lost', the plain message with Leave over the pitch and every
+//   layer, the match going on for the others; a context that comes back
+//   puts the pitch back in place of the message;
 // - a spectator's view and follow: the ball's from the start; the view key
 //   and the shoulders ('next', 'prev') go to the layers first, where the
 //   HUD's follow choice moves it along its buttons, the ball and each
@@ -60,7 +62,7 @@ import type { PageEvents } from '../clock';
 import { h, isEnabled, setShown, setText } from '../dom';
 import type { Inspection } from '../inspect';
 import type { Layer, LayerFactory, PitchContext, PitchHost } from '../layer';
-import { ButtonNav } from '../nav';
+import { ButtonNav, type NavControl } from '../nav';
 import { isPreMatch, prematchPanel } from '../prematch';
 import { addStyle } from '../style';
 import type { InviteOptions } from './invite';
@@ -189,11 +191,13 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
   const menuLayer = layers.find(isMenuLayer) ?? null;
   if (menuLayer?.el) setShown(menuLayer.el, false);
 
-  // --- Q-17's navs: Pre-match's buttons, and the menu's ---
+  // --- Q-17's navs: Pre-match's buttons, and the menu's: its buttons for the keys, and for the pad the
+  // Settings panel's checks and radios too, whose keys the keyboard leaves to the browser (L82, §4.4) ---
   const prematchNav = new ButtonNav(() => panel.buttons(), { clock });
   const detachPrematch = prematchNav.attach(panel.el);
-  const menuButtons = (): HTMLButtonElement[] => (menuLayer?.el ? Array.from(menuLayer.el.querySelectorAll<HTMLButtonElement>('button')) : []);
-  const menuNav = new ButtonNav(menuButtons, { clock });
+  const menuOf = (selector: string) => (): NavControl[] => (menuLayer?.el ? Array.from(menuLayer.el.querySelectorAll<NavControl>(selector)) : []);
+  const menuNav = new ButtonNav(menuOf('button'), { clock });
+  const menuPadNav = new ButtonNav(menuOf('button, input[type="checkbox"], input[type="radio"]'), { clock });
   const detachMenu = menuLayer?.el ? menuNav.attach(menuLayer.el) : () => {};
 
   // --- What the screen does ---
@@ -363,7 +367,7 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
       return;
     }
     if (menu !== 'closed') {
-      menuNav.ui(c);
+      (c.source === 'keyboard' ? menuNav : menuPadNav).ui(c);
       return;
     }
     // A layer's own command first: the HUD's follow choice takes a spectator's next and prev, the view
@@ -421,6 +425,9 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
     if (page.hidden()) disarmLost();
     else armLost();
   });
+  // A context lost before this screen was made, on Home, on Results or between a role's two screens, was
+  // told to nobody, but the stage keeps it (§5.8, D-30).
+  if (stage.info().lost) graphicsChanged('lost');
   const prepared = (state: 'ready' | 'failed'): void => {
     if (disposed) return;
     pitch = state;

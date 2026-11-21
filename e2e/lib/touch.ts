@@ -3,9 +3,12 @@
 // CDP's Input.dispatchTouchEvent, so several can be down at once, as two
 // thumbs are, which Playwright's own touchscreen, a tap at a time, can't.
 // Chromium only, the touch spec's engine, in a context made with hasTouch;
-// the page sees each finger as a pointer of type touch. Each event lists
-// every finger still down, as CDP takes them: a finger left out of a move
-// is lifted, and the last one lifts with an empty end. New at M4.
+// the page sees each finger as a pointer of type touch. Each start and move
+// lists every finger down, as CDP takes them. Chromium lifts fingers only
+// all at once, by an end with none listed: a finger left out of a move
+// stays down, the page hearing nothing of it (phase 2a's review). So lift()
+// lifts the last finger down, and refuses while another is down; liftAll()
+// lifts them together. New at M4.
 
 import type { CDPSession, Page } from '@playwright/test';
 
@@ -60,14 +63,16 @@ export class Fingers {
     }
   }
 
-  /** A finger lifted: the others stay down. */
+  /** The last finger down lifted. Chromium can't lift one of several, so this refuses while another is
+   *  down: liftAll() lifts them together. */
   async lift(id: number): Promise<void> {
     this.at(id);
+    if (this.down.size > 1) throw new Error(`finger ${id} can't lift alone while ${this.down.size - 1} more are down: Chromium lifts fingers all at once (liftAll)`);
     this.down.delete(id);
-    await this.send(this.down.size === 0 ? 'touchEnd' : 'touchMove');
+    await this.send('touchEnd');
   }
 
-  /** A tap: down and up again. */
+  /** A tap: down and up again, with no other finger down. */
   async tap(at: Point): Promise<void> {
     await this.lift(await this.press(at));
   }

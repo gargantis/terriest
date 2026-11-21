@@ -3,13 +3,15 @@ import { config } from '../config';
 import type { InputKind, UiCommand } from '../input/source';
 import { FakeClock } from './clock-testing';
 import { isEnabled, setEnabled } from './dom';
-import { ButtonNav, type PressSource } from './nav';
+import { ButtonNav, padOnly, type PressSource } from './nav';
 
 // Q-17's menus without a mouse (M4's design §1.46, §4.9, §9.2; M4-Q26), on
 // buttons that keep only what the nav reads, so no DOM is needed: the
-// arrows' and the d-pad's moves; a press of the focused button, never of an
-// aria-disabled one, by key, pad or click, and never on a repeat; and
-// Results' guard for keys, the pad and a pointer, each press reported once.
+// arrows' and the d-pad's moves, past a button that's hidden or inside
+// something hidden, each brought into view; a press of the focused button,
+// never of an aria-disabled one, by key, pad or click, and never on a
+// repeat; Results' guard for keys, the pad and a pointer, each press
+// reported once; and a pad-only nav, whose keys stay the browser's.
 
 class Doc {
   activeElement: unknown = null;
@@ -57,6 +59,11 @@ class Button {
   hidden = false;
   textContent = '';
   acted = 0;
+  /** What holds it: an element, which may be hidden, as Join's packs are while it connects, or the
+   *  document, whose own hidden is the page's visibility. */
+  parentNode: { tagName?: string; hidden: boolean; parentNode: null } | null = null;
+  /** Each scrollIntoView's options. */
+  readonly scrolled: unknown[] = [];
   private readonly attrs = new Map<string, string>();
   readonly ownerDocument: Doc;
   private readonly root: Root;
@@ -77,6 +84,9 @@ class Button {
   }
   focus(): void {
     this.ownerDocument.activeElement = this;
+  }
+  scrollIntoView(o: unknown): void {
+    this.scrolled.push(o);
   }
   contains(n: unknown): boolean {
     return n === this;
@@ -127,6 +137,52 @@ describe('ButtonNav (Q-17)', () => {
     expect(doc.activeElement).toBe(c);
     nav.focusFirst();
     expect(doc.activeElement).toBe(a);
+  });
+
+  it("passes over a button inside something hidden, which a browser won't focus, as Join's Play buttons are while it connects", () => {
+    const { doc, buttons: [a, b, c] } = screen(3);
+    const packs = { tagName: 'DIV', hidden: true, parentNode: null };
+    b!.parentNode = packs;
+    const nav = new ButtonNav(() => asButtons([a!, b!, c!]));
+    nav.ui(cmd('down'));
+    nav.ui(cmd('down'));
+    expect(doc.activeElement).toBe(c);
+    nav.ui(cmd('up'));
+    expect(doc.activeElement).toBe(a);
+    packs.hidden = false;
+    nav.ui(cmd('down'));
+    expect(doc.activeElement).toBe(b);
+  });
+
+  it("takes a button on a hidden page, whose document's own hidden is the page's visibility, as a hidden page opens Practice's menu on Resume (Q-15)", () => {
+    const { doc, buttons: [resume, leave] } = screen(2);
+    const page = { hidden: true, parentNode: null }; // the document of a hidden page: no element, no tag
+    resume!.parentNode = page;
+    leave!.parentNode = page;
+    const nav = new ButtonNav(() => asButtons([resume!, leave!]));
+    nav.focusFirst();
+    expect(doc.activeElement).toBe(resume);
+    nav.ui(cmd('down', 0, 'gamepad'));
+    expect(doc.activeElement).toBe(leave);
+  });
+
+  it('brings the button it moves to into view, as little as it takes, so a short window never hides the focus (§5.14)', () => {
+    const { buttons: [a, b] } = screen(2);
+    const nav = new ButtonNav(() => asButtons([a!, b!]));
+    nav.ui(cmd('down'));
+    nav.ui(cmd('down'));
+    nav.ui(cmd('up', 0, 'gamepad'));
+    expect([a!.scrolled, b!.scrolled]).toEqual([[{ block: 'nearest' }, { block: 'nearest' }], [{ block: 'nearest' }]]);
+  });
+
+  it("leaves a pad-only screen's keys to the browser, and takes another device's commands (padOnly)", () => {
+    const { doc, buttons: [a, b] } = screen(2);
+    const ui = padOnly(new ButtonNav(() => asButtons([a!, b!])));
+    ui(cmd('down'));
+    expect(doc.activeElement).toBeNull();
+    ui(cmd('down', 0, 'gamepad'));
+    ui(cmd('press', 0, 'gamepad'));
+    expect([doc.activeElement, a!.acted]).toEqual([a, 1]);
   });
 
   it('presses the focused button once a press, never an aria-disabled one, never on a repeat', () => {

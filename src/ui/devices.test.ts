@@ -139,6 +139,23 @@ describe("the page's devices (§1.63)", () => {
     r.devices.dispose();
   });
 
+  it("hold nothing on the pad while the page is hidden, the stick held through it, and send no command, as a networked page samples on (D-31)", () => {
+    const r = rig();
+    r.pad.axes = [-1, 0, 0, 0]; // the stick held left
+    expect(r.device('gamepad').read().direction).not.toBeNull();
+    r.doc.visibilityState = 'hidden';
+    r.doc.dispatchEvent(new FakeEvent('visibilitychange'));
+    r.v.sampling = true; // a networked page goes on sending while hidden
+    expect(r.device('gamepad').read()).toMatchObject({ direction: null, stickStep: null, zoomies: false });
+    r.pad.set(PAD.back, 1);
+    expect(r.device('gamepad').read().direction).toBeNull();
+    r.clock.advance(PERIOD);
+    expect(r.ui).toEqual([]);
+    r.doc.visibilityState = 'visible';
+    r.pad.set(PAD.back, 0);
+    expect(r.device('gamepad').read().direction).not.toBeNull();
+  });
+
   it("read touch only on a player's pitch, its side Settings' mirrored layout", () => {
     const r = rig();
     const touch = r.devices.touch;
