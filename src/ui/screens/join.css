@@ -1,0 +1,13 @@
+/* Join and Created (M4's design §5.5, §5.6, §5.14): the match's code, each
+   pack's list with its Play, and the status, a polite live region. */
+.join-code-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.join-code { font-size: 18px; font-weight: 700; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; word-break: break-all; }
+.net-status { min-height: 1.5em; }
+.join-packs { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 12px; }
+.join-pack { display: grid; gap: 8px; align-content: start; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.join-pack h2 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.join-count { margin-left: auto; font-weight: 400; color: var(--muted); }
+.join-pack ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.join-pack li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 24px; }
+.join-pack li.free { color: var(--muted); font-style: italic; }
+button.play { display: inline-flex; align-items: center; gap: 8px; }

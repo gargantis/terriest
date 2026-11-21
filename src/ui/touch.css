@@ -1,0 +1,89 @@
+/* The devices' layers over the pitch (M4's design §4.3, §4.7, §5.13, §5.14;
+   PLAN D-29, D-30): the touch control layer, the control hints and the
+   phone's turn prompt. Each keeps inside the safe-area insets, which
+   index.html's viewport-fit=cover hands to the page (§5.13).
+   Stacking among the pitch screen's layers: the control layer at 18, over
+   Pre-match's panel (15) and the bark marks (12), so its buttons work in
+   warm-up, under the HUD (20), whose Menu button keeps the top right corner
+   both layouts leave free; the hints at 19; the turn prompt at 35, over
+   your mark and the arrow (25) and "Getting the pitch ready…" (30), under
+   the menu (40). Only the stick's area and the buttons take a pointer, so
+   everything under the rest of the layer works. Text sits on opaque
+   backings, so axe judges its contrast (§5.14). */
+
+.touch, .hints, .turn { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+/* The control layer, and its frame inside the safe area. */
+.touch { position: absolute; inset: 0; z-index: 18; pointer-events: none; }
+.touch-safe {
+  position: absolute;
+  inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+/* The stick's area: the lower half of its side, --touch-edge from the side edge (D-29). */
+.touch-stick {
+  position: absolute; top: 50%; bottom: 0; left: var(--touch-edge); width: calc(50% - var(--touch-edge));
+  pointer-events: auto; touch-action: none;
+}
+.touch.mirrored .touch-stick { left: auto; right: var(--touch-edge); }
+/* Its base: at rest, low in the area, faint; held, where the thumb landed. */
+.touch-stick-base {
+  position: absolute; left: 50%; top: 60%; transform: translate(-50%, -50%);
+  width: calc(2 * var(--stick-travel)); height: calc(2 * var(--stick-travel)); border-radius: 50%;
+  border: 3px solid rgb(238 243 234 / 0.55); background: rgb(29 43 31 / 0.35); opacity: 0.6;
+}
+.touch-stick.held .touch-stick-base { left: 0; top: 0; opacity: 1; }
+.touch-stick-knob {
+  position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%;
+  background: rgb(238 243 234 / 0.85); border: 2px solid #1d2b1f;
+}
+/* Past the rim: zoomies, by the ring's colour and its width, never colour alone. */
+.touch-stick.zoomies .touch-stick-base { border-color: var(--primary, #ffd166); border-width: 6px; }
+
+/* The buttons, on the other side: jump and pounce large below, bark and view smaller above. Mirrored,
+   the picture flips and the words don't. */
+.touch-buttons {
+  position: absolute; right: var(--touch-edge); bottom: 12px; pointer-events: none;
+  display: grid; grid-template-areas: "bark view" "pounce jump"; gap: 12px; align-items: end; justify-items: center;
+}
+.touch.mirrored .touch-buttons { right: auto; left: var(--touch-edge); grid-template-areas: "view bark" "jump pounce"; }
+.touch-button {
+  pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent;
+  border-radius: 50%; padding: 0; font-size: 15px; font-weight: 700;
+  color: var(--fg, #eef3ea); background: var(--button, #314a37); border: 2px solid var(--line, #4a6650);
+}
+.touch-jump, .touch-pounce { width: 76px; height: 76px; }
+.touch-bark, .touch-view { width: 56px; height: 56px; font-size: 13px; }
+.touch-jump { grid-area: jump; }
+.touch-pounce { grid-area: pounce; }
+.touch-bark { grid-area: bark; }
+.touch-view { grid-area: view; }
+/* Held: over the hover a tap leaves on a touch screen. */
+.touch .touch-button.held { color: var(--primary-fg, #1d2b1f); background: var(--primary, #ffd166); border-color: var(--primary, #ffd166); }
+
+/* The control hints: the top left, under the HUD's top bar, clear of Pre-match's panel on the right. */
+.hints {
+  position: absolute; z-index: 19; pointer-events: none;
+  top: calc(env(safe-area-inset-top, 0px) + 56px); left: calc(env(safe-area-inset-left, 0px) + 8px);
+  max-width: min(17rem, 42%); padding: 8px 12px; display: grid; gap: 4px;
+  background: var(--bg, #1d2b1f); color: var(--fg, #eef3ea); border: 1px solid var(--line, #4a6650); border-radius: 10px;
+}
+/* Below the sound's prompt (layers/sound.css: a line at 56px) while it shows, and below the HUD's graphics
+   note (hud.css: a line at 96px) while that shows, so neither covers the hints' heading: a pad's press
+   starts no sound, so a pad player meets the prompt and the pad's hints at once (D-32, §4.7). */
+.pitch-screen:has(> .sound-prompt:not([hidden])) > .hints { top: calc(env(safe-area-inset-top, 0px) + 96px); }
+.pitch-screen:has(.hud-graphics:not([hidden])) > .hints { top: calc(env(safe-area-inset-top, 0px) + 136px); }
+.hints h2 { margin: 0; font-size: 14px; }
+.hints ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 13px; }
+.hints-key { font-weight: 700; }
+.hints-note { margin: 0; font-size: 12px; color: var(--muted, #b8c7b5); }
+
+/* The turn prompt: a card in the middle, the screen's buttons still working round it. */
+.turn {
+  position: absolute; z-index: 35; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(20rem, calc(100% - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  padding: 16px; display: grid; gap: 10px; text-align: center;
+  background: var(--bg, #1d2b1f); color: var(--fg, #eef3ea); border: 1px solid var(--line, #4a6650); border-radius: 14px;
+}
+.turn h2 { margin: 0; font-size: 20px; }
+.turn p { margin: 0; }

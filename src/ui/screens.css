@@ -19,7 +19,13 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
-.screen { max-width: 34rem; margin: 0 auto; padding: 24px 16px 32px; display: grid; gap: 16px; align-content: start; }
+/* Each screen's column, kept inside the safe-area insets, since from phase 2 the page draws under a notch
+   and a phone's home bar too (index.html's viewport-fit=cover, §5.13). */
+.screen {
+  max-width: 34rem; margin: 0 auto; display: grid; gap: 16px; align-content: start;
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+    max(32px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
 .screen h1 { margin: 0; font-size: 28px; line-height: 1.2; }
 .screen h1:focus { outline: none; }
 .screen p { margin: 0; }

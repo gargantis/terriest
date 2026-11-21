@@ -9,7 +9,11 @@
 // src/build-info.ts at build time, so goldens.json never enters the page's
 // bundle. Only repo-relative paths and bytes go in, each CRLF read as LF,
 // so it's the same on every machine that checks out the same commit,
-// whatever its line endings (core.autocrlf; design R-9).
+// whatever its line endings (core.autocrlf; design R-9). And from M4,
+// canaryOf: goldens.json's canary hash, which the configs define for
+// src/canary-expected.ts beside the build inputs, so the page's module
+// holds that one hash and nothing else of the goldens (M4's design §1.54,
+// M4-Q5).
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
@@ -51,4 +55,13 @@ export function buildInputs(root) {
     hash.update(bytes);
   }
   return hash.digest('hex').slice(0, 16);
+}
+
+/** goldens.json's canary hash, 16 lowercase hex digits, for src/canary-expected.ts's define (M4's design
+ *  §1.54, M4-Q5). Throws when the file holds none, so a build never ships an empty expectation. */
+export function canaryOf(root) {
+  const goldens = JSON.parse(readFileSync(join(root, GOLDENS), 'utf8'));
+  const canary = goldens !== null && typeof goldens === 'object' ? goldens.canary : undefined;
+  if (typeof canary !== 'string' || !/^[0-9a-f]{16}$/.test(canary)) throw new Error(`${GOLDENS} holds no canary hash`);
+  return canary;
 }

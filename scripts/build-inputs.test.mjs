@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfigFromFile } from 'vite';
-import { buildInputFiles, buildInputs } from './build-inputs.mjs';
+import { buildInputFiles, buildInputs, canaryOf } from './build-inputs.mjs';
 
 // Design §1.31, R-9, M3-Q3: the build inputs' hash changes when a source
 // that decides what peers agree on changes (the simulation, its goldens,
@@ -13,7 +13,10 @@ import { buildInputFiles, buildInputs } from './build-inputs.mjs';
 // marks.ts, setups.ts), nor with the checkout's line endings or the
 // machine's locale. Each edit is made in a temporary copy of src/core, and
 // undone after. vite.config.ts and vitest.config.ts define it; that the
-// page's bundle carries the checkout's hash is e2e/nettest.spec.ts's.
+// page's bundle carries the checkout's hash is e2e/nettest.spec.ts's. And
+// canaryOf (M4's design §1.54, M4-Q5): goldens.json's canary, which both
+// configs define for src/canary-expected.ts, and an error for a goldens
+// file without one.
 const root = fileURLToPath(new URL('..', import.meta.url));
 
 let copy;
@@ -131,5 +134,38 @@ describe('buildInputs', () => {
     }
     const { BUILD_INPUTS } = await import('../src/build-info');
     expect(BUILD_INPUTS).toBe(buildInputs(root));
+  });
+});
+
+describe('canaryOf (M4-Q5)', () => {
+  it("is goldens.json's canary, 16 hex digits", () => {
+    const goldens = JSON.parse(readFileSync(join(root, 'src/core/sim/goldens.json'), 'utf8'));
+    expect(canaryOf(root)).toBe(goldens.canary);
+    expect(canaryOf(root)).toMatch(/^[0-9a-f]{16}$/);
+    expect(canaryOf(copy)).toBe(goldens.canary);
+  });
+
+  it('throws for a goldens file without a canary hash, so no build ships an empty expectation', () => {
+    for (const body of ['{"runs":[]}', '{"canary":""}', '{"canary":"EEA91A8DD7BA3CF4"}', 'null']) {
+      const file = join(copy, 'src/core/sim/goldens.json');
+      const before = readFileSync(file);
+      try {
+        writeFileSync(file, body);
+        expect(() => canaryOf(copy), body).toThrow(/holds no canary hash/);
+      } finally {
+        writeFileSync(file, before);
+      }
+    }
+    expect(canaryOf(copy)).toBe(canaryOf(root));
+  });
+
+  it('is what vite.config.ts defines for the page, and vitest.config.ts for the tests, as src/canary-expected.ts reads it', async () => {
+    const want = JSON.stringify(canaryOf(root));
+    for (const file of ['vite.config.ts', 'vitest.config.ts']) {
+      const loaded = await loadConfigFromFile({ command: 'build', mode: 'production' }, join(root, file), root, 'silent');
+      expect(loaded?.config.define?.__TERRIEST_CANARY__, file).toBe(want);
+    }
+    const { CANARY_EXPECTED } = await import('../src/canary-expected');
+    expect(CANARY_EXPECTED).toBe(canaryOf(root));
   });
 });

@@ -1,37 +1,64 @@
-// The app (M4's design, research/m4/DESIGN.md, §1.41, §2.1, §2.8, §5.1–§5.4,
-// §5.7–§5.9, §5.11, §5.14; PLAN §11, D-22, D-30, D-33, Q-15, Q-17; M4-Q1,
-// M4-Q8, M4-Q9, M4-Q38): the screens and the moves between them, one state
-// machine, roslambo's App, as phase 1 has it:
-// - start-up (§5.1): the fragment routed to the first screen, Home; the
-//   hook's inspect() and hashAt() added for a spec; boot.started(); then,
-//   once Home has been painted, stage.prepare() behind it, so the compile
-//   never counts toward the 20 s load timeout (M4-Q38);
+// The app (M4's design, research/m4/DESIGN.md, §1.41, §2.1, §2.8, §5.1–§5.13,
+// §5.14, §6; PLAN §8, §11, D-12, D-17, D-22, D-23, D-24, D-30, D-33, Q-15,
+// Q-17; M4-Q1, M4-Q2, M4-Q3, M4-Q8, M4-Q9, M4-Q30, M4-Q31, M4-Q38): the
+// screens and the moves between them, one state machine, roslambo's App:
+// - start-up (§5.1): the leave guard installed first, before any room, so
+//   its beforeunload listener is the window's first (§1.49); the tab's Web
+//   Lock asked for (D-24), and with it held, or without Web Locks, the
+//   fragment routed to the first screen, else "terriest is open in another
+//   tab" with Use here; the hook's inspect() and hashAt() added for a spec;
+//   boot.started(); then, with the lock held and once that screen has been
+//   painted, stage.prepare() behind it, so the compile never counts toward
+//   the 20 s load timeout (M4-Q38), and while another tab holds the lock
+//   prepare waits for Use here, so a page that can't play spends nothing;
+//   the canary once start-up's prepare has finished, in a task of its own;
+// - the fragment (§5.2): #join=<id> routes to Join, its room opened at once
+//   (C-32), and anything else Home, leaving any match held; set with
+//   location.replace, never by assigning location.hash and never through
+//   the History API, so Back and Forward never walk old matches (D-38), and
+//   the router ignores the hashchange its own replace fires; Practice
+//   never sets it, so a reload goes Home and contacts no one (D-22);
 // - Home, Practice's setup, Pre-match and Match (the pitch screen, M4-Q8),
-//   Results and back: Play again starts another Practice with the same
-//   settings, contacting no one (Q-15); Leave and Home leave the match;
-// - Settings' minimal screen from Home, whose render quality applies at
-//   once by re-creating the stage behind Home, its prepare() run again;
-//   the old stage is disposed once its own prepare has settled, never
-//   mid-compile (§2.8, D-33);
-// - the fragment (§5.2): every route goes Home in phase 1, a #join= link's
-//   among them until phase 2's Join, and Practice never sets it, so a
-//   reload goes Home and contacts no one (D-22);
+//   Results and back, as phase 1 had them; Propose and Created, Join by
+//   link or by code, the networked Pre-match and Match, and Play again's
+//   derived room (D-12), the fragment its ID and no Join, since the press
+//   is the choice; Leave and Home leave the match and clear the fragment;
+// - the canary before Propose and Join (D-23): on demand if they come
+//   before it has run; a browser that computes differently is told so and
+//   opens no room, a #join= link's either (M4-Q31); Practice never asks it;
+// - a returning page skips Join (L215, D-17, M4-Q2): its terrier, or a bot
+//   of its own, in the held roster takes it straight to Pre-match or Match;
+//   and the pitch screen follows the page's role, a player's or a
+//   spectator's, made again when a JOIN given up leaves it watching, or the
+//   other pack's Play makes it a player again (§5.6);
+// - the tab lock lost to another tab's Use here: the match closed, its
+//   terrier kept for the tab that takes over, and the same message here;
+// - Settings from Home, whose render quality applies at once by
+//   re-creating the stage behind Home, its prepare() run again, the old
+//   stage disposed only once its own prepare has settled (§2.8, D-33);
 // - on every change the old screen is disposed, the controls released, the
 //   stage shown only for Pre-match and Match, the frame loop running only
-//   then (M4-Q9), and the new screen's first focus target focused: Ready,
-//   Play again or the heading (Q-17);
+//   then (M4-Q9), the leave guard active only then, Practice's too
+//   (M4-Q30), the wake lock wanted on Created until someone joins, the
+//   turn prompt's layer holding Pre-match's and Match's (§5.13, §1.48),
+//   and the new screen's first focus target focused (Q-17);
 // - the announcements log, one for each match opened, kept from its opening
-//   until another opens, so Results and a spec read what Pre-match and
-//   Match showed (§1.40); and the match's timer figures and latched lunges
-//   for the hook.
+//   until another opens, its arrival the first final tick the page's
+//   timeline held (§1.40); and the match's timer figures and latched
+//   lunges for the hook.
 // What outlives a screen is the app's: the stage, the stores, the page's
-// devices (src/ui/devices.ts) and each match's log. Phase 2's net-screens
-// adds the networked routes, the tab lock, the canary and the leave guard,
-// and net-int the messages' routing. New at M4, by the slice (1c).
+// devices (src/ui/devices.ts), each match's log. Every room's relays and
+// ICE are roomChoice's (src/ui/match.ts, §5.12, M4-Q3). The other phase-2
+// builders' parts reach it through AppDeps: the message screens, the wake
+// lock and the sound. The messages' routing for a match's refusals and
+// failures is net-int's (2d). New at M4, by the slice (1c); phase 2's
+// net-screens adds the networked routes, the tab lock, the canary and the
+// leave guard.
 
 import type { RenderQuality } from '../config';
-import { BarkTracker, type ConfirmedEnd, netSettings } from '../core/session/index';
-import { defaultParams, findTerrier, LUNGING, type MatchSettings } from '../core/sim/index';
+import { generateMatchId, matchIdFromHash } from '../core/match-id';
+import { BarkTracker, type ConfirmedEnd, netSettings, ROLE } from '../core/session/index';
+import { defaultParams, findTerrier, LUNGING, type MatchSettings, type Pack } from '../core/sim/index';
 import { Controls } from '../input/controls';
 import type { KeyboardScreen } from '../input/keyboard';
 import type { InputKind, UiCommand } from '../input/source';
@@ -43,36 +70,68 @@ import { MatchView } from '../render/view';
 import type { ProfileStore } from '../storage/profile';
 import type { Settings } from '../storage/schema';
 import type { SettingsStore } from '../storage/settings';
+import { holdTabLock } from '../storage/tab-lock';
+import { canaryOk } from './canary';
 import type { Clock, PageEvents } from './clock';
 import { type DeviceHost, pageDevices, type PageDevices } from './devices';
 import { h } from './dom';
 import { type AnimationFrames, browserFrames, FrameLoop } from './frame-loop';
-import type { Announcement, AnnouncementLog, Inspection, MatchInspection, TerriestTest } from './inspect';
+import type { TransportFactory } from './game';
+import type { Announcement, AnnouncementLog, AudioInspection, Inspection, MatchInspection, TerriestTest } from './inspect';
 import { PITCH_LAYERS } from './layers/index';
-import { practiceMatch } from './match';
+import { installLeaveGuard, type LeaveGuard } from './leave-guard';
+import { arrivalOf, type NetMatch, openNetMatch, practiceMatch, type RoomChoice, roomChoice } from './match';
 import type { Match } from './match-types';
 import { homeScreen } from './screens/home';
+import type { InviteOptions } from './screens/invite';
+import { type JoinScreen, joinScreen } from './screens/join';
 import { type PitchScreen, pitchScreen, type PitchScreenHost } from './screens/pitch';
 import { practiceScreen } from './screens/practice';
+import { type CreatedScreen, createdScreen, proposeScreen } from './screens/propose';
 import { resultsScreen } from './screens/results';
 import { focusScreen, type Screen } from './screens/screen';
 import { settingsScreen } from './screens/settings';
 
-/** The page's fragment, as the router reads it: window.location's, or a test's. */
+/** The page's fragment, as the router reads and sets it: window.location's, or a test's. */
 export interface AppLocation {
   /** '#…', or '' for none. */
   hash(): string;
-  /** fn on each hashchange; returns its removal. */
-  onHashChange(fn: () => void): () => void;
+  /** location.replace(hash): the fragment set with no history entry (PLAN §11, D-38). */
+  replace(hash: string): void;
+  /** The page's address, for an invite's link. */
+  href(): string;
+  /** fn on each hashchange, with the new address's fragment; returns its removal. */
+  onHashChange(fn: (hash: string) => void): () => void;
 }
+
+/** A URL's fragment, '#…', or '' for none. */
+const fragmentOf = (url: string): string => {
+  const k = url.indexOf('#');
+  return k < 0 ? '' : url.slice(k);
+};
+
+/** A bare '#' is no fragment, as location.hash reads it. */
+const plain = (hash: string): string => (hash === '#' ? '' : hash);
 
 export const browserLocation: AppLocation = {
   hash: () => location.hash,
+  replace: (hash) => location.replace(hash),
+  href: () => location.href,
   onHashChange: (fn) => {
-    window.addEventListener('hashchange', fn);
-    return () => window.removeEventListener('hashchange', fn);
+    const on = (e: HashChangeEvent): void => fn(fragmentOf(e.newURL));
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
   },
 };
+
+/** What the app needs of the message screens, results-hud's src/ui/screens/message.ts (§5.10), declared
+ *  here (§0): that module satisfies it, so src/main.ts passes it whole. */
+export interface MessageScreens<S = unknown> {
+  readonly MESSAGES: { readonly canary: S; readonly 'other-tab': S; readonly graphics: S };
+  /** The graphics message in Practice, which pauses until they're back (D-30, Q-15). */
+  readonly PRACTICE_GRAPHICS?: S;
+  messageScreen(m: S, act: Readonly<Partial<Record<'practice' | 'home' | 'useHere' | 'leave', () => void>>>, detail?: string): Screen;
+}
 
 export interface AppDeps {
   /** <main id="app">, made by src/main.ts on the normal page only (M4-Q1), holding #stage and #screen
@@ -92,16 +151,39 @@ export interface AppDeps {
   readonly page: PageEvents;
   /** started() once the first screen shows (§5.1, M4-Q38). */
   readonly boot: Boot;
+  /** The message screens, results-hud's module: src/main.ts passes it (§5.10). */
+  readonly messages?: MessageScreens;
+  /** The screen wake lock (devices' src/ui/phone.ts's WakeLock): wanted on Created until someone joins
+   *  (§5.13, D-30); Pre-match's and Match's is the turn prompt's layer's. */
+  readonly wake?: { want(on: boolean): void };
+  /** The page's sound (sound's src/ui/layers/sound.ts's audioOut()): its inspect() is the hook's audio. */
+  readonly audio?: { inspect(): AudioInspection | null };
   /** Tests: the look (PLACEHOLDER_LOOK), the fragment, the devices and the animation frames. */
   readonly look?: Look;
   readonly location?: AppLocation;
   readonly devices?: (host: DeviceHost) => PageDevices;
   readonly frames?: AnimationFrames;
+  /** Tests: the tab lock (holdTabLock's), the leave guard (installLeaveGuard on the window), the canary
+   *  (canaryOk), every room's transport (Trystero's), npm run dev:local's relay, and the invite's link,
+   *  clipboard and share. */
+  readonly lock?: (steal: boolean, onLost: () => void) => Promise<boolean>;
+  readonly guard?: LeaveGuard;
+  readonly canary?: () => boolean;
+  readonly transport?: TransportFactory;
+  readonly devRelay?: () => Promise<string | null>;
+  readonly invite?: InviteOptions;
 }
 
 /** The app's landmark (M4-Q1): <main id="app">, with the stage's box, #stage, and the screen's, #screen. */
 export function appRoot(): HTMLElement {
   return h('main', { id: 'app' }, h('div', { id: 'stage', hidden: true }), h('div', { id: 'screen' }));
+}
+
+/** npm run dev:local's relay, loaded only under import.meta.env.DEV, so a build has neither the module nor
+ *  its chunk (PLAN §15, M3's design §1.29). */
+async function pageDevRelay(): Promise<string | null> {
+  if (!import.meta.env.DEV) return null;
+  return (await import('../net/dev-relay')).devRelay(location.hostname);
 }
 
 /** One match's announcements (§1.40), kept until another match opens. */
@@ -172,14 +254,29 @@ interface TimerFigures {
 
 const newTimer = (): TimerFigures => ({ runs: 0, gapMaxMs: 0, gapsOverFreeze: 0, gapsOverStall: 0, lastAt: null });
 
+/** What a screen change says the new screen is, beside Screen itself. */
+interface Shown {
+  readonly pitch?: PitchScreen;
+  /** A player's pitch screen's controls, over the page's devices. */
+  readonly controls?: Controls | null;
+  readonly join?: JoinScreen;
+  readonly created?: CreatedScreen;
+  /** A message screen's code: Inspection.message. */
+  readonly message?: string;
+}
+
 export class App {
   private readonly d: AppDeps;
   private readonly look: Look;
+  private readonly location: AppLocation;
   private readonly stageBox: HTMLElement;
   private readonly screenBox: HTMLElement;
   private readonly frames: AnimationFrames;
   private readonly devices: PageDevices;
   private readonly loop: FrameLoop;
+  private readonly guard: LeaveGuard;
+  private readonly lock: (steal: boolean, onLost: () => void) => Promise<boolean>;
+  private readonly canary: () => boolean;
   /** A timer gap past d + w ticks is a freeze, past the stall's 2 s a stall (D-15, D-31). */
   private readonly freezeMs: number;
   private readonly stallGapMs: number;
@@ -189,8 +286,14 @@ export class App {
   private pendingQuality: RenderQuality | null = null;
   /** The stage's prepare() once started, its failure reported: a stage is disposed only once it settles. */
   private readonly preparing = new Map<Stage, Promise<void>>();
+  private prepareBegun = false;
   private screen: Screen | null = null;
   private pitch: PitchScreen | null = null;
+  private joining: JoinScreen | null = null;
+  private created: CreatedScreen | null = null;
+  private messageCode: string | null = null;
+  /** Each screen change counted, so a room that opens after the screen it was for has gone is closed. */
+  private shows = 0;
   private controls: Controls | null = null;
   private match: Match | null = null;
   private stopListening: () => void = () => {};
@@ -201,12 +304,24 @@ export class App {
   private mismatchesBefore = 0;
   private startedAt = 0;
   private preparedAt: number | null = null;
-  /** Play again on its way: a second press waits for it. */
+  /** A room on its way, Create's or Play again's: a second press waits for it. */
   private opening = false;
+  /** This tab holds the game's Web Lock (D-24); Use here is taking it. */
+  private lockHeld = false;
+  private taking = false;
+  /** The fragments this app set, whose hashchange is still to come: ignored when it does. */
+  private readonly ownHashes: string[] = [];
+  private canaryVerdict: boolean | null = null;
+  private wakeWanted = false;
 
   constructor(d: AppDeps) {
     this.d = d;
     this.look = d.look ?? PLACEHOLDER_LOOK;
+    this.location = d.location ?? browserLocation;
+    // Before any room exists, so its beforeunload listener is the window's first, ahead of Trystero's (§1.49).
+    this.guard = d.guard ?? installLeaveGuard(window);
+    this.lock = d.lock ?? holdTabLock;
+    this.canary = d.canary ?? canaryOk;
     this.stageBox = child(d.root, 'stage');
     this.screenBox = child(d.root, 'screen');
     this.frames = d.frames ?? browserFrames;
@@ -219,7 +334,7 @@ export class App {
     this.devices = (d.devices ?? pageDevices)({
       clock: d.clock,
       mirrored: () => d.settings.get().mirrorTouch,
-      sampling: () => this.pitch !== null && this.pitch.menu === 'closed' && this.controls !== null && this.match?.paused === false,
+      sampling: () => this.pitch !== null && this.pitch.menu === 'closed' && this.pitch.graphics === 'ok' && this.controls !== null && this.match?.paused === false,
       ui: (c) => this.ui(c),
       used: () => {},
       uiActive: () => this.keyboardScreen(),
@@ -231,13 +346,15 @@ export class App {
       frames: this.frames,
     });
     d.settings.subscribe((s) => this.settingsChanged(s));
-    (d.location ?? browserLocation).onHashChange(() => this.route());
+    this.location.onHashChange((hash) => this.hashChanged(hash));
   }
 
-  /** §5.1: the first screen, the hook, boot.started(), then prepare() behind the screen once it's been
-   *  painted (M4-Q38). From phase 2, the tab lock first. */
+  /** §5.1: the tab lock, the first screen, the hook, boot.started(), then prepare() behind the screen once
+   *  it's been painted (M4-Q38), and only with the lock held. */
   async start(): Promise<void> {
-    this.route();
+    this.lockHeld = await this.lock(false, () => this.lockLost());
+    if (this.lockHeld) this.route();
+    else this.otherTab();
     const test = this.d.test;
     if (test !== null) {
       test.inspect = () => this.inspect();
@@ -252,20 +369,24 @@ export class App {
       void first.el.ownerDocument.defaultView?.getComputedStyle(first.el).visibility;
       focusScreen(first);
     }
-    this.prepareSoon(this.stage);
+    if (this.lockHeld) this.prepareSoon(this.stage, true);
   }
 
-  /** Q-17's commands, the keyboard's: to the screen showing. Home, Practice's setup and Settings take
-   *  none, and leave Enter to the browser's own activation. */
+  /** Q-17's commands, the keyboard's and the pad's: to the screen showing. */
   ui(c: UiCommand): void {
     this.screen?.ui?.(c);
   }
 
-  /** What the screen is, for the keys (src/input/keyboard.ts): the menu over the pitch, a player's pitch
-   *  screen, a spectator's (phase 2), Results, or another screen. */
+  /** What the screen is, for the keys (src/input/keyboard.ts): the graphics' message over the pitch, whose
+   *  keys the browser keeps; the menu; a player's pitch screen, or a spectator's, and a player's while
+   *  the graphics are lost, so no play key acts unseen (D-30); Results; or another screen. */
   keyboardScreen(): KeyboardScreen {
     const p = this.pitch;
-    if (p !== null) return p.menu !== 'closed' ? 'menu' : this.controls !== null ? 'pitch' : 'spectator';
+    if (p !== null) {
+      if (p.message !== null) return 'other';
+      if (p.menu !== 'closed') return 'menu';
+      return this.controls !== null && p.graphics === 'ok' ? 'pitch' : 'spectator';
+    }
     return this.screen?.name === 'results' ? 'results' : 'other';
   }
 
@@ -274,9 +395,10 @@ export class App {
     const pitch = this.pitch;
     const shown = pitch?.inspect() ?? null;
     const frames = this.loop.inspect();
+    const pitchMessage = pitch?.message ?? null;
     return {
-      screen: this.screen?.name ?? 'home',
-      message: null,
+      screen: pitchMessage !== null ? 'message' : this.screen?.name ?? 'home',
+      message: pitchMessage ?? this.messageCode,
       menu: pitch?.menu ?? 'closed',
       render: this.stage.info(),
       match: this.match === null ? null : this.matchInspection(this.match),
@@ -285,7 +407,7 @@ export class App {
       view: shown?.view ?? null,
       gamepad: this.devices.gamepad(),
       layers: shown?.layers ?? {},
-      audio: null,
+      audio: this.d.audio?.inspect() ?? null,
       frames: { ...frames, headHashMismatches: this.mismatchesBefore + (shown?.headHashMismatches ?? 0) },
       startMs: { started: this.startedAt, prepared: this.preparedAt },
     };
@@ -298,34 +420,220 @@ export class App {
 
   // --- The routes (§5.2) ---
 
-  /** Start and each hashchange: in phase 1 every fragment goes Home, leaving any match; phase 2's
-   *  net-screens routes #join=<id> to Join. */
+  /** Start, Use here and each hashchange not of the app's own: #join=<id> to Join, unless that match is
+   *  held already; anything else Home. Either way any other match held is left. Nothing while another tab
+   *  holds the lock. */
   private route(): void {
+    if (!this.lockHeld) return;
+    const id = matchIdFromHash(this.location.hash());
+    if (id !== null && this.match?.matchId === id) return;
     this.leaveMatch();
-    this.home();
+    if (id !== null) this.joinMatch(id);
+    else this.home();
+  }
+
+  /** A hashchange: the app's own replace, ignored, or another's, routed (§5.2). */
+  private hashChanged(hash: string): void {
+    const k = this.ownHashes.indexOf(plain(hash));
+    if (k >= 0) {
+      this.ownHashes.splice(0, k + 1);
+      return;
+    }
+    this.ownHashes.length = 0;
+    this.route();
+  }
+
+  /** #join=<id>, or no fragment, by location.replace (§5.2): no history entry, and its hashchange ignored. */
+  private setFragment(id: string | null): void {
+    const next = id === null ? '' : `#join=${id}`;
+    if (plain(this.location.hash()) === next) return;
+    this.ownHashes.push(next);
+    this.location.replace(next === '' ? '#' : next);
+  }
+
+  /** A match's fragment cleared, so a reload goes Home: Practice never sets one, nor clears another's. */
+  private clearJoinFragment(): void {
+    if (matchIdFromHash(this.location.hash()) !== null) this.setFragment(null);
   }
 
   private home(): void {
+    this.clearJoinFragment();
     const { profile, settings } = this.d;
     this.show(homeScreen({
       profile, look: this.look,
       persistent: () => profile.persistent && settings.persistent,
-      practice: () => this.show(practiceScreen({ start: (s) => this.startPractice(s), home: () => this.home() }), null),
-      settings: () => this.show(settingsScreen({ settings, persistent: () => settings.persistent, back: () => this.home() }), null),
-    }), null);
+      propose: () => this.propose(),
+      join: (id) => this.joinByCode(id),
+      practice: () => this.practiceSetup(),
+      settings: () => this.settingsScreen(),
+    }));
+  }
+
+  private practiceSetup(): void {
+    this.show(practiceScreen({ start: (s) => this.startPractice(s), home: () => this.home() }));
+  }
+
+  /** Settings from Home; Back returns Home (§6). */
+  private settingsScreen(): void {
+    const settings = this.d.settings;
+    const host = { settings, profile: this.d.profile, persistent: () => settings.persistent, back: () => this.home() };
+    this.show(settingsScreen(host));
   }
 
   /** Practice's Start (Q-15, D-22): the person in pack A, bots in every other place, no room, no fragment. */
   private startPractice(s: MatchSettings): void {
     if (this.match !== null) return;
     const p = this.d.profile.get();
-    this.openMatch(practiceMatch({
-      me: p.playerId, name: p.name, coat: p.coat, settings: s, build: this.d.build, clock: this.d.clock, page: this.d.page,
-    }));
+    const m = practiceMatch({ me: p.playerId, name: p.name, coat: p.coat, settings: s, build: this.d.build, clock: this.d.clock, page: this.d.page });
+    this.hold(m);
+    this.enterPitch(m);
   }
 
-  /** A match held from now: its log, its figures, and its Pre-match. */
-  private openMatch(m: Match): void {
+  // --- Matches with others (§5.5, §5.6) ---
+
+  /** The canary's verdict (D-23): computed once, on demand when Propose or Join comes before start-up's
+   *  run of it. */
+  private canaryPasses(): boolean {
+    this.canaryVerdict ??= this.canary();
+    return this.canaryVerdict;
+  }
+
+  /** "This browser can't play matches with others", with Practice and Home; no room opened (M4-Q31). */
+  private canaryMessage(): void {
+    this.showMessage('canary', {
+      practice: () => {
+        this.clearJoinFragment();
+        this.practiceSetup();
+      },
+      home: () => this.home(),
+    });
+  }
+
+  /** Home's Propose a match: after the canary (D-23). */
+  private propose(): void {
+    if (!this.canaryPasses()) {
+      this.canaryMessage();
+      return;
+    }
+    this.show(proposeScreen({ create: (s) => void this.create(s), home: () => this.home() }));
+  }
+
+  /** Create (§5.5): the match ID generated, the room opened, genesis proposed, the fragment set, and
+   *  Created. A room that opens once Propose has gone is closed. */
+  private async create(s: MatchSettings): Promise<void> {
+    if (this.opening) return;
+    this.opening = true;
+    const at = this.shows;
+    const id = generateMatchId();
+    let m: NetMatch | null = null;
+    try {
+      m = await this.openRoom(id);
+    } catch (e) {
+      console.error('The match could not be opened:', e);
+    }
+    this.opening = false;
+    if (m === null) return;
+    if (this.shows !== at || !this.lockHeld) {
+      m.close();
+      return;
+    }
+    m.propose(s);
+    this.hold(m);
+    this.setFragment(id);
+    const created = createdScreen({
+      matchId: id, look: this.look, invite: this.inviteOptions(), peers: () => m.status().peers,
+      play: (p) => this.choose(m, p), watch: () => this.choose(m, null), leave: () => this.leave(),
+    });
+    this.show(created, { created });
+  }
+
+  /** Home's Join with a valid code: the fragment set to its link's, then Join (§5.2). */
+  private joinByCode(id: string): void {
+    this.leaveMatch();
+    this.setFragment(id);
+    this.joinMatch(id);
+  }
+
+  /** Join (§5.6): after the canary, the room opened at once, undecided (C-32), the screen reading
+   *  "Connecting to the match…" until a timeline is held. */
+  private joinMatch(id: string): void {
+    if (!this.canaryPasses()) {
+      this.canaryMessage();
+      return;
+    }
+    const screen = joinScreen({
+      matchId: id, look: this.look,
+      play: (p) => this.chooseHeld(p), watch: () => this.chooseHeld(null), home: () => this.leave(),
+    });
+    this.show(screen, { join: screen });
+    const at = this.shows;
+    this.openRoom(id).then(
+      (m) => {
+        if (this.shows !== at || !this.lockHeld) {
+          m.close();
+          return;
+        }
+        this.hold(m);
+        this.joinRan(m);
+      },
+      (e: unknown) => console.error('The match could not be opened:', e),
+    );
+  }
+
+  /** The relays, TURN and ICE a room opens with now: roomChoice's, from Settings as they are (§5.12, §6,
+   *  M4-Q3). */
+  private async room(): Promise<RoomChoice> {
+    const devRelay = await (this.d.devRelay ?? pageDevRelay)();
+    return roomChoice(this.d.settings.get(), this.d.test, import.meta.env.DEV, devRelay);
+  }
+
+  /** A match's room, by roomChoice's relays and ICE (§5.12, M4-Q3), as this page's player. */
+  private async openRoom(id: string): Promise<NetMatch> {
+    const room = await this.room();
+    const p = this.d.profile.get();
+    return openNetMatch({
+      matchId: id, me: p.playerId, name: p.name, coat: p.coat, build: this.d.build,
+      relays: room.relays, extraRelays: room.extraRelays, turn: room.turn, ice: room.ice,
+      clock: this.d.clock, page: this.d.page,
+      ...(this.d.transport !== undefined ? { transport: this.d.transport } : {}),
+    });
+  }
+
+  /** The invite's options: this page's address for the link, and a test's clipboard and share. */
+  private inviteOptions(): InviteOptions {
+    return { href: this.location.href(), ...this.d.invite };
+  }
+
+  /** Join's Play and Watch: only once the state is held (M4-Q2). */
+  private chooseHeld(pack: Pack | null): void {
+    const m = this.match;
+    if (m === null || !m.session.timeline.started) return;
+    this.choose(m, pack);
+  }
+
+  /** Play in a pack, or Watch: the choice made, and Pre-match (§5.2). */
+  private choose(m: Match, pack: Pack | null): void {
+    if (m !== this.match) return;
+    if (pack === null) m.watch();
+    else m.play(pack);
+    this.enterPitch(m);
+  }
+
+  /** A page whose terrier, or a bot of its own, is in the held roster has returned (D-17, D-21). */
+  private returned(m: Match): boolean {
+    const t = m.session.timeline;
+    if (!t.started) return false;
+    if (m.status().returning || m.session.inRoster()) return true;
+    return m.session.hostedBots().some((id) => findTerrier(t.final, id) >= 0);
+  }
+
+  /** A player's pitch screen, or a spectator's: the session's role (PLAN §8); Practice's person plays. */
+  private plays(m: Match): boolean {
+    return m.kind === 'practice' || m.session.role() === ROLE.PLAYER;
+  }
+
+  /** A match held from now: its log, its figures and its timer runs. */
+  private hold(m: Match): void {
     this.dropMatch();
     this.match = m;
     this.log = new Log(m.matchId);
@@ -333,25 +641,31 @@ export class App {
     this.lunges = { count: 0, last: null };
     this.stopListening = m.subscribe({ run: () => this.ran(m) });
     this.arrival(m);
-    this.prematch(m);
   }
 
-  /** The pitch screen for m: a MatchView with its BarkTracker, a Controls over the page's devices, and the
-   *  layers (§1.38, §1.63). The controls' callbacks reach the screen, made after them. */
-  private prematch(m: Match): void {
+  /** The pitch screen for m, a player's or a spectator's by its role: a MatchView with its BarkTracker, a
+   *  player's Controls over the page's devices, and the layers (§1.38, §1.63). The controls' callbacks
+   *  reach the screen, made after them. */
+  private enterPitch(m: Match): void {
     const settings = this.d.settings;
+    const playing = this.plays(m);
     const view = new MatchView(m, this.look, () => {
       const s = settings.get();
       return { calmCamera: s.calmCamera, names: s.names };
     }, new BarkTracker(m.me));
     let screen: PitchScreen | null = null;
-    const controls = new Controls({
-      view: () => screen?.viewMode() ?? 'ball',
-      yaw: () => view.yaw,
-      onView: () => screen?.switchView(),
-      onBark: (tick) => screen?.ownBark(tick),
-    });
-    for (const device of this.devices.list()) controls.add(device);
+    const controls = playing
+      ? new Controls({
+        view: () => screen?.viewMode() ?? 'ball',
+        yaw: () => view.yaw,
+        onView: () => screen?.switchView(),
+        onBark: (tick) => screen?.ownBark(tick),
+        // Each control's first use on each kind of device: the hints' (src/ui/layers/devices.ts, §4.7).
+        onUsed: (kind, c) => this.devices.used?.(kind, c),
+      })
+      : null;
+    if (controls !== null) for (const device of this.devices.list()) controls.add(device);
+    const messages = this.d.messages;
     const host: PitchScreenHost = {
       match: m, stage: this.stage, view, controls, settings, profile: this.d.profile, look: this.look, test: this.d.test !== null,
       announce: (a) => this.log?.add(a),
@@ -362,10 +676,15 @@ export class App {
       ui: (c) => this.ui(c),
       setMode: () => {},
       results: (end) => this.results(end),
+      page: this.d.page,
+      invite: m.kind === 'net' ? this.inviteOptions() : null,
+      ...(messages !== undefined ? {
+        graphicsMessage: (leave: () => void) => messages.messageScreen(
+          m.kind === 'practice' && messages.PRACTICE_GRAPHICS !== undefined ? messages.PRACTICE_GRAPHICS : messages.MESSAGES.graphics, { leave }),
+      } : {}),
     };
     screen = pitchScreen(host, PITCH_LAYERS);
-    this.controls = controls;
-    this.show(screen, screen);
+    this.show(screen, { pitch: screen, controls });
   }
 
   /** The end confirmed (D-14): Results, the match still held for its figures until Play again or Home. */
@@ -379,19 +698,27 @@ export class App {
       playAgain: () => this.playAgain(),
       home: () => this.leave(),
       announce: (a) => this.log?.add(a),
-    }), null);
+    }));
   }
 
-  /** Play again (Q-15, D-12): the next match's Pre-match; Practice's contacts no one. */
+  /** Play again (Q-15, D-12): the next match's Pre-match, its fragment the derived room's ID, with no Join,
+   *  its room on Settings' relays and TURN as they are now, which apply from the next match (§6);
+   *  Practice's contacts no one. */
   private playAgain(): void {
     const old = this.match;
     if (old === null || this.opening) return;
     this.opening = true;
-    old.playAgain().then(
+    const again = old.kind === 'net' ? this.room().then((room) => (old as NetMatch).playAgain(room)) : old.playAgain();
+    again.then(
       (next) => {
         this.opening = false;
-        if (this.match === old) this.openMatch(next);
-        else next.close();
+        if (this.match !== old || !this.lockHeld) {
+          next.close();
+          return;
+        }
+        this.hold(next);
+        if (next.matchId !== null) this.setFragment(next.matchId);
+        this.enterPitch(next);
       },
       (e: unknown) => {
         this.opening = false;
@@ -400,7 +727,8 @@ export class App {
     );
   }
 
-  /** Leave on Pre-match or in the menu, and Results' Home (§5.11): the match left, Home. */
+  /** Leave on Pre-match, in the menu, on Created or Join, and Results' Home (§5.11): the match left, the
+   *  fragment cleared, Home. */
   private leave(): void {
     this.leaveMatch();
     this.home();
@@ -421,6 +749,46 @@ export class App {
     this.match = null;
   }
 
+  // --- One game tab (D-24, §6) ---
+
+  /** "terriest is open in another tab", with Use here. */
+  private otherTab(): void {
+    this.showMessage('other-tab', { useHere: () => this.useHere() });
+  }
+
+  /** Use here: the lock stolen from the other tab, then the fragment's route, and the compile if it hadn't
+   *  begun. */
+  private useHere(): void {
+    if (this.taking || this.lockHeld) return;
+    this.taking = true;
+    void this.lock(true, () => this.lockLost()).then((held) => {
+      this.taking = false;
+      if (!held || this.lockHeld) return;
+      this.lockHeld = true;
+      this.route();
+      if (!this.prepareBegun) this.prepareSoon(this.stage, true);
+    });
+  }
+
+  /** Another tab took the lock: the match closed, with no LEAVE, so its terrier waits for the tab that
+   *  took over, which the same link takes back (D-17); and the same message here. */
+  private lockLost(): void {
+    this.lockHeld = false;
+    const m = this.match;
+    if (m !== null) {
+      this.dropMatch();
+      m.close();
+    }
+    this.otherTab();
+  }
+
+  /** A message screen of results-hud's (§5.10). */
+  private showMessage(code: 'canary' | 'other-tab', act: Readonly<Partial<Record<'practice' | 'home' | 'useHere', () => void>>>): void {
+    const messages = this.d.messages;
+    if (messages === undefined) throw new Error(`no message screens to say ${code} with: src/main.ts passes src/ui/screens/message.ts`);
+    this.show(messages.messageScreen(messages.MESSAGES[code], act), { message: code });
+  }
+
   // --- After each timer run ---
 
   private ran(m: Match): void {
@@ -437,14 +805,33 @@ export class App {
     this.loop.timerRan(now, m.own());
     this.arrival(m);
     this.latchLunge(m);
+    if (m !== this.match) return;
+    if (this.joining !== null) this.joinRan(m);
+    else if (this.created !== null) {
+      this.created.update();
+      this.wakeFor();
+    } else if (this.pitch !== null && this.plays(m) !== (this.controls !== null)) {
+      // A JOIN given up leaves the page watching, and the other pack's Play makes it a player (§5.6).
+      this.enterPitch(m);
+    }
   }
 
-  /** The first tick this page's timeline held (§1.40): Practice's from genesis. Phase 2's networked
-   *  adapter gives an adopted STATE's. */
+  /** Join after a timer run: a returning page goes straight on, else the screen offers what's held. */
+  private joinRan(m: Match): void {
+    if (this.returned(m)) {
+      if (!m.session.inRoster()) m.watch(); // its bots alone came back: it watches them
+      this.enterPitch(m);
+      return;
+    }
+    this.joining?.update(m);
+  }
+
+  /** The first tick this page's timeline held (§1.40): Practice's from genesis, a networked match's the
+   *  final tick of the STATE it adopted, or 0 for its proposer (arrivalOf). */
   private arrival(m: Match): void {
-    const t = m.session.timeline;
-    if (this.log === null || this.log.arrived || !t.started) return;
-    this.log.add({ kind: 'arrival', matchId: m.matchId, tick: m.kind === 'practice' ? 0 : t.finalTick });
+    if (this.log === null || this.log.arrived) return;
+    const tick = arrivalOf(m);
+    if (tick >= 0) this.log.add({ kind: 'arrival', matchId: m.matchId, tick });
   }
 
   /** Each lunge your terrier begins in the head, counted once by its start (§9.1's latched transients). */
@@ -463,20 +850,24 @@ export class App {
   // --- The screens ---
 
   /** One screen for another (§5.2): the old disposed and its controls released, the stage shown only for
-   *  Pre-match and Match, the frame loop with it, and the new screen's first focus target focused. */
-  private show(next: Screen, pitch: PitchScreen | null): void {
+   *  Pre-match and Match, the frame loop and the leave guard with it, Created's wake lock, and the new
+   *  screen's first focus target focused. */
+  private show(next: Screen, o: Shown = {}): void {
     const old = this.screen;
     const oldPitch = this.pitch;
+    const pitch = o.pitch ?? null;
+    this.shows++;
     this.screen = next;
     this.pitch = pitch;
-    if (oldPitch !== null && oldPitch !== pitch) {
-      this.mismatchesBefore += oldPitch.inspect().headHashMismatches;
-      const controls = this.controls;
-      this.controls = null;
-      if (controls !== null) {
-        controls.release();
-        for (const device of this.devices.list()) controls.remove(device);
-      }
+    this.joining = o.join ?? null;
+    this.created = o.created ?? null;
+    this.messageCode = o.message ?? null;
+    if (oldPitch !== null && oldPitch !== pitch) this.mismatchesBefore += oldPitch.inspect().headHashMismatches;
+    const oldControls = this.controls;
+    this.controls = o.controls ?? null;
+    if (oldControls !== null && oldControls !== this.controls) {
+      oldControls.release();
+      for (const device of this.devices.list()) oldControls.remove(device);
     }
     if (old !== next) old?.dispose?.();
     this.stageBox.hidden = pitch === null;
@@ -484,8 +875,20 @@ export class App {
     this.screenBox.replaceChildren(next.el);
     if (pitch !== null) this.loop.start();
     else this.loop.stop();
+    // Pre-match and Match ask before the page is left, Practice's too (M4-Q30).
+    this.guard.set(pitch !== null);
+    this.wakeFor();
     focusScreen(next);
     if (pitch === null && this.pendingQuality !== null) this.restage(this.pendingQuality);
+  }
+
+  /** The wake lock on Created until someone joins (§5.13, D-30): Pre-match's and Match's is the turn
+   *  prompt's, a layer over every pitch, which reports its refusals (src/ui/phone.ts, §1.48). */
+  private wakeFor(): void {
+    const on = this.created !== null && this.match !== null && this.match.status().peers === 0;
+    if (on === this.wakeWanted) return;
+    this.wakeWanted = on;
+    this.d.wake?.want(on);
   }
 
   // --- The stage (§2.1, §2.8) ---
@@ -498,20 +901,23 @@ export class App {
     this.stageBox.replaceChildren(canvas);
   }
 
-  /** prepare() once the screen showing has been painted: a frame, then a task after it (M4-Q38). */
-  private prepareSoon(stage: Stage): void {
+  /** prepare() once the screen showing has been painted: a frame, then a task after it (M4-Q38); start-up's
+   *  then runs the canary, in a task of its own (§5.1's step 7). */
+  private prepareSoon(stage: Stage, startup = false): void {
+    if (startup) this.prepareBegun = true;
     this.frames.request(() => {
       this.d.clock.after(0, () => {
-        if (stage === this.stage) this.prepare(stage);
+        if (stage === this.stage) this.prepare(stage, startup);
       });
     });
   }
 
-  private prepare(stage: Stage): void {
+  private prepare(stage: Stage, startup: boolean): void {
     if (this.preparing.has(stage)) return;
     this.preparing.set(stage, stage.prepare().then(
       () => {
         this.preparedAt ??= this.d.clock.now();
+        if (startup) this.d.clock.after(0, () => void this.canaryPasses());
       },
       // Not a refusal the page expects: the page's own error, which the gate's guard fails (§9.1).
       (e: unknown) => console.error('The pitch could not be prepared:', e),

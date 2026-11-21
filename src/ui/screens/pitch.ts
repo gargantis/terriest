@@ -1,10 +1,10 @@
 // The pitch screen (M4's design, research/m4/DESIGN.md, §1.38, §1.43, §2.2,
-// §2.7, §4.8, §4.9, §5.4, §5.7, §5.8; PLAN §11, Q-15, Q-17, D-27, P11;
-// M4-Q7, M4-Q8, M4-Q9): Pre-match and Match, one screen whose name moves
-// from 'prematch' to 'match' as the first kickoff's play begins (M4-Q8), so
-// Pre-match lasts through the start countdown. Built against the contracts
-// alone, the Stage, MatchViewApi and ControlsApi its host holds, so the
-// slice wires the real ones:
+// §2.7, §4.8, §4.9, §5.4, §5.7, §5.8; PLAN §11, Q-15, Q-17, D-27, D-28,
+// D-30, P11; M4-Q7, M4-Q8, M4-Q9): Pre-match and Match, one screen whose
+// name moves from 'prematch' to 'match' as the first kickoff's play begins
+// (M4-Q8), so Pre-match lasts through the start countdown. Built against
+// the contracts alone, the Stage, MatchViewApi and ControlsApi its host
+// holds, so the app wires the real ones:
 // - it says "Getting the pitch ready…" until stage.ready() resolves, and
 //   draws nothing before it; Ready waits for it too, so a match never
 //   starts unseen;
@@ -14,20 +14,28 @@
 // - after each timer run: view.run, each layer's run with the barks it
 //   found, and only then its own moves, to Match or Results, so a layer
 //   sees the run that ended the match (§1.43);
-// - Pre-match's panel: each pack's list from the final state, rebuilt only
-//   when it changes (roslambo's); Ready, focused from the screen's entry,
-//   aria-disabled and saying why until it can act, "Ready" or "Ready ✓",
-//   pressed again to cancel (L146), following the press at once while its
-//   READY or UNREADY is on its way; Switch pack; Leave; each terrier's coat
-//   by its name beside its swatch (§5.14). From the start
-//   countdown the roster is locked, and Ready and Switch pack say so, the
-//   focus staying where it was (§1.42, §5.7);
+// - Pre-match's panel, src/ui/prematch.ts's: the lists, Ready, Switch pack
+//   and Leave, and a networked match's Invite and bots' buttons; from the
+//   start countdown the roster is locked, and its buttons say so, the focus
+//   staying where it was (§1.42, §5.7);
 // - the match menu, the layer named 'menu' (menu.ts), opened and closed on
 //   Escape or the pad's Back, on Pre-match too (M4-Q7), on the HUD's Menu
 //   button, and when a stall or a hidden page paused Practice (Q-15):
 //   while it's open Practice is paused, nothing is held (§4.8) and Q-17's
-//   nav works its buttons, the first focused; closing it resumes and gives
-//   the focus back;
+//   nav works its buttons, the first focused, or its Settings panel's in
+//   their place (§5.8, §6), the menu then reading 'settings'; it always
+//   opens on its buttons; closing it resumes and gives the focus back;
+// - the graphics (§5.8, D-30, C-36): stage.onGraphics as PitchContext's
+//   graphics, 'restoring' from a lost context, the HUD's "Graphics were
+//   lost; restoring", held inputs released and Practice paused until it's
+//   back; and once lostGraphicsSeconds have passed with the page visible,
+//   'lost', the plain message with Leave over the pitch and every layer,
+//   the match going on for the others; a context that comes back puts the
+//   pitch back in place of the message;
+// - a spectator's view and follow: the ball's from the start; the view key
+//   and the shoulders ('next', 'prev') go to the layers first, where the
+//   HUD's follow choice moves it along its buttons, the ball and each
+//   terrier by pack and spot (D-28, L91);
 // - Enter or Start on a focused button of its own that no nav holds, a
 //   layer's such as the HUD's Menu button, presses it once, since the
 //   keyboard keeps Enter's default from it on the pitch (§4.9); and a
@@ -37,34 +45,53 @@
 //   and camera calls reach it, and put over the pitch in the order given.
 // The app's openMenu, closeMenu and setMode are told after the screen has
 // acted, so it can follow (Inspection.menu, the devices); ui isn't passed
-// on, since the app's ui is the screen's way in. Phase 2's net-screens adds
-// the networked Pre-match (the bots' buttons, Invite) and PitchContext's
-// graphics; phase 3's robust builder the rebuild when the menu closes.
-// New at M4.
+// on, since the app's ui is the screen's way in. Phase 1's (shell); phase
+// 2's net-screens adds the networked Pre-match, the graphics and the
+// spectator's follow; phase 3's robust builder the rebuild when the menu
+// closes. New at M4.
 
-import { shownName } from '../../core/names';
+import { config } from '../../config';
 import type { BarkEvent, ConfirmedEnd } from '../../core/session/index';
-import { findTerrier, hashState, type MatchState, type Pack, type Phase, READY, START_COUNTDOWN, UNREADY, WARM_UP } from '../../core/sim/index';
+import { hashState } from '../../core/sim/index';
 import type { UiCommand } from '../../input/source';
 import type { CameraMode, FrameOut, StageFrame, ViewMode } from '../../render/frame';
 import type { MatchViewApi } from '../../render/stage-types';
-import { h, isEnabled, setEnabled, setShown, setText } from '../dom';
+import type { PageEvents } from '../clock';
+import { h, isEnabled, setShown, setText } from '../dom';
 import type { Inspection } from '../inspect';
 import type { Layer, LayerFactory, PitchContext, PitchHost } from '../layer';
 import { ButtonNav } from '../nav';
+import { isPreMatch, prematchPanel } from '../prematch';
 import { addStyle } from '../style';
-import { MENU } from './menu';
+import type { InviteOptions } from './invite';
+import { isMenuLayer } from './menu';
 import css from './pitch.css?inline';
-import { coatName, coatSwatch, packName, packSwatch, type Screen, screenStyles } from './screen';
+import { focusScreen, type Screen, screenStyles } from './screen';
+
+export { type ButtonState, isPreMatch, type PackRow, packRows, readyButton, switchButton } from '../prematch';
+
+/** What the pitch screen needs of the message screens, results-hud's src/ui/screens/message.ts (§5.10),
+ *  declared here (§0): the graphics message's screen, with its Leave. */
+export type GraphicsMessage = (leave: () => void) => Screen;
 
 /** What the pitch screen needs of the app beyond what its layers get. */
 export interface PitchScreenHost extends PitchHost {
   /** The end is confirmed (scoreboard.end, D-14): the app shows Results. Called once, after the timer
    *  run's layers have run. */
   results(end: ConfirmedEnd): void;
+  /** The page's visibility: the lost graphics' 5 s count only while it's visible (D-30). Always visible
+   *  without it. */
+  readonly page?: PageEvents;
+  /** The plain message once the graphics have been lost for lostGraphicsSeconds (§5.8, §5.10). */
+  readonly graphicsMessage?: GraphicsMessage;
+  /** A networked match's Invite, with its link's options; none in Practice, nor the bots' buttons. */
+  readonly invite?: InviteOptions | null;
 }
 
 export type MenuState = Inspection['menu'];
+
+/** PitchContext's graphics (§5.8): drawn, lost and waiting to be restored, or lost past lostGraphicsSeconds. */
+export type GraphicsState = PitchContext['graphics'];
 
 /** What the screen reports for the hook (§1.40). */
 export interface PitchInspection {
@@ -78,6 +105,7 @@ export interface PitchInspection {
   readonly frames: number;
   /** The view's own figures, the drawing clock among them (§1.40, §9.5). */
   readonly view: ReturnType<MatchViewApi['inspect']>;
+  readonly graphics: GraphicsState;
 }
 
 export interface PitchScreen extends Screen {
@@ -94,6 +122,10 @@ export interface PitchScreen extends Screen {
   switchView(): void;
   /** Controls' view: this viewer's view now; ball for a spectator. */
   viewMode(): ViewMode;
+  /** stage.onGraphics, as the screen tracks it (§5.8). */
+  readonly graphics: GraphicsState;
+  /** The message over the pitch: 'graphics' once the graphics have been lost for lostGraphicsSeconds. */
+  readonly message: 'graphics' | null;
   inspect(): PitchInspection;
 }
 
@@ -102,57 +134,8 @@ const NO_BARKS: readonly BarkEvent[] = Object.freeze([]);
 /** What a press on the pitch screen may focus: its controls, by tag; a press anywhere else keeps the focus. */
 const CONTROLS: ReadonlySet<string> = new Set(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'LABEL', 'A']);
 
-/** Pre-match lasts through the start countdown (M4-Q8). */
-export const isPreMatch = (phase: Phase): boolean => phase === WARM_UP || phase === START_COUNTDOWN;
-
-/** A button's state: whether it acts, and what it reads, the reason when it can't. */
-export interface ButtonState {
-  readonly enabled: boolean;
-  readonly text: string;
-}
-
-/** Ready (§1.42, §5.7, L146): waiting for the pitch, then "Joining…" until this player is in the final
- *  roster, "Starting…" once the start countdown has locked it, and otherwise "Ready" or "Ready ✓". `wish`
- *  is the last press's while its event is on its way, so the button follows the press at once. */
-export function readyButton(o: {
-  readonly pitchReady: boolean; readonly final: Readonly<MatchState> | null; readonly headPhase: Phase | null; readonly me: string;
-  readonly wish: boolean | null;
-}): ButtonState & { readonly on: boolean } {
-  if (!o.pitchReady) return { enabled: false, on: false, text: 'Getting the pitch ready…' };
-  const F = o.final;
-  const k = F === null ? -1 : findTerrier(F, o.me);
-  if (F === null || k < 0) return { enabled: false, on: false, text: 'Joining…' };
-  if (F.phase !== WARM_UP || o.headPhase !== WARM_UP) return { enabled: false, on: true, text: 'Starting…' };
-  const on = o.wish ?? F.terriers[k]!.readyUntil > F.tick;
-  return { enabled: true, on, text: on ? 'Ready ✓' : 'Ready' };
-}
-
-/** Switch pack (D-12, D-22): once this player is in the final roster, until the start countdown. */
-export function switchButton(final: Readonly<MatchState> | null, headPhase: Phase | null, me: string): ButtonState {
-  if (final === null || findTerrier(final, me) < 0) return { enabled: false, text: 'Switch pack: joining…' };
-  if (final.phase !== WARM_UP || headPhase !== WARM_UP) return { enabled: false, text: 'Switch pack: starting…' };
-  return { enabled: true, text: 'Switch pack' };
-}
-
-/** One terrier in its pack's list. */
-export interface PackRow {
-  readonly id: string;
-  readonly name: string;
-  readonly coat: number;
-  readonly ready: boolean;
-  readonly you: boolean;
-}
-
-/** A pack's list from the final state (§5.7): its terriers by spot, each named as the screens name it, ready
- *  by its Ready in warm-up and every one ready from the start countdown, which only an all-ready roster
- *  begins (D-8). */
-export function packRows(F: Readonly<MatchState>, pack: Pack, me: string): PackRow[] {
-  return F.terriers
-    .filter((T) => T.pack === pack)
-    .map((T) => ({ id: T.id, name: shownName(T.name, T.id), coat: T.coat, ready: F.phase !== WARM_UP || T.readyUntil > F.tick, you: T.id === me }));
-}
-
-const rowsKey = (rows: readonly PackRow[], size: number): string => `${size}|${rows.map((r) => `${r.id}/${r.name}/${r.coat}/${+r.ready}/${+r.you}`).join(',')}`;
+/** The page always visible, for a host without one. */
+const SHOWN: PageEvents = { hidden: () => false, onVisibility: () => () => {} };
 
 export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFactory[]): PitchScreen {
   screenStyles();
@@ -160,6 +143,8 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
   const { match, stage, view, controls, look } = host;
   const me = match.me;
   const clock = match.clock;
+  const page = host.page ?? SHOWN;
+  const playing = controls !== null;
 
   let disposed = false;
   let pitch: PitchInspection['pitch'] = 'preparing';
@@ -171,37 +156,23 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
   let lastOut: FrameOut | null = null;
   let frames = 0;
   let mismatches = 0;
-  /** The last Ready press's wish, while its event is on its way. */
-  let wish: boolean | null = null;
-  let panelKey = '';
-  let panelFinal: Readonly<MatchState> | null = null;
   /** What had the focus when the menu opened. */
   let focusBefore: Element | null = null;
+  // The graphics (§5.8): their state, and the lost context's visible time left before the message.
+  let graphics: GraphicsState = 'ok';
+  let lostLeftMs = 0;
+  let lostArmedAt = 0;
+  let stopLostTimer: (() => void) | null = null;
+  let message: { readonly screen: Screen; readonly cover: HTMLElement } | null = null;
 
   // --- The DOM ---
   const heading = h('h1', { class: 'visually-hidden' }, 'Pre-match');
   const preparing = h('p', { class: 'pitch-preparing', role: 'status', 'data-test': 'pitch-preparing' }, 'Getting the pitch ready…');
-  const ready = h('button', { type: 'button', class: 'primary', 'data-test': 'ready', onclick: () => pressReady() }, 'Joining…');
-  const switchPack = h('button', { type: 'button', class: 'secondary', 'data-test': 'switch-pack', onclick: () => pressSwitch() }, 'Switch pack');
-  const leave = h('button', { type: 'button', class: 'secondary', 'data-test': 'prematch-leave', onclick: () => host.leave() }, 'Leave');
-  const playing = controls !== null;
-  setShown(ready, playing);
-  setShown(switchPack, playing);
-  if (playing) ready.setAttribute('data-focus', '');
-  const full = h('p', { class: 'notice', 'data-test': 'switch-refused', hidden: true }, 'The other pack is full.');
-  const lists = ([0, 1] as const).map((p) => {
-    const count = h('span', { class: 'prematch-count' });
-    const list = h('ul', { 'data-test': `pack-${p}` });
-    const section = h('section', { class: `prematch-pack prematch-pack-${p}` },
-      h('h2', {}, packSwatch(look.packs[p]), h('span', {}, `${packName(look.packs[p])} pack`), count), list);
-    return { section, list, count, key: '' };
+  const panel = prematchPanel({
+    match, look, playing, pitchReady: () => pitch !== 'preparing', leave: () => host.leave(), invite: host.invite ?? null,
   });
-  // Its buttons first, so Ready shows at the panel's top however long the lists run below it.
-  const panel = h('div', { class: 'prematch', 'data-test': 'prematch' },
-    h('div', { class: 'prematch-buttons' }, ready, switchPack, leave),
-    full,
-    h('div', { class: 'prematch-packs' }, ...lists.map((l) => l.section)));
-  const el = h('section', { class: 'pitch-screen', 'data-test': 'pitch-screen' }, heading, preparing, panel);
+  const ready = panel.ready;
+  const el = h('section', { class: 'pitch-screen', 'data-test': 'pitch-screen' }, heading, preparing, panel.el);
 
   // --- The layers, over the pitch in their order ---
   const layerHost: PitchHost = {
@@ -215,84 +186,27 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
   };
   const layers: Layer[] = factories.map((f) => f(layerHost));
   for (const l of layers) if (l.el !== null) el.append(l.el);
-  const menuLayer = layers.find((l) => l.name === MENU) ?? null;
+  const menuLayer = layers.find(isMenuLayer) ?? null;
   if (menuLayer?.el) setShown(menuLayer.el, false);
 
   // --- Q-17's navs: Pre-match's buttons, and the menu's ---
-  const prematchButtons: readonly HTMLButtonElement[] = [ready, switchPack, leave];
-  const prematchNav = new ButtonNav(() => prematchButtons, { clock });
-  const detachPrematch = prematchNav.attach(panel);
+  const prematchNav = new ButtonNav(() => panel.buttons(), { clock });
+  const detachPrematch = prematchNav.attach(panel.el);
   const menuButtons = (): HTMLButtonElement[] => (menuLayer?.el ? Array.from(menuLayer.el.querySelectorAll<HTMLButtonElement>('button')) : []);
   const menuNav = new ButtonNav(menuButtons, { clock });
   const detachMenu = menuLayer?.el ? menuNav.attach(menuLayer.el) : () => {};
 
   // --- What the screen does ---
   const context = (frame: StageFrame | null, out: FrameOut | null, barks: readonly BarkEvent[]): PitchContext => ({
-    match, drawn: view.drawn, out, frame, nowMs: view.drawMs, mode: view.mode, settings: host.settings.get(), graphics: 'ok', barks,
+    match, drawn: view.drawn, out, frame, nowMs: view.drawMs, mode: view.mode, settings: host.settings.get(), graphics, barks,
   });
-
-  function pressReady(): void {
-    if (disposed || !isEnabled(ready)) return;
-    const on = !currentReady().on;
-    match.ready(on);
-    wish = on;
-    updatePanel();
-  }
-
-  function pressSwitch(): void {
-    if (disposed || !isEnabled(switchPack)) return;
-    wish = null;
-    match.switchPack();
-    updatePanel();
-  }
-
-  function currentReady(): ButtonState & { readonly on: boolean } {
-    const t = match.session.timeline;
-    const F = t.started ? t.final : null;
-    return readyButton({ pitchReady: pitch !== 'preparing', final: F, headPhase: t.started ? t.head.phase : null, me, wish });
-  }
-
-  /** Pre-match's panel, from the final state, its DOM touched only when what it shows changes: the final
-   *  state steps in place, so its tick says when, and a repair replaces it, so its object does too. */
-  function updatePanel(): void {
-    if (name !== 'prematch') return;
-    const t = match.session.timeline;
-    if (wish !== null && (!t.started || (t.eventsInFlight(me) & (READY | UNREADY)) === 0)) wish = null;
-    const F = t.started ? t.final : null;
-    const refused = match.status().switchRefused;
-    const key = t.started ? `${t.id}|${t.finalTick}|${t.head.phase}|${pitch}|${wish}|${refused}` : `|${pitch}`;
-    if (key === panelKey && F === panelFinal) return;
-    panelKey = key;
-    panelFinal = F;
-    const r = currentReady();
-    setEnabled(ready, r.enabled, r.text);
-    const s = switchButton(F, t.started ? t.head.phase : null, me);
-    setEnabled(switchPack, s.enabled, s.text);
-    setShown(full, refused);
-    if (F === null) return;
-    for (const p of [0, 1] as const) {
-      const rows = packRows(F, p, me);
-      const l = lists[p]!;
-      const k = rowsKey(rows, F.packSize);
-      if (k === l.key) continue;
-      l.key = k;
-      setText(l.count, `${rows.length} of ${F.packSize}`);
-      l.list.replaceChildren(
-        ...rows.map((r) => h('li', { class: r.you ? 'you' : '' },
-          coatSwatch(look, r.coat), h('span', { class: 'name' }, r.name), coatName(look, r.coat),
-          r.you ? h('span', { class: 'tag' }, 'you') : null,
-          h('span', { class: 'ready' }, r.ready ? 'Ready ✓' : 'Not ready'))),
-        ...Array.from({ length: Math.max(0, F.packSize - rows.length) }, () => h('li', { class: 'free' }, 'A free place')),
-      );
-    }
-  }
 
   /** The first kickoff's play has begun: the screen is Match, Pre-match's panel gone (M4-Q8). */
   function toMatch(): void {
     name = 'match';
     const active = el.ownerDocument.activeElement;
-    const hadFocus = active !== null && panel.contains(active);
-    setShown(panel, false);
+    const hadFocus = active !== null && panel.el.contains(active);
+    setShown(panel.el, false);
     ready.removeAttribute('data-focus');
     setText(heading, 'Match');
     if (hadFocus) {
@@ -309,7 +223,7 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
     for (const l of layers) l.run?.(ctx);
     if (disposed) return; // a layer left
     const t = match.session.timeline;
-    updatePanel();
+    if (name === 'prematch') panel.update();
     if (name === 'prematch' && t.started && !isPreMatch(t.head.phase)) toMatch();
     const end = match.scoreboard.end;
     if (end !== null && !ended) {
@@ -342,6 +256,8 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
     if (menuLayer?.el) setShown(menuLayer.el, true);
     match.pause('menu');
     controls?.release();
+    // Its buttons, whatever it showed when Escape last closed it: Resume first, or Settings (§5.8).
+    menuLayer?.opened();
     menuNav.focusFirst();
     host.openMenu();
   }
@@ -357,16 +273,89 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
     const back = focusBefore !== null && focusBefore !== doc.body && el.contains(focusBefore) ? (focusBefore as HTMLElement) : null;
     focusBefore = null;
     back?.focus({ preventScroll: true });
-    if (back === null || doc.activeElement !== back) {
-      const fallback = name === 'prematch' && playing ? ready : heading;
-      if (fallback === heading) heading.tabIndex = -1;
-      fallback.focus({ preventScroll: true });
-    }
+    if (back === null || doc.activeElement !== back) focusFallback();
     host.closeMenu();
   }
 
+  /** Ready on a player's Pre-match, else the heading. */
+  function focusFallback(): void {
+    const fallback = name === 'prematch' && playing ? ready : heading;
+    if (fallback === heading) heading.tabIndex = -1;
+    fallback.focus({ preventScroll: true });
+  }
+
+  // --- The graphics (§5.8, D-30) ---
+
+  /** The message's count runs while the context is lost and the page visible (D-30). */
+  function armLost(): void {
+    if (graphics !== 'restoring' || stopLostTimer !== null || page.hidden()) return;
+    lostArmedAt = clock.now();
+    stopLostTimer = clock.after(lostLeftMs, () => {
+      stopLostTimer = null;
+      lostLeftMs = 0;
+      showLost();
+    });
+  }
+
+  function disarmLost(): void {
+    if (stopLostTimer === null) return;
+    stopLostTimer();
+    stopLostTimer = null;
+    lostLeftMs = Math.max(0, lostLeftMs - (clock.now() - lostArmedAt));
+  }
+
+  function graphicsChanged(state: 'lost' | 'restored'): void {
+    if (disposed) return;
+    if (state === 'lost') {
+      if (graphics !== 'ok') return;
+      graphics = 'restoring';
+      lostLeftMs = config.lostGraphicsSeconds * 1000;
+      // Held inputs released, as for a hidden page; Practice paused until they're back; a networked
+      // match plays on, its terrier and its vote kept.
+      controls?.release();
+      match.pause('graphics');
+      armLost();
+      return;
+    }
+    if (graphics === 'ok') return;
+    disarmLost();
+    graphics = 'ok';
+    hideLost();
+    match.resume('graphics');
+  }
+
+  /** The plain message over the pitch and every layer, with Leave (§5.8, §5.10). */
+  function showLost(): void {
+    if (disposed || graphics !== 'restoring') return;
+    graphics = 'lost';
+    const screen = host.graphicsMessage?.(() => host.leave()) ?? null;
+    if (screen === null) return;
+    const cover = h('div', { class: 'pitch-message' }, screen.el);
+    el.append(cover);
+    message = { screen, cover };
+    focusScreen(screen);
+  }
+
+  /** The pitch back in place of the message, the focus with it. */
+  function hideLost(): void {
+    const m = message;
+    if (m === null) return;
+    message = null;
+    const active = el.ownerDocument.activeElement;
+    const hadFocus = active === null || active === el.ownerDocument.body || m.cover.contains(active);
+    m.cover.remove();
+    m.screen.dispose?.();
+    if (hadFocus) focusFallback();
+  }
+
+  // --- The keys ---
+
   function ui(c: UiCommand): void {
     if (disposed) return;
+    if (message !== null) {
+      message.screen.ui?.(c);
+      return;
+    }
     if (c.kind === 'menu') {
       if (c.repeat) return;
       if (menu === 'closed') openMenu();
@@ -377,11 +366,15 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
       menuNav.ui(c);
       return;
     }
+    // A layer's own command first: the HUD's follow choice takes a spectator's next and prev, the view
+    // key's and the shoulders' (§5.8, D-28); a player's do nothing here.
+    for (const l of layers) if (l.ui?.(c) === true) return;
+    if (c.kind === 'next' || c.kind === 'prev') return;
     // The focus on one of the screen's own buttons outside Pre-match's nav, a layer's such as the HUD's
     // Menu button: on the pitch the keyboard keeps Enter's default from it (§4.9), so the screen presses
     // it, once, unless it can't act yet.
     const focused = focusedButton();
-    if (c.kind === 'press' && focused !== null && !prematchButtons.includes(focused)) {
+    if (c.kind === 'press' && focused !== null && !panel.buttons().includes(focused)) {
       if (!c.repeat && isEnabled(focused)) focused.click();
       return;
     }
@@ -422,18 +415,24 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
     correction: (c) => view.correct(c, clock.now()),
     stalled: () => openMenu(),
   });
+  const onGraphics = (state: 'lost' | 'restored'): void => graphicsChanged(state);
+  stage.onGraphics = onGraphics;
+  const stopVisibility = page.onVisibility(() => {
+    if (page.hidden()) disarmLost();
+    else armLost();
+  });
   const prepared = (state: 'ready' | 'failed'): void => {
     if (disposed) return;
     pitch = state;
     setShown(preparing, false);
-    updatePanel();
+    panel.update();
   };
   stage.ready().then(() => prepared('ready'), () => prepared('failed'));
   el.addEventListener('mousedown', keepFocus);
   {
     const t = match.session.timeline;
     if (t.started && !isPreMatch(t.head.phase)) toMatch();
-    updatePanel();
+    else panel.update();
   }
 
   return {
@@ -442,7 +441,14 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
       return name;
     },
     get menu() {
-      return menu;
+      // 'settings' while the menu shows its Settings panel (Inspection.menu).
+      return menu === 'closed' ? 'closed' : (menuLayer?.panel ?? 'menu');
+    },
+    get graphics() {
+      return graphics;
+    },
+    get message() {
+      return message !== null ? 'graphics' : null;
     },
     frame,
     ui,
@@ -464,21 +470,29 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
     inspect(): PitchInspection {
       const out: Record<string, unknown> = {};
       for (const l of layers) if (l.inspect !== undefined) out[l.name] = l.inspect();
-      return { layers: out, headHashMismatches: mismatches, pitch, frames, view: view.inspect() };
+      return { layers: out, headHashMismatches: mismatches, pitch, frames, view: view.inspect(), graphics };
     },
     dispose(): void {
       if (disposed) return;
       disposed = true;
       unsubscribe();
+      stopVisibility();
+      if (stage.onGraphics === onGraphics) stage.onGraphics = null;
+      disarmLost();
+      message?.screen.dispose?.();
       el.removeEventListener('mousedown', keepFocus);
       detachPrematch();
       detachMenu();
       for (const l of layers) l.dispose?.();
       controls?.release();
-      // A menu left open would leave Practice paused for whatever comes next.
+      // A menu left open, or the graphics' pause, would leave Practice paused for whatever comes next.
       if (menu !== 'closed') {
         menu = 'closed';
         match.resume('menu');
+      }
+      if (graphics !== 'ok') {
+        graphics = 'ok';
+        match.resume('graphics');
       }
     },
   };

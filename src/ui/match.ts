@@ -1,7 +1,8 @@
 // The Match adapters (M4's design, research/m4/DESIGN.md, §1.37, §4.1,
-// §8.1; PLAN D-12, D-22, Q-15, D-30, P10): one interface over M3's glue
-// (src/ui/match-types.ts), which the screens, the view, the controls and the
-// sound meet at. Phase 1's is Practice's, over M3's PracticeGame unchanged:
+// §5.12, §8.1; PLAN D-12, D-22, Q-15, D-30, P10, M4-Q3): one interface over
+// M3's glue (src/ui/match-types.ts), which the screens, the view, the
+// controls and the sound meet at. Phase 1's is Practice's, over M3's
+// PracticeGame unchanged:
 // - its session is PracticeGame.practice.session, its scoreboard and clock
 //   the game's;
 // - it pauses while any reason holds, the menu's or lost graphics', and
@@ -16,13 +17,36 @@
 //   catch-up (D-22), so its skipped stays 0;
 // - Play again closes it and starts a new Practice with the same options,
 //   contacting no one, as M3's PracticeGame.again does (Q-15).
-// It opens no room and sets no fragment (D-22, P10). Phase 2's net-screens
-// adds openNetMatch and asMatch here, over NetGame. New at M4.
+// It opens no room and sets no fragment (D-22, P10). Phase 2's networked
+// adapter (net-screens) is the same interface over M3's NetGame, unchanged:
+// - its session, scoreboard and status the game's: the refusals, the
+//   connection failure, the abandoned match, the switch refused, the return
+//   (D-17), the spectators' cap, whether it's leaving or closed, the peers
+//   and an AGAIN seen; and the final tick it took its timeline at, the
+//   hook's arrival (§1.40);
+// - it never pauses: a menu or lost graphics only release the controls;
+// - the sampler on the timeline the session holds at each sent tick, as
+//   M3's #test=net page samples, and its rebase at onControl (D-10);
+// - own() as Practice's, over a catch-up that sends only its newest
+//   stallSendTicks, so its skipped counts the rest for every sender it
+//   sends for, its terrier and each bot it hosts (§8.1);
+// - propose, play and watch, Ready, Switch pack and the bots; Leave, its
+//   LEAVE out in the TICKs that follow and the room closed leaveGraceMs
+//   later; Play again, the derived room's match (D-12, C-42).
+// roomChoice picks every room's relays and ICE (§5.12, M4-Q3): a spec's
+// hook's relay alone, when this build takes it (src/nettest-params.ts's
+// acceptedRelay); else npm run dev:local's relay alone; else the curated
+// relays with Settings' extra ones, and Settings' TURN servers. New at M4.
 
-import type { MatchNetSummary, Scoreboard, Session, TimelineStats } from '../core/session/index';
-import type { MatchSettings, MatchState, Pack } from '../core/sim/index';
+import { config } from '../config';
+import { type Correction, type MatchNetSummary, REFUSAL, type Scoreboard, type Session, type TimelineStats } from '../core/session/index';
+import { defaultParams, type MatchSettings, type MatchState, type Pack } from '../core/sim/index';
+import type { IceMode } from '../net/transport';
+import { acceptedRelay } from '../nettest-params';
+import type { Settings } from '../storage/schema';
 import { browserClock, type Clock } from './clock';
-import type { Traffic } from './game';
+import { NetGame, type NetGameOptions, type Traffic } from './game';
+import type { TerriestTest } from './inspect';
 import type { Match, MatchStatus, OwnFigures, PauseReason } from './match-types';
 import { PracticeGame, type PracticeGameOptions } from './practice';
 
@@ -30,6 +54,8 @@ type Listener = Parameters<Match['subscribe']>[0];
 
 /** What own() reads of the timeline held: src/core/timeline/timeline.ts's Timeline satisfies it. */
 export interface OwnTimeline {
+  /** A timeline is held: started, or adopted from a STATE. */
+  readonly started: boolean;
   readonly localTick: number;
   readonly stats: { readonly sent: number };
   /** This page plays: it sends its own input (PLAN §8). */
@@ -41,20 +67,24 @@ export interface OwnTimeline {
 /** A slow page's figures (§8.1), counted after each timer run on the timeline held: the ticks its local
  *  tick moved, the TICKs sent, and, while it sends for anyone, the ticks a catch-up marked absent, the
  *  ticks moved less those sent, for every sender at once, so `senders` says how many inputs each
- *  stood for. Another timeline, a merge's or a rejoin's, starts from where it stands. */
+ *  stood for. Another timeline, a merge's or a rejoin's, starts from where it stands, and so does one
+ *  that has only now started: a joiner's local tick jumps to its adopted STATE's, which skipped
+ *  nothing. */
 export class OwnTally {
   private ticks = 0;
   private sent = 0;
   private skipped = 0;
   private senders = 0;
   private held: OwnTimeline | null = null;
+  private counting = false;
   private local = 0;
   private sentBefore = 0;
 
   ran(t: OwnTimeline): void {
     const senders = (t.sending ? 1 : 0) + t.bots.size;
-    if (t !== this.held) {
+    if (t !== this.held || !this.counting) {
       this.held = t;
+      this.counting = t.started;
       this.local = t.localTick;
       this.sentBefore = t.stats.sent;
       this.senders = senders;
@@ -234,3 +264,255 @@ export function practiceMatch(o: PracticeGameOptions): Match {
   return new PracticeMatch(o);
 }
 
+// ---- The networked match (phase 2) ----
+
+/** A networked Match, with what the app reads of NetGame beside the interface. */
+export interface NetMatch extends Match {
+  readonly kind: 'net';
+  readonly matchId: string;
+  /** The final tick at which this page took the timeline it holds, the hook's arrival (§1.40): 0 for the
+   *  proposer, an adopted STATE's for a joiner, a rejoin or a merge; −1 before it holds one. */
+  readonly arrivedTick: number;
+  /** Genesis, now, as the keeper (§5.5). */
+  propose(s: MatchSettings): void;
+  traffic(): Traffic;
+  /** The derived room's match (D-12), on `room`'s relays, TURN and ICE when given, as Settings has them
+   *  now, since they apply from the next match (§6); else on this room's. */
+  playAgain(room?: RoomChoice): Promise<NetMatch>;
+}
+
+/** What a room opens with beside its match ID and Play again's choice: Play again's room the same, but for
+ *  the room's relays, TURN and ICE. */
+type RoomOptions = Omit<NetGameOptions, 'matchId' | 'again'>;
+
+/** A copy of a room's traffic, so a reader never holds the live counts. */
+function copiedTraffic(t: Traffic): Traffic {
+  const byType: Record<number, Traffic['byType'][number]> = {};
+  for (const [k, v] of Object.entries(t.byType)) byType[Number(k)] = { ...v };
+  return { sent: t.sent, received: t.received, sentBytes: t.sentBytes, receivedBytes: t.receivedBytes, byType };
+}
+
+/** The settings a held timeline was proposed with: its pack size and length. */
+function settingsOf(s: Readonly<MatchState>): MatchSettings {
+  return { packSize: s.packSize, matchMinutes: s.matchLengthTicks / defaultParams.ticksPerMinute };
+}
+
+class NetMatchImpl implements NetMatch {
+  readonly kind = 'net';
+  readonly me: string;
+  readonly matchId: string;
+  readonly clock: Clock;
+  private readonly game: NetGame;
+  private given: MatchSettings;
+  private readonly listeners = new Set<Listener>();
+  private readonly tally = new OwnTally();
+  /** The options its room opened with, for Play again's on new relays; null for a game opened elsewhere. */
+  private readonly opened: RoomOptions | null;
+
+  constructor(game: NetGame, settings: MatchSettings, clock: Clock, opened: RoomOptions | null = null) {
+    this.game = game;
+    this.opened = opened;
+    this.me = game.session.cfg.me;
+    this.matchId = game.matchId;
+    this.given = settings;
+    this.clock = clock;
+    game.onRun = () => this.ran();
+    game.onCorrection = (c: Correction) => {
+      for (const l of [...this.listeners]) l.correction?.(c);
+    };
+    this.tally.ran(game.session.timeline);
+  }
+
+  /** Read each time: a merge or a rejoin replaces its timeline, never the session. */
+  get session(): Session {
+    return this.game.session;
+  }
+
+  get scoreboard(): Scoreboard {
+    return this.game.scoreboard;
+  }
+
+  /** The held state's once a timeline is held; until then the proposal's, or the defaults. */
+  get settings(): MatchSettings {
+    const t = this.game.session.timeline;
+    return t.started ? settingsOf(t.final) : this.given;
+  }
+
+  /** A networked match never pauses (Q-15, D-30). */
+  get paused(): boolean {
+    return false;
+  }
+
+  get arrivedTick(): number {
+    return this.game.arrivedTick;
+  }
+
+  subscribe(l: Listener): () => void {
+    this.listeners.add(l);
+    return () => {
+      this.listeners.delete(l);
+    };
+  }
+
+  /** On the timeline the session holds as it stands at each sent tick, as M3's #test=net page samples. */
+  setControls(sample: (head: Readonly<MatchState>, headTick: number, tick: number) => number, rebase: (base: number) => void): void {
+    const s = this.game.session;
+    const d = s.cfg.net.timeline.delay;
+    this.game.controls = () => {
+      const t = s.timeline;
+      return sample(t.head, t.headTick, t.localTick + d);
+    };
+    this.game.onControl = rebase;
+  }
+
+  propose(settings: MatchSettings): void {
+    this.given = settings;
+    this.game.propose(settings);
+  }
+
+  ready(on: boolean): void {
+    this.game.ready(on);
+  }
+
+  switchPack(): void {
+    this.game.switchPack();
+  }
+
+  canAddBot(pack: Pack): boolean {
+    return this.game.canAddBot(pack);
+  }
+
+  addBot(pack: Pack): boolean {
+    return this.game.addBot(pack);
+  }
+
+  removeBot(pack: Pack): boolean {
+    return this.game.removeBot(pack);
+  }
+
+  play(pack: Pack): void {
+    this.game.play(pack);
+  }
+
+  watch(): void {
+    this.game.watch();
+  }
+
+  /** Nothing pauses: the screen releases what's held itself (D-30). */
+  pause(_why: PauseReason): void {}
+
+  resume(_why: PauseReason): void {}
+
+  status(): MatchStatus {
+    const g = this.game;
+    const s = g.session;
+    const refusal = g.refusal();
+    return {
+      refusal, failed: g.failed(), abandoned: g.abandoned(), refused: s.refused, switchRefused: s.switchRefused, returning: s.returning,
+      spectatorsFull: s.spectatorsFull || refusal === REFUSAL.SPECTATORS_FULL, leaving: g.leaving, closed: g.closed,
+      peers: g.peers(), againSeen: s.againSeen,
+    };
+  }
+
+  own(): OwnFigures {
+    return this.tally.figures();
+  }
+
+  summary(): MatchNetSummary {
+    return this.game.summary();
+  }
+
+  stats(): TimelineStats {
+    return this.game.stats();
+  }
+
+  traffic(): Traffic {
+    return copiedTraffic(this.game.traffic);
+  }
+
+  /** LEAVE for the player and its bots, in the TICKs the timer goes on sending, then the room closes
+   *  leaveGraceMs later (§5.11). */
+  leave(): void {
+    this.game.leave();
+  }
+
+  /** The derived room's match (D-12, C-42): AGAIN here, and there genesis with this match's settings only
+   *  if no AGAIN reached this room, this match's pack and bots coming along; this room closes
+   *  leaveGraceMs later. Its room opens on `room`'s relays, TURN and ICE when given, Settings' now (§6),
+   *  and this room's otherwise, or when this match's room opened elsewhere (asMatch). */
+  async playAgain(room?: RoomChoice): Promise<NetMatch> {
+    const settings = this.settings;
+    const o: RoomOptions | null = room !== undefined && this.opened !== null ? { ...this.opened, ...room } : this.opened;
+    const next = await (o !== null ? this.game.playAgain(o) : this.game.playAgain());
+    return new NetMatchImpl(next, settings, this.clock, o);
+  }
+
+  close(): void {
+    this.game.close();
+  }
+
+  private ran(): void {
+    this.tally.ran(this.game.session.timeline);
+    for (const l of [...this.listeners]) l.run?.();
+  }
+}
+
+/** The settings a joiner's match reports until it holds a timeline: the configuration's defaults. */
+const JOINING: MatchSettings = { packSize: config.packSizeDefault, matchMinutes: config.matchLengthDefaultMinutes };
+
+/** A match's room opened now (NetGame.open), undecided until the app proposes, plays or watches (PLAN §8). */
+export async function openNetMatch(o: NetGameOptions): Promise<NetMatch> {
+  const game = await NetGame.open(o);
+  // Play again's room takes these but for its own match ID and choice, which NetGame.playAgain sets.
+  return new NetMatchImpl(game, JOINING, o.clock ?? browserClock, o);
+}
+
+/** A game already open, its timer running on `clock`, NetGame's own: Play again's, or the bench's
+ *  (§1.53). It takes the game's onRun and onCorrection. */
+export function asMatch(game: NetGame, settings: MatchSettings, clock: Clock = browserClock): NetMatch {
+  return new NetMatchImpl(game, settings, clock);
+}
+
+/** The first final tick this page's timeline held (§1.40's arrivalTick): Practice's from genesis, 0; a
+ *  networked match's NetGame.arrivedTick; −1 before one. */
+export function arrivalOf(m: Match): number {
+  if (m instanceof NetMatchImpl) return m.arrivedTick;
+  return m.session.timeline.started ? 0 : -1;
+}
+
+// ---- Every room's relays and ICE (§5.12, M4-Q3) ----
+
+/** What a networked match's room opens with, NetGameOptions' relays, ICE and TURN. */
+export interface RoomChoice {
+  /** null: the curated relays and extraRelays; otherwise exactly these. */
+  readonly relays: readonly string[] | null;
+  readonly extraRelays: readonly string[];
+  readonly turn: readonly RTCIceServer[];
+  readonly ice: IceMode;
+}
+
+const ICE_MODES: readonly IceMode[] = ['default', 'none', 'local'];
+
+/** A spec's hook's relay that this build doesn't take: the page opens no room with it, and says so. */
+export class RefusedRelay extends Error {}
+
+/** The room's relays and ICE (§5.12, M4-Q3): a spec's hook's relay alone, which a build takes only when
+ *  acceptedRelay does (a ws: relay on the loopback, or a curated one), with the hook's ICE, local by
+ *  default, and no TURN, so the gate contacts nothing else; else under npm run dev:local its relay
+ *  alone, the screens' only relay (PLAN §15), with Settings' TURN; else the curated relays with
+ *  Settings' extra ones and its TURN servers, as roslambo's rooms open. dev: a dev build
+ *  (import.meta.env.DEV); devRelay: npm run dev:local's, src/net/dev-relay.ts's, or null. Throws
+ *  RefusedRelay for a hook's relay this build doesn't take. */
+export function roomChoice(
+  settings: Pick<Settings, 'relays' | 'turn'>, test: Pick<TerriestTest, 'relay' | 'ice'> | null, dev: boolean, devRelay: string | null,
+): RoomChoice {
+  const turn = settings.turn.map((t): RTCIceServer => ({ urls: t.urls, username: t.username, credential: t.credential }));
+  const relay = test?.relay;
+  if (typeof relay === 'string') {
+    if (!acceptedRelay(relay, dev)) throw new RefusedRelay(`this build takes no relay ${relay}: only third-party.json's, or a ws: relay on this machine`);
+    const ice = ICE_MODES.find((m) => m === test?.ice) ?? 'local';
+    return { relays: [relay], extraRelays: [], turn: [], ice };
+  }
+  if (dev && devRelay !== null) return { relays: [devRelay], extraRelays: [], turn, ice: 'default' };
+  return { relays: null, extraRelays: [...settings.relays], turn, ice: 'default' };
+}

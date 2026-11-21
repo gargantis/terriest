@@ -1,42 +1,43 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../config';
-import { personId } from '../core/bot/bot-id';
 import { findTerrier, IN_PLAY, LUNGING, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
-import { TEST_BUILD } from '../core/timeline/testing';
-import type { Device, DeviceState, UiCommand } from '../input/source';
+import type { UiCommand } from '../input/source';
 import type { Timeline } from '../core/session/index';
-import type { RenderInfo } from '../render/stage-types';
-import { MemoryStorage } from '../storage/kv';
-import { ProfileStore } from '../storage/profile';
-import { SettingsStore } from '../storage/settings';
-import { App, type AppLocation, appRoot } from './app';
-import { FakeClock, fakePage } from './clock-testing';
-import { pageDevices, type DeviceHost, type PageDevices } from './devices';
+import { type AppRig, appRig, type AppRigOptions, Frames, Locks, ME } from './app-testing';
+import { FakeClock } from './clock-testing';
+import { pageDevices } from './devices';
 import { fake, FakeEvent, type FakeDocument, FakeNode, installDom, only } from './dom-testing';
-import { type AnimationFrames, FrameLoop } from './frame-loop';
-import type { Inspection, TerriestTest } from './inspect';
+import { FrameLoop } from './frame-loop';
+import type { Inspection } from './inspect';
 import { PITCH_LAYERS, pitchLayers } from './layers/index';
 import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-testing';
 
-// The app (M4's design §1.41, §1.47, §1.63, §2.8, §5.1–§5.4, §5.7–§5.9,
-// §9.2's app.test row; PLAN §11, Q-15, Q-17; M4-Q1, M4-Q9, M4-Q38), on the
-// screens' DOM fake, its timers and Practice in virtual time: the start-up
-// order, the first screen before boot.started() and the compile after it
-// has been painted; the fragment's routes, every one Home in phase 1, and a
-// hashchange leaving a Practice; Home, Practice's setup, Pre-match, Match,
-// Results, Play again and Leave, the stage and the frame loop on the pitch
-// screen alone, each screen focused, the keyboard told which screen it's
-// on, the page at its top; one announcements log for each match, kept
-// across its screens; Results' Home leaving the match; the hook's match
-// figures, the drawn head's apart from the final state's, a lunge latched,
-// each match's from its opening, P11's count and the timer's gaps past the
-// freeze and the stall; Settings' quality re-creating the stage behind
-// Home, the old one disposed only once its own prepare has settled. And the
-// frame loop's phase-1 fallback, every other frame drawn however long the
-// gaps stay late, its log capped; the layers' order and the page's devices,
-// which have no test files of their own until phase 2 fills them.
-
-const ME = personId(7, 0);
+// The app (M4's design §1.41, §1.47, §1.49, §1.63, §2.8, §5.1–§5.4,
+// §5.7–§5.9, §6, §9.2's app.test row; PLAN §11, D-23, D-24, Q-15, Q-17;
+// M4-Q1, M4-Q9, M4-Q30, M4-Q31, M4-Q38), on the screens' DOM fake, its
+// timers and Practice in virtual time, with fakes for the tab lock's Web
+// Locks, the leave guard, the canary and results-hud's message screens:
+// the start-up order, the lock asked for first, the first screen before
+// boot.started() and the compile after it has been painted, the canary
+// after the compile in a task of its own, and with another tab holding the
+// lock its message, no compile until Use here has taken it, and the tab it
+// was taken from closing its match and saying so; the fragment's routes,
+// #join= to Join and everything else Home, a hashchange leaving a match,
+// the app's own replace ignored; the canary before Propose and Join, on
+// demand, a failing one saying why and opening no room, Practice never
+// asking; the leave guard on the pitch screens alone, Practice's too; Home,
+// Practice's setup, Pre-match, Match, Results, Play again and Leave, the
+// stage and the frame loop on the pitch screen alone, each screen focused,
+// the keyboard told which screen it's on, the page at its top; one
+// announcements log for each match, kept across its screens; Results' Home
+// leaving the match; the hook's match figures, the drawn head's apart from
+// the final state's, a lunge latched, each match's from its opening, P11's
+// count and the timer's gaps past the freeze and the stall; Settings'
+// quality re-creating the stage behind Home, the old one disposed only once
+// its own prepare has settled. And the frame loop's phase-1 fallback,
+// every other frame drawn however long the gaps stay late, its log capped;
+// the layers' order and the page's devices. The networked screens over
+// M3's network simulator are app-net.test.ts's.
 
 let dom: { readonly document: FakeDocument; restore(): void };
 beforeEach(() => {
@@ -46,145 +47,9 @@ afterEach(() => {
   dom.restore();
 });
 
-/** A stage that records its prepare and disposal, with a canvas and the figures the hook reads. */
-class Stage extends FakeStage {
-  override readonly canvas = dom.document.createElement('canvas') as unknown as HTMLCanvasElement;
-  prepares = 0;
-  disposed = false;
-  readonly quality: 'high' | 'low';
+type Rig = AppRig;
 
-  constructor(calls: string[], quality: 'high' | 'low') {
-    super(calls);
-    this.quality = quality;
-  }
-
-  override prepare(): Promise<void> {
-    this.prepares++;
-    return super.prepare();
-  }
-
-  override info(): RenderInfo {
-    return { quality: this.quality, frames: this.drawn.length } as RenderInfo;
-  }
-
-  override dispose(): void {
-    this.disposed = true;
-  }
-}
-
-/** Animation frames the test runs. */
-class Frames implements AnimationFrames {
-  private next = 1;
-  private queue: { id: number; fn: () => void }[] = [];
-
-  request(fn: () => void): number {
-    const id = this.next++;
-    this.queue.push({ id, fn });
-    return id;
-  }
-
-  cancel(id: number): void {
-    this.queue = this.queue.filter((x) => x.id !== id);
-  }
-
-  get pending(): number {
-    return this.queue.length;
-  }
-
-  /** One animation frame: every callback requested before it. */
-  run(): void {
-    const due = this.queue;
-    this.queue = [];
-    for (const x of due) x.fn();
-  }
-}
-
-/** A device the test presses, as a keyboard would: a direction held, screen-relative, and a pounce. */
-class Pad implements Device {
-  readonly kind = 'keyboard' as const;
-  direction: number | null = null;
-  pounce = false;
-  read(): DeviceState {
-    const s: DeviceState = { direction: this.direction, stickStep: null, zoomies: false, jump: false, pounce: this.pounce, bark: false, view: false, changedAtMs: null };
-    this.pounce = false;
-    return s;
-  }
-  release(): void {
-    this.direction = null;
-    this.pounce = false;
-  }
-  dispose(): void {}
-}
-
-interface Rig {
-  readonly app: App;
-  readonly root: ReturnType<typeof fake>;
-  readonly clock: FakeClock;
-  readonly frames: Frames;
-  readonly stages: Stage[];
-  readonly calls: string[];
-  readonly test: TerriestTest;
-  readonly settings: SettingsStore;
-  readonly location: AppLocation & { set(hash: string): void };
-  readonly device: Pad;
-  /** The devices' host, as the app made it. */
-  host(): DeviceHost;
-  readonly order: string[];
-}
-
-function rig(o: { hash?: string } = {}): Rig {
-  const calls: string[] = [];
-  const order: string[] = [];
-  const clock = new FakeClock(1000);
-  const frames = new Frames();
-  const stages: Stage[] = [];
-  const makeStage = (q: 'high' | 'low'): Stage => {
-    const s = new Stage(calls, q);
-    stages.push(s);
-    return s;
-  };
-  const root = fake(appRoot());
-  // index.html hides the landmark until boot.js says started: nothing in it takes the focus till then.
-  root.hidden = true;
-  dom.document.body.append(root);
-  const settings = new SettingsStore(new MemoryStorage(), { reducedMotion: () => false, qualityDefault: () => 'high' });
-  const profile = new ProfileStore(new MemoryStorage(), () => ME, () => 3);
-  const test: TerriestTest = {};
-  let hash = o.hash ?? '';
-  const listeners: (() => void)[] = [];
-  const location = {
-    hash: () => hash,
-    onHashChange: (fn: () => void) => {
-      listeners.push(fn);
-      return () => {};
-    },
-    set: (h: string) => {
-      hash = h;
-      for (const fn of listeners) fn();
-    },
-  };
-  const device = new Pad();
-  let deviceHost: DeviceHost | null = null;
-  const devices = (h: DeviceHost): PageDevices => {
-    deviceHost = h;
-    return { list: () => [device], gamepad: () => null, dispose: () => {} };
-  };
-  const boot = {
-    started: () => {
-      root.hidden = false;
-      order.push('started');
-      order.push(root.querySelector('h1') === null ? 'no screen' : `screen ${root.querySelector('h1')!.textContent}`);
-      order.push(test.inspect === undefined ? 'no hook' : 'hook');
-    },
-    noWebGL2: () => order.push('noWebGL2'),
-  };
-  const first = makeStage(settings.get().quality);
-  const app = new App({
-    root: root as unknown as HTMLElement, stage: first, makeStage, profile, settings, test, build: TEST_BUILD, clock, page: fakePage(), boot,
-    location, devices, frames,
-  });
-  return { app, root, clock, frames, stages, calls, test, settings, location, device, host: () => deviceHost!, order };
-}
+const rig = (o: Omit<AppRigOptions, 'doc'> = {}): Rig => appRig({ doc: dom.document, ...o });
 
 const look = (r: Rig): Inspection => r.test.inspect!();
 /** The match the app holds, as the hook reads it: its timeline's drawn head and final state. */
@@ -224,11 +89,11 @@ function startPractice(r: Rig): void {
 }
 
 describe('the start-up order (§5.1, M4-Q38)', () => {
-  it('shows Home, adds the hook, says started, and only then, once Home has been painted, prepares the stage', async () => {
-    const r = rig();
+  it('asks for the tab lock, shows Home, adds the hook, says started, and only then, once Home has been painted, prepares the stage', async () => {
+    const r = rig({ locks: new Locks() });
     expect(screenEl(r).children).toEqual([]);
     await r.app.start();
-    expect(r.order).toEqual(['started', 'screen terriest', 'hook']);
+    expect(r.order).toEqual(['lock', 'started', 'screen terriest', 'hook']);
     expect(look(r).screen).toBe('home');
     expect(dom.document.activeElement.textContent).toBe('terriest'); // Home's heading (Q-17)
     // The stage's canvas, the image "The pitch", in the landmark's #stage, hidden off the pitch screens (M4-Q9).
@@ -246,23 +111,179 @@ describe('the start-up order (§5.1, M4-Q38)', () => {
     await settle();
     expect(look(r).startMs).toEqual({ started: 1000, prepared: 1250 });
     expect(r.test.hashAt!(0)).toBe(''); // no match held
+    // The canary once the compile has finished, in a task of its own (D-23), computed once.
+    expect(r.canaries).toEqual([]);
+    r.clock.advance(0);
+    expect(r.canaries).toEqual([true]);
+    expect(r.guard.sets.every((on) => !on)).toBe(true); // Home asks nothing before the page goes
+  });
+
+  it("shows another tab's message while that tab holds the lock, preparing nothing until Use here takes it (D-24)", async () => {
+    const locks = new Locks();
+    const first = rig({ locks });
+    await first.app.start();
+    const second = rig({ locks, hash: '#join=TERR1ESTDESKT0PM30004' });
+    await second.app.start();
+    expect(second.order).toEqual(['lock', 'started', 'screen other-tab', 'hook']);
+    expect(look(second)).toMatchObject({ screen: 'message', message: 'other-tab', match: null });
+    expect(dom.document.activeElement.textContent).toBe('other-tab'); // its heading (§5.10)
+    // No compile, no canary, no room, however long it waits: a page that can't play spends nothing.
+    second.frames.run();
+    second.clock.advance(5000);
+    expect([second.stages[0]!.prepares, second.canaries, second.rooms]).toEqual([0, [], []]);
+    // The first tab plays Practice; Use here here takes the lock from it.
+    startPractice(first);
+    expect(look(first).screen).toBe('prematch');
+    const timers = first.clock.pending;
+    button(second, 'message-useHere').click();
+    await settle();
+    expect(second.order.at(-1)).toBe('steal');
+    // The second routes its fragment, its Join's room opened at once, and starts its compile behind it.
+    expect(look(second).screen).toBe('join');
+    expect(second.rooms.map((x) => x.matchId)).toEqual(['TERR1ESTDESKT0PM30004']);
+    second.frames.run();
+    second.clock.advance(0);
+    expect(second.stages[0]!.prepares).toBe(1);
+    // The first hears it lost: its match closed, its timer stopped, and the same message, with Use here.
+    expect(look(first)).toMatchObject({ screen: 'message', message: 'other-tab', match: null });
+    expect(first.clock.pending).toBeLessThan(timers);
+    expect(first.guard.active).toBe(false);
+    // And back: the first's Use here takes it again; the second hears it lost and closes its room.
+    button(first, 'message-useHere').click();
+    await settle();
+    expect(look(first).screen).toBe('home');
+    expect(look(second)).toMatchObject({ screen: 'message', message: 'other-tab', match: null });
+  });
+
+  it('plays in every tab where the browser has no Web Locks', async () => {
+    const r = rig();
+    await r.app.start();
+    expect([look(r).screen, r.order[0]]).toEqual(['home', 'lock']);
+  });
+
+  it('installs the leave guard before any room, asking only on Pre-match and Match, Practice\'s too (§1.49, M4-Q30)', async () => {
+    const r = rig();
+    await r.app.start();
+    expect(r.guard.active).toBe(false);
+    startPractice(r);
+    expect([look(r).screen, r.guard.active]).toEqual(['prematch', true]);
+    button(r, 'prematch-leave').click();
+    expect([look(r).screen, r.guard.active]).toEqual(['home', false]);
+    button(r, 'settings').click();
+    expect(r.guard.active).toBe(false);
   });
 });
 
-describe("the fragment's routes in phase 1 (§5.2)", () => {
-  it('goes Home from any fragment, a #join= link among them until phase 2, and a hashchange leaves a Practice for Home', async () => {
+describe("the fragment's routes (§5.2)", () => {
+  it('goes to Join from a #join= link, its room opened at once, and Home from anything else, leaving a match', async () => {
     const r = rig({ hash: '#join=TERR1ESTDESKT0PM30004' });
     await r.app.start();
-    expect(look(r).screen).toBe('home');
+    expect(look(r).screen).toBe('join');
+    expect(dom.document.activeElement.textContent).toBe('Join a match');
+    await settle();
+    expect(r.rooms.map((x) => x.matchId)).toEqual(['TERR1ESTDESKT0PM30004']); // opening a link counts as joining (C-32)
+    expect(look(r).match).toMatchObject({ kind: 'net', matchId: 'TERR1ESTDESKT0PM30004', started: false });
+    expect(r.canaries).toEqual([true]); // on demand: Join came before the compile finished
+    // Join's Home leaves the room, clearing the fragment by location.replace.
+    button(r, 'join-home').click();
+    expect([look(r).screen, look(r).match, r.location.hash(), r.location.replaced]).toEqual(['home', null, '', ['#']]);
+    const home = screenEl(r).children[0];
+    r.clock.advance(0); // the replace's own hashchange, a task later: ignored, Home stays as it is
+    expect(screenEl(r).children[0]).toBe(home);
+    // Practice; then a fragment typed or followed: Home, the match left; Practice never set the fragment.
     startPractice(r);
     expect(look(r).screen).toBe('prematch');
     const timers = r.clock.pending;
     r.location.set('#anything');
-    expect(look(r).screen).toBe('home');
-    expect(look(r).match).toBeNull();
+    r.clock.advance(0);
+    expect([look(r).screen, look(r).match]).toEqual(['home', null]);
     expect(r.clock.pending).toBe(timers - 1); // Practice's timeline timer, stopped with its match
-    // Practice never sets the fragment (D-22).
-    expect(r.location.hash()).toBe('#anything');
+    expect([r.location.hash(), r.location.replaced]).toEqual(['#anything', ['#']]);
+    // A link to a match, and then a link to another: each its own Join, the first's room left.
+    r.location.set('#join=TERR1ESTSCREENS20000V');
+    r.clock.advance(0);
+    await settle();
+    expect([look(r).screen, look(r).match?.matchId]).toEqual(['join', 'TERR1ESTSCREENS20000V']);
+    r.location.set('#join=TERR1ESTJ01NBYC0DE006');
+    r.clock.advance(0);
+    await settle();
+    expect([look(r).screen, look(r).match?.matchId, r.rooms.length]).toEqual(['join', 'TERR1ESTJ01NBYC0DE006', 3]);
+    // The link of the match held already: nothing new opened.
+    r.location.set('#join=terr1estj01nbyc0de006');
+    r.clock.advance(0);
+    await settle();
+    expect(r.rooms.length).toBe(3);
+    // A join link that isn't one: Home.
+    r.location.set('#join=TERR1ESTJ01NBYC0DE007');
+    r.clock.advance(0);
+    expect([look(r).screen, look(r).match]).toEqual(['home', null]);
+  });
+
+  it("joins by a code typed on Home, setting the fragment by replace, and says so of one that isn't a code, contacting nothing (L190)", async () => {
+    const r = rig();
+    await r.app.start();
+    const code = only(screenEl(r), 'input[data-test="code"]');
+    const submit = (): boolean => only(screenEl(r), 'form').dispatchEvent(new FakeEvent('submit', { bubbles: true, cancelable: true }));
+    code.value = 'terr1est j01n byc0de007';
+    expect(submit()).toBe(false); // the browser's own submission kept from the page
+    expect([look(r).screen, r.rooms, r.location.replaced, r.canaries]).toEqual(['home', [], [], []]);
+    expect(only(screenEl(r), '[data-test="code-error"]').hidden).toBe(false);
+    code.value = 'terr-1est-j01n-byc0-de00-6'; // lowercase and dashes, as Created groups it
+    submit();
+    const join = screenEl(r).children[0];
+    expect([look(r).screen, r.location.hash(), r.location.replaced]).toEqual(['join', '#join=TERR1ESTJ01NBYC0DE006', ['#join=TERR1ESTJ01NBYC0DE006']]);
+    // Its own hashchange comes a task later, before the room has opened: ignored, so no second Join or room.
+    r.clock.advance(0);
+    await settle();
+    expect([screenEl(r).children[0], r.rooms.map((x) => x.matchId)]).toEqual([join, ['TERR1ESTJ01NBYC0DE006']]);
+    expect(look(r).match?.matchId).toBe('TERR1ESTJ01NBYC0DE006');
+  });
+});
+
+describe('a room that opens once its screen has gone (§5.6)', () => {
+  it("is closed, never held: Join's Home pressed while it was still opening", async () => {
+    const r = rig({ hash: '#join=TERR1ESTDESKT0PM30004' });
+    await r.app.start();
+    expect(look(r).screen).toBe('join');
+    button(r, 'join-home').click(); // before the room's transport has come
+    await settle();
+    expect(r.rooms.map((x) => x.matchId)).toEqual(['TERR1ESTDESKT0PM30004']); // it opened, then
+    expect([look(r).screen, look(r).match]).toEqual(['home', null]);
+    r.clock.advance(0); // the cleared fragment's own hashchange
+    expect(r.clock.pending).toBe(0); // its timer stopped with it: no room runs behind Home
+  });
+});
+
+describe('the canary before Propose and Join (§5.6, D-23, M4-Q31)', () => {
+  it("says this browser can't play with others, from a link and from Propose, opening no room; Practice still plays", async () => {
+    const r = rig({ hash: '#join=TERR1ESTDESKT0PM30004', canary: false });
+    await r.app.start();
+    await settle();
+    expect(look(r)).toMatchObject({ screen: 'message', message: 'canary', match: null });
+    expect(r.rooms).toEqual([]);
+    // Practice, its fragment cleared, so a reload goes Home.
+    button(r, 'message-practice').click();
+    expect([look(r).screen, r.location.hash()]).toEqual(['practice', '']);
+    button(r, 'back').click();
+    button(r, 'propose').click();
+    expect(look(r)).toMatchObject({ screen: 'message', message: 'canary' });
+    button(r, 'message-home').click();
+    expect(look(r).screen).toBe('home');
+    expect([r.canaries, r.rooms]).toEqual([[false], []]); // computed once, and nothing contacted
+    startPractice(r);
+    expect(look(r).screen).toBe('prematch');
+  });
+
+  it('never asks it for Practice, before the compile has finished', async () => {
+    const r = rig();
+    await r.app.start();
+    startPractice(r);
+    play(r, 500);
+    expect(r.canaries).toEqual([]);
+    await r.stages[0]!.finish();
+    await settle();
+    r.clock.advance(1);
+    expect(r.canaries).toEqual([true]); // start-up's, once the compile has finished
   });
 });
 
@@ -295,16 +316,21 @@ describe('Practice through the screens (§5.3, §5.4, §5.7–§5.9, Q-15, Q-17)
     let i = look(r);
     expect(i.match).toMatchObject({ kind: 'practice', me: ME, matchId: null, started: true, paused: false });
     expect(i.announcements).toMatchObject({ matchId: null, arrivalTick: 0, countdowns: [], goals: [], results: null });
-    expect(Object.keys(i.layers).sort()).toEqual(['hud', 'menu', 'overlay']);
+    // Each layer's figures under its name: the HUD, the overlay, the menu and the networked notes among them.
+    expect(Object.keys(i.layers)).toEqual(expect.arrayContaining(['hud', 'menu', 'overlay', 'net']));
+    expect(i.layers['net']).toEqual({ watching: false, offer: null }); // Practice has no networked notes
     expect(i.controls).not.toBeNull();
 
-    // A pounce in warm-up, which every control has (D-8): the lunge latched in the hook.
+    // A pounce in warm-up, which every control has (D-8): the lunge latched in the hook, and its use told
+    // to the page's devices, whose watchers the hints are (§4.7).
     playUntil(r, () => look(r).match!.inRoster, 2000);
+    expect(r.used).toEqual([]);
     r.device.pounce = true;
     playUntil(r, () => look(r).match!.mine!.lunges === 1, 2000);
     i = look(r);
     expect(i.match!.mine!.lastLungeTick).not.toBeNull();
     expect(i.controls!.presses.pounce).toBe(1);
+    expect(r.used).toEqual(['keyboard pounce']);
 
     // The menu by Escape: the keyboard's screen is the menu's, and Practice pauses (Q-15); Escape again
     // closes it, the focus back on Ready.
@@ -349,6 +375,12 @@ describe('Practice through the screens (§5.3, §5.4, §5.7–§5.9, Q-15, Q-17)
     expect(i.frames.headHashMismatches).toBe(0); // P11, counted under the hook
     const t = i.match!.finalTick - 10;
     expect(r.test.hashAt!(t)).toMatch(/^[0-9a-f]{16}$/);
+
+    // The pitch screen's controls gone with it: nothing reads the page's devices on Results.
+    r.device.pounce = true;
+    play(r, 200);
+    expect(r.device.pounce).toBe(true);
+    r.device.pounce = false;
 
     // Q-17's guard: a press at once is announced and dropped; one 0.5 s on plays again.
     r.app.ui(press('press', r.clock.now()));
@@ -453,6 +485,34 @@ describe('Practice through the screens (§5.3, §5.4, §5.7–§5.9, Q-15, Q-17)
     play(r, 100);
     t = look(r).match!.timer;
     expect([t.gapsOverFreeze, t.gapsOverStall, t.gapMaxMs >= 2100]).toEqual([2, 1, true]);
+  });
+});
+
+describe('the graphics lost, through the app (§5.8, D-30)', () => {
+  it("keeps the play keys from a player while they're lost, then says so by the message, the hook reading it", async () => {
+    const r = rig();
+    await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
+    startPractice(r);
+    await settle();
+    play(r, 300);
+    expect([r.host().uiActive(), r.host().sampling()]).toEqual(['pitch', true]);
+    r.stages[0]!.onGraphics!('lost');
+    expect([r.host().uiActive(), r.host().sampling(), look(r).match!.paused]).toEqual(['spectator', false, true]);
+    r.stages[0]!.onGraphics!('restored');
+    expect([r.host().uiActive(), r.host().sampling(), look(r).match!.paused]).toEqual(['pitch', true, false]);
+    r.stages[0]!.onGraphics!('lost');
+    play(r, config.lostGraphicsSeconds * 1000 + 100);
+    // Practice's own words, which say it waits (results-hud's PRACTICE_GRAPHICS), under the pitch screen's code.
+    expect(look(r)).toMatchObject({ screen: 'message', message: 'graphics' });
+    expect(only(screenEl(r), '[data-message="practice-graphics"]').shown).toBe(true);
+    expect(r.host().uiActive()).toBe('other'); // the message's keys are the browser's
+    expect(r.guard.active).toBe(true); // a match is still held, and asks before the page goes
+    r.stages[0]!.onGraphics!('restored');
+    expect([look(r).screen, look(r).message, r.host().uiActive()]).toEqual(['prematch', null, 'pitch']);
   });
 });
 
@@ -610,11 +670,13 @@ describe("the frame loop's phase-1 fallback (§1.47, §8.2, R-3)", () => {
 });
 
 describe("the pitch's layers and the page's devices (§1.63)", () => {
-  it('composes the HUD, the overlay and the menu named menu, the later builders\' slots empty in phase 1', () => {
+  it('composes the HUD, the overlay and the menu named menu, then the networked notes, before the other builders\' layers', () => {
     const match = new StateMatch(ME, stateWith(1, 100, [{ id: ME, pack: 0 }]));
     const host = testHost({ match, view: new FakeView([], match), stage: new FakeStage([]), controls: null });
-    expect(PITCH_LAYERS.length).toBe(3);
-    expect(pitchLayers(host).map((l) => l.name)).toEqual(['hud', 'overlay', 'menu']);
+    const names = pitchLayers(host).map((l) => l.name);
+    expect(PITCH_LAYERS.length).toBe(names.length);
+    expect(names.slice(0, 4)).toEqual(['hud', 'overlay', 'menu', 'net']);
+    expect(new Set(names).size).toBe(names.length); // each its own name in Inspection.layers
   });
 
   it("makes the keyboard once, which hands Q-17's keys to the app and reads the play keys only on a player's pitch", () => {
@@ -629,8 +691,8 @@ describe("the pitch's layers and the page's devices (§1.63)", () => {
     const key = (type: string, code: string): void => {
       target.dispatchEvent(Object.assign(new FakeEvent(type, { cancelable: true }), { code, repeat: false, ctrlKey: false, altKey: false, metaKey: false }));
     };
-    expect(devices.list().map((d) => d.kind)).toEqual(['keyboard']);
-    expect(devices.gamepad()).toBeNull();
+    // The keyboard first among the page's devices; phase 2's touch and pad beside it are the devices builder's.
+    expect(devices.list()[0]!.kind).toBe('keyboard');
     key('keydown', 'Escape');
     key('keydown', 'KeyE');
     expect(told).toEqual(['menu']);

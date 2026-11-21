@@ -441,10 +441,18 @@ export function cssDeclarations(css: string, selector: string): Readonly<Record<
   return out;
 }
 
-/** A CSS length in px, in a box `within` px across: px, rem (16 px) and % lengths, and min() or max() of
- *  them. Throws on anything else, so a test never reads a length it can't. */
+/** A CSS length in px, in a box `within` px across: px, rem (16 px) and % lengths, min() or max() of them,
+ *  and calc() of their sums and differences, each env() in it its fallback, as on a screen with no safe-area
+ *  insets, the gate's. Throws on anything else, so a test never reads a length it can't. */
 export function cssLength(value: string | undefined, within: number): number {
   const v = (value ?? '').trim();
+  const calc = /^calc\((.*)\)$/s.exec(v);
+  if (calc !== null) {
+    const terms = calc[1]!.replace(/env\(\s*[\w-]+\s*,\s*([^()]+?)\s*\)/g, '$1').trim().split(/\s+([+-])\s+/);
+    let sum = cssLength(terms[0], within);
+    for (let k = 1; k < terms.length; k += 2) sum += (terms[k] === '-' ? -1 : 1) * cssLength(terms[k + 1], within);
+    return sum;
+  }
   const fn = /^(min|max)\((.*)\)$/.exec(v);
   if (fn !== null) {
     const parts = fn[2]!.split(',').map((x) => cssLength(x, within));

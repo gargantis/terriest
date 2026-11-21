@@ -1,0 +1,10 @@
+/* The message screens (M4's design §5.10, §5.13, §5.14): the screens' column,
+   padded by the safe area, since from phase 2 the page draws under a notch
+   and a phone's home bar (viewport-fit=cover). */
+.screen.message {
+  padding-top: max(24px, env(safe-area-inset-top, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(32px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+}
+.message .message-detail { font-weight: 600; font-variant-numeric: tabular-nums; }

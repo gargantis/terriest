@@ -42,6 +42,10 @@ export interface Layer {
   run?(ctx: PitchContext): void;
   /** Your bark went into the input for `tick` (Controls' onBark): the sound plays it. */
   ownBark?(tick: number): void;
+  /** A Q-17 command on the pitch with no menu or message open, offered to each layer in order before the
+   *  screen's own use of it: true if the layer took it, as the HUD's follow choice takes a spectator's
+   *  next and prev, the view key's and the shoulders' (§5.8, D-28). */
+  ui?(c: UiCommand): boolean;
   dispose?(): void;
   /** Folded into Inspection.layers under its name. */
   inspect?(): unknown;

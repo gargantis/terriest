@@ -1,0 +1,7 @@
+/* The invite panel (M4's design §5.5, §5.7, §5.14): the link's field, the
+   code in groups of four, large enough to read out, and the copy buttons. */
+.invite { display: grid; gap: 10px; }
+.invite input[type="text"] { font-size: 14px; }
+.invite-code-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.invite-code { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; word-break: break-all; }
+.invite-said { margin: 0; min-height: 1.4em; }

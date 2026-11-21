@@ -1,19 +1,21 @@
 // Results (M4's design, research/m4/DESIGN.md, §1.43, §4.9, §5.9; PLAN §11,
-// D-8, D-12, D-14, Q-15, Q-17, C-26; L153, L154, M4-Q26): the confirmed
-// end, its final score and winner; a table of each terrier's name, pack,
-// goals and touches, saying under it that a shared goal counts for each
-// sharer (C-26); the Terriest, or Terriests when level (D-8); Play again,
-// focused first, which reads "Join the next match" once an AGAIN has
-// arrived, and Home. Q-17's nav works the two buttons, with its guard: only
-// a press that began resultsPressGuardSeconds after Results showed acts, a
+// D-8, D-12, D-14, Q-15, Q-17, C-26, C-50; L153, L154, M3-Q24, M4-Q26): the
+// confirmed end, its final score and winner; a table of each terrier's
+// name, pack, goals and touches, saying under it that a shared goal counts
+// for each sharer (C-26); the Terriest, or Terriests when level (D-8); Play
+// again, focused first, which in a match with others reads "Join the next
+// match" once an AGAIN has arrived (roslambo's), and Home; and below them
+// all, the Network figures with Copy (readout.ts, M3-Q24): a match with
+// others' rows, its late inputs, resyncs and repairs among them, or
+// Practice's own. Q-17's nav works the three buttons, with its guard: only a
+// press that began resultsPressGuardSeconds after Results showed acts, a
 // pointer's included (M4-Q26), and every press goes into the app's
 // announcements log with its time since Results showed and whether it
 // acted. The final score and the outcome are a polite live region, filled
 // just after the screen shows, so a screen reader hears the end while the
 // focus is on Play again (§5.14). roslambo's results screen, without its
-// balances. Phase 1's
-// (shell); phase 2's results-hud adds the networked rows and the network
-// figures with Copy (readout.ts). New at M4.
+// balances. Phase 1's by the shell; phase 2's results-hud adds the figures.
+// New at M4.
 
 import { config } from '../../config';
 import { shownName } from '../../core/names';
@@ -26,6 +28,7 @@ import { h, setText } from '../dom';
 import type { Announcement } from '../inspect';
 import { ButtonNav } from '../nav';
 import { addStyle } from '../style';
+import { type CopyEnv, summaryPanel } from './readout';
 import css from './results.css?inline';
 import { coatName, coatSwatch, packName, packSwatch, type Screen, screenStyles } from './screen';
 
@@ -37,11 +40,13 @@ export interface ResultsHost {
   readonly clock: Clock;
   /** An AGAIN reached this room: Play again joins the next match (D-12). */
   againSeen(): boolean;
-  /** The match's network figures: phase 2's readout shows them. */
+  /** The match's network figures, read once as Results shows (M3-Q24). */
   summary(): MatchNetSummary;
   playAgain(): void;
   home(): void;
   announce(a: Announcement): void;
+  /** Tests: where Copy writes and how it selects; the page's clipboard and selection without it. */
+  readonly copy?: CopyEnv;
 }
 
 /** How often Play again's label looks for an AGAIN: the app's frame loop runs only on the pitch screens. */
@@ -116,8 +121,10 @@ export function resultsScreen(host: ResultsHost): Screen {
   const said = h('div', { class: 'results-said', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true', 'data-test': 'results-said' }, finalScore, outcome);
   const again = h('button', { type: 'button', class: 'primary', 'data-test': 'again', 'data-focus': '', onclick: () => host.playAgain() }, againText(host.againSeen()));
   const home = h('button', { type: 'button', class: 'secondary', 'data-test': 'home', onclick: () => host.home() }, 'Home');
+  // The figures as they stand when Results shows (M3-Q24): a match with others', or Practice's own.
+  const figures = summaryPanel(host.summary(), host.copy === undefined ? { practice: host.practice } : { practice: host.practice, env: host.copy });
   // The buttons right under the end, so Play again, focused first, shows however long the table runs below
-  // it, as Pre-match's buttons head its panel (Q-17, §5.9).
+  // it, as Pre-match's buttons head its panel (Q-17, §5.9); the figures below everything else.
   const el = h('section', { class: 'screen results' },
     h('h1', {}, 'Results'),
     said,
@@ -131,9 +138,12 @@ export function resultsScreen(host: ResultsHost): Screen {
         h('th', { scope: 'col', class: 'num' }, 'Goals'), h('th', { scope: 'col', class: 'num' }, 'Touches'))),
       h('tbody', {}, ...rows)),
     h('p', { class: 'muted small' }, 'A shared goal counts for each terrier that shared it.'),
+    figures.el,
   );
 
-  const nav = new ButtonNav(() => [again, home], {
+  // Copy among them, so the keys and the pad reach it too: the keyboard keeps Enter's and Space's
+  // defaults from Results' buttons, so only the nav presses them (§4.9).
+  const nav = new ButtonNav(() => [again, home, figures.copy], {
     guardMs: config.resultsPressGuardSeconds * 1000,
     shownAtMs: shownAt,
     clock: host.clock,

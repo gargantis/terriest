@@ -10,13 +10,16 @@
 // by rank, placed runs take their scenes from scenes.ts, and each tick's
 // inputs are handed over reversed (P4). D-4's second shape and the bot brain
 // stay out of the goldens (design §7.1, §14 Q-14). It ships in the
-// determinism chunk, so exact operations only (D-1).
+// determinism chunk, so exact operations only (D-1). From M4 the tick
+// inputs and placed runs are script-inputs.ts's, and the canary
+// canary.ts's, each re-exported here unchanged, so the page's module holds
+// the canary's replay without the runs this module builds at its top level
+// (M4's design §1.50, M4-Q5).
 
-import {
-  encodeInput, FRAME_BALL, FRAME_NOSE, FRAME_PITCH, JOIN, LEAVE, mirrorInput, READY, SWITCH, type TickInput, UNREADY,
-} from './input';
+import { encodeInput, FRAME_BALL, FRAME_NOSE, FRAME_PITCH, JOIN, LEAVE, READY, SWITCH, type TickInput, UNREADY } from './input';
 import { dir, HALF_TURN, mix } from './math';
 import { defaultParams } from './params';
+import { placed } from './script-inputs';
 import {
   ballDir, chasey, CORNER_SCRUM, NOTHING, park, pinchScene, pitchDir, place, placeBall, pushScene, rankedIds, RESTING_BALL,
   ROLLING_BALL, type Scene, type SceneInput, SQUEEZE, touchReach, WALL_SCRUM,
@@ -84,53 +87,15 @@ export interface ScriptSpec {
   readonly checks?: readonly ScriptCheck[];
 }
 
-// --- The inputs of a tick ---
+// --- The inputs of a tick: src/core/sim/script-inputs.ts's, with placed runs (M4) ---
 
-/** The last IDs asked for: every tick asks again, and rankedIds sorts. */
-let idCache: { seed: number; players: number; ids: readonly [readonly string[], readonly string[]] } | null = null;
-
-function idsFor(seed: number, players: number): readonly [readonly string[], readonly string[]] {
-  if (idCache === null || idCache.seed !== seed || idCache.players !== players) idCache = { seed, players, ids: rankedIds(seed, players) };
-  return idCache.ids;
-}
-
-/** Player (pack, rank)'s ID in a run. */
-export function scriptId(spec: ScriptSpec, pack: Pack, rank: number): string {
-  return idsFor(spec.seed, spec.players ?? spec.packSize)[pack]![rank]!;
-}
-
-const otherPack = (p: number): number => (p === 0 ? 1 : p === 1 ? 0 : p);
+export { scriptId, scriptTickInputs } from './script-inputs';
 
 type Writable<T> = { -readonly [K in keyof T]: T[K] };
-
-/** The mirror of a player's input (P8): its u16 mirrored, and the packs its
- *  JOIN and SWITCH name swapped. */
-function mirrorPlayer(x: ScriptInput | null): ScriptInput | null {
-  if (x === null) return null;
-  const m: Writable<ScriptInput> = { ...x, input: mirrorInput(x.input) };
-  if (x.joinPack !== undefined) m.joinPack = otherPack(x.joinPack);
-  if (x.switchPack !== undefined) m.switchPack = otherPack(x.switchPack);
-  return m;
-}
-
-/** Tick t's TickInputs, handed over reversed (P4); s is the state before the tick. */
-export function scriptTickInputs(spec: ScriptSpec, t: number, s: Readonly<MatchState>, out: TickInput[] = []): TickInput[] {
-  out.length = 0;
-  const players = spec.players ?? spec.packSize;
-  const ids = idsFor(spec.seed, players);
-  for (let pack = 1; pack >= 0; pack--) {
-    for (let rank = players - 1; rank >= 0; rank--) {
-      const x = spec.mirrored && pack === 1 ? mirrorPlayer(spec.input(0, rank, t, s)) : spec.input(pack as Pack, rank, t, s);
-      if (x !== null) out.push({ id: ids[pack]![rank]!, ...x });
-    }
-  }
-  return out;
-}
 
 // --- Helpers for the runs ---
 
 const P = defaultParams;
-const NOBODY: ScriptCheck[] = [];
 
 /** The terrier with this ID, or null. */
 function member(s: Readonly<MatchState>, id: string): Readonly<Terrier> | null {
@@ -154,19 +119,6 @@ function isMirrored(s: Readonly<MatchState>): boolean {
     if (B.heading !== ((A.heading + HALF_TURN) >>> 0) || B.tumble !== A.tumble || B.lunge !== A.lunge) return false;
   }
   return true;
-}
-
-/** A placed run: its scene's state at tick 0 (scenes.ts), its inputs the
- *  scene's, with no events. */
-function placed(name: string, scene: Scene, ticks: number, covers: Coverage, checks: readonly ScriptCheck[] = NOBODY, seed = 0): ScriptSpec {
-  return {
-    name, packSize: scene.packSize, matchMinutes: 0, ticks, start: scene, seed, mirrored: scene.mirrored,
-    input: (pack, rank, t, s) => {
-      const v = scene.input(pack, rank, t, s);
-      return v === null ? null : { input: v, events: 0 };
-    },
-    covers, checks,
-  };
 }
 
 /** A genesis member's input: JOIN at tick 1 with its pack, a coat and a
@@ -594,32 +546,6 @@ export const GOLDEN_SCRIPTS: readonly ScriptSpec[] = [
   }),
 ];
 
-// --- The canary (D-23; design §7.3) ---
+// --- The canary (D-23; design §7.3): src/core/sim/canary.ts's, in the page's module alone (M4-Q5) ---
 
-/** Pack A's four in a train behind the ball, 4 m in front of pack B's
- *  goal, holding at it with zoomies in spells; pack B's four off the
- *  train's flanks, holding across it and pouncing on a schedule into pack
- *  A's terriers and the ball. */
-const CANARY_B: readonly (readonly [x: number, y: number, step: number, at: number])[] = [
-  [-1.2, 1.7, 28, 14], [-1.2, -1.7, 4, 20], [-2.6, 1.7, 28, 26], [-2.6, -1.7, 4, 32], // not a setting: a scene's coordinates, steps and ticks
-];
-
-const CANARY_SCENE: Scene = {
-  name: 'canary', packSize: 4, phase: IN_PLAY, mirrored: false, // not a setting: the scene's size
-  setup: (s, P) => {
-    const x = P.pitch.goalLineX - 4; // not a setting: 4 m in front of the goal line
-    placeBall(P, s, x, 0);
-    const reach = touchReach(P);
-    for (let j = 0; j < 4; j++) {
-      place(P, s, 2 * j, x - reach - 0.5 * j, 0);
-      place(P, s, 2 * j + 1, x + CANARY_B[j]![0], CANARY_B[j]![1]);
-    }
-  },
-  input: (pack, rank, t) => {
-    if (pack === 0) return ballDir(0, ((t >> 5) + rank) % 2 === 0);
-    const [, , step, at] = CANARY_B[rank]!;
-    return encodeInput({ step, frame: FRAME_PITCH, pounce: t >= at ? 1 : 0 });
-  },
-};
-
-export const CANARY_SCRIPT: ScriptSpec = placed('canary', CANARY_SCENE, 300, { pushes: 1, bounces: 1, pounces: 1, tumbles: 1, goals: 1, zooms: 1 }); // not a setting: D-23's length
+export { CANARY_SCRIPT } from './canary';

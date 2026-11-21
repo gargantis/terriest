@@ -1,0 +1,36 @@
+/* Pre-match's panel (M4's design §5.7, §5.13, §5.14, L52): a column on the
+   right, under the HUD's top bar and clear of its gauges at the bottom
+   left, its left edge well right of the middle, where your terrier, its
+   mark and the countdown are drawn, inside the safe area as the HUD is;
+   its buttons first, then the invite while it shows, the lists scrolling
+   below them; every piece of text on an opaque backing. */
+.prematch {
+  position: absolute; top: calc(56px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px));
+  z-index: 15; display: grid; gap: 8px; align-content: start;
+  width: min(17rem, 40%); max-height: calc(100% - 64px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow: auto;
+  padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+}
+/* With the touch controls shown (src/ui/touch.css), the panel ends above their buttons, 156px from the
+   bottom on the right, so none of its own buttons sits under them; mirrored, above the stick's area, the
+   lower half of the right side. Its lists scroll (D-29, §5.7). */
+.pitch-screen:has(> .touch:not([hidden])) .prematch {
+  max-height: calc(100% - 220px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+.pitch-screen:has(> .touch.mirrored:not([hidden])) .prematch { max-height: calc(50% - 64px - env(safe-area-inset-top, 0px)); }
+.prematch-packs { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.prematch-pack h2 { margin: 0; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.prematch-count { margin-left: auto; font-weight: 400; color: var(--muted); }
+.prematch-pack ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; }
+.prematch-pack li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 22px; font-size: 13px; }
+.prematch-pack li .ready { margin-left: auto; color: var(--muted); }
+.prematch-pack li.you .name { font-weight: 700; }
+.prematch-pack li.free { color: var(--muted); font-style: italic; }
+.prematch .notice { font-size: 13px; }
+.prematch-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.prematch-buttons button { padding: 8px 12px; }
+/* Each pack's bots' buttons, under its list (D-39). */
+.prematch-bots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.prematch-bots button { padding: 4px 10px; font-size: 13px; }
+/* The invite behind Invite: the link's field and the code, narrower than Created's. */
+.prematch .invite { gap: 6px; font-size: 13px; }
+.prematch .invite-code { font-size: 16px; }

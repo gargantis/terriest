@@ -508,7 +508,7 @@ describe("Pre-match's panel's place (§5.7, L52; a browser confirms it)", () => 
   const CLEAR = 40;
 
   it("keeps right of the middle, where your terrier and its marks are drawn, and under the HUD's top bar, at the gate's size and a phone's", () => {
-    const d = cssDeclarations(css('./pitch.css'), '.prematch');
+    const d = cssDeclarations(css('../prematch.css'), '.prematch');
     const bar = cssDeclarations(css('../hud.css'), '.hud-top');
     // The HUD's top bar is as tall as its Menu button, which every button's minimum height makes it.
     const below = cssLength(bar.top, 0) + cssLength(cssDeclarations(css('../screens.css'), 'button')['min-height'], 0);

@@ -6,15 +6,19 @@ import { PLACEHOLDER_LOOK } from '../../render/look';
 import { FakeClock } from '../clock-testing';
 import { fake, FakeEvent, type FakeDocument, installDom, only, shownText } from '../dom-testing';
 import type { Announcement } from '../inspect';
+import { COPIED } from './readout';
+import { FakeCopy, quantiles, summaryOf } from './readout-testing';
 import { againText, outcomeText, resultLines, resultsScreen, scoreText, terriestText } from './results';
 import { focusScreen } from './screen';
 
 // Results (M4's design §1.43, §4.9, §5.9, §9.2; PLAN D-8, Q-17, C-26;
-// M4-Q26): the rows, pack A's first, each named as the screens name it; the
-// final score, the outcome and the Terriest or Terriests; and the screen:
-// Play again focused first, Q-17's guard for keys and a pointer alike, every
-// press announced with its time since Results showed, and Play again's label
-// following an AGAIN.
+// M3-Q24, M4-Q26): the rows, pack A's first, each named as the screens name
+// it; the final score, the outcome and the Terriest or Terriests; and the
+// screen: Play again focused first, Q-17's guard for keys and a pointer
+// alike, every press announced with its time since Results showed, Play
+// again's label following an AGAIN, and the Network figures below
+// everything else, a match with others' rows or Practice's own, read once as
+// Results shows, their Copy among the nav's buttons.
 
 const LOOK = PLACEHOLDER_LOOK;
 const ME = personId(7, 0);
@@ -63,24 +67,31 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     dom.restore();
   });
 
-  function results(practice: boolean): {
+  function results(practice: boolean, figures: MatchNetSummary = summaryOf()): {
     screen: ReturnType<typeof resultsScreen>; clock: FakeClock; announced: Announcement[]; acts: string[]; again: { seen: boolean };
+    copy: FakeCopy; summaries: { read: number };
   } {
     const clock = new FakeClock(5000);
     const announced: Announcement[] = [];
     const acts: string[] = [];
     const again = { seen: false };
+    const copy = new FakeCopy();
+    const summaries = { read: 0 };
     const screen = resultsScreen({
       end: end([row(ME, 0, { name: 'Ada', goals: 3, terriest: true }), row(BOT, 1, { name: 'Bot 1A2B', bot: true, coat: 4 })], [3, 0], 0),
       practice, me: ME, look: LOOK, clock,
       againSeen: () => again.seen,
-      summary: () => ({}) as MatchNetSummary,
+      summary: () => {
+        summaries.read++;
+        return figures;
+      },
       playAgain: () => acts.push('again'),
       home: () => acts.push('home'),
       announce: (a) => announced.push(a),
+      copy,
     });
     dom.document.body.append(fake(screen.el));
-    return { screen, clock, announced, acts, again };
+    return { screen, clock, announced, acts, again, copy, summaries };
   }
   const press = (at: number, source: 'keyboard' | 'gamepad' = 'keyboard', repeat = false) => ({ kind: 'press' as const, pressedAt: at, source, repeat });
 
@@ -91,9 +102,10 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     expect(only(el, '[data-test="final-score"]').textContent).toBe('Blue 3–0 Orange');
     expect(only(el, '[data-test="outcome"]').textContent).toBe('Blue pack wins. Your pack won.');
     expect(only(el, '[data-test="terriest"]').textContent).toBe('The Terriest: Ada.');
-    expect(el.querySelectorAll('th[scope="col"]').map((th) => th.textContent)).toEqual(['Terrier', 'Pack', 'Goals', 'Touches']);
+    const table = only(el, 'table[data-test="results"]');
+    expect(table.querySelectorAll('th[scope="col"]').map((th) => th.textContent)).toEqual(['Terrier', 'Pack', 'Goals', 'Touches']);
     // Each coat by its name beside its swatch, never its colour alone (§5.14): Ada's coat 0, the bot's 4.
-    expect(only(el, 'tbody').children.map((tr) => shownText(tr))).toEqual([
+    expect(only(table, 'tbody').children.map((tr) => shownText(tr))).toEqual([
       `Ada${LOOK.coats[0]!.name}youTerriestBlue30`, `Bot 1A2B${LOOK.coats[4]!.name}Orange00`,
     ]);
     // Play again and Home right under the end, before the Terriest and the table, so the button focused
@@ -101,6 +113,53 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     const order = el.children.map((c) => c.getAttribute('data-test') ?? (c.querySelector('[data-test="again"]') !== null ? 'buttons' : c.tagName.toLowerCase()));
     expect(order.slice(0, 5)).toEqual(['h1', 'results-said', 'buttons', 'p', 'terriest']);
     expect(order.indexOf('results')).toBeGreaterThan(order.indexOf('buttons'));
+    // The Network figures below everything else (§5.9's "Below them").
+    expect(order.at(-1)).toBe('readout');
+    screen.dispose!();
+  });
+
+  it("shows a match with others' figures, its late inputs, resyncs and repairs among them, and Practice's own without them, each read once as Results shows (M3-Q24)", () => {
+    const figures = summaryOf({
+      ticks: 3600, remoteInputs: 7200, late: 12, lateAbsent: 1, rollbacks: 40, corrections: 31, resyncs: 1,
+      ball: quantiles(30, 2, 0.0123, 0.217, 1.2), repair: { ...summaryOf().repair, count: 1, ball: quantiles(1, 0, 0.5, 0.5, 0.5) },
+    });
+    const net = results(false, figures);
+    const shown = (r: typeof net): string[] =>
+      only(fake(r.screen.el), '[data-test="readout"]').querySelectorAll('dd').map((dd) => `${dd.getAttribute('data-test')} ${dd.textContent}`);
+    expect(shown(net)).toEqual([
+      'readout-ticks 3600', 'readout-inputs 7200', 'readout-late 12 (0.167%)', 'readout-late-absent 1 (0.0139%)', 'readout-rollbacks 40',
+      'readout-resyncs 1', 'readout-corrections 31', 'readout-repairs 1',
+    ]);
+    expect(only(fake(net.screen.el), '[data-test="readout-repair-sizes"]').tagName).toBe('TABLE');
+    net.clock.advance(5000);
+    expect(net.summaries.read).toBe(1);
+    net.screen.dispose!();
+    const practice = results(true, figures);
+    expect(shown(practice)).toEqual(['readout-ticks 3600', 'readout-rollbacks 40', 'readout-corrections 31']);
+    expect(fake(practice.screen.el).querySelectorAll('[data-test="readout-repair-sizes"]')).toEqual([]);
+    practice.screen.dispose!();
+  });
+
+  it('holds Copy among its buttons, so the keys and the pad reach it and press it, under the guard as Play again and Home are (Q-17, M4-Q26)', async () => {
+    const { screen, copy, announced } = results(false, summaryOf({ ticks: 99 }));
+    const el = fake(screen.el);
+    const button = only(el, 'button[data-test="copy-figures"]');
+    focusScreen(screen);
+    const guard = config.resultsPressGuardSeconds * 1000;
+    screen.ui!({ kind: 'down', pressedAt: 5100, source: 'gamepad', repeat: false });
+    screen.ui!({ kind: 'down', pressedAt: 5150, source: 'gamepad', repeat: false });
+    expect(dom.document.activeElement).toBe(button);
+    screen.ui!(press(5200)); // inside the guard
+    button.dispatchEvent(new FakeEvent('pointerdown', { bubbles: true, timeStamp: 5300 }));
+    button.click(5000 + guard + 10);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(copy.written).toEqual([]);
+    screen.ui!(press(5000 + guard, 'gamepad'));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(copy.written.length).toBe(1);
+    expect(copy.written[0]).toContain('Final ticks: 99');
+    expect(only(el, '[data-test="copy-status"]').textContent).toBe(COPIED);
+    expect(announced.filter((a) => a.kind === 'press').map((a) => a.kind === 'press' && a.accepted)).toEqual([false, false, true]);
     screen.dispose!();
   });
 

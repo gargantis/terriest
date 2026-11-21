@@ -34,7 +34,7 @@ describe("the marks' place among the pitch screen's layers (§2.6, §5.8, M4-Q10
     const overlay = cssDeclarations(css('./overlay.css'), '.overlay');
     for (const p of ['z-index', 'transform', 'filter', 'opacity', 'will-change', 'isolation', 'contain']) expect(overlay[p], p).toBeUndefined();
     const hud = z('./hud.css', '.hud');
-    const panel = z('./screens/pitch.css', '.prematch');
+    const panel = z('./prematch.css', '.prematch');
     for (const mark of ['.overlay-mine', '.overlay-arrow']) {
       expect(z('./overlay.css', mark), mark).toBeGreaterThan(Math.max(hud, panel));
       expect(z('./overlay.css', mark), mark).toBeLessThan(Math.min(z('./screens/menu.css', '.match-menu'), z('./screens/pitch.css', '.pitch-preparing')));

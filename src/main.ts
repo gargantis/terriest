@@ -13,9 +13,13 @@
 // - <main id="app"> holding #stage and #screen, on the normal page only, so
 //   a test page never shows a second main landmark (M4-Q1);
 // - the profile store, which a first visit writes at once (PLAN §10);
-// - the App, whose start() shows the first screen, adds inspect() and
-//   hashAt() to a spec's hook, calls boot.started(), and starts the
-//   compile behind the screen (M4-Q38).
+// - the page's sound, its one AudioOut, made here and following Settings'
+//   sound on every screen, so a key or a click on Home already starts its
+//   context (D-32, §1.27), never made by an import; and Created's wake
+//   lock (§5.13);
+// - the App, with the message screens (§5.10), whose start() shows the
+//   first screen, adds inspect() and hashAt() to a spec's hook, calls
+//   boot.started(), and starts the compile behind the screen (M4-Q38).
 // The hook's types are src/ui/inspect.ts's, re-exported here, where the
 // specs import them.
 
@@ -31,6 +35,9 @@ import { SettingsStore } from './storage/settings';
 import { App, appRoot } from './ui/app';
 import { browserClock, browserPage } from './ui/clock';
 import type { TerriestTest } from './ui/inspect';
+import { audioOut, soundFollows } from './ui/layers/sound';
+import { WakeLock } from './ui/phone';
+import * as messages from './ui/screens/message';
 
 export type { Inspection, TerriestTest } from './ui/inspect';
 
@@ -80,9 +87,12 @@ async function start(boot: Boot): Promise<void> {
   // index.html hides the landmark until boot.js takes its own down, so the page never shows two.
   const root = appRoot();
   document.body.append(root);
+  const audio = audioOut();
+  soundFollows(settings, audio);
   const app = new App({
     root, stage, makeStage, profile: new ProfileStore(), settings, test,
     build: buildHash(config, BUILD_INPUTS), clock: browserClock, page: browserPage, boot,
+    messages, wake: new WakeLock({ page: browserPage }), audio,
   });
   await app.start();
 }

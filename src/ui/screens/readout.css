@@ -1,0 +1,15 @@
+/* The Network figures on Results (M4's design §5.9, §5.14): under the rest
+   of Results, a list of the counts, then the sizes in a table with headers,
+   then Copy and what it did. */
+.readout { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+.readout h2 { margin: 0; font-size: 18px; line-height: 1.2; }
+.readout-figures { display: grid; gap: 10px; }
+.readout dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; font-size: 14px; }
+.readout dt { color: var(--muted); }
+.readout dd { margin: 0; font-variant-numeric: tabular-nums; }
+.readout-sizes { width: 100%; border-collapse: collapse; font-size: 14px; }
+.readout-sizes caption { text-align: left; font-weight: 600; padding-bottom: 4px; }
+.readout-sizes th, .readout-sizes td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
+.readout-sizes thead th { color: var(--muted); font-weight: 600; }
+.readout-sizes .num { text-align: right; font-variant-numeric: tabular-nums; }
+.readout-status { font-size: 14px; }

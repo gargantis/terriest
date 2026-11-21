@@ -2,10 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- No viewport-fit=cover yet: the browser keeps the page inside the safe-area
-         insets (D-30). M4's phone layout opts in, and then pads every message and
-         frames the pitch inside the insets itself. -->
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- viewport-fit=cover: the pitch fills a phone's whole screen, round a notch and
+         a home bar too, and the page keeps its text and buttons inside the safe-area
+         insets itself (D-30, M4's design §5.13): the boot messages below, and each
+         screen, the HUD and the touch controls in their own styles. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="referrer" content="no-referrer" />
     <!-- An empty icon: otherwise Firefox asks for favicon.ico, which isn't shipped (M0). -->
     <link rel="icon" href="data:," />
@@ -13,7 +14,12 @@
     <style>
       html, body { margin: 0; height: 100%; }
       body { background: #1d2b1f; color: #eef3ea; font: 16px/1.5 system-ui, sans-serif; }
-      #fallback { max-width: 40rem; padding: 1rem 1.5rem; }
+      /* The boot page's messages, inside the safe-area insets (D-30, §5.13). */
+      #fallback {
+        max-width: 40rem;
+        padding: calc(1rem + env(safe-area-inset-top, 0px)) calc(1.5rem + env(safe-area-inset-right, 0px))
+          calc(1rem + env(safe-area-inset-bottom, 0px)) calc(1.5rem + env(safe-area-inset-left, 0px));
+      }
       #fallback code {
         font: 0.9em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         background: #2f4232; padding: 0.1em 0.3em; border-radius: 3px; overflow-wrap: anywhere;
@@ -26,7 +32,9 @@
          left land on it; every other screen is in the page's flow. */
       html:not([data-boot="started"]) #app { visibility: hidden; }
       #stage canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
-      #app.pitch #screen { position: fixed; inset: 0; }
+      /* Over the pitch a thumb never pans or zooms the page, so taps and the stick act at once
+         (§5.13); a panel that scrolls still scrolls. */
+      #app.pitch #screen { position: fixed; inset: 0; touch-action: none; }
     </style>
   </head>
   <body>

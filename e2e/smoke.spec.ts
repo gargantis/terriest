@@ -8,8 +8,9 @@
 //   under it (L232).
 // Each asserts WebGL 2 first (C-6), loads the page as a visitor would, at
 // the default render quality and the gate's small window, waits for it to
-// start on Home, its heading focused, goes through Practice's setup to its
-// Pre-match by keys,
+// start on Home, its heading focused, with the page's sound made, an
+// AudioContext the hook reports (D-32, §1.27), goes through Practice's setup
+// to its Pre-match by keys,
 // which draws the pitch (Home draws nothing, M4-Q9), and runs on for a
 // second, so an error from the frame loop reaches the guard, which checks
 // "Everywhere" as each test ends.
@@ -45,7 +46,12 @@ for (const served of ['vite preview', 'dist/_headers', 'a subpath'] as const) {
       return [a?.tagName, a?.textContent, a?.closest('main')?.id];
     });
     expect(focus, "Home's heading, focused as the app started").toEqual(['H1', 'terriest', 'app']);
-    expect((await inspect(page)).screen).toBe('home');
+    const home = await inspect(page);
+    expect(home.screen).toBe('home');
+    // The page's sound, made at start-up, before any pitch screen, following Settings' sound: nothing decided yet.
+    expect(home.audio, "the hook's audio on Home").toMatchObject({ enabled: true, paused: false, prompt: false });
+    expect(home.audio!.state, "the page's AudioContext").not.toBe('none');
+    expect(Object.values(home.audio!.decided).filter((n) => n !== 0), 'cues decided on Home').toEqual([]);
     await openPractice(page, { packSize: 1, minutes: 1 });
     const { render } = await waitForInspection(page, (i) => i.render.frames > 0, { what: 'the pitch drawn' });
     expect(render.calls).toBeGreaterThan(0);

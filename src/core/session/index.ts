@@ -13,14 +13,17 @@
 // need, and nothing imports it before M4: M3's glue, the #test=net page,
 // the tests and the correction measurement import the modules themselves.
 // M4's contracts add the timeline's types its drawing and screens meet, and
-// the barks' (M4's design, research/m4/DESIGN.md, §1.36), and phase 1c the
-// BarkTracker the slice hands each pitch screen's MatchView. Re-exports
-// only.
+// the barks' (M4's design, research/m4/DESIGN.md, §1.36), phase 1c the
+// BarkTracker the slice hands each pitch screen's MatchView, and phase 2a
+// the values the networked screens read: REFUSAL, the refusals a peer
+// gives (PLAN §9), and ROLE, PLAN §8's roles, by which the app tells a
+// player's pitch screen from a spectator's. Re-exports only.
 
 export type { BarkEvent, BarkTimeline } from './bark-types';
 export { BarkTracker } from './barks';
 export type { Correction, Timeline, TimelineStats } from '../timeline/timeline';
 export { buildHash } from './build';
+export { REFUSAL, ROLE } from '../protocol/messages';
 export { type NetSettings, netSettings, type RoomSettings, type TimelineSettings, type TransportSettings } from './settings';
 export type { Accepted, Link, Refusal, RoomPeer } from './room-peer';
 export { type AgainChoice, type DuplicateHello, type Refused, Session, type SessionConfig } from './session';

@@ -1,9 +1,19 @@
-/* The HUD (M4's design §5.8, §5.14): over the pitch, under the menu; every
-   piece of text on an opaque backing, so axe judges its contrast against a
-   known colour rather than the canvas. */
-.hud { position: absolute; inset: 0; z-index: 20; pointer-events: none; color: var(--fg); }
+/* The HUD (M4's design §5.8, §5.13, §5.14): over the pitch, under the menu;
+   every piece of text on an opaque backing, so axe judges its contrast
+   against a known colour rather than the canvas. Its box keeps inside the
+   safe area, so a notch or a phone's home bar never hides its text or a
+   button (§5.13). The top bar holds the score, the clock and the Menu
+   button; the middle, each countdown and a goal's banner, one under the
+   other; the top left, under the bar, the graphics note; the bottom left, a
+   player's gauges or a spectator's follow choice. The note and the follow
+   choice keep left of Pre-match's panel, which sits right of the middle
+   (src/ui/prematch.css). */
+.hud {
+  position: absolute; z-index: 20; pointer-events: none; color: var(--fg);
+  inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
 .hud-top { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-.hud-score, .hud-clock, .hud-gauge-label, .hud-countdown {
+.hud-score, .hud-clock, .hud-gauge-label, .hud-countdown, .hud-banner, .hud-graphics, .hud-follow-label {
   background: var(--bg); border: 1px solid var(--line); border-radius: 10px; font-variant-numeric: tabular-nums;
 }
 .hud-score { display: flex; align-items: center; gap: 10px; padding: 4px 12px; font-weight: 600; }
@@ -11,13 +21,24 @@
 .hud-goals { font-size: 22px; font-weight: 800; min-width: 1ch; text-align: center; }
 .hud-clock { padding: 6px 12px; font-weight: 700; }
 .hud-menu { position: absolute; right: 0; top: 0; pointer-events: auto; min-width: 44px; padding: 6px 12px; background: var(--bg); font-size: 20px; line-height: 1; }
-.hud-countdown {
-  position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); margin: 0;
-  padding: 8px 28px; font-size: 56px; font-weight: 800; line-height: 1.1;
-}
+/* The middle: a band across the pitch, its pieces centred in it, the countdown over the banner. */
+.hud-centre { position: absolute; left: 8px; right: 8px; top: 38%; transform: translateY(-50%); display: grid; justify-items: center; gap: 8px; }
+.hud-countdown { margin: 0; padding: 8px 28px; font-size: 56px; font-weight: 800; line-height: 1.1; }
+.hud-banner { margin: 0; padding: 6px 16px; font-size: 24px; font-weight: 800; line-height: 1.2; text-align: center; }
+/* The graphics note at the left under the top bar, a line below the sound's prompt, which shares the
+   corner (src/ui/layers/sound.css), and over the control hints, which sit under the HUD. */
+.hud-graphics { position: absolute; left: 8px; top: 96px; max-width: 55%; margin: 0; padding: 6px 12px; font-weight: 700; }
 .hud-gauges { position: absolute; left: 8px; bottom: 8px; display: grid; gap: 6px; }
 .hud-gauge { display: grid; grid-template-columns: 5.5rem 7rem; align-items: center; gap: 6px; }
 .hud-gauge-label { padding: 2px 8px; font-size: 14px; font-weight: 600; }
 .hud-gauge-bar { height: 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--fg); overflow: hidden; }
 .hud-gauge-fill { display: block; height: 100%; width: var(--fill, 100%); background: var(--primary); }
 .hud-gauge.waiting .hud-gauge-fill { background: var(--muted); }
+/* A spectator's follow choice: one row of buttons that scrolls sideways, padded so a focused button's
+   outline shows; the one followed pressed, by its colours and a check mark, never by colour alone. */
+.hud-follow { position: absolute; left: 8px; bottom: 8px; max-width: 55%; display: flex; align-items: center; gap: 6px; pointer-events: auto; }
+.hud-follow-label { flex: none; padding: 2px 8px; font-size: 14px; font-weight: 600; }
+.hud-follow-list { display: flex; gap: 6px; min-width: 0; overflow-x: auto; padding: 5px; }
+.hud-follow-choice { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 14px; white-space: nowrap; }
+.hud-follow-name { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; }
+.hud .hud-follow-choice[aria-pressed="true"] { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }

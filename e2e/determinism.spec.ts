@@ -5,17 +5,19 @@
 // suite in the unit stage (golden.test.ts), here and on CI's arm64. The
 // page draws nothing: it makes no canvas, so WebGL is asserted only as
 // every spec's first step (C-6). And a normal page never loads its chunk,
-// which the built page's own module never holds: from M4 that page is the
+// which the built page's own scripts never hold: from M4 that page is the
 // app's, its landmark #app, its stage's canvas in #stage (M4-Q1), and its
 // module holds the simulation Practice plays, but still none of the goldens'
-// runs (M2's design §7.5, M4-Q5); phase 2 adds the canary's hash alone.
+// runs, their names or their hashes (M2's design §7.5, M4-Q5); from phase 2
+// its scripts hold the canary's expected hash, the one hash of the goldens
+// a page needs (M4's design §1.54).
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Goldens } from '../src/core/sim/golden';
 import type { DeterminismReport } from '../src/determinism';
 import { expect, expectWebGL2, test } from './lib/guards';
-import { expectStarted, moduleScript } from './lib/page';
+import { expectStarted, moduleScripts } from './lib/page';
 import { DIST } from './lib/serve.mjs';
 
 const goldens = JSON.parse(readFileSync(new URL('../src/core/sim/goldens.json', import.meta.url), 'utf8')) as Goldens;
@@ -64,8 +66,11 @@ test("a normal page has no determinism page: no chunk, no report, and the app's 
   const chunks = readdirSync(join(DIST, 'assets')).filter((f) => /^determinism-[\w-]+\.js$/.test(f));
   expect(chunks, 'the determinism chunk').toHaveLength(1);
   expect(readFileSync(join(DIST, 'assets', chunks[0]!), 'utf8')).toContain(goldens.canary);
-  const main = readFileSync(join(DIST, await moduleScript()), 'utf8');
-  expect(main.includes(goldens.canary), "the canary's hash in the page's module").toBe(false);
+  // The page's module and every chunk it imports statically: what a normal page loads.
+  const loaded = (await moduleScripts()).map((s) => readFileSync(join(DIST, s), 'utf8')).join('\n');
+  expect(loaded.includes(goldens.canary), "the canary's expected hash in the page's scripts (M4-Q5)").toBe(true);
   const names = goldens.runs.map((r) => r.name).filter((name) => name.includes(' '));
-  expect(names.filter((name) => main.includes(name)), "the runs' names in the page's module").toEqual([]);
+  expect(names.filter((name) => loaded.includes(name)), "the runs' names in the page's scripts").toEqual([]);
+  const hashes = goldens.runs.flatMap((r) => [...r.checkpoints, r.final]);
+  expect(hashes.filter((x) => loaded.includes(x)), "the runs' hashes in the page's scripts").toEqual([]);
 });

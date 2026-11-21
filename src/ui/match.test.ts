@@ -186,8 +186,8 @@ describe("Practice's Match (M4's design §1.37)", () => {
 });
 
 describe('OwnTally (§8.1)', () => {
-  const timeline = (localTick: number, sent: number, sending: boolean, bots: number): OwnTimeline => ({
-    localTick, stats: { sent }, sending, bots: { size: bots },
+  const timeline = (localTick: number, sent: number, sending: boolean, bots: number, started = true): OwnTimeline => ({
+    started, localTick, stats: { sent }, sending, bots: { size: bots },
   });
 
   it("counts a catch-up's skipped ticks once for every sender, nothing for a page that sends for no one, and starts again on another timeline", () => {
@@ -210,5 +210,20 @@ describe('OwnTally (§8.1)', () => {
     tally.ran(timeline(500, 400, true, 1)); // another object again
     tally.ran(merged);
     expect(tally.figures().ticks).toBe(11);
+  });
+
+  it("counts nothing for a joiner's jump to the STATE it adopts, then counts from where that left it", () => {
+    const tally = new OwnTally();
+    const t = { ...timeline(0, 0, true, 1, false) }; // Play pressed before the state is held: sending, not started
+    tally.ran(t);
+    tally.ran(t);
+    Object.assign(t, timeline(480, 0, true, 1, true)); // the STATE adopted, its local tick the room's
+    tally.ran(t);
+    expect(tally.figures()).toEqual({ ticks: 0, sent: 0, skipped: 0, senders: 2 });
+    Object.assign(t, timeline(481, 1, true, 1, true));
+    tally.ran(t);
+    Object.assign(t, timeline(487, 4, true, 1, true)); // a catch-up of 6 that sent the newest 3
+    tally.ran(t);
+    expect(tally.figures()).toEqual({ ticks: 7, sent: 4, skipped: 3, senders: 2 });
   });
 });

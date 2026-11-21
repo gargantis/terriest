@@ -383,6 +383,7 @@ export class StateMatch implements Match {
 
 /** Settings in memory: what the stores' tests check of the real one, enough for the screens. */
 export class MemorySettings implements SettingsSource {
+  persistent = true;
   value: StoredSettings = DEFAULT_SETTINGS;
   private readonly fns = new Set<(s: Settings) => void>();
 

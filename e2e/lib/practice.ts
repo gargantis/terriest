@@ -588,7 +588,8 @@ export class PracticeRun {
   }
 
   /** Home's Practice and its setup on the keyboard alone (§9.3, Q-17, L82), to Pre-match: from Home's heading
-   *  Tab to Practice, every stop asserted, and Enter; the setup's heading focused at its top; Tab to each
+   *  Tab to Practice, past Propose a match and Join's code and button (§5.3), every stop asserted, and Enter;
+   *  the setup's heading focused at its top; Tab to each
    *  select, its option chosen by the arrows, the browser's own keys, then to Start and Enter.
    *  Then Pre-match: drawing, the person in A and its bot in B, 1 a side for 1 minute, Ready able to act
    *  and focused from the screen's entry (Q-15, Q-17). */
@@ -596,7 +597,7 @@ export class PracticeRun {
     const page = this.page;
     await this.until((i) => i.screen === 'home', { what: 'Home', timeoutMs: SHOWN_MS });
     expect(await focused(page), "Home's heading, before its Tab order").toBe('h1');
-    await tabThrough(page, ['name', 'coat-0', 'practice'], 'Home');
+    await tabThrough(page, ['name', 'coat-0', 'propose', 'code', 'join', 'practice'], 'Home');
     await page.keyboard.press('Enter');
     await this.until((i) => i.screen === 'practice', { what: "Practice's setup, by Enter on Home's Practice", timeoutMs: SHOWN_MS });
     // Its heading focused and in view, though Home was left scrolled to its Practice (§5.14).

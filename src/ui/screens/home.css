@@ -1,3 +1,7 @@
 /* Home's coat choice (M4's design §5.3): the look's coats in columns. */
 .coats { grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); column-gap: 12px; }
 .coats legend { grid-column: 1 / -1; }
+/* Join with a code (§5.3): the field and its Join on one line, the error under them. */
+.join-form { display: grid; gap: 6px; }
+.join-row { display: flex; align-items: end; gap: 8px; }
+.join-row .field { flex: 1; min-width: 0; }

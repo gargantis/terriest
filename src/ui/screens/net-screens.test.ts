@@ -1,0 +1,270 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { config } from '../../config';
+import { personId } from '../../core/bot/bot-id';
+import { formatMatchId } from '../../core/match-id';
+import { IN_PLAY, type MatchSettings, type MatchState, type Pack, START_COUNTDOWN } from '../../core/sim/index';
+import type { UiCommand } from '../../input/source';
+import { PLACEHOLDER_LOOK } from '../../render/look';
+import { fake, FakeEvent, type FakeDocument, type FakeElement, installDom, only, shownText } from '../dom-testing';
+import { MemoryProfile, stateWith, StateMatch } from '../pitch-testing';
+import { homeScreen, NOT_A_CODE } from './home';
+import { COPIED, invitePanel, NOT_COPIED } from './invite';
+import { joinScreen, playState, suggestedPack } from './join';
+import { createdScreen, joinedText, playText, proposeScreen } from './propose';
+
+// The networked screens' own parts (M4's design §1.43, §5.3, §5.5, §5.6,
+// §5.14; PLAN §11, L163, L190, C-15, Q-17, M4-Q2), on the DOM fake: Home's
+// Propose a match and Join with a code, a code taken in lowercase, dashes,
+// spaces and Crockford's look-alikes, one that isn't a code said so and
+// nothing joined; Propose's choices and Create, "Creating…" once pressed;
+// Created's link, code, joiners and choices; Join's "Connecting to the
+// match…" until the state is held, then each pack with its places, a full
+// pack's Play marked, the smaller suggested, the countdown's lock; the
+// invite's Copy link and Copy code, a refused clipboard said and nothing
+// thrown, Share… only where the browser shares; and the gamepad's commands
+// on screens whose keys the browser keeps, the keyboard's Enter left to it.
+
+const LOOK = PLACEHOLDER_LOOK;
+const ME = personId(7, 0);
+const ID = 'TERR1ESTJ01NBYC0DE006'; // a valid match ID (normalizeMatchId)
+const pad = (kind: UiCommand['kind']): UiCommand => ({ kind, pressedAt: 0, source: 'gamepad', repeat: false });
+const key = (kind: UiCommand['kind']): UiCommand => ({ kind, pressedAt: 0, source: 'keyboard', repeat: false });
+const settle = async (): Promise<void> => {
+  for (let k = 0; k < 5; k++) await Promise.resolve();
+};
+
+let dom: { readonly document: FakeDocument; restore(): void };
+beforeEach(() => {
+  dom = installDom();
+});
+afterEach(() => {
+  dom.restore();
+});
+
+const mount = <S extends { el: HTMLElement }>(s: S): S => {
+  dom.document.body.append(fake(s.el));
+  return s;
+};
+const button = (el: FakeElement | HTMLElement, test: string): FakeElement => only(el, `button[data-test="${test}"]`);
+
+describe("Home's matches with others (§5.3, L190)", () => {
+  function home(): { el: FakeElement; went: string[]; joined: string[]; ui: (c: UiCommand) => void } {
+    const went: string[] = [];
+    const joined: string[] = [];
+    const s = mount(homeScreen({
+      profile: new MemoryProfile(ME), look: LOOK, persistent: () => true,
+      propose: () => went.push('propose'), join: (id) => joined.push(id), practice: () => went.push('practice'), settings: () => went.push('settings'),
+    }));
+    return { el: fake(s.el), went, joined, ui: (c) => s.ui?.(c) };
+  }
+  const submit = (el: FakeElement): boolean => only(el, 'form').dispatchEvent(new FakeEvent('submit', { bubbles: true, cancelable: true }));
+
+  it('offers Propose a match, Join with a code, Practice and Settings, in that order', () => {
+    const { el, went } = home();
+    expect(el.querySelectorAll('button').map((b) => b.getAttribute('data-test'))).toEqual(['propose', 'join', 'practice', 'settings']);
+    button(el, 'propose').click();
+    expect(went).toEqual(['propose']);
+    expect(only(el, 'input[data-test="code"]').getAttribute('placeholder')).toBe('K7QM-2XDP-4TR8-WHZN-3VBC-7');
+  });
+
+  it("joins by a code typed in lowercase, with dashes, spaces and look-alikes, and says so of one that isn't a code, joining nothing", () => {
+    const { el, joined } = home();
+    const code = only(el, 'input[data-test="code"]');
+    const error = only(el, '[data-test="code-error"]');
+    expect(error.hidden).toBe(true);
+    for (const typed of ['', 'TERR1ESTJ01NBYC0DE00', 'TERR1ESTJ01NBYC0DE007', 'TERR1ESTJ01NBYC0DE006X', 'hello']) {
+      code.value = typed;
+      expect(submit(el), typed).toBe(false); // the browser's own submission kept from the page
+      expect([error.hidden, error.textContent, error.getAttribute('role')], typed).toEqual([false, NOT_A_CODE, 'alert']);
+    }
+    expect(joined).toEqual([]);
+    code.value = ' terr-1est-j01n-byc0-de00-6 ';
+    submit(el);
+    code.value = 'TERRIESTJOINBYCODE006'; // I for 1, O for 0: Crockford's look-alikes
+    submit(el);
+    code.value = 'terr lest jo1n byco de00 6';
+    submit(el);
+    expect(joined).toEqual([ID, ID, ID]);
+    expect(error.hidden).toBe(true);
+  });
+
+  it("moves among and presses its buttons by the gamepad, and leaves the keyboard's Enter to the browser (Q-17)", () => {
+    const { el, went, ui } = home();
+    ui(pad('down'));
+    expect(dom.document.activeElement).toBe(button(el, 'propose'));
+    ui(key('press'));
+    expect(went).toEqual([]); // the browser presses it, by its own activation
+    ui(pad('down'));
+    ui(pad('down'));
+    ui(pad('press'));
+    expect(went).toEqual(['practice']);
+  });
+
+  it('shows neither where its host offers no matches with others', () => {
+    const s = homeScreen({ profile: new MemoryProfile(ME), look: LOOK, persistent: () => true, practice: () => {}, settings: () => {} });
+    const el = fake(s.el);
+    expect(el.querySelectorAll('button').map((b) => b.getAttribute('data-test'))).toEqual(['practice', 'settings']);
+    expect(el.querySelectorAll('form')).toHaveLength(0);
+  });
+});
+
+describe('Propose and Created (§5.5, L163)', () => {
+  it("offers the configuration's pack sizes and lengths, and creates once, reading Creating… meanwhile", () => {
+    const made: MatchSettings[] = [];
+    const went: string[] = [];
+    const s = mount(proposeScreen({ create: (x) => made.push(x), home: () => went.push('home') }));
+    const el = fake(s.el);
+    expect([s.name, only(el, 'h1').textContent]).toEqual(['propose', 'Propose a match']);
+    expect(only(el, 'select[data-test="pack-size"]').value).toBe(String(config.packSizeDefault));
+    expect(only(el, 'select[data-test="match-length"]').value).toBe(String(config.matchLengthDefaultMinutes));
+    expect(only(el, 'select[data-test="pack-size"]').querySelectorAll('option')).toHaveLength(config.packSizeMax - config.packSizeMin + 1);
+    only(el, 'select[data-test="pack-size"]').value = '4';
+    only(el, 'select[data-test="match-length"]').value = '10';
+    const create = button(el, 'create');
+    create.click();
+    expect([create.textContent, create.getAttribute('aria-disabled')]).toEqual(['Creating…', 'true']);
+    create.click();
+    s.ui?.(pad('press'));
+    expect(made).toEqual([{ packSize: 4, matchMinutes: 10 }]);
+    button(el, 'back').click();
+    expect(went).toEqual(['home']);
+  });
+
+  it('shows the link and the code, says how many have joined, and offers Play in either pack, Watch and Leave at once', () => {
+    let peers = 0;
+    const acts: string[] = [];
+    const s = mount(createdScreen({
+      matchId: ID, look: LOOK, invite: { href: 'https://terriest.test/sub/path/#join=OLD', clipboard: null, share: null }, peers: () => peers,
+      play: (p) => acts.push(`play ${p}`), watch: () => acts.push('watch'), leave: () => acts.push('leave'),
+    }));
+    const el = fake(s.el);
+    expect([s.name, only(el, 'h1').textContent]).toEqual(['created', 'Share this match']);
+    expect(shownText(el)).toContain('Keep this page open until someone joins');
+    expect(only(el, 'input[data-test="invite-link"]').getAttribute('value')).toBe(`https://terriest.test/sub/path/#join=${ID}`);
+    expect(only(el, '[data-test="invite-code"]').textContent).toBe('TERR-1EST-J01N-BYC0-DE00-6');
+    const status = only(el, '[data-test="created-status"]');
+    expect([status.textContent, status.getAttribute('role')]).toEqual(['Nobody has joined yet.', 'status']);
+    peers = 2;
+    s.update();
+    expect(status.textContent).toBe('2 people have joined.');
+    expect([joinedText(0), joinedText(1), joinedText(3)]).toEqual(['Nobody has joined yet.', '1 person has joined.', '3 people have joined.']);
+    expect(button(el, 'play-0').textContent).toBe(playText(LOOK, 0));
+    expect(playText(LOOK, 1)).toBe('Play in the Orange pack');
+    for (const test of ['play-0', 'play-1', 'watch', 'created-leave']) button(el, test).click();
+    expect(acts).toEqual(['play 0', 'play 1', 'watch', 'leave']);
+  });
+});
+
+describe('Join (§5.6, M4-Q2)', () => {
+  function join(): { s: ReturnType<typeof joinScreen>; el: FakeElement; chose: string[] } {
+    const chose: string[] = [];
+    const s = mount(joinScreen({ matchId: ID, look: LOOK, play: (p) => chose.push(`play ${p}`), watch: () => chose.push('watch'), home: () => chose.push('home') }));
+    return { s, el: fake(s.el), chose };
+  }
+  const B = (k: number): string => personId(8, k);
+
+  it('reads "Connecting to the match…", offering no choice, until a timeline is held', () => {
+    const { s, el } = join();
+    expect([s.name, only(el, 'h1').textContent, only(el, '[data-test="join-code"]').textContent]).toEqual(['join', 'Join a match', formatMatchId(ID)]);
+    const status = only(el, '[data-test="join-status"]');
+    expect([status.textContent, status.getAttribute('role')]).toEqual(['Connecting to the match…', 'status']);
+    s.update(null);
+    const m = new StateMatch(ME, stateWith(2, 100, []));
+    m.started = false;
+    s.update(m);
+    expect([only(el, '.join-packs').hidden, button(el, 'watch').hidden, button(el, 'join-home').hidden]).toEqual([true, true, false]);
+    expect(status.textContent).toBe('Connecting to the match…');
+  });
+
+  it("shows each pack's places and who's in it, the smaller suggested, a full pack's Play marked and pressing nothing", () => {
+    const { s, el, chose } = join();
+    const m = new StateMatch(ME, stateWith(2, 100, [{ id: B(0), pack: 0, name: 'Ada', coat: 2 }, { id: B(1), pack: 0, name: 'Bo' }, { id: B(2), pack: 1 }]));
+    s.update(m);
+    expect([only(el, '.join-packs').hidden, button(el, 'watch').hidden]).toEqual([false, false]);
+    const coat = (k: number): string => LOOK.coats[k]!.name;
+    expect(shownText(only(el, '[data-test="join-pack-0"]'))).toBe(`Ada${coat(2)}Bo${coat(0)}`);
+    expect(shownText(only(el, '[data-test="join-pack-1"]'))).toBe(`Player ${B(2).slice(0, 4).toUpperCase()}${coat(0)}A free place`);
+    expect(shownText(el)).toContain('2 of 2');
+    // Blue is full: its Play aria-disabled, never disabled, saying so; Orange suggested.
+    const blue = button(el, 'play-0');
+    expect([blue.textContent, blue.getAttribute('aria-disabled'), blue.disabled]).toEqual(['Play in the Blue pack: full', 'true', false]);
+    expect([button(el, 'play-1').classList.contains('primary'), blue.classList.contains('primary')]).toEqual([true, false]);
+    blue.click();
+    s.ui?.(pad('down'));
+    s.ui?.(pad('press')); // the pad on Blue's Play: nothing
+    expect(chose).toEqual([]);
+    button(el, 'play-1').click();
+    button(el, 'watch').click();
+    button(el, 'join-home').click();
+    expect(chose).toEqual(['play 1', 'watch', 'home']);
+  });
+
+  it('suggests the first pack on a tie, and none once the countdown has locked the roster, every Play saying so', () => {
+    const tie = stateWith(2, 100, [{ id: B(0), pack: 0 }, { id: B(1), pack: 1 }]);
+    expect(suggestedPack(tie)).toBe(0);
+    expect(suggestedPack(stateWith(2, 100, [{ id: B(0), pack: 0 }]))).toBe(1);
+    expect(suggestedPack(stateWith(1, 100, [{ id: B(0), pack: 0 }, { id: B(1), pack: 1 }]))).toBeNull();
+    const counting = { ...tie, phase: START_COUNTDOWN } as MatchState;
+    expect(suggestedPack(counting)).toBeNull();
+    expect(playState(counting, LOOK, 0)).toEqual({ enabled: false, text: 'Play in the Blue pack: the match has started' });
+    const { s, el } = join();
+    s.update(new StateMatch(ME, { ...tie, phase: IN_PLAY } as MatchState));
+    expect(only(el, '[data-test="join-status"]').textContent).toBe('This match has started: you can watch it.');
+    for (const p of [0, 1] as Pack[]) expect(button(el, `play-${p}`).getAttribute('aria-disabled')).toBe('true');
+    expect(button(el, 'watch').hidden).toBe(false);
+  });
+});
+
+describe('the invite (§5.5, §5.7, C-15)', () => {
+  it('copies the link and the code, says so, and says what to do when the clipboard refuses, throwing nothing', async () => {
+    const wrote: string[] = [];
+    let refuse = false;
+    const clipboard = {
+      writeText: (t: string): Promise<void> => {
+        wrote.push(t);
+        return refuse ? Promise.reject(new DOMException('No clipboard here', 'NotAllowedError')) : Promise.resolve();
+      },
+    };
+    const el = fake(invitePanel(ID, { href: 'https://terriest.test/#join=OLD', clipboard, share: null }));
+    dom.document.body.append(el);
+    const said = only(el, '[data-test="invite-said"]');
+    expect(said.getAttribute('role')).toBe('status');
+    button(el, 'copy-link').click();
+    await settle();
+    expect([wrote, said.textContent, el.getAttribute('data-copied')]).toEqual([[`https://terriest.test/#join=${ID}`], COPIED.link, 'link']);
+    button(el, 'copy-code').click();
+    await settle();
+    expect([wrote.at(-1), said.textContent, el.getAttribute('data-copied')]).toEqual(['TERR-1EST-J01N-BYC0-DE00-6', COPIED.code, 'code']);
+    refuse = true;
+    button(el, 'copy-link').click();
+    await settle();
+    expect([said.textContent, el.getAttribute('data-copied')]).toEqual([NOT_COPIED.link, 'refused']);
+    // No clipboard at all: said at once.
+    const none = fake(invitePanel(ID, { href: 'https://terriest.test/', clipboard: null, share: null }));
+    button(none, 'copy-code').click();
+    expect(only(none, '[data-test="invite-said"]').textContent).toBe(NOT_COPIED.code);
+    // And one that throws as it's asked.
+    const throwing = fake(invitePanel(ID, {
+      href: 'https://terriest.test/', share: null,
+      clipboard: { writeText: () => { throw new TypeError('not now'); } },
+    }));
+    button(throwing, 'copy-link').click();
+    expect(only(throwing, '[data-test="invite-said"]').textContent).toBe(NOT_COPIED.link);
+  });
+
+  it('offers Share… only where the browser shares, a cancelled share quiet', async () => {
+    expect(fake(invitePanel(ID, { href: 'https://terriest.test/', clipboard: null, share: null })).querySelectorAll('button[data-test="share"]')).toHaveLength(0);
+    const shared: ShareData[] = [];
+    const el = fake(invitePanel(ID, {
+      href: 'https://terriest.test/', clipboard: null,
+      share: (d) => {
+        shared.push(d);
+        return Promise.reject(new DOMException('The user cancelled', 'AbortError'));
+      },
+    }));
+    expect(el.querySelectorAll('button').map((b) => b.textContent)).toEqual(['Copy link', 'Share…', 'Copy code']);
+    button(el, 'share').click();
+    await settle();
+    expect(shared).toEqual([{ title: 'terriest', text: 'Join my terriest match', url: `https://terriest.test/#join=${ID}` }]);
+  });
+});

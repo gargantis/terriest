@@ -1,0 +1,9 @@
+/* The networked notes (M4's design §5.6, §5.8, §5.14): top left, under the
+   HUD's top bar, clear of Pre-match's panel on the right and the countdown
+   in the middle, on an opaque backing. */
+.net-notes {
+  position: absolute; top: 56px; left: 8px; z-index: 16; display: grid; gap: 8px; max-width: min(16rem, 38%);
+  padding: 8px 10px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 12px;
+}
+.net-notes p { margin: 0; font-size: 14px; }
+.net-notes button { padding: 6px 12px; }

@@ -2,6 +2,8 @@
 // inputs, parameters, codec, checks and hash, the step, and what Results and
 // the canary read. Tests and the tuning page import the modules themselves.
 // Re-exports only, so exact operations hold here as in what it exports (D-1).
+// The canary's hash comes from canary.ts, whose path reaches none of the
+// golden runs, so the page's module holds the canary alone (M4-Q5).
 
 export * from './state';
 export * from './input';
@@ -12,4 +14,4 @@ export { hash64 } from './hash';
 export { angleDiff, datan2, dir, fractionOfTurn, HALF_TURN, QUARTER_TURN, TURN } from './math';
 export { makeSim, type Sim, step } from './step';
 export { terriest, winner } from './rules';
-export { canaryHash } from './golden';
+export { canaryHash } from './canary';

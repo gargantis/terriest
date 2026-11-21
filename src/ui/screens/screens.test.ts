@@ -1,10 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../../config';
 import { personId } from '../../core/bot/bot-id';
 import type { MatchSettings } from '../../core/sim/index';
 import { PLACEHOLDER_LOOK } from '../../render/look';
 import type { Settings, SettingsSource, StoredSettings } from '../../storage/schema';
-import { fake, FakeEvent, type FakeDocument, installDom, only, shownText } from '../dom-testing';
+import { cssDeclarations, fake, FakeEvent, type FakeDocument, installDom, only, shownText } from '../dom-testing';
 import { addStyle } from '../style';
 import { MemoryProfile, MemorySettings } from '../pitch-testing';
 import { checkedCoat, homeScreen, NOT_KEPT } from './home';
@@ -48,6 +49,13 @@ describe("the screens' shared parts", () => {
     const marked = fake(coatSwatch(LOOK, 2));
     expect([marked.style.getPropertyValue('--fur'), marked.style.getPropertyValue('--marking')]).toEqual(['#2d2b2e', '#a8764a']);
     expect(fake(coatSwatch(LOOK, 99)).style.getPropertyValue('--fur')).toBe('#f2efe6'); // outside the list: coat 0 (D-12)
+  });
+
+  it("keeps each screen's column inside the safe-area insets, which the page draws under from phase 2 (§5.13)", () => {
+    const css = readFileSync(new URL('../screens.css', import.meta.url), 'utf8');
+    expect(cssDeclarations(css, '.screen')['padding']?.replace(/\s+/g, ' ')).toBe(
+      'max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(32px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))',
+    );
   });
 
   it('focuses the element a screen marks data-focus, else its heading, which joins no tab order (§1.42)', () => {
@@ -172,7 +180,7 @@ describe("Settings' minimal screen (§1.43, §6)", () => {
   it('shows the settings in force, the rules\' choices until one is made, and stores each change', () => {
     const settings = new MemorySettings();
     const went: string[] = [];
-    const el = fake(settingsScreen({ settings, persistent: () => true, back: () => went.push('back') }).el);
+    const el = fake(settingsScreen({ settings, profile: new MemoryProfile(ME), persistent: () => true, back: () => went.push('back') }).el);
     const high = only(el, 'input[data-test="quality-high"]');
     const low = only(el, 'input[data-test="quality-low"]');
     expect([high.checked, low.checked, settings.stored().quality]).toEqual([true, false, null]); // the default, still unchosen
@@ -194,12 +202,13 @@ describe("Settings' minimal screen (§1.43, §6)", () => {
 
   it('says a change that fails, as the store words it', () => {
     const refusing: SettingsSource = {
+      persistent: true,
       get: (): Settings => ({ ...new MemorySettings().get() }),
       stored: (): StoredSettings => new MemorySettings().stored(),
       set: () => 'The render quality is high or low.',
       subscribe: () => () => {},
     };
-    const el = fake(settingsScreen({ settings: refusing, persistent: () => true, back: () => {} }).el);
+    const el = fake(settingsScreen({ settings: refusing, profile: new MemoryProfile(ME), persistent: () => true, back: () => {} }).el);
     const low = only(el, 'input[data-test="quality-low"]');
     low.checked = true;
     change(low);
@@ -217,7 +226,7 @@ describe("Settings' screen when the browser keeps nothing (PLAN §10)", () => {
       kept = false; // the store's write refused: the change in force, persistent false
       return set(change);
     };
-    const el = fake(settingsScreen({ settings, persistent: () => kept, back: () => {} }).el);
+    const el = fake(settingsScreen({ settings, profile: new MemoryProfile(ME), persistent: () => kept, back: () => {} }).el);
     const low = only(el, 'input[data-test="quality-low"]');
     low.checked = true;
     change(low);
@@ -227,7 +236,7 @@ describe("Settings' screen when the browser keeps nothing (PLAN §10)", () => {
 });
 
 describe('the match menu (§5.8, M4-Q7)', () => {
-  it('has Resume and Leave in Practice, Leave alone in a networked match, and no Settings in phase 1', () => {
+  it("has Resume and Leave in Practice without the Settings panel's stores, and Settings and Leave in a networked match with them", () => {
     const acts: string[] = [];
     const practice = matchMenu({ practice: true, resume: () => acts.push('resume'), settings: null, leave: () => acts.push('leave') });
     const el = fake(practice.el);
@@ -236,7 +245,9 @@ describe('the match menu (§5.8, M4-Q7)', () => {
     only(el, 'button[data-test="resume"]').click();
     only(el, 'button[data-test="leave"]').click();
     expect(acts).toEqual(['resume', 'leave']);
-    const net = matchMenu({ practice: false, resume: () => {}, settings: () => acts.push('settings'), leave: () => {} });
+    const net = matchMenu({
+      practice: false, resume: () => {}, settings: { settings: new MemorySettings(), profile: new MemoryProfile(ME), persistent: () => true }, leave: () => {},
+    });
     expect(fake(net.el).querySelectorAll('button').map((b) => b.textContent)).toEqual(['Settings', 'Leave']);
     expect(net.inspect!()).toEqual({ shown: false, buttons: ['Settings', 'Leave'] });
   });

@@ -70,6 +70,8 @@ export interface ProfileSource {
 
 /** What the screens need of src/storage/settings.ts's SettingsStore, which implements it. */
 export interface SettingsSource {
+  /** false: a write failed, and Settings says the change is in force for this visit only (PLAN §10). */
+  readonly persistent: boolean;
   /** The nulls resolved now, so a change of the system's preference still applies. */
   get(): Settings;
   stored(): StoredSettings;
