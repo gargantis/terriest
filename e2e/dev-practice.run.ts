@@ -26,11 +26,14 @@ import { expectBotFirst, expectNothingContacted, FIRST_GOAL_MS, PracticeRun, SHO
 
 test.use({ viewport: smallViewport });
 
-/** The first page's load, the dev server transforming every module as it's asked: provisional, until phase
- *  1c's Measure step times it. */
-const WARM_MS = 120_000;
-/** The whole run: the first page, then Practice to its first goal (e2e/lib/practice.ts' timeouts); provisional. */
-const DEV_TEST_MS = 6 * 60_000;
+/** The first page's load, the dev server transforming every module as it's asked: at worst 862 ms in
+ *  phase 1c's six runs, three of them with Vite's dependency cache cold (load 0.34); 3 × 0.86 + 2 = 4.6 s,
+ *  as e2e/lib/practice.ts' waits. */
+const WARM_MS = 5_000;
+/** The whole run, the first page, then Practice to its first goal: at worst 22.2 s (load 0.34), 51.2 s
+ *  made as long as the slowest first goal the replays validated, Ready 60 ticks late; × 2, which leaves
+ *  each wait inside it to fail first, as e2e/practice.spec.ts' tests do: a hang at the goal by about 78 s. */
+const DEV_TEST_MS = 105_000;
 
 test("Practice plays through the screens to the bot's first confirmed goal on the dev server", async ({ browser, page, guard, baseURL }, testInfo) => {
   test.setTimeout(DEV_TEST_MS);
@@ -38,17 +41,18 @@ test("Practice plays through the screens to the bot's first confirmed goal on th
   // Vite's client keeps a WebSocket to the dev server, its own, on the same host and port.
   const hmr = base.replace(/^http:/, 'ws:');
   guard.allowed = [base, hmr];
-  const warm = await browser.newContext({ viewport: smallViewport });
-  try {
-    const first = await warm.newPage();
-    await first.goto(base);
-    await expect(first.locator('html')).toHaveAttribute('data-boot', 'started', { timeout: WARM_MS });
-  } finally {
-    await warm.close();
-  }
-
+  // The line's wallMs from before the first page, which it times as warm.
   const run = new PracticeRun(page, testInfo, 'dev');
   await run.measured(async () => {
+    const warm = await browser.newContext({ viewport: smallViewport });
+    try {
+      const first = await warm.newPage();
+      await first.goto(base);
+      await expect(first.locator('html')).toHaveAttribute('data-boot', 'started', { timeout: WARM_MS });
+    } finally {
+      await warm.close();
+    }
+    run.mark('warm');
     await expectWebGL2(page);
     await run.load(base);
     await run.practice();

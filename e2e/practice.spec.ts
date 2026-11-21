@@ -48,13 +48,16 @@ import {
 
 test.use({ viewport: smallViewport });
 
-/** Each test's whole timeout, provisional until phase 1c's Measure step sets them from measured runs: the
- *  start and Home's prepare (the slice saw well under 1 s), the anchor, the replays' slowest Results or
- *  first goal after Ready (e2e/lib/practice.ts), and the screens either side, each about doubled. */
-const WHOLE_TEST_MS = 8 * 60_000;
-const CONTROLS_TEST_MS = 6 * 60_000;
-/** The off-screen arrow, S held in chase view: the slice saw it within a few seconds; provisional. */
-const ARROW_MS = 15_000;
+/** Each test's whole timeout, from phase 1c's measured runs: its worst run, made as long as the slowest
+ *  match the replays validated (Ready 60 ticks late, then the latest end or the slowest first goal), × 2,
+ *  which leaves each wait inside it to fail first, with its own message. The whole match's ran 147.8 s
+ *  (load 0.89), 156.2 s so made, and a hang in its longest wait, to Results, fails by about 237 s. */
+const WHOLE_TEST_MS = 315_000;
+/** The controls run's ran 24.0 s (Firefox, load 1.72), 53.0 s so made; a hang at the goal fails by 77 s. */
+const CONTROLS_TEST_MS = 110_000;
+/** The off-screen arrow, S held in chase view: at worst 308 ms (WebKit, load 1.73), most runs within a
+ *  look; 3 × 0.31 + 2 = 2.9 s, as e2e/lib/practice.ts' waits. */
+const ARROW_MS = 3_000;
 /** How far a direction key must run the terrier its way to count: a test's threshold, not a setting. */
 const MOVED_M = 0.5;
 /** The way each key runs the terrier in ball view (A.2, src/core/sim/movement.ts): W along the ball line

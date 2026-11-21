@@ -31,8 +31,9 @@
 //   logged whether the run passed or not, with what phase 1c's Measure step
 //   reads: the start and prepare(), the Ready tick against its anchor, each
 //   hold against its countdown and play, the timer's figures, the
-//   key-to-screen latency, and whether anything compiled.
-// Its timeouts are provisional until that step sets them from measured runs.
+//   key-to-screen latency, whether anything compiled, and each wait's
+//   length.
+// Its timeouts are set from that step's measured runs, each with its margin.
 
 import { readFileSync } from 'node:fs';
 import type { Page, TestInfo } from '@playwright/test';
@@ -88,25 +89,44 @@ const SECOND = config.ticksPerSecond;
 /** §9.5's menu: the clock checked still over this many ticks' worth of time. */
 const STILL_TICKS = 30; // not a setting: M4's design §9.5's check
 
-// --- Timeouts: provisional until phase 1c's Measure step sets them from measured runs ---
+// --- Timeouts, from phase 1c's measured runs (docs/acceptance.md; research/m4/phase1c-runs.jsonl) ---
+// A wait the machine's load lengthens, the start or a screen's answer: its worst run × 3, since M1's
+// gate took about 2.2 times as long on a busy machine, + 2 s for a timer gap just short of the stall's,
+// which holds up the looks without failing the run. A wait the page's clock sets, to an anchor, a goal or
+// the end: the slowest the replays validated, plus the most a run took past its ticks, × 1.5, since load
+// lengthens only the looks and the latch around the ticks, + 2 s likewise. Rounded up to a second, or to
+// 5 s past a minute. The runs timed their waits by the machine's clock, which there stepped a second ahead
+// every 32 s, so their figures include its steps; the waits now go by the monotonic clock, as the page's
+// ticks do.
 
-/** From data-boot=started to Home with prepare() done behind it: the slice saw prepared 257–806 ms after
- *  navigation; 10 s is also the whole match's anchor, past which Ready couldn't be on time. */
-export const PREPARED_MS = 10_000;
-/** Pre-match drawing, the person in the final roster, Ready able to act: about 15 ticks (0.25 s). */
-export const READY_ACTS_MS = 10_000;
-/** To an anchor from Practice's start: 2,400 ticks, 40 s, at the latest, and a margin. */
-export const TO_ANCHOR_MS = 60_000;
-/** Ready to the start countdown on the head: d + 1 ticks, tens of ms. */
-export const COUNTDOWN_MS = 10_000;
-/** Ready to the first confirmed goal: the replays' slowest latched 38.2 s after Ready (Ready 650), every
- *  other band's under 13 s; twice that, and a margin. */
-export const FIRST_GOAL_MS = 90_000;
-/** Ready to Results: the replays' latest end latched 142.7 s after Ready, the menu's 0.7 s among it; about
- *  twice that. */
-export const RESULTS_MS = 300_000;
-/** A key's effect on a screen, the menu's opening or the HUD showing a goal: a frame or two. */
+/** From data-boot=started to Home with prepare() done behind it: at worst 540 ms, Firefox's with four pages
+ *  loading at once (load 0.84); 3 × 0.54 + 2 = 3.6 s. */
+export const PREPARED_MS = 4_000;
+/** Pre-match drawing, the person in the final roster, Ready able to act: at worst 332 ms (Chromium's whole
+ *  match, load 0.89); 3 × 0.33 + 2 = 3.0 s. */
+export const READY_ACTS_MS = 3_000;
+/** To an anchor from the look that chose it: the controls run's is the first at least 120 ticks after its
+ *  last input, and the anchors are 600 apart, so it's at most 721 ticks away, 12.02 s; the runs waited 5.9 to
+ *  10.6 s (load 0.79); 1.5 × 12.02 + 2 = 20.03 s. */
+export const TO_ANCHOR_MS = 21_000;
+/** Ready to the start countdown on the head, d + 1 ticks: at worst 94 ms (Chromium's whole match, load
+ *  0.98); 3 × 0.09 + 2 = 2.3 s. */
+export const COUNTDOWN_MS = 3_000;
+/** Ready to the first confirmed goal: the replays' slowest latched 38.2 s after Ready (Ready 650, in the
+ *  controls run's band and in the whole match's), and a run took at most 1.6 s past its ticks (the dev run,
+ *  load 0.86); 1.5 × 39.8 + 2 = 61.7 s. */
+export const FIRST_GOAL_MS = 65_000;
+/** Ready to Results: the replays' latest end latched 142.7 s after Ready, and a whole match took at most
+ *  5.0 s past its ticks (load 0.89), its menus, Results' showing and the clock's steps among it;
+ *  1.5 × 147.7 + 2 = 223.6 s. */
+export const RESULTS_MS = 225_000;
+/** A key's effect on a screen, the menu's opening or the HUD showing a goal: at worst 923 ms, a jump's
+ *  landing (Chromium, load 0.79), the next longest a half-metre run, 487 ms; 3 × 0.92 + 2 = 4.8 s. */
 export const SHOWN_MS = 5_000;
+
+/** The monotonic clock, in ms, which the waits and the marks go by: the machine's own, Date.now(), can step
+ *  (WSL2's stepped a second ahead every 32 s in phase 1c's runs), and a step would end a wait early. */
+const now = (): number => performance.now();
 
 // --- One run ---
 
@@ -144,7 +164,7 @@ export interface Measure {
   readonly engine: string;
   ok: boolean;
   error: string | null;
-  /** ms since the run began, at each step reached. */
+  /** ms since the run began, at each step reached, on the monotonic clock. */
   readonly wallMs: Record<string, number>;
   startMs: Inspection['startMs'] | null;
   prepareMs: number | null;
@@ -175,6 +195,8 @@ export interface Measure {
   /** The controls run's warm-up: its last input's tick at the latest, its last held tick, the anchor chosen
    *  from them, and its presses. */
   warmUp: { lastInputTick: number; lastHoldTo: number | null; anchor: number; presses: Presses } | null;
+  /** Each wait's longest, in ms on the monotonic clock, by what it waited for: what the timeouts are set from. */
+  readonly waits: Record<string, number>;
   polls: number;
 }
 
@@ -469,7 +491,7 @@ export class PracticeRun {
   last: Inspection | null = null;
   lastPitch: Inspection | null = null;
   private readonly testInfo: TestInfo;
-  private readonly began = Date.now();
+  private readonly began = now();
   private holding = false;
   private down = false;
   /** The looks the line's figures come from, kept when the hold stops: the match played, not the next. */
@@ -481,13 +503,13 @@ export class PracticeRun {
     this.measure = {
       spec: testInfo.file.split(/[\\/]/).at(-1) ?? '', run, engine: page.context().browser()?.browserType().name() ?? 'unknown', ok: false, error: null,
       wallMs: {}, startMs: null, prepareMs: null, ready: null, holds: [], timer: null, latencyMs: null, compiled: null, counts: null,
-      frames: null, goals: [], score: null, end: null, menus: [], warmUp: null, polls: 0,
+      frames: null, goals: [], score: null, end: null, menus: [], warmUp: null, waits: {}, polls: 0,
     };
   }
 
   /** ms since the run began, noted under `step`. */
   mark(step: string): void {
-    this.measure.wallMs[step] = Date.now() - this.began;
+    this.measure.wallMs[step] = Math.round(now() - this.began);
   }
 
   /** The body, then the run's line, logged whether it passed or not. */
@@ -528,12 +550,17 @@ export class PracticeRun {
   /** Looks every 50 ms until `cond` holds of one, playing the hold and then `each` at every look, and failing
    *  on a timeout with where the page is. */
   async until(cond: (i: Inspection) => boolean, o: { what: string; timeoutMs: number; each?: (i: Inspection) => Promise<void> }): Promise<Inspection> {
-    const deadline = Date.now() + o.timeoutMs;
+    const began = now();
+    const deadline = began + o.timeoutMs;
     for (;;) {
       const i = await this.poll();
-      if (cond(i)) return i;
+      if (cond(i)) {
+        const waits = this.measure.waits;
+        waits[o.what] = Math.max(waits[o.what] ?? 0, Math.round(now() - began));
+        return i;
+      }
       await o.each?.(i);
-      if (Date.now() > deadline) throw new Error(`${o.what}: not reached within ${o.timeoutMs} ms; ${where(i)}`);
+      if (now() > deadline) throw new Error(`${o.what}: not reached within ${o.timeoutMs} ms; ${where(i)}`);
       await this.page.waitForTimeout(POLL_MS);
     }
   }
