@@ -112,6 +112,8 @@ The room ID is fixed, and only the local relay ever sees it: the pages contact n
 GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts
 ```
 
+From M4 the config also takes `e2e/dev-practice.run.ts`, so the settle alone now runs as `GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts e2e/dev-local.run.ts`; the rows below were run before it, by the command above.
+
 Its config starts `npm run dev:local`, the dev server on port 4359. The run warms the dev server up with a page in a room of its own, then opens the page in headless Chromium, the keeper in pack A, and headless Firefox, the player in pack B, each on C-6's GPU path, at 1 a side with `script=brain` and Ready at tick 600, as the owner's are, but in a fresh room and with `ice=none`, so nothing public is contacted. No relay is given, so each page takes dev:local's, as the owner's do. Every 3 s, through a 1-minute match to its confirmed end, it checks that both pages are connected to each other and ticking on, that they hold one hash at their common final tick, and that neither has disagreed or resynced; then that both show the same confirmed end, and that neither logged an error or requested anything but the dev server, its `ws://` origin for Vite's client, and the relay.
 
 | Date | Commit | Checks | The end, on both | Wall time |

@@ -30,7 +30,9 @@
 //   the focus back;
 // - Enter or Start on a focused button of its own that no nav holds, a
 //   layer's such as the HUD's Menu button, presses it once, since the
-//   keyboard keeps Enter's default from it on the pitch (§4.9);
+//   keyboard keeps Enter's default from it on the pitch (§4.9); and a
+//   mouse press on the pitch, or anywhere on the screen but a control,
+//   keeps the focus where it was, so Enter still presses Ready;
 // - the layers, made from a host of the screen's own, so their menu, ui
 //   and camera calls reach it, and put over the pitch in the order given.
 // The app's openMenu, closeMenu and setMode are told after the screen has
@@ -96,6 +98,9 @@ export interface PitchScreen extends Screen {
 }
 
 const NO_BARKS: readonly BarkEvent[] = Object.freeze([]);
+
+/** What a press on the pitch screen may focus: its controls, by tag; a press anywhere else keeps the focus. */
+const CONTROLS: ReadonlySet<string> = new Set(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'LABEL', 'A']);
 
 /** Pre-match lasts through the start countdown (M4-Q8). */
 export const isPreMatch = (phase: Phase): boolean => phase === WARM_UP || phase === START_COUNTDOWN;
@@ -389,6 +394,16 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
     return a !== null && a.tagName === 'BUTTON' && el.contains(a) ? (a as HTMLButtonElement) : null;
   }
 
+  /** A press on the pitch, or on anything of the screen's but a control, leaves the focus where it was,
+   *  Ready or the menu's button, so Enter still presses what Q-17 focused (§4.9): the mouse's default would
+   *  move it to the page's body. A control takes it as usual. */
+  function keepFocus(e: Event): void {
+    for (let n = e.target as Element | null; n !== null && n !== el; n = n.parentNode as Element | null) {
+      if (CONTROLS.has(n.tagName)) return;
+    }
+    e.preventDefault();
+  }
+
   function setMode(m: CameraMode): void {
     if (disposed) return;
     view.mode = m;
@@ -414,6 +429,7 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
     updatePanel();
   };
   stage.ready().then(() => prepared('ready'), () => prepared('failed'));
+  el.addEventListener('mousedown', keepFocus);
   {
     const t = match.session.timeline;
     if (t.started && !isPreMatch(t.head.phase)) toMatch();
@@ -454,6 +470,7 @@ export function pitchScreen(host: PitchScreenHost, factories: readonly LayerFact
       if (disposed) return;
       disposed = true;
       unsubscribe();
+      el.removeEventListener('mousedown', keepFocus);
       detachPrematch();
       detachMenu();
       for (const l of layers) l.dispose?.();

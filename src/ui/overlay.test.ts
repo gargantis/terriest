@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { personId } from '../core/bot/bot-id';
 import type { DrawerFrame, TerrierFrame } from '../render/drawer';
 import type { FrameOut, StageFrame } from '../render/frame';
-import { cssDeclarations, fake, installDom, only } from './dom-testing';
+import { cssDeclarations, cssLength, fake, installDom, only } from './dom-testing';
 import type { OverlayInspection } from './inspect';
 import type { PitchContext } from './layer';
-import { edgePoint, overlayLayer } from './overlay';
+import { ARROW_INSET_PX, ARROW_TOP_INSET_PX, edgePoint, overlayLayer } from './overlay';
 import { type Calls, FakeControls, FakeStage, FakeView, StateMatch, stateWith, testHost } from './pitch-testing';
 
 // The marks over the pitch (M4's design §1.45, §2.5, §3.3, §9.2; D-28; L50,
@@ -15,26 +15,45 @@ import { type Calls, FakeControls, FakeStage, FakeView, StateMatch, stateWith, t
 // the canvas's edge, inset, turned the ball's way, clockwise from the right
 // with y down as CSS's rotate() turns; a bark mark over each terrier the
 // drawer input shows barking; each bark and each goal's celebration
-// counted once into the app's log; and the marks on top of the HUD and
-// Pre-match's panel, so neither hides them.
+// counted once into the app's log; what it reports read from the marks'
+// own hidden flags; your mark and the arrow on top of the HUD and Pre-match's
+// panel, so neither hides them, the bark marks under both, and the arrow
+// below the HUD's top bar.
 
 const ME = personId(7, 0);
 const BOT = `${'b'.repeat(4)}${'0'.repeat(28)}`;
 
-describe("the marks' place among the pitch screen's layers (§2.6, M4-Q10, L52, L90)", () => {
+describe("the marks' place among the pitch screen's layers (§2.6, §5.8, M4-Q10, L52, L90, L103)", () => {
   const css = (file: string): string => readFileSync(new URL(file, import.meta.url), 'utf8');
   const z = (file: string, selector: string): number => Number(cssDeclarations(css(file), selector)['z-index']);
 
-  it("stay on top of the HUD and Pre-match's panel, both opaque, and under the menu and the pitch's preparing message", () => {
-    const overlay = z('./overlay.css', '.overlay');
-    // One stacking context: the pitch screen makes none of its own, so the layers' z-indexes compare.
+  it("put your mark and the arrow on top of the HUD and Pre-match's panel, the bark marks under both, and all under the menu", () => {
+    // One stacking context: the pitch screen makes none of its own, and nor does the overlay, so each
+    // mark's z-index compares with the layers'.
     expect(cssDeclarations(css('./screens/pitch.css'), '.pitch-screen')['z-index']).toBeUndefined();
-    expect(overlay).toBeGreaterThan(z('./hud.css', '.hud'));
-    expect(overlay).toBeGreaterThan(z('./screens/pitch.css', '.prematch'));
-    expect(overlay).toBeLessThan(z('./screens/menu.css', '.match-menu'));
-    expect(overlay).toBeLessThan(z('./screens/pitch.css', '.pitch-preparing'));
+    const overlay = cssDeclarations(css('./overlay.css'), '.overlay');
+    for (const p of ['z-index', 'transform', 'filter', 'opacity', 'will-change', 'isolation', 'contain']) expect(overlay[p], p).toBeUndefined();
+    const hud = z('./hud.css', '.hud');
+    const panel = z('./screens/pitch.css', '.prematch');
+    for (const mark of ['.overlay-mine', '.overlay-arrow']) {
+      expect(z('./overlay.css', mark), mark).toBeGreaterThan(Math.max(hud, panel));
+      expect(z('./overlay.css', mark), mark).toBeLessThan(Math.min(z('./screens/menu.css', '.match-menu'), z('./screens/pitch.css', '.pitch-preparing')));
+    }
+    // A bark never hides the countdown, the score, the clock or a button.
+    expect(z('./overlay.css', '.overlay-bark')).toBeLessThan(Math.min(hud, panel));
     // Taking no pointer, so the HUD's and the panel's buttons under them still work.
-    expect(cssDeclarations(css('./overlay.css'), '.overlay')['pointer-events']).toBe('none');
+    expect(overlay['pointer-events']).toBe('none');
+  });
+
+  it("keeps the arrow at the top below the HUD's top bar, its score and its clock (L103)", () => {
+    // The bar: 8 px down, as tall as its Menu button, a button's least height; the arrow centred on its point.
+    const bar = cssLength(cssDeclarations(css('./hud.css'), '.hud-top')['top'], 360) + cssLength(cssDeclarations(css('./screens.css'), 'button')['min-height'], 360);
+    const half = cssLength(cssDeclarations(css('./overlay.css'), '.overlay-arrow-shape')['height'], 360) / 2;
+    expect(ARROW_TOP_INSET_PX - half).toBeGreaterThan(bar);
+    const up = edgePoint(-Math.PI / 2, 640, 360, ARROW_INSET_PX, ARROW_TOP_INSET_PX);
+    expect([up.x, up.y]).toEqual([320, ARROW_TOP_INSET_PX]);
+    const down = edgePoint(Math.PI / 2, 640, 360, ARROW_INSET_PX, ARROW_TOP_INSET_PX);
+    expect([down.x, down.y]).toEqual([320, 360 - ARROW_INSET_PX]);
   });
 });
 
@@ -111,7 +130,7 @@ describe('the overlay layer', () => {
     const angle = 2.5;
     layer.frame!(ctx([], out({ x: 0, y: 360, inView: false, angle }, true, true)));
     const arrow = only(layer.el!, '.overlay-arrow');
-    const at = edgePoint(angle, 640, 360, 30);
+    const at = edgePoint(angle, 640, 360, ARROW_INSET_PX, ARROW_TOP_INSET_PX);
     expect(arrow.hidden).toBe(false);
     expect(arrow.style['transform']).toBe(`translate(${at.x.toFixed(1)}px, ${at.y.toFixed(1)}px) rotate(2.500rad)`);
     expect((layer.inspect!() as OverlayInspection).arrow).toEqual({ shown: true, angle });

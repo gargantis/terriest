@@ -8,7 +8,7 @@ import type { UiCommand } from '../../input/source';
 import { PLACEHOLDER_LOOK } from '../../render/look';
 import { type BarkSource, MatchView } from '../../render/view';
 import { FakeClock, fakePage } from '../clock-testing';
-import { cssDeclarations, cssLength, fake, type FakeDocument, installDom, only, shownText } from '../dom-testing';
+import { cssDeclarations, cssLength, fake, type FakeDocument, FakeEvent, installDom, only, shownText } from '../dom-testing';
 import { hudLayer } from '../hud';
 import type { Layer, LayerFactory, PitchContext, PitchHost } from '../layer';
 import { practiceMatch } from '../match';
@@ -28,7 +28,8 @@ import { focusScreen } from './screen';
 // through the start countdown, Match from the first kickoff's play; Ready
 // aria-disabled and focused, following the press at once, locked by the
 // countdown with the focus kept; the menu's pause, release, nav and focus;
-// a press on a focused button no nav holds, the HUD's Menu button's; what
+// a press on a focused button no nav holds, the HUD's Menu button's; a
+// mouse press off the screen's controls keeping the focus where it was; what
 // the layers reach the screen by, and the clock each part is handed; the
 // sampler, the barks and the view switch; P11's hash under the hook;
 // Pre-match's panel clear of the middle; and Practice itself through
@@ -279,6 +280,22 @@ describe('the pitch screen (M4\'s design §1.43)', () => {
     r.match.run();
     expect(shownText(only(r.screen.el, '[data-test="prematch"]'))).toContain('The other pack is full.');
     r.screen.dispose();
+  });
+
+  it('keeps the focus on Ready through a mouse press on the pitch or the panel, but lets a control take it (§4.9)', async () => {
+    const r = rig();
+    await r.stage.finish();
+    focusScreen(r.screen);
+    const mousedown = (on: ReturnType<typeof only>): boolean => on.dispatchEvent(new FakeEvent('mousedown', { bubbles: true, cancelable: true }));
+    // The pitch itself, which the screen covers, and the panel's lists: the default, which would move the
+    // focus to the page's body, kept from them.
+    expect(mousedown(fake(r.screen.el))).toBe(false);
+    expect(mousedown(only(r.screen.el, '[data-test="pack-0"]'))).toBe(false);
+    expect(active()).toBe(button(r, 'ready').el);
+    // A button's own, as a browser's.
+    expect(mousedown(button(r, 'switch-pack').el)).toBe(true);
+    r.screen.dispose();
+    expect(mousedown(fake(r.screen.el))).toBe(true);
   });
 
   it("opens the menu on Escape, a stall or the HUD's button: pausing, releasing what's held, its first button focused; and closes it again (Q-15, M4-Q7)", async () => {

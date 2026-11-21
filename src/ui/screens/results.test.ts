@@ -96,6 +96,11 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     expect(only(el, 'tbody').children.map((tr) => shownText(tr))).toEqual([
       `Ada${LOOK.coats[0]!.name}youTerriestBlue30`, `Bot 1A2B${LOOK.coats[4]!.name}Orange00`,
     ]);
+    // Play again and Home right under the end, before the Terriest and the table, so the button focused
+    // first shows on a short window however many rows there are (Q-17, §5.9).
+    const order = el.children.map((c) => c.getAttribute('data-test') ?? (c.querySelector('[data-test="again"]') !== null ? 'buttons' : c.tagName.toLowerCase()));
+    expect(order.slice(0, 5)).toEqual(['h1', 'results-said', 'buttons', 'p', 'terriest']);
+    expect(order.indexOf('results')).toBeGreaterThan(order.indexOf('buttons'));
     screen.dispose!();
   });
 

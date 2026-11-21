@@ -5,7 +5,8 @@
 // what the screens touch and the rules their behaviour rests on: an
 // element's attributes, classes, style, hidden flag and text; the focus,
 // which a hidden, detached or disabled element can't take, as in a
-// browser, where Q-17's aria-disabled buttons keep it (§1.42); and
+// browser, where Q-17's aria-disabled buttons keep it (§1.42); the
+// window's scroll, each scrollTo and scrollIntoView recorded; and
 // events dispatched through capture, target and bubble, with
 // preventDefault and both stops, so src/ui/nav.ts's capture listeners act
 // as they do on a page. Selectors are the simple ones the screens use: a
@@ -299,6 +300,11 @@ export class FakeElement extends FakeNode {
     if (this.shown && !this.disabled) this.ownerDocument.activeElement = this;
   }
 
+  /** Recorded in the window's scrolls: no layout here to scroll by. */
+  scrollIntoView(o?: boolean | { block?: string }): void {
+    this.ownerDocument.defaultView.scrolls.push({ intoView: this, block: typeof o === 'object' ? (o.block ?? 'start') : 'start' });
+  }
+
   blur(): void {
     if (this.ownerDocument.activeElement === this) this.ownerDocument.activeElement = this.ownerDocument.body;
   }
@@ -341,10 +347,30 @@ function compile(selector: string): (el: FakeElement) => boolean {
   return (el) => (tag === null || el.tagName === tag) && tests.every((t) => t(el));
 }
 
+/** The document's window, as far as the screens use one: its scroll, each move recorded, and a computed
+ *  style, with no layout behind it. */
+export class FakeWindow {
+  scrollX = 0;
+  scrollY = 0;
+  /** Each scrollTo and scrollIntoView, in order. */
+  readonly scrolls: ({ readonly to: readonly [number, number] } | { readonly intoView: FakeElement; readonly block: string })[] = [];
+
+  scrollTo(x: number, y: number): void {
+    this.scrollX = x;
+    this.scrollY = y;
+    this.scrolls.push({ to: [x, y] });
+  }
+
+  getComputedStyle(_el: unknown): { readonly visibility: string } {
+    return { visibility: 'visible' };
+  }
+}
+
 export class FakeDocument extends FakeNode {
   readonly documentElement: FakeElement;
   readonly head: FakeElement;
   readonly body: FakeElement;
+  readonly defaultView = new FakeWindow();
   activeElement: FakeElement;
 
   constructor() {

@@ -1,11 +1,17 @@
 /* The marks over the pitch (M4's design §1.45, §2.6, §5.14, M4-Q10): placed
    by transform from the canvas's top left, each centred on its point; shapes
    that need no colour to see (L52), and the bark's word on an opaque bubble.
-   On top of the HUD and Pre-match's panel, so your mark and the ball's arrow
-   always show (L52, L90), and under the menu and the "Getting the pitch
-   ready…" message; they take no pointer, so every button under them works. */
-.overlay { position: absolute; inset: 0; z-index: 25; pointer-events: none; overflow: hidden; }
+   The overlay makes no stacking context of its own, so each mark stacks
+   among the pitch screen's layers by its own z-index: your mark and the
+   ball's arrow on top of the HUD and Pre-match's panel, so they always show
+   (L52, L90); the bark marks under both, so a bark never hides the
+   countdown, "Go!", the score, the clock or a button (§5.8, L103); all of
+   them under the menu and the "Getting the pitch ready…" message. They take
+   no pointer, so every button under them works. */
+.overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .overlay-mark { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
+.overlay-mine, .overlay-arrow { z-index: 25; }
+.overlay-bark { z-index: 12; }
 .overlay-mark > span { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); }
 /* The shapes' outline, on their marks: a filter on the clipped shape itself would be clipped away. */
 .overlay-mine, .overlay-arrow { filter: drop-shadow(0 0 1.5px #000) drop-shadow(0 0 1.5px #000); }

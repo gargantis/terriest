@@ -5,29 +5,36 @@
 // match. Phase 2 adds the gamepad, the hints, Show control hints again, the
 // network figures and Copy; phase 3 the stand-in, names and away marks.
 // Every run plays seed 7's setup at the gate's 640 × 360 and stored low
-// quality, as e2e/lib/practice.ts plays it: Ready by Enter at its anchor,
-// A held from each countdown to a second of play, and the holds, the
-// presses and the Ready tick checked inside the latitudes the Node replays
-// validated (src/net/practice-spec-whole-1 to -6, practice-spec-goal-1 to
-// -4), so a page too slow to stay in them fails saying so rather than with
-// another match. Each look at the page fails at once on an overtime, a
-// stall or anything compiled after prepare() (PLAN §12). Each run logs one
+// quality, as e2e/lib/practice.ts plays it: Home and Practice's setup on
+// the keyboard alone; Ready by Enter at its anchor, A held from each
+// countdown to a second of play, and the holds, the presses and the Ready
+// tick checked inside the latitudes the Node replays validated
+// (src/net/practice-spec-whole-1 to -6, practice-spec-goal-1 to -4, whose
+// bands play the controls run's kind of warm-up), so a page too slow to stay
+// in them fails saying so rather than with another match. Each look at the
+// page fails at once on an overtime, a stall or anything compiled after
+// prepare() (PLAN §12). The focus Q-17 names is read once, at its screen's
+// first look, inside the window, and what the HUD and the marks show is
+// read from the page as drawn, not from the hook alone. Each run logs one
 // line, `practice-measure {…}`, for phase 1c's Measure step.
 // - The whole match, in Chromium: Home, Practice, 1 a side, 1 minute,
-//   Start; Ready at tick 600; the menu at the 2nd goal's latch, the clock
-//   still, Resume by Enter, and at the 4th's, Escape twice; Results with
-//   the bot's pack ahead at 0:00, every goal and countdown shown, Play
-//   again focused; Play again to a fresh Pre-match; Leave to Home; nothing
-//   contacted.
-// - Through the controls, in each engine: on Pre-match W, A, S and D move
-//   the terrier, Space jumps without pressing the focused Ready, Shift with
-//   W zooms, E pounces, Q barks and C switches to chase view, where S runs
-//   until the ball is behind the camera and the arrow shows, and C goes
-//   back to ball view; your mark shown, and the HUD's meter and pounce wait
-//   following; Ready at the first anchor 120 ticks after the warm-up's last
-//   input; play to the bot's first confirmed goal; then the menu by Escape
-//   and Resume by Enter, a hidden page opening the menu, and a reload going
-//   Home; nothing contacted.
+//   Start; Ready at tick 600; the start countdown's seconds on the HUD; the
+//   menu at the 2nd goal's latch, the clock still, Resume by Enter, and at
+//   the 4th's, Escape twice; Results with the bot's pack ahead at 0:00,
+//   every goal and countdown shown, Play again focused and in view; Play
+//   again to a fresh Pre-match; Leave to Home; nothing contacted.
+// - Through the controls, in each engine: on Pre-match your mark drawn and
+//   on top of the HUD and the panel, a click on the pitch leaving the focus
+//   on Ready, W, A, S and D moving the terrier, Space jumping without
+//   pressing the focused Ready, Shift with W zooming, E pouncing, each
+//   gauge drawn as its value says, Q barking, its mark drawn over your
+//   terrier and the bark marks under the HUD and the panel, and C switching
+//   to chase view, where S runs until the ball is behind the camera and the
+//   arrow shows, drawn and on top, and C going back to ball view; Ready at
+//   the first anchor 120 ticks after the warm-up's last input; play to the
+//   bot's first confirmed goal, its digits on the HUD; then the menu by
+//   Escape and Resume by Enter, a hidden page opening the menu, and a reload
+//   going Home; nothing contacted.
 
 import { config } from '../src/config';
 import { AIRBORNE, ZOOMING } from '../src/core/sim/state';
@@ -35,8 +42,8 @@ import type { Inspection } from '../src/main';
 import { expect, expectWebGL2, test } from './lib/guards';
 import { acceptLeavePrompt, expectStarted, hudOf, overlayOf, POLL_MS, smallViewport } from './lib/page';
 import {
-  AFTER_WARM_UP_TICKS, anchorAfter, clearReadyStates, emulateHidden, expectBotFirst, expectNothingContacted, FIRST_GOAL_MS, focused, lastInputBy,
-  PracticeRun, RESULTS_MS, SHOWN_MS, WHOLE_ANCHOR, where,
+  AFTER_WARM_UP_TICKS, anchorAfter, barksSeen, clearReadyStates, emulateHidden, expectBotFirst, expectFocusOnce, expectGaugeShort, expectNothingContacted,
+  FIRST_GOAL_MS, focused, gaugeSeen, lastInputBy, PracticeRun, RESULTS_MS, SHOWN_MS, topAt, WHOLE_ANCHOR, where,
 } from './lib/practice';
 
 test.use({ viewport: smallViewport });
@@ -59,6 +66,11 @@ const MENUS = [[2, 'resume'], [4, 'escape']] as const;
 
 /** The origin every request stays under (P10): the preview's. */
 const originOf = (baseURL: string | undefined): string => `${new URL(baseURL!).origin}/`;
+/** A point of the pitch at the gate's 640 × 360, clear of Pre-match's panel, the HUD's bar and its gauges. */
+const ON_THE_PITCH = { x: 160, y: 216 } as const;
+/** Where in each mark's shape a hit lands inside its outline: the chevron's lower arm, the arrow's middle
+ *  as it points right unturned, the bubble's middle (overlay.css). */
+const INSIDE = { chevron: [0.5, 0.75], arrow: [0.5, 0.5], bubble: [0.5, 0.5] } as const;
 
 test.describe('the whole match', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', "the whole match runs in Chromium, as PLAN §16's Practice does (M4's design §9.3)");
@@ -82,6 +94,9 @@ test.describe('the whole match', () => {
           }
         },
       });
+      // Results (§5.9, Q-17): Play again focused first, read at the first look that shows it, and in view at
+      // the gate's 640 × 360, so Enter never presses a button the player can't see.
+      await expectFocusOnce(page, 'again', 'Play again', 'Play again, first on Results (Q-17)');
       run.mark('results');
       await run.stopHolding();
       expect(run.measure.menus.map((m) => m.goal), 'the menus at the 2nd and 4th goals').toEqual(MENUS.map(([goal]) => goal));
@@ -104,8 +119,7 @@ test.describe('the whole match', () => {
       // What the person played: Ready and every hold inside the validated latitudes, and no other input.
       run.expectPlayed(run.lastPitch!, null, end!.tick);
 
-      // Results (§5.9, Q-17): Play again focused; the final score and the outcome said once filled (§5.14).
-      await expect(page.locator('[data-test="again"]'), 'Play again first on Results (Q-17)').toBeFocused();
+      // The final score and the outcome said once filled (§5.14).
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('Results');
       await expect(page.locator('[data-test="final-score"]')).toHaveText(new RegExp(`^\\S+ ${end!.score[0]}–${end!.score[1]} \\S+$`), { timeout: SHOWN_MS });
       await expect(page.locator('[data-test="outcome"]')).toHaveText(/ pack wins\. Your pack lost\.$/);
@@ -129,8 +143,8 @@ test.describe('the whole match', () => {
       expect(await focused(page), 'Leave, two along from Ready').toBe('prematch-leave');
       await page.keyboard.press('Enter');
       const home = await run.until((i) => i.screen === 'home', { what: 'Home, after Leave', timeoutMs: SHOWN_MS });
+      await expectFocusOnce(page, 'h1', 'terriest', "Home's heading, after Leave (Q-17)");
       expect(home.match, 'the match left').toBeNull();
-      await expect(page.getByRole('main').getByRole('heading', { level: 1 }), "Home's heading focused (Q-17)").toBeFocused();
       await expectNothingContacted(page, guard, { origin: originOf(baseURL) });
     });
   });
@@ -167,34 +181,57 @@ test('every control on the keyboard, to the first confirmed goal, then the menu,
     await run.load('./');
     await run.practice();
 
-    // The warm-up (§9.5): your mark over your terrier in ball view (L52), then each control once.
+    // The warm-up (§9.5): your mark over your terrier in ball view (L52), drawn by the page's own styles and
+    // on top of the HUD and Pre-match's panel wherever it meets them (§2.6, M4-Q10).
     await run.until((i) => overlayOf(i)?.mine?.shown === true && i.render.camera.view === 'ball', { what: 'your mark, in ball view', timeoutMs: SHOWN_MS });
+    await expect(page.locator('.overlay-mine .overlay-chevron'), 'your mark, shown').toBeVisible();
+    for (const over of ['[data-test="hud-clock"]', '[data-test="prematch"]']) {
+      expect(await topAt(page, '.overlay-mine', over, INSIDE.chevron), `your mark over ${over}`).toBe('mark');
+    }
+    // A click on the pitch leaves the focus on Ready, so Enter still presses it (§4.9).
+    await page.mouse.click(ON_THE_PITCH.x, ON_THE_PITCH.y);
+    expect(await focused(page), 'Ready, still focused after a click on the pitch').toBe('ready');
+    // Then each control once.
     for (const key of ['KeyW', 'KeyA', 'KeyS', 'KeyD'] as const) await runs(run, key);
     const mine = (i: Inspection): NonNullable<NonNullable<Inspection['match']>['mine']> => i.match!.mine!;
     await presses(run, 'Space', (i, b) => mine(i).takeOffTick !== mine(b).takeOffTick, 'a jump: its take-off tick');
     await run.until((i) => mine(i).anim !== AIRBORNE, { what: 'landed', timeoutMs: SHOWN_MS });
     await expect(page.locator('[data-test="ready"]'), 'Space only jumps: the focused Ready not pressed (C-34)').toHaveText('Ready');
-    // Zoomies, Shift with W: zooming, and the HUD's meter falling (L167).
+    // Zoomies, Shift with W: zooming, and the HUD's meter falling (L167), its gauge drawn short of full.
     await page.keyboard.down('ShiftLeft');
     await page.keyboard.down('KeyW');
     try {
       await run.until((i) => mine(i).anim === ZOOMING && (hudOf(i)?.meter ?? 1) < 1, { what: "zoomies, the HUD's meter falling", timeoutMs: SHOWN_MS });
+      expectGaugeShort(await gaugeSeen(page, 'hud-meter'), 'the zoomies meter');
     } finally {
       await page.keyboard.up('KeyW');
       await page.keyboard.up('ShiftLeft');
     }
-    // A pounce: a lunge latched, then its wait on the HUD (L167).
+    // A pounce: a lunge latched, then its wait on the HUD (L167), the gauge drawn short of full.
     await presses(run, 'KeyE', (i, b) => mine(i).lunges > mine(b).lunges && mine(i).pounceWait > 0 && (hudOf(i)?.pounceWait ?? 0) > 0,
       "a pounce: a lunge, then the HUD's pounce wait");
-    // A bark: its mark over the terrier and the drawer's bark, each counted as it starts (§9.1's latched).
-    await presses(run, 'KeyQ', (i, b) => i.announcements!.barksShown > b.announcements!.barksShown
+    expectGaugeShort(await gaugeSeen(page, 'hud-pounce'), 'the pounce wait');
+    // A bark: its mark over the terrier, drawn by the page's styles, and the drawer's bark, each counted as it
+    // starts (§9.1's latched); then the bark marks under the HUD and Pre-match's panel (§5.8, L103).
+    const barking = await barksSeen(page);
+    const barked = await presses(run, 'KeyQ', (i, b) => i.announcements!.barksShown > b.announcements!.barksShown
       && i.render.drawer!.overlaysShown.barking > b.render.drawer!.overlaysShown.barking, "a bark: its mark and the drawer's bark");
-    // The view: chase, where S runs until the ball is behind the camera and its arrow shows (D-28, L90), then
-    // ball view again, as every hold in play is played (§9.1).
+    const drawn = await barksSeen(page);
+    const over = drawn.marks.slice(barking.marks.length).filter((m) => m.drawn && Math.abs(m.x - overlayOf(barked)!.mine!.x) < 40 && m.y < overlayOf(barked)!.mine!.y);
+    expect(over, `a bark mark drawn over your terrier, of ${JSON.stringify(drawn.marks.slice(barking.marks.length))}`).not.toEqual([]);
+    for (const box of ['[data-test="hud-clock"]', '[data-test="prematch"]']) {
+      expect(await topAt(page, '.overlay-bark', box, INSIDE.bubble), `a bark mark under ${box}`).toBe('box');
+    }
+    // The view: chase, where S runs until the ball is behind the camera and its arrow shows (D-28, L90), drawn
+    // and on top of the panel and the gauges; then ball view again, as every hold in play is played (§9.1).
     await presses(run, 'KeyC', (i) => i.render.camera.view === 'chase', 'chase view');
     await page.keyboard.down('KeyS');
     try {
       await run.until((i) => overlayOf(i)?.arrow.shown === true, { what: 'the off-screen arrow, S held in chase view', timeoutMs: ARROW_MS });
+      await expect(page.locator('.overlay-arrow .overlay-arrow-shape'), 'the arrow, shown').toBeVisible();
+      for (const box of ['[data-test="prematch"]', '[data-test="hud-meter"]']) {
+        expect(await topAt(page, '.overlay-arrow', box, INSIDE.arrow), `the arrow over ${box}`).toBe('mark');
+      }
     } finally {
       await page.keyboard.up('KeyS');
     }
@@ -220,6 +257,10 @@ test('every control on the keyboard, to the first confirmed goal, then the menu,
     const shown = await run.until((i) => (i.announcements?.goals.length ?? 0) > 0, { what: 'the HUD showing the first goal', timeoutMs: SHOWN_MS });
     expectBotFirst(shown);
     expect(hudOf(shown)?.score, "the HUD's score").toBe('0–1');
+    // The score as the player sees it: each pack's digits drawn on the HUD (§5.8).
+    const digits = page.locator('[data-test="hud"] .hud-goals');
+    await expect(digits, "the HUD's digits").toHaveText(['0', '1']);
+    for (const d of await digits.all()) await expect(d).toBeVisible();
     run.expectPlayed(shown, { end: lastInput, presses: c.presses });
 
     // After the latch, where the replays stop: the menu by Escape, paused, Resume focused and pressed by
@@ -241,9 +282,9 @@ test('every control on the keyboard, to the first confirmed goal, then the menu,
     await page.reload();
     await expectStarted(page);
     const home = await run.until((i) => i.screen === 'home', { what: 'Home, after the reload', timeoutMs: SHOWN_MS });
+    await expectFocusOnce(page, 'h1', 'terriest', "Home's heading, after the reload (Q-17)");
     run.mark('reloaded');
     expect([home.match, home.announcements], 'no match after the reload').toEqual([null, null]);
-    await expect(page.getByRole('main').getByRole('heading', { level: 1 }), "Home's heading focused (Q-17)").toBeFocused();
     await expectNothingContacted(page, guard, { origin: originOf(baseURL) });
   });
 });

@@ -116,9 +116,13 @@ export function resultsScreen(host: ResultsHost): Screen {
   const said = h('div', { class: 'results-said', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true', 'data-test': 'results-said' }, finalScore, outcome);
   const again = h('button', { type: 'button', class: 'primary', 'data-test': 'again', 'data-focus': '', onclick: () => host.playAgain() }, againText(host.againSeen()));
   const home = h('button', { type: 'button', class: 'secondary', 'data-test': 'home', onclick: () => host.home() }, 'Home');
+  // The buttons right under the end, so Play again, focused first, shows however long the table runs below
+  // it, as Pre-match's buttons head its panel (Q-17, §5.9).
   const el = h('section', { class: 'screen results' },
     h('h1', {}, 'Results'),
     said,
+    h('div', { class: 'row' }, again, home),
+    host.practice ? h('p', { class: 'muted small' }, 'Play again starts another Practice with the same pack size and length.') : null,
     h('p', { 'data-test': 'terriest' }, terriestText(end)),
     h('table', { 'data-test': 'results' },
       h('caption', { class: 'visually-hidden' }, 'Each terrier’s goals and touches'),
@@ -127,8 +131,6 @@ export function resultsScreen(host: ResultsHost): Screen {
         h('th', { scope: 'col', class: 'num' }, 'Goals'), h('th', { scope: 'col', class: 'num' }, 'Touches'))),
       h('tbody', {}, ...rows)),
     h('p', { class: 'muted small' }, 'A shared goal counts for each terrier that shared it.'),
-    host.practice ? h('p', { class: 'muted small' }, 'Play again starts another Practice with the same pack size and length.') : null,
-    h('div', { class: 'row' }, again, home),
   );
 
   const nav = new ButtonNav(() => [again, home], {

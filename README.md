@@ -101,8 +101,10 @@ npm run dev:local   # the dev server, with hermet's local relay on 127.0.0.1
 It prints the relay's port, then the dev server's address, http://localhost:5173/ unless that port is taken. A `#test=net` page there without a `relay` uses the local relay, whose address it builds from its own host name, so a Windows browser that reaches WSL2's dev server through `localhost` should reach the relay the same way, by WSL2's localhost forwarding. No run has tested that yet, so it's the first suspect when a Windows browser's page shows no peer: `docs/acceptance.md` says how to tell. No public relay is contacted. With the default ICE, a deployed page's, each browser also asks `third-party.json`'s STUN servers for its public address; with `ice=none` it asks none, and the pages contact nothing outside this machine. `docs/acceptance.md` gives the two addresses of M3's check by hand, a keeper and a player at 1 a side, each terrier driven by the bots' brain, with the default ICE. Until the owner's run, `e2e/dev-local.run.ts` stands in for it, playing that match between headless Chromium and Firefox with `ice=none`:
 
 ```sh
-GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts   # starts npm run dev:local itself
+GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts e2e/dev-local.run.ts   # starts npm run dev:local itself
 ```
+
+The config takes every `e2e/dev-*.run.ts`, so without a path it also plays `e2e/dev-practice.run.ts`, Practice through the screens to its first goal on the dev server.
 
 `GALLIUM_DRIVER=d3d12` puts the engines on WSL2's GPU path (below), as M3's design §15 has that run take it; the network test page draws nothing either way.
 

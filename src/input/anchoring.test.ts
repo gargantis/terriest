@@ -129,6 +129,22 @@ describe('chase view (Q-19, C-24)', () => {
     expect(anchor('chase', stick(1), 2.5, a, STEPS, REREAD)?.step).toBe(6);
   });
 
+  it("reads the stick's own screen angle, never its held step, which hysteresis can leave a step behind (§4.5)", () => {
+    // From neutral, under a yaw between steps: the angle's 5.4 steps and the yaw's 0.3 make 6, where the
+    // stick's step, 5, would make 5.
+    const a = newAnchor();
+    const near = { direction: 5.4 * UNIT, stickStep: stickStepOf(5.4 * UNIT, null, STEPS, HYSTERESIS) };
+    expect(near.stickStep).toBe(5);
+    expect(anchor('chase', near, 0.3 * UNIT, a, STEPS, REREAD)?.step).toBe(6);
+    // Moved 45° from the read while hysteresis holds the stick's step at 5 with its angle at 5.9 steps.
+    const b = newAnchor();
+    expect(anchor('chase', stick(0), 0, b, STEPS, REREAD)?.step).toBe(0);
+    const held = { direction: 5.9 * UNIT, stickStep: stickStepOf(5.9 * UNIT, 5, STEPS, HYSTERESIS) };
+    expect(held.stickStep).toBe(5);
+    expect(anchor('chase', held, 0, b, STEPS, REREAD)).toEqual({ step: 6, frame: FRAME_PITCH });
+    expect(b.readDeviceStep).toBe(5);
+  });
+
   it('measures the move the short way round, across 31 and 0', () => {
     const a = newAnchor();
     expect(anchor('chase', stick(30), 0, a, STEPS, REREAD)?.step).toBe(30);

@@ -3,8 +3,9 @@
 // steps), off the gate, logged owner-pending in docs/acceptance.md until the
 // owner's own run:
 //
-//   GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts
+//   GALLIUM_DRIVER=d3d12 npx playwright test -c playwright.dev-local.config.ts e2e/dev-local.run.ts
 //
+// (by its path: the config, from M4, also plays e2e/dev-practice.run.ts).
 // The owner's check: two desktop browsers open the #test=net page through
 // npm run dev:local, one the keeper and one a player, at 1 a side with
 // script=brain, and the status shows them connected, ticking and in

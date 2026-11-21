@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../config';
 import { personId } from '../core/bot/bot-id';
-import { IN_PLAY, LUNGING, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
+import { findTerrier, IN_PLAY, LUNGING, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
 import { TEST_BUILD } from '../core/timeline/testing';
 import type { Device, DeviceState, UiCommand } from '../input/source';
+import type { Timeline } from '../core/session/index';
 import type { RenderInfo } from '../render/stage-types';
 import { MemoryStorage } from '../storage/kv';
 import { ProfileStore } from '../storage/profile';
@@ -25,12 +26,15 @@ import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-te
 // hashchange leaving a Practice; Home, Practice's setup, Pre-match, Match,
 // Results, Play again and Leave, the stage and the frame loop on the pitch
 // screen alone, each screen focused, the keyboard told which screen it's
-// on; one announcements log for each match, kept across its screens; the
-// hook's match figures, a lunge latched among them; Settings' quality
-// re-creating the stage behind Home, the old one disposed only once its
-// own prepare has settled. And the frame loop's phase-1 fallback, the
-// layers' order and the page's devices, which have no test files of their
-// own until phase 2 fills them.
+// on, the page at its top; one announcements log for each match, kept
+// across its screens; Results' Home leaving the match; the hook's match
+// figures, the drawn head's apart from the final state's, a lunge latched,
+// each match's from its opening, P11's count and the timer's gaps past the
+// freeze and the stall; Settings' quality re-creating the stage behind
+// Home, the old one disposed only once its own prepare has settled. And the
+// frame loop's phase-1 fallback, every other frame drawn however long the
+// gaps stay late, its log capped; the layers' order and the page's devices,
+// which have no test files of their own until phase 2 fills them.
 
 const ME = personId(7, 0);
 
@@ -95,16 +99,18 @@ class Frames implements AnimationFrames {
   }
 }
 
-/** A device the test presses, as a keyboard would. */
+/** A device the test presses, as a keyboard would: a direction held, screen-relative, and a pounce. */
 class Pad implements Device {
   readonly kind = 'keyboard' as const;
+  direction: number | null = null;
   pounce = false;
   read(): DeviceState {
-    const s: DeviceState = { direction: null, stickStep: null, zoomies: false, jump: false, pounce: this.pounce, bark: false, view: false, changedAtMs: null };
+    const s: DeviceState = { direction: this.direction, stickStep: null, zoomies: false, jump: false, pounce: this.pounce, bark: false, view: false, changedAtMs: null };
     this.pounce = false;
     return s;
   }
   release(): void {
+    this.direction = null;
     this.pounce = false;
   }
   dispose(): void {}
@@ -181,6 +187,8 @@ function rig(o: { hash?: string } = {}): Rig {
 }
 
 const look = (r: Rig): Inspection => r.test.inspect!();
+/** The match the app holds, as the hook reads it: its timeline's drawn head and final state. */
+const held = (r: Rig): Timeline => (r.app as unknown as { match: { session: { timeline: Timeline } } }).match.session.timeline;
 const screenEl = (r: Rig): ReturnType<typeof fake> => only(r.root, '[id="screen"]');
 const stageBox = (r: Rig): ReturnType<typeof fake> => only(r.root, '[id="stage"]');
 const button = (r: Rig, test: string): ReturnType<typeof fake> => only(screenEl(r), `button[data-test="${test}"]`);
@@ -354,6 +362,11 @@ describe('Practice through the screens (§5.3, §5.4, §5.7–§5.9, Q-15, Q-17)
     expect(i.announcements).toMatchObject({ matchId: null, arrivalTick: 0, countdowns: [], goals: [], results: null });
     expect(i.match!.localTick).toBe(0);
     expect(dom.document.activeElement.getAttribute('data-test')).toBe('ready');
+    // And the match's own figures from its opening too (§1.40): its timer's runs and its latched lunges.
+    const firstRuns = look(r).match!.timer.runs;
+    expect(firstRuns).toBeLessThan(10);
+    playUntil(r, () => look(r).match!.inRoster && look(r).match!.mine !== null, 2000);
+    expect([look(r).match!.mine!.lunges, look(r).match!.mine!.lastLungeTick]).toEqual([0, null]);
 
     // Leave on Pre-match: Home, nothing held, the log kept until another match opens (§1.40).
     play(r, 500);
@@ -387,7 +400,60 @@ describe('Practice through the screens (§5.3, §5.4, §5.7–§5.9, Q-15, Q-17)
       { atMs: 100, source: 'keyboard', accepted: false },
       { atMs: 700, source: 'keyboard', accepted: true },
     ]);
+    // Results' Home leaves the match (§5.11): none held, and Practice's Start opens another.
+    expect(look(r).match).toBeNull();
+    expect(r.test.hashAt!(0)).toBe('');
+    startPractice(r);
+    expect(look(r).screen).toBe('prematch');
+    expect(look(r).match!.localTick).toBe(0);
   }, 30_000);
+
+  it('counts under the hook each frame whose drawing changed the head (P11), the count kept once the pitch screen goes', async () => {
+    const r = rig();
+    await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
+    startPractice(r);
+    await settle();
+    play(r, 300);
+    expect(look(r).frames.headHashMismatches).toBe(0);
+    // A drawing that writes the head, as P11 forbids: each frame it draws is counted.
+    const stage = r.stages[0]!;
+    const draw = stage.draw.bind(stage);
+    stage.draw = (f) => {
+      const out = draw(f);
+      held(r).head.ball.x += 0.001;
+      return out;
+    };
+    play(r, 200);
+    const n = look(r).frames.headHashMismatches;
+    expect(n).toBeGreaterThan(0);
+    button(r, 'prematch-leave').click();
+    expect([look(r).screen, look(r).frames.headHashMismatches]).toEqual(['home', n]);
+  });
+
+  it("counts the timer's gaps past the freeze, d + w ticks, and past the stall's 2 s (D-15, D-31, §8.1)", async () => {
+    const r = rig();
+    await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
+    startPractice(r);
+    await settle();
+    play(r, 500);
+    expect(look(r).match!.timer).toMatchObject({ gapsOverFreeze: 0, gapsOverStall: 0 });
+    r.clock.stall(300); // past d + w ticks, 233⅓ ms
+    play(r, 100);
+    let t = look(r).match!.timer;
+    expect([t.gapsOverFreeze, t.gapsOverStall, t.gapMaxMs >= 300 && t.gapMaxMs < 2000]).toEqual([1, 0, true]);
+    r.clock.stall(2100);
+    play(r, 100);
+    t = look(r).match!.timer;
+    expect([t.gapsOverFreeze, t.gapsOverStall, t.gapMaxMs >= 2100]).toEqual([2, 1, true]);
+  });
 });
 
 describe("Settings' render quality from Home (§2.8, D-33)", () => {
@@ -398,8 +464,11 @@ describe("Settings' render quality from Home (§2.8, D-33)", () => {
     r.clock.advance(0);
     const [old] = r.stages;
     expect(old!.prepares).toBe(1); // under way, unsettled
+    // Home scrolled down to its Settings, as a short window leaves it: Settings opens at its top (§5.14).
+    dom.document.defaultView.scrollTo(0, 148);
     button(r, 'settings').click();
     expect(look(r).screen).toBe('settings');
+    expect(dom.document.defaultView.scrollY).toBe(0);
     const low = only(screenEl(r), 'input[data-test="quality-low"]');
     low.checked = true;
     low.dispatchEvent(new FakeEvent('change', { bubbles: true }));
@@ -424,9 +493,10 @@ describe("Settings' render quality from Home (§2.8, D-33)", () => {
     expect(r.stages.length).toBe(4);
     expect(r.stages[2]!.disposed).toBe(true); // its prepare hadn't begun
     expect(r.stages[2]!.prepares).toBe(0);
-    // Back goes Home, where a Practice draws on the newest stage.
+    // Back goes Home, at its top, where a Practice draws on the newest stage.
+    dom.document.defaultView.scrollTo(0, 90);
     button(r, 'back').click();
-    expect(look(r).screen).toBe('home');
+    expect([look(r).screen, dom.document.defaultView.scrollY]).toEqual(['home', 0]);
   });
 });
 
@@ -483,6 +553,47 @@ describe("the frame loop's phase-1 fallback (§1.47, §8.2, R-3)", () => {
     expect(x.loop.skippedFrames).toBe(4);
   });
 
+  it('draws every other frame while every timer gap is late, never none (§1.47)', () => {
+    const x = loop();
+    x.loop.start();
+    // Each frame holds the timer past the threshold, as a page drawing too slowly does: the first draws, having
+    // no gap before it, then every other one.
+    for (let k = 0; k < 21; k++) frame(x, config.drawingLateTimerMs + 20, true);
+    expect([x.drawn.length, x.loop.skippedFrames]).toEqual([11, 10]);
+    expect(x.loop.inspect()).toMatchObject({ skipping: true, actions: 1 });
+  });
+
+  it('keeps the newest 200 of its log, and counts every action', () => {
+    const x = loop();
+    x.loop.start();
+    const late = config.drawingLateTimerMs + 20;
+    // On and off: a late frame, skipped, then two drawn on time, which end it; each action's time noted.
+    const acted: number[] = [];
+    const note = (): void => {
+      const n = x.loop.inspect().actions;
+      while (acted.length < n) acted.push(x.clock.now());
+    };
+    for (let k = 0; k < 150; k++) {
+      for (const [ms, heldUp] of [[late, true], [4, false], [16, false]] as const) {
+        x.frames.run();
+        note();
+        if (heldUp) {
+          x.clock.advance(ms);
+          x.loop.timerRan(x.clock.now(), null);
+        } else {
+          for (let t = 4; t <= ms; t += 4) {
+            x.clock.advance(4);
+            x.loop.timerRan(x.clock.now(), null);
+          }
+        }
+      }
+    }
+    const f = x.loop.inspect();
+    expect(acted.length).toBeGreaterThan(250);
+    expect([f.actions, f.log.length]).toEqual([acted.length, 200]);
+    expect(f.log.map((e) => e.atMs)).toEqual(acted.slice(-200));
+  });
+
   it('runs only between start and stop, a new start drawing from a fresh time', () => {
     const x = loop();
     x.loop.start();
@@ -534,17 +645,48 @@ describe("the pitch's layers and the page's devices (§1.63)", () => {
 });
 
 describe("the hook's match (§1.40)", () => {
-  it('reads the drawn head for the phase and your terrier, the final state for the roster', async () => {
+  it('reads the drawn head for the phase, your terrier and the ball, the final state for the roster', async () => {
     const r = rig();
     await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
     startPractice(r);
     await settle();
     playUntil(r, () => look(r).match!.inRoster, 2000);
-    const m = look(r).match!;
+    let m = look(r).match!;
     expect(m.phase).toBe(WARM_UP);
     expect(m.roster.map((x) => x.id)).toContain(ME);
     expect(m.mine).toMatchObject({ anim: expect.any(Number), pounceWait: 0, meter: 1, lunges: 0, lastLungeTick: null });
     expect(m.mine!.anim).not.toBe(LUNGING);
     expect(m.own.skipped).toBe(0); // Practice sends every tick (§8.1)
+
+    // Your terrier running at the ball: the head, w ticks on from the final state, has it elsewhere, and the
+    // hook reads it there; the roster the final state's, its inputs w ticks older.
+    r.device.direction = 0;
+    play(r, 1000);
+    const t = held(r);
+    const H = t.head.terriers[findTerrier(t.head, ME)]!;
+    const F = t.final.terriers[findTerrier(t.final, ME)]!;
+    m = look(r).match!;
+    expect([H.x, H.y]).not.toEqual([F.x, F.y]);
+    expect([m.mine!.x, m.mine!.y, m.mine!.z]).toEqual([H.x, H.y, H.z]);
+    expect(H.lastInputTick).not.toBe(F.lastInputTick);
+    expect(m.roster.find((x) => x.id === ME)!.lastInputTick).toBe(F.lastInputTick);
+    expect([m.phase, m.phaseStart, m.clock]).toEqual([t.head.phase, t.head.phaseStart, t.head.clock]);
+    r.device.direction = null;
+
+    // In play, the ball moving: the head's ball, not the final state's.
+    playUntil(r, () => button(r, 'ready').getAttribute('aria-disabled') !== 'true', 2000);
+    button(r, 'ready').click();
+    playUntil(r, () => {
+      const x = held(r);
+      return x.head.phase === IN_PLAY && x.head.ball.x !== x.final.ball.x;
+    }, 20_000);
+    m = look(r).match!;
+    const ball = held(r).head.ball;
+    expect(m.ball).toEqual({ x: ball.x, y: ball.y, z: ball.z });
+    expect(m.ball.x).not.toBe(held(r).final.ball.x);
   });
 });

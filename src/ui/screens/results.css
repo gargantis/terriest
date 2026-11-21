@@ -1,5 +1,7 @@
 /* Results (M4's design §5.9, §5.14): the final score, and the table with its headers. */
 .results .results-said { display: grid; gap: 16px; }
+/* Each line's room kept while the live region waits to be filled, so the buttons under it don't move. */
+.results .results-said p { min-height: 1.5em; }
 .results .final-score { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .results table { width: 100%; border-collapse: collapse; }
 .results th, .results td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }

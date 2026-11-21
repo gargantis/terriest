@@ -14,7 +14,8 @@ import { MatchView, type ViewTimeline } from './view';
 // off and every instanced mesh at its full count, records firstFrame and
 // hides its placeholders; a null frame draws the empty pitch; a match's
 // frame reaches the ball, the shadows and the drawer; the buffer is
-// round(CSS size × min(devicePixelRatio, cap) × scale); and M1's
+// round(CSS size × min(devicePixelRatio, cap) × scale); a disposed stage
+// gives its context back, its watch removed first; and M1's
 // createPitchView keeps its shape.
 
 interface Rendered {
@@ -29,6 +30,10 @@ const compiles: Scene[] = [];
 const sizes: [number, number][] = [];
 /** The scene's compile, held until the test lets it go; null: done at once. */
 let holdCompile: Promise<void> | null = null;
+/** What became of the contexts: each renderer's dispose and forced loss, and each watch's removal, in order. */
+const ends: string[] = [];
+/** Whether the fake's context is already lost, as a GPU reset would leave it. */
+let lostAlready = false;
 
 function fakeRenderer(): unknown {
   return {
@@ -57,14 +62,16 @@ function fakeRenderer(): unknown {
       walk(scene);
       renders.push({ shown, instanced, culled });
     },
-    getContext: () => ({ SAMPLES: 0, getParameter: () => 0 }),
-    dispose: () => {},
+    getContext: () => ({ SAMPLES: 0, getParameter: () => 0, isContextLost: () => lostAlready }),
+    dispose: () => ends.push('dispose'),
+    forceContextLoss: () => ends.push('lose'),
   };
 }
 
 vi.mock('./graphics', async (original) => ({
   ...(await original<typeof import('./graphics')>()),
   createRenderer: () => ({ renderer: fakeRenderer(), samples: 4 }),
+  watchContext: () => () => ends.push('unwatch'),
 }));
 
 const { createPitchView, createStage } = await import('./scene');
@@ -96,6 +103,8 @@ beforeEach(() => {
   renders.length = 0;
   compiles.length = 0;
   sizes.length = 0;
+  ends.length = 0;
+  lostAlready = false;
   holdCompile = null;
   vi.stubGlobal('devicePixelRatio', 3);
   vi.stubGlobal('requestAnimationFrame', () => 0);
@@ -209,5 +218,20 @@ describe('the stage (§1.3)', () => {
     await prepared;
     expect([readied, renders.length, stage.info().prepared]).toEqual([true, 1, true]);
     stage.dispose();
+  });
+
+  it("gives its context back when disposed, its watch removed first, so the canvas left holds no live context (§2.8)", async () => {
+    const stage = createStage({ quality: 'high', look: PLACEHOLDER_LOOK, drawer: () => recordingDrawer([]), capacity: 8, modelUrl: '' })!;
+    await stage.prepare();
+    stage.dispose();
+    // Lost after the watch went, so a phase-3 watcher never reports it as the context's own loss.
+    expect(ends).toEqual(['unwatch', 'dispose', 'lose']);
+    stage.dispose();
+    expect(ends).toHaveLength(3);
+    // A context a GPU reset already lost isn't lost again.
+    ends.length = 0;
+    lostAlready = true;
+    createStage({ quality: 'low', look: PLACEHOLDER_LOOK, drawer: () => recordingDrawer([]), capacity: 8, modelUrl: '' })!.dispose();
+    expect(ends).toEqual(['unwatch', 'dispose']);
   });
 });

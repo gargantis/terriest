@@ -15,7 +15,9 @@
 // The score and the countdowns are in polite live regions (L103, §5.14);
 // every piece of text sits on an opaque backing, so axe judges its contrast
 // (§5.14); text and gauges are set only when they change. It announces each
-// countdown, goal and withdrawal to the app's log as it shows them (§1.40).
+// countdown, goal and withdrawal to the app's log as it shows them (§1.40),
+// and reports for the hook what it wrote: the digits, the clock, the
+// countdown shown and the meter's gauge.
 // Phase 2's results-hud adds the scorer's name, "Goal taken back", a
 // spectator's follow choice and the graphics note. New at M4.
 
@@ -53,8 +55,6 @@ export function countdownText(m: Pick<DrawnMatch, 'phase' | 'phaseStart' | 'time
   if (m.phase === IN_PLAY && since < GO_SECONDS * tps) return 'Go!';
   return null;
 }
-
-export const scoreText = (score: readonly [number, number]): string => `${score[0]}–${score[1]}`;
 
 /** A share as the gauges show it: whole percents, 0 to 100, so the DOM changes only when one does. */
 export function percent(share: number): number {
@@ -135,12 +135,13 @@ export function hudLayer(host: PitchHost): Layer {
       setText(said, `Score: ${packName(look.packs[0])} ${score[0]}, ${packName(look.packs[1])} ${score[1]}.${yourPack}`);
       announceGoals();
       const cd = m === null ? null : countdownText(m, P);
-      if (m !== null && cd !== null && cd !== 'Go!' && !shownCountdowns.has(m.phaseStart)) {
+      setShown(countdown, cd !== null);
+      if (cd !== null) setText(countdown, cd);
+      // Each countdown into the log once it shows (§1.40).
+      if (m !== null && cd !== null && cd !== 'Go!' && !countdown.hidden && !shownCountdowns.has(m.phaseStart)) {
         shownCountdowns.add(m.phaseStart);
         host.announce({ kind: 'countdown', phaseStart: m.phaseStart });
       }
-      setShown(countdown, cd !== null);
-      if (cd !== null) setText(countdown, cd);
       const time = m === null ? '' : clockText(m.clock, m.overtime);
       setText(clock, time);
       setClass(clock, 'overtime', m?.overtime === true);
@@ -150,9 +151,10 @@ export function hudLayer(host: PitchHost): Layer {
         setGauge(pounce, 'pounce', percent(1 - mine.pounceWait / P.pounceWaitTicks));
         setClass(pounce.el, 'waiting', mine.pounceWait > 0);
       }
+      // What it shows, read back from what it wrote: the digits, the countdown and the meter's gauge.
       state = {
-        score: scoreText(score), clock: time, countdown: cd, scorer: null,
-        meter: mine === null ? null : percent(mine.meter) / 100, pounceWait: mine === null ? null : mine.pounceWait,
+        score: `${goals[0].textContent}–${goals[1].textContent}`, clock: clock.textContent ?? '', countdown: countdown.hidden ? null : countdown.textContent,
+        scorer: null, meter: gauges.hidden ? null : shownPercent.meter / 100, pounceWait: mine === null ? null : mine.pounceWait,
         graphics: ctx.graphics, following: null,
       };
     },

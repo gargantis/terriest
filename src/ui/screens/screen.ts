@@ -2,8 +2,9 @@
 // §5.14; PLAN D-30, Q-17): roslambo's Screen, with the screen's name for the
 // hook and the UI commands of Q-17 (src/input/source.ts). The app shows one
 // at a time, disposes of the last and focuses the new one's first focus
-// target: the element it marks data-focus, Ready on Pre-match and Play
-// again on Results, else its h1 (focusScreen). The shared styles are
+// target, the page scrolled to its top: the element it marks data-focus,
+// Ready on Pre-match and Play again on Results, brought into view, else its
+// h1 (focusScreen). The shared styles are
 // screens.css's, added once. New at M4.
 
 import type { UiCommand } from '../../input/source';
@@ -30,14 +31,18 @@ export function screenStyles(): void {
   addStyle(baseCss);
 }
 
-/** The screen's first focus target, focused without scrolling: its element marked data-focus, else its
- *  h1, which takes the focus without joining the tab order. */
+/** The screen's first focus target, focused: its element marked data-focus, else its h1, which takes the
+ *  focus without joining the tab order. The page opens at its top, whatever the last screen left it
+ *  scrolled to, as roslambo's App.show scrolls it (Q-17, §5.14), and a marked target, a button Q-17 names,
+ *  is then brought into view, so Enter never presses one the player can't see. */
 export function focusScreen(s: Pick<Screen, 'el'>): void {
   const marked = s.el.querySelector<HTMLElement>('[data-focus]');
   const target = marked ?? s.el.querySelector<HTMLElement>('h1');
+  s.el.ownerDocument.defaultView?.scrollTo(0, 0);
   if (target === null) return;
   if (marked === null) target.tabIndex = -1;
   target.focus({ preventScroll: true });
+  marked?.scrollIntoView({ block: 'nearest' });
 }
 
 /** A coat's swatch, hidden from a screen reader: the coat's name beside it says which (coatName). */

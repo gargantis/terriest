@@ -83,6 +83,15 @@ function placeholderFrame(d: DrawnTerrier): TerrierFrame {
 
 const nextFrame = (): Promise<void> => new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
+/** A renderer gone, its watch already removed: its resources freed, then its context lost at once, so the
+ *  canvas left behind holds no live context until a collection, as Chromium caps a page's at 16 and loses
+ *  the oldest past them (§2.8's re-creation, a quality change at a time). A context already lost isn't
+ *  lost again, which an engine would log as an error. */
+function release(renderer: WebGLRenderer): void {
+  renderer.dispose();
+  if (!renderer.getContext().isContextLost()) renderer.forceContextLoss();
+}
+
 /** The stage (§1.3): createStage's, and createPitchView's on M1's canvas. */
 class Drawing implements Stage {
   onGraphics: ((state: 'lost' | 'restored') => void) | null = null;
@@ -292,7 +301,7 @@ class Drawing implements Stage {
     for (const a of Array.from(old.attributes)) made.canvas.setAttribute(a.name, a.value);
     old.replaceWith(made.canvas);
     this.unwatch();
-    this.renderer.dispose();
+    release(this.renderer);
     this.renderer = made.renderer;
     const gl = made.renderer.getContext();
     this.samples = Number(gl.getParameter(gl.SAMPLES));
@@ -323,7 +332,7 @@ class Drawing implements Stage {
     this.shadows.dispose();
     this.ball.dispose();
     this.pitchDrawn.dispose();
-    this.renderer.dispose();
+    release(this.renderer);
     if (this.ownsCanvas) this.canvasValue.remove();
   }
 

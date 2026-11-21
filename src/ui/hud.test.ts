@@ -4,7 +4,7 @@ import { personId } from '../core/bot/bot-id';
 import type { ConfirmedGoal } from '../core/session/index';
 import { CELEBRATION, defaultParams, IN_PLAY, KICKOFF_COUNTDOWN, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
 import { installDom, only, shownText } from './dom-testing';
-import { clockText, countdownText, hudLayer, percent, scoreText } from './hud';
+import { clockText, countdownText, hudLayer, percent } from './hud';
 import type { HudInspection } from './inspect';
 import type { PitchContext } from './layer';
 import { type Calls, drawnOf, FakeControls, FakeStage, FakeView, StateMatch, stateWith, testHost } from './pitch-testing';
@@ -49,8 +49,7 @@ describe("the HUD's texts", () => {
     expect([at(WARM_UP, 0), at(CELEBRATION, 0)]).toEqual([null, null]);
   });
 
-  it('reads the score and the gauges as the screen shows them', () => {
-    expect(scoreText([2, 10])).toBe('2–10');
+  it('reads the gauges as the screen shows them', () => {
     expect([percent(0.333), percent(0.5), percent(1.2), percent(-0.1)]).toEqual([33, 50, 100, 0]);
   });
 });
@@ -88,6 +87,8 @@ describe('the HUD layer', () => {
     expect(shownText(only(el, '.hud-score'))).toBe('Blue1–Orange2yours');
     expect(only(el, '[data-test="hud-clock"]').textContent).toBe('1:00');
     expect(only(el, '[data-test="hud-countdown"]').textContent).toBe('5');
+    expect(only(el, '[data-test="hud-countdown"]').hidden).toBe(false);
+    expect(only(only(el, '[data-test="hud-meter"]'), '.hud-gauge-fill').style.getPropertyValue('--fill')).toBe('50%');
     expect(only(el, '[data-test="hud-meter"]').getAttribute('aria-valuenow')).toBe('50');
     expect(only(el, '[data-test="hud-pounce"]').getAttribute('aria-valuenow')).toBe('75');
     expect(only(el, '[data-test="hud-pounce"]').classList.contains('waiting')).toBe(true);
@@ -100,9 +101,14 @@ describe('the HUD layer', () => {
     expect(swatches.map((w) => [w.className, w.style.getPropertyValue('--c')])).toEqual([
       ['swatch pack plain', '#2f6bd8'], ['swatch pack striped', '#f07a1a'],
     ]);
+    // The hook's figures are what the HUD wrote: the digits, the clock, the countdown shown, the meter's gauge.
     expect(layer.inspect!()).toEqual({
       score: '1–2', clock: '1:00', countdown: '5', scorer: null, meter: 0.5, pounceWait: P.pounceWaitTicks / 4, graphics: 'ok', following: null,
     } satisfies HudInspection);
+    // Out of the countdown, none shown, and none reported.
+    layer.frame!(ctx({ ...s, phase: WARM_UP } as typeof s));
+    expect([only(el, '[data-test="hud-countdown"]').hidden, (layer.inspect!() as HudInspection).countdown]).toEqual([true, null]);
+    layer.frame!(ctx(s));
     // A spectator's: no gauges, no pack marked.
     const watching = { ...s, terriers: s.terriers.filter((T) => T.id !== ME) };
     layer.frame!(ctx(watching));

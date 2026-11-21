@@ -4,7 +4,8 @@
 // Node replays play it (src/net/practice-spec-testing.ts, in
 // practice-spec-whole-1 to -6 and practice-spec-goal-1 to -4):
 // - the profile seeded with personId(7, 0) and stored low quality, and
-//   Practice at 1 a side for 1 minute, opened from Home by keys;
+//   Practice at 1 a side for 1 minute, opened from Home on the keyboard
+//   alone, Tab, the selects' own keys and Enter, every stop asserted;
 // - Ready by Enter at the first look at or past a fixed local tick, its
 //   tick read back from the start countdown's first tick, d + 1 later;
 // - A, the validated sideways step in ball view, pressed at the first look
@@ -18,8 +19,13 @@
 //   against the latitudes the replays validated, read from that file, which
 //   no spec may import (it imports vitest), so a latitude widened there is
 //   the specs' at once and no copy drifts;
-// - Ready's focus recorded at each change, by an observer that only
-//   watches, so a state too short for a look is still checked (§9.6);
+// - Ready's focus recorded at each change, and each bark mark's showing,
+//   by observers that only watch, so a state too short for a look is still
+//   checked (§9.6); every other focus Q-17 names read once, at its screen's
+//   first look, with its box inside the window, never waited for;
+// - what the player sees read from the page itself, not the hook alone:
+//   the countdown's seconds, the gauges' fills, the marks shown and which
+//   of them stacks over the HUD and Pre-match's panel (topAt);
 // - nothing contacted (P10, L238);
 // - one JSON line a run, `practice-measure {…}`, also attached to the test,
 //   logged whether the run passed or not, with what phase 1c's Measure step
@@ -39,7 +45,7 @@ import type { Inspection } from '../../src/main';
 import type { ResourceCounts } from '../../src/render/stage-types';
 import { countPeerConnections } from './browsers';
 import { expect, type PageWatch } from './guards';
-import { expectStarted, inspect, installHook, openPractice, POLL_MS, seedStorage } from './page';
+import { expectStarted, inspect, installHook, POLL_MS, seedStorage } from './page';
 
 // --- What the replays validated (src/net/practice-spec-testing.ts) ---
 
@@ -264,6 +270,146 @@ export function focused(page: Page): Promise<string> {
   });
 }
 
+/** The focus as a look finds it, read once: what has it, its text, and whether its whole box is inside the
+ *  window, unscrolled to it, so a target Q-17 focused below the fold or above the top counts as hidden
+ *  (§5.14). */
+export interface FocusSeen {
+  readonly what: string;
+  readonly text: string;
+  readonly inMain: boolean;
+  readonly inView: boolean;
+}
+
+export function focusSeen(page: Page): Promise<FocusSeen> {
+  return page.evaluate(() => {
+    const a = document.activeElement;
+    if (a === null || a === document.body) return { what: 'nothing', text: '', inMain: false, inView: false };
+    const r = a.getBoundingClientRect();
+    return {
+      what: a.getAttribute('data-test') ?? a.tagName.toLowerCase(), text: (a.textContent ?? '').trim(), inMain: a.closest('main') !== null,
+      inView: r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth,
+    };
+  });
+}
+
+/** The focus read once at a screen's first look, never waited for (§9.6): `what`, in the landmark and in view. */
+export async function expectFocusOnce(page: Page, what: string, text: string | null, why: string): Promise<void> {
+  const f = await focusSeen(page);
+  expect({ what: f.what, inMain: f.inMain, inView: f.inView, ...(text === null ? {} : { text: f.text }) }, `${why}: ${JSON.stringify(f)}`)
+    .toEqual({ what, inMain: true, inView: true, ...(text === null ? {} : { text }) });
+}
+
+/** The focused select's option of `value`, chosen by the arrows, a step at a time from where it stands, as
+ *  each engine's closed select takes them; each step must move it. */
+async function chooseByKeys(page: Page, value: string): Promise<void> {
+  const at = (): Promise<{ index: number; want: number }> => page.evaluate((v) => {
+    const sel = document.activeElement as HTMLSelectElement;
+    return { index: sel.selectedIndex, want: Array.from(sel.options).findIndex((o) => o.value === v) };
+  }, value);
+  let now = await at();
+  expect(now.want, `an option of value ${value}`).toBeGreaterThanOrEqual(0);
+  while (now.index !== now.want) {
+    const was = now.index;
+    await page.keyboard.press(now.want < now.index ? 'ArrowUp' : 'ArrowDown');
+    now = await at();
+    expect(now.index, `the select moved by its arrow, from option ${was}`).not.toBe(was);
+  }
+}
+
+/** Tab from the focus, a stop at a time, each stop asserted, as a keyboard player moves through a screen (Q-17). */
+export async function tabThrough(page: Page, stops: readonly string[], where: string): Promise<void> {
+  const seen: string[] = [];
+  while (seen.length < stops.length) {
+    await page.keyboard.press('Tab');
+    seen.push(await focused(page));
+    expect(seen, `${where}'s Tab order`).toEqual(stops.slice(0, seen.length));
+  }
+}
+
+/** A gauge of the HUD as the player sees it (L167): its aria-valuenow, and the share of its bar, inside the
+ *  bar's border, that its fill is drawn across. */
+export function gaugeSeen(page: Page, test: 'hud-meter' | 'hud-pounce'): Promise<{ now: number; drawn: number }> {
+  return page.evaluate((t) => {
+    const g = document.querySelector(`[data-test="${t}"]`)!;
+    const bar = g.querySelector('.hud-gauge-bar')!;
+    const style = getComputedStyle(bar);
+    const inner = bar.getBoundingClientRect().width - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth);
+    return { now: Number(g.getAttribute('aria-valuenow')), drawn: g.querySelector('.hud-gauge-fill')!.getBoundingClientRect().width / inner };
+  }, test);
+}
+
+/** A gauge short of full, as its value says and as it's drawn: its fill across the share of its bar that
+ *  aria-valuenow gives, to within half a percent, so even a 99 drawn full fails. */
+export function expectGaugeShort(g: { now: number; drawn: number }, what: string): void {
+  expect(g.now, `${what}'s value, ${JSON.stringify(g)}`).toBeLessThan(100);
+  expect(Math.abs(g.drawn - g.now / 100), `${what}'s fill as drawn against its value, ${JSON.stringify(g)}`).toBeLessThan(0.005);
+}
+
+/** A bark mark as the page showed it: its bubble's centre in CSS px, and whether the page's own styles drew
+ *  it, visible with a box. */
+export interface BarkSeen {
+  readonly x: number;
+  readonly y: number;
+  readonly drawn: boolean;
+}
+
+/** Bark marks as the page showed them, recorded by an init script at each one's showing (L50, §1.45): a
+ *  bark lasts 0.4 s, a few looks' worth, but this sees every one. */
+async function recordBarks(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __terriestBarks: { marks: BarkSeen[] } };
+    w.__terriestBarks = { marks: [] };
+    new MutationObserver((records) => {
+      for (const r of records) {
+        const el = r.target as HTMLElement;
+        if (r.oldValue === null || el.hidden || !el.classList.contains('overlay-bark')) continue;
+        const bubble = el.firstElementChild as HTMLElement | null;
+        const box = bubble?.getBoundingClientRect();
+        if (bubble === null || box === undefined) continue;
+        const drawn = getComputedStyle(bubble).visibility === 'visible' && box.width > 0 && box.height > 0;
+        w.__terriestBarks.marks.push({ x: box.x + box.width / 2, y: box.y + box.height / 2, drawn });
+      }
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['hidden'], attributeOldValue: true });
+  });
+}
+
+export function barksSeen(page: Page): Promise<{ marks: BarkSeen[] }> {
+  return page.evaluate(() => (window as unknown as { __terriestBarks: { marks: BarkSeen[] } }).__terriestBarks);
+}
+
+/**
+ * Which is on top at the centre of a box of the pitch screen, `over`, by the page's own stylesheets: an
+ * overlay mark, `mark` (its .overlay-mark div), or the box. The mark is moved there and shown for the check
+ * alone, it and the box made hit-testable, then all put back as they were, in one task, so no frame draws it
+ * moved; the point is `at` across and down the mark's shape, inside its outline (§2.6, M4-Q10, shell-F1).
+ */
+export function topAt(page: Page, mark: string, over: string, at: readonly [number, number]): Promise<string> {
+  return page.evaluate(({ mark, over, at }) => {
+    const m = document.querySelector<HTMLElement>(mark);
+    const box = document.querySelector<HTMLElement>(over);
+    const overlay = m?.closest<HTMLElement>('.overlay') ?? null;
+    if (m === null || box === null || overlay === null) return `no ${m === null ? mark : box === null ? over : '.overlay'}`;
+    const shape = m.firstElementChild as HTMLElement;
+    const was = { transform: m.style.transform, hidden: m.hidden, overlay: overlay.style.pointerEvents, box: box.style.pointerEvents };
+    try {
+      const r = box.getBoundingClientRect();
+      m.hidden = false;
+      m.style.transform = `translate(${r.x + r.width / 2}px, ${r.y + r.height / 2}px)`;
+      overlay.style.pointerEvents = 'auto';
+      box.style.pointerEvents = 'auto';
+      const s = shape.getBoundingClientRect();
+      const hit = document.elementFromPoint(s.x + s.width * at[0], s.y + s.height * at[1]);
+      if (hit === null) return 'nothing';
+      return shape.contains(hit) ? 'mark' : box.contains(hit) ? 'box' : `${hit.tagName.toLowerCase()}.${hit.className}`;
+    } finally {
+      m.style.transform = was.transform;
+      m.hidden = was.hidden;
+      overlay.style.pointerEvents = was.overlay;
+      box.style.pointerEvents = was.box;
+    }
+  }, { mark, over, at });
+}
+
 /** The page hidden, or shown again, as a background tab's would be (§9.5): document.visibilityState and
  *  document.hidden read so, then a visibilitychange. Playwright has no page visibility of its own to set. */
 export async function emulateHidden(page: Page, hidden: boolean): Promise<void> {
@@ -400,10 +546,11 @@ export class PracticeRun {
     await installHook(page);
     await countPeerConnections(page);
     await recordReady(page);
+    await recordBarks(page);
     await page.goto(url);
     await expectStarted(page);
     this.mark('started');
-    await expect(page.getByRole('main').getByRole('heading', { level: 1 }), "Home's heading focused (Q-17)").toBeFocused();
+    await expectFocusOnce(page, 'h1', 'terriest', "Home's heading, focused as the app started (Q-17)");
     const home = await this.until((i) => i.screen === 'home' && i.startMs.prepared !== null, { what: 'Home, the pitch prepared behind it', timeoutMs: PREPARED_MS });
     this.mark('prepared');
     this.measure.startMs = home.startMs;
@@ -413,14 +560,34 @@ export class PracticeRun {
     return home;
   }
 
-  /** Home's Practice and its setup by keys, to Pre-match: drawing, the person in A and its bot in B, Ready
-   *  able to act and focused from the screen's entry (Q-15, Q-17). */
+  /** Home's Practice and its setup on the keyboard alone (§9.3, Q-17, L82), to Pre-match: from Home's heading
+   *  Tab to Practice, every stop asserted, and Enter; the setup's heading focused at its top; Tab to each
+   *  select, its option chosen by the arrows, the browser's own keys, then to Start and Enter.
+   *  Then Pre-match: drawing, the person in A and its bot in B, 1 a side for 1 minute, Ready able to act
+   *  and focused from the screen's entry (Q-15, Q-17). */
   async practice(): Promise<Inspection> {
-    await openPractice(this.page, { packSize: PACK_SIZE, minutes: MINUTES });
+    const page = this.page;
+    await this.until((i) => i.screen === 'home', { what: 'Home', timeoutMs: SHOWN_MS });
+    expect(await focused(page), "Home's heading, before its Tab order").toBe('h1');
+    await tabThrough(page, ['name', 'coat-0', 'practice'], 'Home');
+    await page.keyboard.press('Enter');
+    await this.until((i) => i.screen === 'practice', { what: "Practice's setup, by Enter on Home's Practice", timeoutMs: SHOWN_MS });
+    // Its heading focused and in view, though Home was left scrolled to its Practice (§5.14).
+    await expectFocusOnce(page, 'h1', 'Practice', "Practice's setup's heading, at the screen's top");
+    await tabThrough(page, ['pack-size'], "Practice's setup");
+    await chooseByKeys(page, String(PACK_SIZE));
+    await tabThrough(page, ['match-length'], "Practice's setup");
+    await chooseByKeys(page, String(MINUTES));
+    const chosen = await page.evaluate(() => ['pack-size', 'match-length'].map((t) => document.querySelector<HTMLSelectElement>(`[data-test="${t}"]`)!.value));
+    expect(chosen, 'the pack size and the length, chosen by keys').toEqual([String(PACK_SIZE), String(MINUTES)]);
+    await tabThrough(page, ['start'], "Practice's setup");
+    await page.keyboard.press('Enter');
+    await this.until((i) => i.screen === 'prematch', { what: 'Pre-match, by Enter on Start', timeoutMs: SHOWN_MS });
     this.mark('prematch');
     const i = await this.readyActs();
     expect(i.match?.kind).toBe('practice');
-    expect(i.match?.roster.map((r) => [r.id, r.pack]), 'the person in A and its bot in B (Q-15)').toEqual([[ME, 0], [BOT, 1]]);
+    expect(i.match?.roster.map((r) => [r.id, r.pack]), 'the person in A and its bot in B, 1 a side (Q-15)').toEqual([[ME, 0], [BOT, 1]]);
+    expect(i.match?.clock, 'a match of 1 minute, its clock unstarted in warm-up').toBe(MINUTES * 60 * SECOND);
     return i;
   }
 
@@ -438,6 +605,7 @@ export class PracticeRun {
     expect(states.filter((s) => s.shown && !s.focused), `Ready's states without the focus, of ${JSON.stringify(states)} (Q-17, §9.6)`).toEqual([]);
     expect(states.some((s) => s.shown && s.text === 'Joining…' && !s.canAct), `Ready read "Joining…" from the entry: ${JSON.stringify(states)}`).toBe(true);
     expect(states.at(-1), "Ready's latest state").toEqual({ text: 'Ready', canAct: true, shown: true, focused: true });
+    await expectFocusOnce(page, 'ready', 'Ready', 'Ready, focused and in view');
     return i;
   }
 
@@ -457,6 +625,10 @@ export class PracticeRun {
     const countdown = c.match!.phaseStart;
     const tick = countdown - 1 - D;
     this.measure.ready = { ...this.measure.ready, tick, countdown, late: tick - anchor };
+    // The countdown as the player sees it, its seconds drawn on the HUD (§5.8, L103): phase 1 has no sound.
+    const seconds = page.locator('[data-test="hud-countdown"]');
+    await expect(seconds, "the start countdown's seconds on the HUD").toBeVisible({ timeout: SHOWN_MS });
+    await expect(seconds).toHaveText(/^[1-5]$/);
     return c;
   }
 

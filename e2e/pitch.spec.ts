@@ -4,9 +4,11 @@
 // Home now, so the pitch is read from Practice's Pre-match at 4 a side,
 // from the player's ball view, at the gate's 640 × 360 and stored low
 // quality, as every spec that plays draws (C-6, D-33); the quality test
-// sets both through Home's Settings, a player's real choice (M4-Q4). Two
-// tests, one load each (§9.9). Nothing here depends on the frame rate: the
-// rate is measured and reported, with the GL path, never judged.
+// sets both through Home's Settings, a player's real choice (M4-Q4), each
+// screen opening at its top, and changes it twenty times more, every stage
+// gone giving its context back. Two tests, one load each (§9.9). Nothing
+// here depends on the frame rate: the rate is measured and reported, with
+// the GL path, never judged.
 
 import type { Page } from '@playwright/test';
 import { personId } from '../src/core/bot/bot-id';
@@ -35,6 +37,16 @@ function median(image: Image, fy: number, xs: readonly number[]): [number, numbe
   const samples = xs.map((fx) => meanColour(image, image.width * fx, image.height * fy, 3));
   const mid = (k: number): number => samples.map((c) => c[k]!).sort((a, b) => a - b)[Math.floor(samples.length / 2)]!;
   return [mid(0), mid(1), mid(2)];
+}
+
+/** What has the focus, read once, and whether its whole box is inside the window: a screen opens at its top
+ *  whatever the last left the page scrolled to (§5.14). */
+function focusInView(page: Page): Promise<{ what: string; inView: boolean }> {
+  return page.evaluate(() => {
+    const a = document.activeElement!;
+    const r = a.getBoundingClientRect();
+    return { what: `${a.tagName.toLowerCase()} ${a.textContent ?? ''}`, inView: r.height > 0 && r.top >= 0 && r.bottom <= innerHeight };
+  });
 }
 
 /** The drawing buffer by §9.1's rule: the CSS size times min(devicePixelRatio, cap) times the governor's scale. */
@@ -130,6 +142,11 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
 
   test('high caps the pixel ratio at 2, with MSAA, and is the default; low caps it at 1, without, and draws the nets with fewer ropes', async ({ page }) => {
     test.setTimeout(120_000);
+    // Chromium keeps 16 live WebGL contexts a page, and past them loses the oldest, saying so.
+    const tooMany: string[] = [];
+    page.on('console', (m) => {
+      if (/too many active webgl contexts/i.test(m.text())) tooMany.push(m.text());
+    });
     await page.goto('./');
     await expectStarted(page);
     /** Practice's Pre-match at this quality, read, then Leave to Home. */
@@ -142,14 +159,17 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
       expect(r.quality, what).toBe(r.cap === 2 ? 'high' : 'low');
       return r;
     };
-    /** Home's Settings, the quality chosen, and Back: the stage re-created behind Home (§2.8). */
+    /** Home's Settings, the quality chosen, and Back: the stage re-created behind Home (§2.8). The click scrolls
+     *  Home down to its Settings at 640 × 360, and each screen still opens at its top, its heading in view. */
     const choose = async (quality: 'high' | 'low'): Promise<void> => {
       await page.locator('[data-test="settings"]').click();
       await waitForScreen(page, 'settings');
+      expect(await focusInView(page), "Settings' heading, in view").toEqual({ what: 'h1 Settings', inView: true });
       await page.locator(`[data-test="quality-${quality}"]`).check();
       await expect(page.locator('[data-test="settings-message"]')).toHaveText('Saved.');
       await page.locator('[data-test="back"]').click();
       await waitForInspection(page, (i) => i.screen === 'home' && i.render.quality === quality, { what: `the ${quality} stage behind Home` });
+      expect(await focusInView(page), "Home's heading, in view").toEqual({ what: 'h1 terriest', inView: true });
     };
 
     const byDefault = await read('no setting');
@@ -165,5 +185,18 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
     expect([high.cap, high.pixelRatio]).toEqual([2, 2]);
     expect(high.samples).toBeGreaterThan(0);
     expect(low.lines).toBeLessThan(high.lines);
+
+    // A player changing their mind: twenty changes in a row on Settings, each re-creating the stage, every
+    // stage gone giving its context back, so the page never holds more than the browser keeps (§2.8).
+    await page.locator('[data-test="settings"]').click();
+    await waitForScreen(page, 'settings');
+    for (let k = 0; k < 20; k++) {
+      const quality = k % 2 === 0 ? 'low' : 'high';
+      await page.locator(`[data-test="quality-${quality}"]`).check();
+      await waitForInspection(page, (i) => i.render.quality === quality, { what: `change ${k + 1}, to ${quality}` });
+    }
+    await page.locator('[data-test="back"]').click();
+    await waitForInspection(page, (i) => i.screen === 'home' && i.render.prepared, { what: 'the last stage, prepared behind Home' });
+    expect(tooMany, 'contexts kept past the browser\'s cap').toEqual([]);
   });
 });

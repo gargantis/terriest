@@ -385,8 +385,11 @@ describe('the files the lint reaches', { timeout: LINT_TIMEOUT_MS }, () => {
     expect(await ruleIds("location.hash = '#x';\n", 'public/boot.js')).toEqual([SYNTAX]);
   });
 
-  it('leaves research/ to its own toolchain (D-36), and the fixtures out of `eslint .`', async () => {
+  it('leaves research/ to its own toolchain (D-36), and the fixtures and `npm run play`\'s build out of `eslint .`', async () => {
     await expect(eslint.lintFiles(['research'])).rejects.toThrow('are ignored');
     expect(await eslint.isPathIgnored('scripts/eslint/fixtures/imports.ts.fixture')).toBe(true);
+    // dist-play/, the owner's build for npm run play, minified and git-ignored, as hermet's base skips dist/ (M4-Q40).
+    expect(await eslint.isPathIgnored('dist-play/assets/index.js')).toBe(true);
+    expect(await eslint.isPathIgnored('dist/assets/index.js')).toBe(true);
   });
 });

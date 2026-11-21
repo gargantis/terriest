@@ -39,10 +39,13 @@ for (const served of ['vite preview', 'dist/_headers', 'a subpath'] as const) {
     if (served !== 'vite preview') expect(response?.headers()['content-security-policy']).toContain("script-src 'self'");
     await expect(page).toHaveTitle('terriest');
     await expectStarted(page);
-    // Home, its heading focused once the landmark shows (Q-17, §5.1).
+    // Home, its heading focused as the landmark shows (Q-17, §5.1): read once, never waited for (§9.6).
+    const focus = await page.evaluate(() => {
+      const a = document.activeElement;
+      return [a?.tagName, a?.textContent, a?.closest('main')?.id];
+    });
+    expect(focus, "Home's heading, focused as the app started").toEqual(['H1', 'terriest', 'app']);
     expect((await inspect(page)).screen).toBe('home');
-    await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText('terriest');
-    await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeFocused();
     await openPractice(page, { packSize: 1, minutes: 1 });
     const { render } = await waitForInspection(page, (i) => i.render.frames > 0, { what: 'the pitch drawn' });
     expect(render.calls).toBeGreaterThan(0);

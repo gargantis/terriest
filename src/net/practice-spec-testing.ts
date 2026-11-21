@@ -95,34 +95,56 @@ export const HOLD_STARTS: Readonly<Record<'first' | 'middle' | 'latest', HoldFro
 };
 
 // The controls run's warm-up (M4's design §9.5): each control once on Pre-match,
-// by the head's tick in warm-up: W, A, S and D in ball view, W long enough
-// to reach the ball from the arrival spot, 10 m off, and push on it, a
-// jump, zoomies, a pounce and a bark, then S in chase view's pitch frame.
-// Its presses leave their counters at 1, which every later input keeps.
+// by the head's tick in warm-up: W, A, S and D in ball view, a jump, zoomies,
+// a pounce and a bark, then S in chase view's pitch frame. Its presses leave
+// their counters at 1, which every later input keeps.
 const W = 0; // not a setting: A.2's step, at the ball in ball view
 const A = 8; // not a setting: A.2's step, sideways
 const S = 16; // not a setting: A.2's step, away
 const RIGHT = 24; // not a setting: A.2's step, D
-const WARM_UP_HELD: readonly (readonly [from: number, to: number, input: number])[] = [ // not a setting: a script's ticks
-  [60, 200, encodeInput({ step: W, frame: FRAME_BALL })],
-  [200, 230, encodeInput({ step: A, frame: FRAME_BALL })],
-  [230, 260, encodeInput({ step: S, frame: FRAME_BALL })],
-  [260, 290, encodeInput({ step: RIGHT, frame: FRAME_BALL })],
-  [320, 380, encodeInput({ step: W, frame: FRAME_BALL }) | ZOOMIES],
-  [420, 480, encodeInput({ step: S, frame: FRAME_PITCH })],
-];
-const WARM_UP_PRESSES = { jump: 300, pounce: 390, bark: 400 }; // not a setting: a script's ticks
-/** The warm-up's last input: Ready goes at least 120 ticks after it (M4's design §9.1). */
-export const WARM_UP_ENDS = 480; // not a setting: a script's tick
+const ballView = (step: number): number => encodeInput({ step, frame: FRAME_BALL });
+
+/** A warm-up script, by the head's tick: each direction held from one tick to before another, each press's
+ *  tick, and its last input's, which Ready goes at least 120 ticks after (M4's design §9.1). */
+export interface WarmUp {
+  readonly held: readonly (readonly [from: number, to: number, input: number])[];
+  readonly presses: { readonly jump: number; readonly pounce: number; readonly bark: number };
+  readonly ends: number;
+}
+
+/** A warm-up that meets the ball: W long enough to reach it from the arrival spot, 10 m off, and push on
+ *  it, so its contact tick and the ball's are left set too. */
+export const CONTACT_WARM_UP: WarmUp = { // not a setting: a script's ticks
+  held: [
+    [60, 200, ballView(W)], [200, 230, ballView(A)], [230, 260, ballView(S)], [260, 290, ballView(RIGHT)],
+    [320, 380, ballView(W) | ZOOMIES], [420, 480, encodeInput({ step: S, frame: FRAME_PITCH })],
+  ],
+  presses: { jump: 300, pounce: 390, bark: 400 },
+  ends: 480,
+};
+
+/** The page's own kind (e2e/practice.spec.ts's controls run): W, A, S and D each run about half a metre,
+ *  nowhere near the ball, a jump, zoomies with W until the meter dips, a pounce and a bark, then S in
+ *  chase view's pitch frame until the ball is behind the camera, all by tick 240, as the page's ends by
+ *  about 250. Its leftovers are the page's: a take-off tick, a gait and counters, and no contact. */
+export const PAGE_WARM_UP: WarmUp = { // not a setting: a script's ticks
+  held: [
+    [20, 32, ballView(W)], [40, 52, ballView(A)], [60, 72, ballView(S)], [80, 92, ballView(RIGHT)],
+    [150, 165, ballView(W) | ZOOMIES], [195, 240, encodeInput({ step: S, frame: FRAME_PITCH })],
+  ],
+  presses: { jump: 100, pounce: 175, bark: 185 },
+  ends: 240,
+};
+
 const PRESSED = encodeInput({ jump: 1, pounce: 1 }); // not a setting: its presses' counters
 const BARKED = encodeInput({ bark: 1 }); // not a setting: its bark's counter, which the simulation never reads (D-10)
 /** A.2's press counters, which a hold leaves as they were. */
 const COUNTERS = encodeInput({ jump: 3, pounce: 3, bark: 3 }); // not a setting: A.2's bits
 
-function warmUpInput(s: Readonly<MatchState>): number {
+function warmUpInput(w: WarmUp, s: Readonly<MatchState>): number {
   let v = 0;
-  for (const [from, to, input] of WARM_UP_HELD) if (s.tick >= from && s.tick < to) v = input;
-  const at = WARM_UP_PRESSES;
+  for (const [from, to, input] of w.held) if (s.tick >= from && s.tick < to) v = input;
+  const at = w.presses;
   return v | encodeInput({ jump: s.tick >= at.jump ? 1 : 0, pounce: s.tick >= at.pounce ? 1 : 0, bark: s.tick >= at.bark ? 1 : 0 });
 }
 
@@ -138,7 +160,7 @@ export interface SpecOptions {
   /** The menu opened at each of these goals' latches, 1 for the first, and closed ms later (M4's design §9.5). */
   readonly pauses?: readonly (readonly [goal: number, ms: number])[];
   /** The controls run's warm-up first, its counters kept (M4's design §9.5). */
-  readonly warmUp?: boolean;
+  readonly warmUp?: WarmUp;
 }
 
 /** A play period's first tick, as the final state had it. */
@@ -215,12 +237,12 @@ export function playSpec(o: SpecOptions): SpecRun {
   const game = new PracticeGame({ me: ME, name: 'P0', coat: 0, settings: SETTINGS, build: TEST_BUILD, clock, page: fakePage() });
   const t = (): Timeline => game.practice.session.timeline;
   const hold = { input: SIDEWAYS_IN_BALL_VIEW, late: o.late, ...(o.from !== undefined ? { from: o.from } : {}) };
-  const warmUp = o.warmUp === true;
-  const spec = specSampler({ hold, ...(o.jumps !== undefined ? { jumps: o.jumps } : {}) }, warmUp ? PRESSED : 0, P);
+  const warmUp = o.warmUp ?? null;
+  const spec = specSampler({ hold, ...(o.jumps !== undefined ? { jumps: o.jumps } : {}) }, warmUp !== null ? PRESSED : 0, P);
   game.controls = () => {
     const head = t().head;
-    if (!warmUp) return spec(head);
-    return head.phase === WARM_UP ? warmUpInput(head) : spec(head) | BARKED;
+    if (warmUp === null) return spec(head);
+    return head.phase === WARM_UP ? warmUpInput(warmUp, head) : spec(head) | BARKED;
   };
   const phases: [Phase, number][] = [];
   const plays: PlayStart[] = [];
@@ -278,7 +300,7 @@ export function playSpec(o: SpecOptions): SpecRun {
     periods.push({ countdown: start, countdownTicks, play, playEnd: after?.[1] ?? Infinity });
   });
   // The warm-up's own inputs aside: from the first sampled in the start countdown, d + 1 ticks on.
-  const from = warmUp ? (periods[0]?.countdown ?? Infinity) + 1 + D : 0;
+  const from = warmUp !== null ? (periods[0]?.countdown ?? Infinity) + 1 + D : 0;
   const holds: [number, number][] = [];
   const strays: string[] = [];
   for (const [u, v] of inputs) {

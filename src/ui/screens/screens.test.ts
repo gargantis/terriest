@@ -57,11 +57,19 @@ describe("the screens' shared parts", () => {
     button.setAttribute('data-focus', '');
     fake(marked.el).append(h1, button);
     dom.document.body.append(fake(marked.el));
+    const win = dom.document.defaultView;
+    win.scrollTo(0, 276); // as Home is left, scrolled down to its Settings at 640 × 360
+    win.scrolls.length = 0;
     focusScreen(marked);
     expect(dom.document.activeElement).toBe(button);
+    // The page at its top first, then the button Q-17 names brought into view (§5.14).
+    expect([win.scrollY, win.scrolls]).toEqual([0, [{ to: [0, 0] }, { intoView: button, block: 'nearest' }]]);
     button.removeAttribute('data-focus');
+    win.scrollTo(0, 148);
+    win.scrolls.length = 0;
     focusScreen(marked);
     expect([dom.document.activeElement, h1.tabIndex]).toEqual([h1, -1]);
+    expect([win.scrollY, win.scrolls]).toEqual([0, [{ to: [0, 0] }]]);
   });
 });
 
