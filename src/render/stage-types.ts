@@ -47,7 +47,12 @@ export interface RenderInfo {
   /** The drawer drawing now. */
   drawer: DrawerCounts | null;
   model: { url: string; state: 'none' | 'loading' | 'compiling' | 'drawn' | 'failed'; ms: number | null; error: string | null };
-  camera: { kind: CameraMode['kind']; view: ViewMode | null; calm: boolean; raised: boolean; yaw: number; x: number; y: number; z: number };
+  /** calm: the calmer camera's setting as the view read it; turnCap: the cap, turns a second, the rig's last step
+   *  turned a player's view by, the swing's or the calmer camera's (D-28), null before one and for the spectators
+   *  and the overview, so a spec reads what the rig used (M4's design §9.3). */
+  camera: {
+    kind: CameraMode['kind']; view: ViewMode | null; calm: boolean; turnCap: number | null; raised: boolean; yaw: number; x: number; y: number; z: number;
+  };
   /** The context lost and restored, and the renderer rebuilt (D-30, D-33). */
   lost: boolean; restores: number; rebuilds: number; rebuilding: boolean;
 }

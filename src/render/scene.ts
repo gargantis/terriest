@@ -122,7 +122,7 @@ class Drawing implements Stage {
   private readonly readyPromise: Promise<void>;
   private resolveReady!: () => void;
   private rejectReady!: (e: unknown) => void;
-  private cameraInfo: RenderInfo['camera'] = { kind: 'overview', view: null, calm: false, raised: false, yaw: 0, x: 0, y: 0, z: 0 };
+  private cameraInfo: RenderInfo['camera'] = { kind: 'overview', view: null, calm: false, turnCap: null, raised: false, yaw: 0, x: 0, y: 0, z: 0 };
   private nowMs = 0;
   private lost = false;
   private restores = 0;
@@ -223,8 +223,9 @@ class Drawing implements Stage {
     this.frames++;
     const camera = shown?.camera ?? OVERVIEW;
     const mode = camera.mode;
+    const viewCamera = camera as Partial<ViewCameraFrame>;
     this.cameraInfo = {
-      kind: mode.kind, view: mode.kind === 'player' ? mode.view : null, calm: (camera as Partial<ViewCameraFrame>).calm === true,
+      kind: mode.kind, view: mode.kind === 'player' ? mode.view : null, calm: viewCamera.calm === true, turnCap: viewCamera.turnCap ?? null,
       raised: this.placed.raised, yaw: camera.yaw, x: this.placed.position.x, y: this.placed.position.y, z: this.placed.position.z,
     };
     return this.projections(match, camera.yaw);

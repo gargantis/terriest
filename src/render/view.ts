@@ -79,10 +79,12 @@ export interface ViewSettings {
   readonly names: boolean;
 }
 
-/** The view's camera frame: frame.ts's CameraFrame and the rig's setting, which the stage reports as
- *  render.camera.calm. */
+/** The view's camera frame: frame.ts's CameraFrame, the calmer camera's setting and the cap the rig last turned
+ *  by, which the stage reports as render.camera.calm and render.camera.turnCap, so a spec reads what the rig used. */
 export interface ViewCameraFrame extends CameraFrame {
   readonly calm: boolean;
+  /** Turns a second: the rig's last step's, a player's view's; null before one, and for the spectators. */
+  readonly turnCap: number | null;
 }
 
 /** How long a bark shows over its terrier and in its pose, from its start: the code-built pose's bark, a
@@ -218,7 +220,7 @@ export class MatchView implements MatchViewApi {
     const mode = this.modeValue;
     if (!t.started) {
       this.drawnValue = null;
-      const camera: ViewCameraFrame = { mode, yaw: this.rig.yaw, target: ORIGIN, subject: null, calm };
+      const camera: ViewCameraFrame = { mode, yaw: this.rig.yaw, target: ORIGIN, subject: null, calm, turnCap: null };
       return { match: null, drawer: null, camera, nowMs, dtMs, fadeTo: null };
     }
     const prev = t.prevHead;
@@ -388,17 +390,18 @@ export class MatchView implements MatchViewApi {
     const yaw = this.rig.drawn(f);
     const ball = { x: m.ball.x, y: m.ball.y, z: m.ball.z };
     if (mode.kind === 'player') {
+      const turnCap = this.rig.turnCap;
       const T = m.terriers.find((d) => d.id === mode.terrier);
-      if (T === undefined) return { camera: { mode, yaw, target: ball, subject: null, calm }, fadeTo: null };
+      if (T === undefined) return { camera: { mode, yaw, target: ball, subject: null, calm, turnCap }, fadeTo: null };
       const subject = { x: T.x, y: T.y, z: T.z };
-      return { camera: { mode, yaw, target: mode.view === 'ball' ? ball : subject, subject, calm }, fadeTo: subject };
+      return { camera: { mode, yaw, target: mode.view === 'ball' ? ball : subject, subject, calm, turnCap }, fadeTo: subject };
     }
     if (mode.kind === 'spectator') {
       const T = mode.follow === null ? undefined : m.terriers.find((d) => d.id === mode.follow);
       const body = T === undefined ? ball : { x: T.x, y: T.y, z: T.z };
       const target = { x: this.rig.drawnCentre(f), y: body.y, z: body.z };
-      return { camera: { mode, yaw, target, subject: null, calm }, fadeTo: body };
+      return { camera: { mode, yaw, target, subject: null, calm, turnCap: null }, fadeTo: body };
     }
-    return { camera: { mode, yaw, target: ORIGIN, subject: null, calm }, fadeTo: null };
+    return { camera: { mode, yaw, target: ORIGIN, subject: null, calm, turnCap: null }, fadeTo: null };
   }
 }

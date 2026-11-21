@@ -55,6 +55,16 @@ describe('the rig (D-28)', () => {
     });
   });
 
+  it('keeps the cap its last step turned by, the view\'s and the setting\'s, for the stage to report', () => {
+    const rig = new CameraRig();
+    rig.snap('ball', input(0, 0, 0, 5, 0));
+    expect(rig.turnCap, 'no step yet').toBeNull();
+    rig.step('chase', input(0, 0, 2, 5, 0), rigParams(true));
+    expect(rig.turnCap).toBe(config.chaseCalmerMaxTurnsPerSecond);
+    rig.step('ball', input(0, 0, 2, -5, 1), rigParams(false));
+    expect(rig.turnCap).toBe(config.ballViewSwingMaxTurnsPerSecond);
+  });
+
   it("aims chase view at the heading, and ball view at the ball, or at the overhead reference while it's overhead (D-7)", () => {
     expect(rigTarget('chase', input(0, 0, 1, 5, 5), 0)).toBe(1);
     expect(rigTarget('ball', input(1, 1, 0, 1, 3), 0)).toBeCloseTo(Math.PI / 2, 15);

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { config } from '../config';
 import { personId } from '../core/bot/bot-id';
 import { defaultBotParams } from '../core/bot/brain';
 import { scriptSampler } from '../core/bot/setups';
@@ -20,7 +21,7 @@ import { TEST_BUILD } from '../core/timeline/testing';
 import { LocalTransport } from '../net/local';
 import { BallMesh } from './ball';
 import { newPlaced, placeCamera } from './camera';
-import { spectatorCentreLimit } from './camera-rig';
+import { spectatorCentreLimit, wrapAngle } from './camera-rig';
 import type { StageFrame } from './frame';
 import { PLACEHOLDER_LOOK } from './look';
 import { qualityDetail } from './quality';
@@ -34,7 +35,8 @@ import { type BarkSource, MatchView, type ViewCameraFrame, type ViewSettings, ty
 // while the source is paused; a bark from a received input and from the
 // press, none from an input not yet received; a celebration from a latched
 // goal, withdrawn with it; and the rig's yaw moving with the timer's runs,
-// never the frames.
+// never the frames, by the calmer camera's setting when it's on, and drawn
+// across a catch-up by the bodies' spread fraction.
 
 const P = defaultParams;
 const SETTINGS: ViewSettings = { calmCamera: false, names: false };
@@ -411,6 +413,62 @@ describe('the camera (§3.1, §3.2)', () => {
     t.fraction = 1;
     expect(drawnAt0).toBeCloseTo(yaw, 12);
     expect(view.frame(22, 16).camera.yaw).toBeCloseTo(view.yaw, 12);
+  });
+
+  it("draws the yaw across a catch-up by the bodies' spread fraction, as it draws them (§2.2, §3.1)", () => {
+    const t = new Heads(cloneState(s));
+    const view = new MatchView(sourceOf(t, me), PLACEHOLDER_LOOK, () => SETTINGS, new ReceivedBarks(me));
+    view.run(0);
+    const before = view.yaw; // the rig's yaw at prev's tick
+    // Six ticks in one run, the ball gone off to the side: the yaw turns toward it, and the terrier moves on.
+    const n = cloneState(s);
+    n.tick = s.tick + 6;
+    n.terriers[0]!.x += 1.2;
+    n.ball.x = n.terriers[0]!.x + 1;
+    n.ball.y = 3;
+    t.moveTo(n);
+    view.run(16);
+    const after = view.yaw;
+    expect(Math.abs(wrapAngle(after - before)), 'the yaw turned').toBeGreaterThan(0.1);
+    for (const alpha of [0, 0.5]) {
+      t.fraction = alpha;
+      const f = view.frame(20, 16);
+      const spread = (5 + alpha) / 6; // f′ = (k − 1 + α) / k
+      expect(f.camera.yaw, `α ${alpha}`).toBeCloseTo(wrapAngle(before + wrapAngle(after - before) * spread), 9);
+      expect(f.match!.terriers[0]!.x, `α ${alpha}`).toBeCloseTo(s.terriers[0]!.x + 1.2 * spread, 9);
+    }
+  });
+
+  it("steps the rig by the calmer camera's setting as it reads it, and reports the cap it turned by (D-28, §9.3)", () => {
+    const tick = (turnsPerSecond: number): number => (2 * Math.PI * turnsPerSecond) / config.ticksPerSecond;
+    const turning = (calm: boolean): { largest: number; caps: Set<number | null> } => {
+      const t = new Heads(cloneState(s));
+      const view = new MatchView(sourceOf(t, me), PLACEHOLDER_LOOK, () => ({ calmCamera: calm, names: false }), new ReceivedBarks(me));
+      view.run(0);
+      let yaw = view.yaw;
+      let largest = 0;
+      const caps = new Set<number | null>();
+      // The ball behind the terrier: ball view turns round to it at its cap, the same states either way.
+      for (let k = 1; k <= 20; k++) {
+        const n = cloneState(s);
+        n.tick = s.tick + k;
+        n.ball.x = s.terriers[0]!.x - 5;
+        n.ball.y = s.terriers[0]!.y + 0.1;
+        t.moveTo(n);
+        view.run(16 * k);
+        largest = Math.max(largest, Math.abs(wrapAngle(view.yaw - yaw)));
+        yaw = view.yaw;
+        caps.add((view.frame(16 * k, 16).camera as ViewCameraFrame).turnCap);
+      }
+      return { largest, caps };
+    };
+    const calm = turning(true);
+    const swing = turning(false);
+    expect(calm.largest).toBeCloseTo(tick(config.ballViewCalmerMaxTurnsPerSecond), 9);
+    expect(swing.largest).toBeCloseTo(tick(config.ballViewSwingMaxTurnsPerSecond), 9);
+    expect(swing.largest).toBeGreaterThan(calm.largest);
+    expect([...calm.caps]).toEqual([config.ballViewCalmerMaxTurnsPerSecond]);
+    expect([...swing.caps]).toEqual([config.ballViewSwingMaxTurnsPerSecond]);
   });
 
   it('snaps on a view of its own, a timeline of its own and a placement, counting each', () => {

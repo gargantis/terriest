@@ -209,7 +209,7 @@ describe('the pushing pose (D-27, A.4: Pushing pose)', () => {
     for (const contact of ['lastBallContactTick', 'lastTerrierContactTick'] as const) {
       for (const ago of [0, pushTicks / 2, pushTicks]) {
         const q = pose(frame({ layers: [layer(ZOOMING)], gait: 0.2, [contact]: TIME - ago }));
-        expect([q.headPitch, q.headYaw, q.neckBack, q.neckDown, q.stretch, q.pitch], `${contact} ${ago} ticks ago`).toEqual([0.4, 0, 0.03, 0.04, 1, 0]);
+        expect([q.headPitch, q.headYaw, q.neckBack, q.neckDown, q.stretch, q.pitch], `${contact} ${ago} ticks ago`).toEqual([0.4, 0, 0.06, 0.04, 1, 0]);
         expect(q.bob).toBeLessThanOrEqual(0.01);
         expect(q.earPitch).toBeLessThanOrEqual(-0.8);
         expect(q.tailPitch).toBeGreaterThanOrEqual(0.15);
@@ -226,10 +226,35 @@ describe('the pushing pose (D-27, A.4: Pushing pose)', () => {
     const halfway = pose(t(pushTicks + blendTicks / 2));
     expect(halfway.headPitch).toBeCloseTo((free.headPitch + 0.4) / 2, 12);
     expect(pose(t(pushTicks + blendTicks))).toEqual(free);
-    expect(pose(frame({ lastBallContactTick: TIME + 1 }))).toEqual(free);
+    // A contact up to a tick after the drawn time is the nearer state's, drawn from halfway through the tick
+    // before it (src/render/interpolate.ts): it holds the pose now. More than a tick after, it's no contact yet.
+    expect(pushingWeight(frame({ lastBallContactTick: TIME + 1 }), TIME)).toBe(1);
+    expect(pushingWeight(frame({ lastTerrierContactTick: TIME + 0.5 }), TIME)).toBe(1);
+    expect(pose(frame({ lastBallContactTick: TIME + 2 }))).toEqual(free);
     expect(pushingWeight(frame({ lastBallContactTick: NEVER, lastTerrierContactTick: NEVER }), TIME)).toBe(0);
     // The later of the two contacts counts.
     expect(pushingWeight(frame({ lastBallContactTick: TIME - 40, lastTerrierContactTick: TIME - 2 }), TIME)).toBe(1);
+  });
+
+  it("jolts through it when a terrier pushed it, as a push from a terrier comes, but holds still for a ball's push (L98, D-27)", () => {
+    // A push comes with its contact: the pusher's and the pushed one's contact ticks are the push's (step.ts).
+    const push = { lastPushTick: TIME - 6, lastPushDir: 0.3 };
+    const lurch = (over: Partial<TerrierFrame>): PoseParams => {
+      const jolted = pose(frame({ layers: [layer(RUNNING)], vx: 3, ...push, ...over }));
+      const still = pose(frame({ layers: [layer(RUNNING)], vx: 3, ...over }));
+      return { ...jolted, pitch: jolted.pitch - still.pitch, headYaw: jolted.headYaw - still.headYaw, earSplay: jolted.earSplay - still.earSplay };
+    };
+    const free = lurch({});
+    const byTerrier = lurch({ lastTerrierContactTick: TIME - 6 });
+    // Bumped from behind by another terrier: the lurch, the head whip and the ears as a push without a contact.
+    expect(free.pitch).toBeGreaterThan(0.1);
+    for (const k of ['pitch', 'headYaw', 'earSplay'] as const) expect(byTerrier[k], k).toBeCloseTo(free[k], 12);
+    // Pushed by the ball, touching it: still, its body level and its head straight, for the fit.
+    const byBall = pose(frame({ layers: [layer(RUNNING)], vx: 3, ...push, lastBallContactTick: TIME - 6 }));
+    expect([byBall.pitch, byBall.headYaw]).toEqual([0, 0]);
+    // And as the ball's contact lets go, the jolt comes back with it.
+    const fading = pose(frame({ layers: [layer(RUNNING)], vx: 3, ...push, lastPushTick: TIME - 1, lastBallContactTick: TIME - pushTicks - blendTicks / 2 }));
+    expect(fading.pitch).toBeGreaterThan(0);
   });
 
   it('holds a rising nose level on its feet, and a sitting terrier\'s lean back no further than its own', () => {

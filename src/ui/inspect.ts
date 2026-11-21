@@ -15,7 +15,7 @@ import type { ResultRow } from '../core/session/index';
 import type { ControlsInspection, GamepadInspection, InputKind } from '../input/source';
 import type { IceMode } from '../net/transport';
 import type { NetHook } from '../nettest-params';
-import type { RenderInfo } from '../render/stage-types';
+import type { MatchViewApi, RenderInfo } from '../render/stage-types';
 import type { OwnFigures } from './match-types';
 
 export type ScreenName = 'home' | 'settings' | 'propose' | 'created' | 'practice' | 'join' | 'prematch' | 'match' | 'results' | 'message';
@@ -32,6 +32,9 @@ export interface Inspection {
   readonly announcements: AnnouncementLog | null;
   /** A pitch screen's; null on every other screen. */
   readonly controls: ControlsInspection | null;
+  /** A pitch screen's view's, its drawing clock among them, which stands still while Practice is paused
+   *  (M4's design §2.2, §9.5); null on every other screen. */
+  readonly view: ReturnType<MatchViewApi['inspect']> | null;
   /** The page's pad, on every screen, Results and Home included. */
   readonly gamepad: GamepadInspection | null;
   /** Each pitch layer's inspect() by its name: hud, overlay, menu, sound, touch, hints, turn. */

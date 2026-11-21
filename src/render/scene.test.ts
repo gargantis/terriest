@@ -27,6 +27,8 @@ interface Rendered {
 const renders: Rendered[] = [];
 const compiles: Scene[] = [];
 const sizes: [number, number][] = [];
+/** The scene's compile, held until the test lets it go; null: done at once. */
+let holdCompile: Promise<void> | null = null;
 
 function fakeRenderer(): unknown {
   return {
@@ -39,7 +41,7 @@ function fakeRenderer(): unknown {
     },
     compileAsync: (scene: Scene) => {
       compiles.push(scene);
-      return Promise.resolve(scene);
+      return (holdCompile ?? Promise.resolve()).then(() => scene);
     },
     render: (scene: Scene) => {
       const shown: string[] = [];
@@ -94,6 +96,7 @@ beforeEach(() => {
   renders.length = 0;
   compiles.length = 0;
   sizes.length = 0;
+  holdCompile = null;
   vi.stubGlobal('devicePixelRatio', 3);
   vi.stubGlobal('requestAnimationFrame', () => 0);
 });
@@ -177,11 +180,34 @@ describe('the stage (§1.3)', () => {
     // The governor's scale: the buffer round(CSS size × min(devicePixelRatio, cap) × scale), clamped to 0.5.
     stage.setScale(0.75);
     stage.draw(null);
+    // The empty pitch after a match's frame, as Play again's next Pre-match draws before its state: no ball,
+    // no shadows, no terriers.
+    expect(renders.at(-1)!.shown).not.toContain('ball');
+    expect([renders.at(-1)!.instanced['blob shadows'], renders.at(-1)!.instanced.parts, frames.at(-1)!.terriers.length]).toEqual([0, 0, 0]);
+    expect(stage.info().camera).toMatchObject({ kind: 'overview', turnCap: null });
     expect(sizes.at(-1)).toEqual([Math.round(641 * 0.75), Math.round(361 * 0.75)]);
     expect(stage.info()).toMatchObject({ pixelRatio: 0.75, scale: 0.75, cap: qualityDetail('low').pixelRatioMax });
     stage.setScale(0.1);
     expect(stage.info().scale).toBe(config.drawingScaleMin);
     stage.dispose();
     expect(made[0]!.remove).toHaveBeenCalled();
+  });
+
+  it("resolves ready() only once the compile and the upload's render are done, so the pitch screen never draws before (§2.1)", async () => {
+    let release!: () => void;
+    holdCompile = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const frames: DrawerFrame[] = [];
+    const stage = createStage({ quality: 'low', look: PLACEHOLDER_LOOK, drawer: () => recordingDrawer(frames), capacity: 8, modelUrl: '' })!;
+    let readied = false;
+    void stage.ready().then(() => (readied = true));
+    const prepared = stage.prepare();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect([readied, compiles.length, renders.length, stage.info().prepared]).toEqual([false, 1, 0, false]);
+    release();
+    await prepared;
+    expect([readied, renders.length, stage.info().prepared]).toEqual([true, 1, true]);
+    stage.dispose();
   });
 });

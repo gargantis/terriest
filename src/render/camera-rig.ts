@@ -122,6 +122,7 @@ export class CameraRig {
   private centreValue = 0;
   private prevCentreValue = 0;
   private snapsValue = 0;
+  private turnCapValue: number | null = null;
 
   /** Radians, at the drawn head's tick. */
   get yaw(): number {
@@ -136,6 +137,12 @@ export class CameraRig {
   /** The yaw's snaps, and the spectators' window's, since the rig was made. */
   get snaps(): number {
     return this.snapsValue;
+  }
+
+  /** The cap its last step turned the yaw by, turns a second: the swing's or the calmer camera's, for the view
+   *  it stepped (D-28), as the settings it was handed had it; null before its first step. */
+  get turnCap(): number | null {
+    return this.turnCapValue;
   }
 
   /** The spectators' window's centre along the pitch's length, metres, at the head's tick and at prev's. */
@@ -154,7 +161,8 @@ export class CameraRig {
     const d = wrapAngle(rigTarget(view, at, this.yawValue) - this.yawValue);
     const dt = p.tickSeconds;
     const chase = view === 'chase';
-    const cap = (chase ? p.chaseMaxTurnsPerSecond : p.ballViewMaxTurnsPerSecond) * TAU * dt;
+    this.turnCapValue = chase ? p.chaseMaxTurnsPerSecond : p.ballViewMaxTurnsPerSecond;
+    const cap = this.turnCapValue * TAU * dt;
     const want = chase ? d * (1 - Math.exp(-dt / p.chaseTimeConstantSeconds)) : d;
     this.yawValue = wrapAngle(this.yawValue + Math.max(-cap, Math.min(cap, want)));
   }

@@ -1,21 +1,27 @@
 import { type BufferGeometry, Color, type InstancedMesh, Matrix4, type MeshLambertMaterial, type Object3D, Vector3 } from 'three';
 import { describe, expect, it, vi } from 'vitest';
 import { config } from '../../config';
+import type { BarkEvent } from '../../core/session/index';
 import { defaultParams } from '../../core/sim/params';
+import { dribbleScene, sceneInputs, sceneStart } from '../../core/sim/scenes';
 import {
-  AIRBORNE, type AnimPhase, GETTING_UP, LUNGING, NEVER, RUNNING, SITTING, STANDING, TUMBLED, ZOOMING,
+  AIRBORNE, type AnimPhase, cloneState, GETTING_UP, LUNGING, type MatchState, NEVER, RUNNING, SITTING, STANDING, TUMBLED, ZOOMING,
 } from '../../core/sim/state';
+import { makeSim, step } from '../../core/sim/step';
 import { type DrawerFrame, TERRIER_LAYER, type TerrierDrawer, type TerrierFrame } from '../drawer';
 import { type Look, PLACEHOLDER_LOOK, type TerrierShape } from '../look';
+import { type BarkSource, MatchView, type ViewTimeline } from '../view';
 import { createCodeDrawer, terrierGeometries, triangleCount } from './code';
-import { newPartMatrices, newPoseParams, poseParts, terrierPose } from './pose';
+import { newPartMatrices, newPoseParams, poseParts, pushingWeight, rootMatrix, terrierPose } from './pose';
 
 // The code-built drawer (M4's design §1.4, §2.11, §9.2; D-27, L310), in
 // Node, as three's maths and geometry need no GPU: the spike's box of L310;
-// the fit, no part inside a touching ball at contacts from 31.6° to 90° all
-// round, with the pushing pose held for config.pushPoseTicks and without
-// it, in every phase and under every overlay, for the placeholder's shape
-// and a chunkier sample's, as the look book's will be; the drawing budget's
+// the fit, no part inside a touching ball wherever one can meet the
+// terrier, all round, from 31.6° to 90° on the floor and from −90° to 90°
+// in the air, with the pushing pose held for config.pushPoseTicks and
+// without it, in every phase and under every overlay, for the placeholder's
+// shape and a chunkier sample's, as the look book's will be, and as the
+// view draws a sustained push, at every fraction; the drawing budget's
 // triangles and draw calls (config's budget settings); every coat and both
 // packs painted, by index; the counts' overlays, drawing now and shown;
 // and the pack cue.
@@ -67,19 +73,25 @@ function touching(degrees: number, azimuth: number): Vector3 {
   return new Vector3(d * Math.cos(a) * Math.cos(b), d * Math.cos(a) * Math.sin(b), R_T + d * Math.sin(a));
 }
 
-// D-4: a standing terrier touching a ball on the floor meets it 31.6° above the horizontal; higher contacts up to a
-// ball on top of it, from every side.
-const ELEVATIONS = [31.6, 35, 40, 45, 50, 55, 60, 70, 80, 90];
-const BALLS = ELEVATIONS.flatMap((deg) => Array.from({ length: 24 }, (_, k) => ({ at: touching(deg, k * 15 - 180), where: `${deg}° up, ${k * 15 - 180}° round` })));
+// D-4: a terrier on the floor touching a ball on the floor meets it 31.6° above the horizontal; higher contacts up to a
+// ball on top of it, from every side. In the air, airborne or lunging, a ball meets it anywhere: level with it, as a
+// jump meets one (L57), or below it.
+const FLOOR_ELEVATIONS = [31.6, 35, 40, 45, 50, 55, 60, 70, 80, 90];
+const AIR_ELEVATIONS = Array.from({ length: 37 }, (_, k) => 5 * k - 90);
+type Ball = { readonly at: Vector3; readonly where: string };
+const around = (elevations: readonly number[]): Ball[] =>
+  elevations.flatMap((deg) => Array.from({ length: 24 }, (_, k) => ({ at: touching(deg, k * 15 - 180), where: `${deg}° up, ${k * 15 - 180}° round` })));
+const FLOOR_BALLS = around(FLOOR_ELEVATIONS);
+const AIR_BALLS = around(AIR_ELEVATIONS);
 const COLLIDER = new Vector3(0, 0, R_T);
 
-/** How far the posed terrier keeps out of a ball touching its collider anywhere in BALLS, metres (negative: inside
- *  it), and where. Only a vertex outside the collider can reach a ball that touches it. */
-function clearance(shape: TerrierShape, t: TerrierFrame, time = TIME): { metres: number; where: string } {
+/** How far the posed terrier keeps out of a ball touching its collider anywhere among `balls`, metres (negative:
+ *  inside it), and where. Only a vertex outside the collider can reach a ball that touches it. */
+function clearance(shape: TerrierShape, t: TerrierFrame, time = TIME, balls: readonly Ball[] = FLOOR_BALLS): { metres: number; where: string } {
   const out = vertices(shape, t, time).filter((v) => v.p.distanceTo(COLLIDER) > R_T);
   let metres = Infinity;
   let where = 'nothing outside the collider';
-  for (const b of BALLS) {
+  for (const b of balls) {
     for (const v of out) {
       const d = v.p.distanceTo(b.at) - R_B;
       if (d < metres) {
@@ -105,8 +117,9 @@ const SHAPES: readonly [string, TerrierShape][] = [['the placeholder', PLACEHOLD
 
 const layer = (anim: AnimPhase, secondsAgo: number) => [{ anim, start: TIME - secondsAgo * TPS, weight: 1 }];
 
-/** Every phase, a jump's both ways, at several times into it and, running and zooming, through the gait. */
-function* poses(): Generator<[string, Partial<TerrierFrame>]> {
+/** Every phase, a jump's both ways, at several times into it and, running and zooming, through the gait; with where a
+ *  ball can meet it, on the floor or in the air. */
+function* poses(): Generator<[string, Partial<TerrierFrame>, readonly Ball[]]> {
   const phases: [string, AnimPhase, Partial<TerrierFrame>][] = [
     ['standing', STANDING, {}], ['running', RUNNING, { vx: defaultParams.runSpeed }], ['zooming', ZOOMING, { vx: defaultParams.zoomiesSpeed }],
     ['rising', AIRBORNE, { vz: defaultParams.jumpSpeed }], ['falling', AIRBORNE, { vz: -defaultParams.jumpSpeed }], ['lunging', LUNGING, {}],
@@ -115,7 +128,8 @@ function* poses(): Generator<[string, Partial<TerrierFrame>]> {
   for (const [name, anim, over] of phases) {
     for (const ago of [0, 0.1, 0.3, 0.6]) {
       const gaits = anim === RUNNING || anim === ZOOMING ? [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875] : [0];
-      for (const gait of gaits) yield [`${name} ${ago} s in, gait ${gait}`, { ...over, gait, layers: layer(anim, ago) }];
+      const balls = anim === AIRBORNE || anim === LUNGING ? AIR_BALLS : FLOOR_BALLS;
+      for (const gait of gaits) yield [`${name} ${ago} s in, gait ${gait}`, { ...over, gait, layers: layer(anim, ago) }, balls];
     }
   }
 }
@@ -155,12 +169,12 @@ describe("the code-built terrier's shape (L310, D-4)", () => {
 
 describe('the fit: no part of the drawn terrier inside a touching ball (D-27)', () => {
   for (const [name, shape] of SHAPES) {
-    it(`keeps out of a ball touching it anywhere from 31.6° to 90°, in every phase and under every overlay, while its pushing pose holds: ${name}`, () => {
+    it(`keeps out of a ball touching it wherever one can, 31.6° to 90° on the floor and −90° to 90° in the air, in every phase and under every overlay, while its pushing pose holds: ${name}`, () => {
       let worst = { metres: Infinity, where: '' };
-      for (const [what, pose] of poses()) {
+      for (const [what, pose, balls] of poses()) {
         for (const [overlay, over] of OVERLAYS) {
           for (const ago of [0, config.pushPoseTicks]) {
-            const c = clearance(shape, frame({ ...pose, ...over, lastBallContactTick: TIME - ago }));
+            const c = clearance(shape, frame({ ...pose, ...over, lastBallContactTick: TIME - ago }), TIME, balls);
             if (c.metres < worst.metres) worst = { metres: c.metres, where: `${what}, with ${overlay}, ${ago} ticks after the contact: ${c.where}` };
           }
         }
@@ -180,11 +194,101 @@ describe('the fit: no part of the drawn terrier inside a touching ball (D-27)', 
   });
 
   it("finds a sample whose head is too far forward, as the look book's samples will be checked", () => {
-    const forward: TerrierShape = { ...CHUNKY, head: { centre: [0.05, 0, 0.055], radius: 0.115 } };
+    const forward: TerrierShape = { ...CHUNKY, head: { centre: [0.12, 0, 0.055], radius: 0.115 } };
     const c = clearance(forward, frame({ layers: layer(RUNNING, 0), vx: defaultParams.runSpeed, gait: 0.125, lastBallContactTick: TIME, lastPushTick: TIME - 6, lastPushDir: Math.PI / 2 }));
     expect(c.metres).toBeLessThan(0);
     expect(c.where).toMatch(/^the head/);
   });
+});
+
+describe('the pushing pose as the view draws a push held tick after tick (D-27, §2.2)', () => {
+  /** Two heads set by hand, drawn at the fraction the test sets. */
+  class Heads implements ViewTimeline {
+    started = true;
+    id = 'aaaaaaaaaaaaaaaa';
+    paused = false;
+    fraction = 0;
+    prevHead: MatchState;
+    head: MatchState;
+    constructor(s: MatchState) {
+      this.prevHead = s;
+      this.head = s;
+    }
+    get headTick(): number {
+      return this.head.tick;
+    }
+    get localTick(): number {
+      return this.head.tick;
+    }
+    alpha(): number {
+      return this.fraction;
+    }
+    clock(): number {
+      return this.head.tick + this.fraction;
+    }
+    receivedInput(): number | undefined {
+      return undefined;
+    }
+    newestInput(): undefined {
+      return undefined;
+    }
+  }
+  const noBarks: BarkSource = { update: (): readonly BarkEvent[] => [], pressed: () => {}, latest: () => null, reset: () => {} };
+  const g = terrierGeometries(PLACEHOLDER_LOOK.terrier);
+
+  /** How far every part of the drawn terrier keeps out of the drawn ball, metres. */
+  function apart(t: TerrierFrame, time: number, ball: { x: number; y: number; z: number }): number {
+    const shape = PLACEHOLDER_LOOK.terrier;
+    const m = newPartMatrices();
+    poseParts(rootMatrix(new Matrix4(), t, R_T), terrierPose(t, time, shape, newPoseParams()), shape, m);
+    const parts: [BufferGeometry, Matrix4[]][] = [
+      [g.body, [m.body]], [g.head, [m.head]], [g.snout, [m.head, m.jaw]], [g.face, [m.head]], [g.ear, m.ears], [g.leg, m.legs],
+      [g.tail, [m.tail]], [g.bandanaPlain, [m.bandana]],
+    ];
+    const c = new Vector3(ball.x, ball.y, ball.z);
+    let best = Infinity;
+    for (const [geom, mats] of parts) {
+      const pos = geom.getAttribute('position');
+      for (const mat of mats) for (let i = 0; i < pos.count; i++) best = Math.min(best, new Vector3().fromBufferAttribute(pos, i).applyMatrix4(mat).distanceTo(c) - R_B);
+    }
+    return best;
+  }
+
+  for (const k of [1, 2]) {
+    it(`holds it whole in every frame, at every fraction, with heads ${k} tick${k > 1 ? 's' : ''} apart, keeps the fit, and counts the push once`, () => {
+      // A terrier dribbling the ball, touching it every tick (M2's scene): the head's contact tick is after the
+      // drawn time from the fraction's half on, and at every fraction across a catch-up (§2.2).
+      const scene = dribbleScene('ball', false);
+      const s = sceneStart(scene, defaultParams);
+      const sim = makeSim(defaultParams, scene.packSize);
+      step(sim, s, sceneInputs(scene, s, s.tick + 1));
+      const t = new Heads(cloneState(s));
+      const me = s.terriers[0]!.id;
+      const view = new MatchView({ me, paused: false, session: { timeline: t }, scoreboard: { goals: [] } }, PLACEHOLDER_LOOK, () => ({ calmCamera: false, names: false }), noBarks);
+      const drawer = createCodeDrawer(PLACEHOLDER_LOOK, 2);
+      let without = 0;
+      let worst = Infinity;
+      for (let run = 0; run < 60; run++) {
+        const prev = cloneState(s);
+        for (let j = 0; j < k; j++) step(sim, s, sceneInputs(scene, s, s.tick + 1));
+        t.prevHead = prev;
+        t.head = cloneState(s);
+        view.run(run * 16);
+        for (const f of [0, 0.25, 0.5, 0.75, 0.99]) {
+          t.fraction = f;
+          const frame = view.frame(run * 16, 16);
+          const T = frame.drawer!.terriers.find((x) => x.id === me)!;
+          drawer.draw(frame.drawer!);
+          if (pushingWeight(T, frame.drawer!.time) < 1) without++;
+          worst = Math.min(worst, apart(T, frame.drawer!.time, frame.match!.ball));
+        }
+      }
+      expect(without, 'frames drawn without the whole pose').toBe(0);
+      expect(worst, `${(worst * 100).toFixed(2)} cm clear of the drawn ball`).toBeGreaterThanOrEqual(0);
+      expect(drawer.counts().overlaysShown.pushing, 'one push, held').toBe(1);
+      drawer.dispose();
+    });
+  }
 });
 
 // --- The drawer ---
@@ -292,6 +396,28 @@ describe("the drawer's budget and painting (§2.11, D-27, L43, L44)", () => {
     for (const [name, m] of Object.entries(M)) expect(m.instanceMatrix.count, name).toBe(CAPACITY * (perTerrier[name] ?? 1));
     d.draw(drawerFrame(EIGHT.slice(0, 3)));
     expect([M['terrier-snout']!.count, M['terrier-ears']!.count, M['terrier-legs']!.count, M['terrier-cue']!.count]).toEqual([6, 6, 12, 3]);
+    d.dispose();
+  });
+
+  it("draws each part at its pose's matrix, the jaw the snout's second instance, hung open while it barks", () => {
+    const d = createCodeDrawer(PLACEHOLDER_LOOK, CAPACITY);
+    const t = frame({ x: 3, y: -1, heading: 0.7, bark: { start: TIME - 6, weight: 1 } });
+    d.draw(drawerFrame([frame({ id: 'other' }), t]));
+    const want = newPartMatrices();
+    const shape = PLACEHOLDER_LOOK.terrier;
+    poseParts(rootMatrix(new Matrix4(), t, R_T), terrierPose(t, TIME, shape, newPoseParams()), shape, want);
+    const at = (name: string, i: number): Matrix4 => {
+      const m = new Matrix4();
+      parts(d)[name]!.getMatrixAt(i, m);
+      return m;
+    };
+    // An instance matrix holds 32-bit floats.
+    const same = (a: Matrix4, b: Matrix4): boolean => a.elements.every((v, k) => Math.abs(v - b.elements[k]!) < 1e-6);
+    expect(same(at('terrier-head', 1), want.head)).toBe(true);
+    expect(same(at('terrier-snout', 2), want.head)).toBe(true);
+    expect(same(at('terrier-snout', 3), want.jaw)).toBe(true);
+    expect(same(want.jaw, want.head), 'the jaw open, apart from the snout').toBe(false);
+    expect(same(at('terrier-legs', 4 + 3), want.legs[3])).toBe(true);
     d.dispose();
   });
 

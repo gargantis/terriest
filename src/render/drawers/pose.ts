@@ -11,6 +11,11 @@
 // config.pushPoseTicks after a contact with the ball or a terrier and then
 // released over config.animationBlendMs of drawn time, so its limits keep
 // every part out of a touching ball whatever else is drawn (D-27's fit).
+// A contact up to a tick after the drawn time counts as now: the drawn
+// match takes its ticks from the nearer state (src/render/interpolate.ts).
+// A terrier's push jolts it through the pushing pose, its lurch, head whip
+// and ears added after it, for D-27 lets terriers overhang each other; a
+// ball's holds it still, for the fit.
 //
 // Everything is in the terrier's own frame: +x along its heading, +y to its
 // left, +z up, the origin on the floor under its collider (D-4), the shape
@@ -31,9 +36,12 @@
 // fit with the ball straight ahead; checked all round, its pushing pose let
 // the tail into a ball from behind, an ear into one from the front's sides,
 // a rising nose into one in front, and the phases it left out, tumbled,
-// getting up and sitting, put the head in one. So the pose now holds in
-// every phase, levels the body on its feet, lays the ears flat and stands
-// the tail up (src/render/drawers/code.test.ts). The bark opens a jaw, the
+// getting up and sitting, put the head in one; and in the air, where a ball
+// can be level with it or below it, the face went into a level one and the
+// legs into one below. So the pose now holds in every phase, levels the
+// body on its feet, draws the head back as well as down, lays the ears
+// flat, stands the tail up and, in the air, tucks the legs under the body
+// (src/render/drawers/code.test.ts). The bark opens a jaw, the
 // snout's second instance, so PartMatrices gains `jaw` (§1.5 names `mouth`
 // but no part for it to move). Three's Matrix4 for the parts; the pose's
 // maths are three-free.
@@ -156,17 +164,21 @@ const WAG_HZ = 5;
 const CHEER_TAIL = -1.1;
 const CHEER_EARS = 0.3;
 const CHEER_HEAD = 0.12;
-/** The pushing pose's limits, the spike's: the body straight, low and still, and the head down and back. On its feet,
- *  the body is level, for a raised nose carries the face up into a ball in front; off them, sitting or tumbled, the
- *  body keeps its own lean, and no overlay adds to it. The ears lie flat and the tail stands up over the back, inside
- *  the collider, out of a ball from any side (D-27's fit, measured from 31.6° to 90° all round). */
+/** The pushing pose's limits, the spike's but for the head's draw-back and the tuck: the body straight, low and still,
+ *  and the head down and back, back far enough that the face clears a ball level with it in front, as a jump meets
+ *  one (L57). On its feet, the body is level, for a raised nose carries the face up into a ball in front; off them,
+ *  sitting or tumbled, the body keeps its own lean, and no overlay adds to it. The ears lie flat and the tail stands up
+ *  over the back, inside the collider, out of a ball from any side; in the air the legs tuck under the body, the front
+ *  feet back and the back feet forward, out of a ball below it (D-27's fit, measured all round, from 31.6° to 90° on
+ *  the floor and from −90° to 90° in the air). */
 const PUSH_BOB_MAX = 0.01;
 const PUSH_HEAD_PITCH = 0.4;
-const PUSH_NECK_BACK = 0.03;
+const PUSH_NECK_BACK = 0.06;
 const PUSH_NECK_DOWN = 0.04;
 const PUSH_EARS = -0.8;
 const PUSH_SPLAY = 0.35;
 const PUSH_TAIL = 0.15;
+const PUSH_TUCK = 0.7;
 
 /** The fastest a terrier turns, radians a tick: config's turn rate. */
 const TURN_PER_TICK = (TAU * config.turnRateTurnsPerSecond) / config.ticksPerSecond;
@@ -177,6 +189,8 @@ const cheers = (anim: AnimPhase): boolean => anim === STANDING || anim === RUNNI
 /** The phases a terrier is on its feet in, or about to land on them: not tumbled, getting up or sitting, whose own
  *  poses hold their bodies. A landing squashes only these, and their pushing pose holds the body level. */
 const onFeet = (anim: AnimPhase): boolean => anim !== TUMBLED && anim !== GETTING_UP && anim !== SITTING;
+/** The phases in the air, where a ball can meet the terrier level with it or from below. */
+const aloft = (anim: AnimPhase): boolean => anim === AIRBORNE || anim === LUNGING;
 
 function setLegs(q: PoseParams, a: number, b: number, c: number, d: number): void {
   q.legs[0] = a;
@@ -334,18 +348,23 @@ function since(time: number, tick: number): number | null {
   return tick === NEVER || time < tick ? null : (time - tick) / config.ticksPerSecond;
 }
 
+/** How far a contact at `tick` holds the pushing pose at the drawn time: whole for config.pushPoseTicks, then falling
+ *  to nothing over config.animationBlendMs of drawn time. A contact up to a tick after the drawn time counts as now:
+ *  the drawn match takes its ticks from the nearer state, the head from halfway through the tick before it, and from
+ *  every fraction across a catch-up (src/render/interpolate.ts), so a push held tick after tick keeps its pose in
+ *  every frame. */
+function contactWeight(tick: number, time: number): number {
+  if (tick === NEVER || tick > time + 1) return 0;
+  const after = time - tick - config.pushPoseTicks;
+  const kept = after <= 0 ? 1 : 1 - (after * TICK_MS) / config.animationBlendMs;
+  return kept > 0 ? kept : 0;
+}
+
 /** The pushing pose's weight: whole for config.pushPoseTicks after the later of the last ball and terrier contacts,
  *  in every phase, then falling to nothing over config.animationBlendMs of drawn time. It comes in at once, so the
  *  head is out of the ball from the contact's tick (D-27's fit), and goes out as an overlay does (L208). */
 export function pushingWeight(t: TerrierFrame, time: number): number {
-  const ball = t.lastBallContactTick !== NEVER && t.lastBallContactTick <= time ? t.lastBallContactTick : -1;
-  const other = t.lastTerrierContactTick !== NEVER && t.lastTerrierContactTick <= time ? t.lastTerrierContactTick : -1;
-  const last = Math.max(ball, other);
-  if (last < 0) return 0;
-  const after = time - last - config.pushPoseTicks;
-  const kept = after <= 0 ? 1 : 1 - (after * TICK_MS) / config.animationBlendMs;
-  if (!(kept > 0)) return 0;
-  return kept;
+  return Math.max(contactWeight(t.lastBallContactTick, time), contactWeight(t.lastTerrierContactTick, time));
 }
 
 const layerPose = newPoseParams();
@@ -362,6 +381,8 @@ export function terrierPose(t: TerrierFrame, time: number, shape: TerrierShape, 
   let footed = 0;
   // The lowest pitch the pushing pose keeps: level on its feet, else each layer's own lean back.
   let lowest = 0;
+  // The share in the air, whose legs the pushing pose tucks.
+  let aloftShare = 0;
   for (const L of t.layers) {
     if (!(L.weight > 0)) continue;
     const p = phasePose(L.anim, secondsSince(time, L.start, tps), t, shape, layerPose);
@@ -371,6 +392,7 @@ export function terrierPose(t: TerrierFrame, time: number, shape: TerrierShape, 
     if (cheers(L.anim)) cheering += L.weight;
     const feet = onFeet(L.anim);
     if (feet) footed += L.weight;
+    if (aloft(L.anim)) aloftShare += L.weight;
     lowest += ((feet ? 0 : Math.min(0, p.pitch)) - lowest) * (L.weight / total);
   }
   if (total === 0) phasePose(STANDING, 0, t, shape, out);
@@ -383,16 +405,20 @@ export function terrierPose(t: TerrierFrame, time: number, shape: TerrierShape, 
   q.roll -= TURN_LEAN * turn * Math.min(1, speed / defaultParams.runSpeed);
   q.tailYaw -= TURN_TAIL * turn;
 
-  // Being pushed: a jolt the way the push went, relative to the heading.
+  // Being pushed: a jolt the way the push went, relative to the heading. Its roll now; its lurch, head whip and ears
+  // after the pushing pose, which a ball's contact holds them out of (D-27's fit) and a terrier's lets through.
+  let joltPitch = 0;
+  let joltHead = 0;
+  let joltEars = 0;
   const pushed = since(time, t.lastPushTick);
   if (pushed !== null && pushed < JOLT_SECONDS) {
     const u = pushed / JOLT_SECONDS;
     const k = Math.sin(Math.PI * u) * (1 - u);
     const rel = t.lastPushDir - t.heading;
-    q.pitch += JOLT_PITCH * Math.cos(rel) * k;
+    joltPitch = JOLT_PITCH * Math.cos(rel) * k;
     q.roll -= JOLT_ROLL * Math.sin(rel) * k;
-    q.headYaw -= JOLT_HEAD * Math.sin(rel) * k;
-    q.earSplay += JOLT_EARS * k;
+    joltHead = -JOLT_HEAD * Math.sin(rel) * k;
+    joltEars = JOLT_EARS * k;
   }
 
   // Landing: the legs splay and the body drops as far as keeps the feet on the floor.
@@ -456,10 +482,19 @@ export function terrierPose(t: TerrierFrame, time: number, shape: TerrierShape, 
     h.earPitch = Math.min(q.earPitch, PUSH_EARS);
     h.earSplay = Math.min(q.earSplay, PUSH_SPLAY);
     h.tailPitch = Math.max(q.tailPitch, PUSH_TAIL);
+    if (aloftShare > 0) {
+      const tuck = aloftShare / total;
+      for (let k = 0; k < 4; k++) h.legs[k] = q.legs[k]! + ((k < 2 ? PUSH_TUCK : -PUSH_TUCK) - q.legs[k]!) * tuck;
+    }
     // Whole, it's the held pose exactly, its limits unrounded.
     if (pushing >= 1) copyPose(h, q);
     else blendPoses(q, h, pushing, q);
   }
+  // The jolt's lurch, head whip and ears, but as far as a ball's contact holds the pose for the fit.
+  const free = 1 - contactWeight(t.lastBallContactTick, time);
+  q.pitch += joltPitch * free;
+  q.headYaw += joltHead * free;
+  q.earSplay += joltEars * free;
   if (weights !== undefined) {
     weights.bark = barking;
     weights.celebrate = celebrating;
