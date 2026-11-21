@@ -2,8 +2,8 @@ import { readdirSync } from 'node:fs';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { defaultParams } from '../core/sim/index';
 import {
-  ABSENCES, expectScreens, JUMPS, PACED_READY, PACES, playScreens, playToCountdown, printScreens, SCREENS_READY, SCREENS_RUNS, type ScreensRun,
-  screensName, screensRun,
+  ABSENCES, expectScreens, JUMPS, PACED_READY, PACES, playScreens, playToCountdown, printScreens, RELEASES, SCREENS_BAND, SCREENS_READY,
+  SCREENS_RUNS, type ScreensRun, screensBandRuns, screensName, screensRun,
 } from './setups-testing';
 
 // §9.4's setup over the loopback network, as e2e/match.screens.net.spec.ts
@@ -16,7 +16,9 @@ import {
 // file runs much over 8 s alone; here Ready at 600, e at 0, the reload
 // away 0.5 s; and here too the runs themselves, and the warm-up's W, which
 // leaves the start countdown's placed state as it was. Each file prints
-// its run's figures for the spec's timeout.
+// its run's figures for the spec's timeout. screens-hold-start.test.ts
+// moves the hold's start in the countdown, and screens-band-*.sweep.ts,
+// off the gate, play every Ready tick of §9.1's band (setups-F1).
 
 // Whole matches in virtual time: CPU-bound, as M3's setups are.
 vi.setConfig({ testTimeout: 120_000 });
@@ -24,7 +26,7 @@ vi.setConfig({ testTimeout: 120_000 });
 const P = defaultParams;
 const SECOND = P.config.ticksPerSecond;
 
-describe("the screens' runs (M4's design §9.2)", () => {
+describe("the screens' runs (M4's design §9.1, §9.2)", () => {
   it('are Ready at 600, 630 and 660 with e at 0, at 60 and drawn, and the proposer paced at 50 and 100 ms at 600 and 660, e drawn, one a file', () => {
     const unpaced = SCREENS_RUNS.filter((o) => o.paceMs === null);
     const paced = SCREENS_RUNS.filter((o) => o.paceMs !== null);
@@ -36,7 +38,7 @@ describe("the screens' runs (M4's design §9.2)", () => {
     for (const got of [absences((o) => `${o.ready}`), absences((o) => o.e)]) for (const a of Object.values(got)) expect(a).toEqual([...ABSENCES]);
     expect(paced.map((o) => o.absence)).toEqual([...ABSENCES, ABSENCES[0]]);
     // WebKit's three presses, each leaving at least a second of the start countdown (M4's design §9.1).
-    for (const o of SCREENS_RUNS) {
+    for (const o of [...SCREENS_RUNS, ...RELEASES.flatMap(screensBandRuns)]) {
       expect(JUMPS).toContainEqual(o.jumps);
       expect(o.jumps.every((at, k) => at >= (o.jumps[k - 1] ?? 0) && at <= P.startCountdownTicks - SECOND), screensName(o)).toBe(true);
     }
@@ -44,6 +46,18 @@ describe("the screens' runs (M4's design §9.2)", () => {
     const files = readdirSync(new URL('.', import.meta.url)).filter((f) => /^screens-setup-\d+\.test\.ts$/.test(f));
     expect(files.sort()).toEqual(SCREENS_RUNS.map((_, k) => `screens-setup-${k + 1}.test.ts`).sort());
     expect(() => screensRun(SCREENS_RUNS.length + 1)).toThrow(/no screens run/);
+  });
+
+  it("are swept off the gate at every Ready tick of §9.1's band, 600 to 660, with e at 0, at 60 and drawn, a file for each e (setups-F1)", () => {
+    expect(SCREENS_BAND).toEqual(Array.from({ length: 61 }, (_, k) => 600 + k));
+    for (const e of RELEASES) {
+      const band = screensBandRuns(e);
+      expect(band.map((o) => [o.ready, o.e, o.paceMs]), e).toEqual(SCREENS_BAND.map((ready) => [ready, e, null]));
+      // The reload's absence and WebKit's presses by turns: over the band each absence meets every press.
+      expect(new Set(band.map((o) => `${o.absence} ${o.jumps.join(',')}`)).size, e).toBe(ABSENCES.length * JUMPS.length);
+    }
+    const sweeps = readdirSync(new URL('.', import.meta.url)).filter((f) => /^screens-band-.+\.sweep\.ts$/.test(f));
+    expect(sweeps.sort()).toEqual(RELEASES.map((e) => `screens-band-${e}.sweep.ts`).sort());
   });
 
   it("leave the start countdown's placed state as it was after every player's W in warm-up, its gait and animation start aside", () => {

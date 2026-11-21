@@ -16,8 +16,10 @@
 //
 // From M4, the screens match's setup in the same room, with the same
 // triggers and checks (M4's design, research/m4/DESIGN.md, §8.1, §9.1,
-// §9.2, §9.4, M4-Q6, M4-Q36), for screens-setup-1 to -13, as
-// e2e/match.screens.net.spec.ts plays it through the screens: each page's
+// §9.2, §9.4, M4-Q6, M4-Q36), for screens-setup-1 to -13 and
+// screens-hold-start.test.ts in the gate, and screens-band-*.sweep.ts, every
+// Ready tick of §9.1's band, off it, as e2e/match.screens.net.spec.ts plays
+// it through the screens: each page's
 // keys are setups.ts' specSampler, after W held for 30 ticks in warm-up;
 // the keeper's player holds S, back in ball view, from each countdown to a
 // second and e ticks of play, and presses Space from the head's end;
@@ -43,7 +45,7 @@ import {
 } from '../core/sim/index';
 import { expectAgreement, NetPump, TEST_BUILD } from '../core/timeline/testing';
 import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32 } from './loopback';
-import { drawn, LATEST, type Late, ON_TIME, type Period } from './practice-spec-testing';
+import { band, drawn, HOLD_STARTS, LATEST, type Late, ON_TIME, type Period } from './practice-spec-testing';
 
 const NET = netSettings();
 const P = defaultParams;
@@ -65,8 +67,9 @@ export const ABSENCES = [500, 2000, 5000] as const; // not a setting: §8.1's 0.
  *  readyAt with its terrier in the final roster; and the test looks after each timer run. */
 class Page extends Session {
   readyAt: number | null = null;
-  /** The virtual ms of its Ready press, −1 before. */
+  /** The virtual ms and the local tick of its Ready press, −1 before. */
   readyMs = -1;
+  readyTick = -1;
   /** Each onControl's base (D-10), and the first input sampled after it, null until then. */
   readonly rebases: { readonly base: number; first: number | null }[] = [];
   readonly after: (() => void)[] = [];
@@ -80,6 +83,7 @@ class Page extends Session {
     if (this.readyAt !== null && !this.pressed && this.timeline.localTick >= this.readyAt && this.inRoster()) {
       this.pressed = true;
       this.readyMs = now;
+      this.readyTick = this.timeline.localTick;
       this.ready(true);
     }
     for (const f of this.after) f();
@@ -311,9 +315,13 @@ export function printSlowest(file: string, runs: readonly Outcome[]): void {
 
 /** The spec's seed: each page's profile holds personId(7, k) (M4's design §9.4). */
 export const SCREENS_SEED = 7; // not a setting: the specs' seed
-/** The Ready ticks the setup is played at (M4's design §9.2): every page presses at its first timer run at
- *  or past one, as the spec's press at their first poll at or past 600, within §9.1's 60 ticks. */
+/** The Ready ticks played with e at 0, at 60 and drawn (M4's design §9.2): every page presses at its first
+ *  timer run at or past one, as the spec's press at their first poll at or past 600. */
 export const SCREENS_READY = [600, 630, 660] as const; // not a setting: M4's design §9.2's ticks
+/** §9.1's band: every tick from 600 to 60 later is validated, each a start of its own, since the latest
+ *  page's press starts the countdown (M4-Q36, setups-F1). screens-band-*.sweep.ts play every one with
+ *  each e, off the gate: 58 more whole matches in it took check:commit from about 6 minutes to 10.5. */
+export const SCREENS_BAND: readonly number[] = band(SCREENS_READY[0]);
 /** The paced runs' Ready ticks, and the keeper's timer periods in them, ms (M4's design §8.1, §9.2). */
 export const PACED_READY = [600, 660] as const; // not a setting: M4's design §9.2's ticks
 export const PACES = [50, 100] as const; // not a setting: M4's design §8.1's slow proposer
@@ -333,9 +341,13 @@ const MASH_TICKS = 6; // not a setting: a script's mash, ten presses a second
 const JUMP_BITS = encodeInput({ jump: 3 }); // not a setting: A.2's bits
 /** A.2's press counters, which a hold leaves as they were. */
 const COUNTERS = encodeInput({ jump: 3, pounce: 3, bark: 3 }); // not a setting: A.2's bits
+/** How far a paced keeper's skipped share may stray from its pace's arithmetic (M4's design §8.1). */
+const SKIPPED_SLACK = 0.05; // not a setting: a check's tolerance
 
 /** e's names: at 0, at 60, and drawn for each kickoff (M4's design §9.2). */
 export type ReleaseName = '0' | '60' | 'drawn';
+/** Where in each countdown the keeper's hold begins (M4's design §9.1, §9.2): Practice's spec's three. */
+export type HoldStart = keyof typeof HOLD_STARTS;
 
 /** One run of the screens' setup (M4's design §9.2). */
 export interface ScreensOptions {
@@ -348,6 +360,8 @@ export interface ScreensOptions {
   readonly paceMs: number | null;
   /** Every player's W in warm-up; true unless false. */
   readonly warmUp?: boolean;
+  /** Where in each countdown the keeper's player presses its hold; at its first tick if absent. */
+  readonly from?: HoldStart;
 }
 
 /** The screens' e drawn for each kickoff: its own stream for each Ready tick, apart from Practice's
@@ -371,6 +385,20 @@ export const SCREENS_RUNS: readonly ScreensOptions[] = [
   ),
 ];
 
+/** The releases the band is swept with, one sweep file each (M4's design §9.2). */
+export const RELEASES: readonly ReleaseName[] = ['0', '60', 'drawn'];
+
+/** The band's sweep for one e (setups-F1): every tick of SCREENS_BAND, the reload's absence and WebKit's
+ *  presses by turns, so that over the band each absence meets every press, and each e's turns start
+ *  one further on. */
+export function screensBandRuns(e: ReleaseName): readonly ScreensOptions[] {
+  const j = RELEASES.indexOf(e);
+  return SCREENS_BAND.map((ready, b): ScreensOptions => {
+    const k = b + j;
+    return { ready, e, absence: ABSENCES[k % 3]!, jumps: JUMPS[Math.floor(k / 3) % 3]!, paceMs: null };
+  });
+}
+
 /** screens-setup-k's run, k from 1 to 13. */
 export function screensRun(k: number): ScreensOptions {
   const o = SCREENS_RUNS[k - 1];
@@ -381,7 +409,8 @@ export function screensRun(k: number): ScreensOptions {
 /** A run's options, for a test's name and a failure's message. */
 export const screensName = (o: ScreensOptions): string =>
   `Ready at ${o.ready}, e ${o.e}, away ${o.absence / 1000} s, WebKit's presses at ${o.jumps.join(', ')}` +
-  (o.paceMs !== null ? `, the proposer paced at ${o.paceMs} ms` : '') + (o.warmUp === false ? ', no warm-up' : '');
+  (o.paceMs !== null ? `, the proposer paced at ${o.paceMs} ms` : '') + (o.warmUp === false ? ', no warm-up' : '') +
+  (o.from !== undefined ? `, the hold from the countdown's ${o.from}` : '');
 
 /** W held over the warm-up's window of head ticks, its press counters the script's. */
 const warmedUp = (sample: (head: Readonly<MatchState>) => number): ((head: Readonly<MatchState>) => number) => (head) => {
@@ -411,8 +440,9 @@ function screensScripts(o: ScreensOptions): Scripts {
     const all = closing ? closingSpace(keys) : keys;
     return (head) => all(head);
   };
+  const hold = { input: BACK_IN_BALL_VIEW, late, ...(o.from !== undefined ? { from: HOLD_STARTS[o.from] } : {}) };
   return {
-    keeper: person({ hold: { input: BACK_IN_BALL_VIEW, late } }, true),
+    keeper: person({ hold }, true),
     firefox: person({}),
     webkit: person({ jumps: o.jumps }),
     spectator: () => () => 0,
@@ -437,8 +467,8 @@ interface Own {
   senders: number;
 }
 
-/** One run of the screens' setup, as the keeper's final state and the pages had it at the end. */
-export interface ScreensRun extends Outcome {
+/** What the keeper's timeline recorded of a run, to wherever the run stopped (M4's design §9.2, §9.4). */
+export interface KeeperRecord {
   readonly options: ScreensOptions;
   readonly late: readonly number[]; // e for each countdown, the start's first
   /** The start countdown and each kickoff's, with the play after it, from the keeper's final state. */
@@ -448,9 +478,8 @@ export interface ScreensRun extends Outcome {
   readonly headSaw: readonly (readonly [countdown: number, local: number])[];
   /** The goals' ticks and packs, as the keeper's final state latched them. */
   readonly goals: readonly (readonly [tick: number, pack: Pack])[];
-  /** The virtual ms of the latest Ready press, and of the last page's confirmed end. */
-  readonly readyMs: number;
-  readonly endMs: number;
+  /** Each play's first tick, the start's and each kickoff's, with the keeper's final hash there. */
+  readonly plays: readonly (readonly [tick: number, hash: string])[];
   /** The keeper's own recorded inputs, as [tick, u16], from the start countdown's first sampled input. */
   readonly keeperInputs: readonly (readonly [number, number])[];
   /** The final ticks, from the start countdown's first, at which the keeper's timeline received an input
@@ -459,34 +488,26 @@ export interface ScreensRun extends Outcome {
   /** The shortest and the longest gap between the keeper's timer runs, virtual ms. */
   readonly gapsMs: readonly [number, number];
   readonly own: Readonly<Own>;
-  /** The keeper's player's terrier at each page's end: its stored input's jump counter, which a closing
-   *  press that acted would have moved. */
-  readonly keeperJumpsAtEnd: readonly number[];
-  /** WebKit's terrier: at the first final state in play, as its page left, and at each page's end. */
-  readonly webkitAtPlay: Readonly<Terrier> | null;
-  readonly webkitLeaving: Readonly<Terrier> | null;
-  readonly webkitAtEnd: readonly Readonly<Terrier>[];
-  /** The reloaded page's onControl bases, each with the first input sampled after it. */
-  readonly rebases: readonly { readonly base: number; readonly first: number | null }[];
 }
 
-/** One run of the screens' setup, seed 7, played until every page holds the confirmed end, with §8.4's
- *  checks of it (M4's design §9.2, §9.4). */
-export function playScreens(o: ScreensOptions): ScreensRun {
-  const seed = SCREENS_SEED;
-  const r = screensRoom(o);
+/** The keeper's record, kept after each of its timer runs, and the plays it has seen so far. */
+interface Recorder {
+  readonly plays: readonly (readonly [number, string])[];
+  record(): KeeperRecord;
+}
+
+function recordKeeper(r: Room, o: ScreensOptions): Recorder {
   const { keeper } = r;
-  const me = personId(seed, 0);
-  const packB = [personId(seed, 1), personId(seed, 2)];
-  const webkitId = packB[1]!;
+  const me = personId(SCREENS_SEED, 0);
+  const packB = [personId(SCREENS_SEED, 1), personId(SCREENS_SEED, 2)];
   const phases: [Phase, number][] = [];
   const headSaw: [number, number][] = [];
   const goals: [number, Pack][] = [];
+  const plays: [number, string][] = [];
   const inputs: [number, number][] = [];
   const bHeld: [string, number][] = [];
   const own: Own = { ticks: 0, sent: 0, skipped: 0, senders: 0 };
   const gaps = { last: -1, min: Infinity, max: -Infinity };
-  let atPlay: Readonly<Terrier> | null = null;
   let recorded = 0; // the keeper's own input ticks looked at
   let finals = 0; // and its final ticks, for pack B's
   let local = -1; // the keeper's local tick and TICKs sent at its last run, −1 before its timeline holds
@@ -502,8 +523,8 @@ export function playScreens(o: ScreensOptions): ScreensRun {
     if (last === undefined || last[0] !== F.phase || last[1] !== F.phaseStart) {
       phases.push([F.phase, F.phaseStart]);
       if (F.phase === CELEBRATION) goals.push([F.lastGoalTick, F.lastGoalPack]);
+      if (F.phase === IN_PLAY) plays.push([F.phaseStart, t.hashAt(F.phaseStart)]);
     }
-    if (atPlay === null && F.phase === IN_PLAY) atPlay = { ...F.terriers[findTerrier(F, webkitId)]! };
     const h = t.head;
     if ((h.phase === START_COUNTDOWN || h.phase === KICKOFF_COUNTDOWN) && !headSaw.some(([c]) => c === h.phaseStart)) headSaw.push([h.phaseStart, t.localTick]);
     for (const top = t.localTick + D; recorded < top; ) {
@@ -527,30 +548,78 @@ export function playScreens(o: ScreensOptions): ScreensRun {
     sent = t.stats.sent;
     own.senders = senders;
   });
-  playToEnd(r);
-  const base = outcome(r);
-  const late = lateOf(o);
-  const periods: Period[] = [];
-  phases.forEach(([phase, start], k) => {
-    if (phase !== START_COUNTDOWN && phase !== KICKOFF_COUNTDOWN) return;
-    const next = phases[k + 1];
-    const play = next?.[0] === IN_PLAY ? next[1] : null;
-    const after = play === null ? next : phases[k + 2];
-    const countdownTicks = phase === START_COUNTDOWN ? P.startCountdownTicks : P.kickoffCountdownTicks;
-    periods.push({ countdown: start, countdownTicks, play, playEnd: after?.[1] ?? Infinity });
+  const record = (): KeeperRecord => {
+    const late = lateOf(o);
+    const periods: Period[] = [];
+    phases.forEach(([phase, start], k) => {
+      if (phase !== START_COUNTDOWN && phase !== KICKOFF_COUNTDOWN) return;
+      const next = phases[k + 1];
+      const play = next?.[0] === IN_PLAY ? next[1] : null;
+      const after = play === null ? next : phases[k + 2];
+      const countdownTicks = phase === START_COUNTDOWN ? P.startCountdownTicks : P.kickoffCountdownTicks;
+      periods.push({ countdown: start, countdownTicks, play, playEnd: after?.[1] ?? Infinity });
+    });
+    const c0 = periods[0]?.countdown ?? Infinity;
+    return {
+      options: o, late: periods.map((_, k) => late(k)), periods, headSaw, goals, plays,
+      keeperInputs: inputs.filter(([u]) => u >= c0 + 1 + D), bHeld: bHeld.filter(([, u]) => u >= c0).map(([id, u]) => `${id} ${u}`),
+      gapsMs: [gaps.min, gaps.max], own,
+    };
+  };
+  return { plays, record };
+}
+
+/** One run of the screens' setup, as the keeper's final state and the pages had it at the end. */
+export interface ScreensRun extends Outcome, KeeperRecord {
+  /** The local tick of each player page's Ready press: the keeper's, Firefox's and WebKit's. */
+  readonly readyTicks: readonly number[];
+  /** The virtual ms of the latest Ready press, and of the last page's confirmed end. */
+  readonly readyMs: number;
+  readonly endMs: number;
+  /** The keeper's player's terrier at each page's end: its stored input's jump counter, which a closing
+   *  press that acted would have moved. */
+  readonly keeperJumpsAtEnd: readonly number[];
+  /** WebKit's terrier: at the first final state in play, as its page left, and at each page's end. */
+  readonly webkitAtPlay: Readonly<Terrier> | null;
+  readonly webkitLeaving: Readonly<Terrier> | null;
+  readonly webkitAtEnd: readonly Readonly<Terrier>[];
+  /** The reloaded page's onControl bases, each with the first input sampled after it. */
+  readonly rebases: readonly { readonly base: number; readonly first: number | null }[];
+}
+
+/** One run of the screens' setup, seed 7, played until every page holds the confirmed end, with §8.4's
+ *  checks of it (M4's design §9.2, §9.4). */
+export function playScreens(o: ScreensOptions): ScreensRun {
+  const r = screensRoom(o);
+  const me = personId(SCREENS_SEED, 0);
+  const webkitId = personId(SCREENS_SEED, 2);
+  const rec = recordKeeper(r, o);
+  let atPlay: Readonly<Terrier> | null = null;
+  r.keeper.session.after.push(() => {
+    const t = r.keeper.session.timeline;
+    if (atPlay === null && t.started && t.final.phase === IN_PLAY) atPlay = { ...t.final.terriers[findTerrier(t.final, webkitId)]! };
   });
-  const c0 = periods[0]?.countdown ?? Infinity;
-  const readyMs = Math.max(...[r.keeper, r.firefox, r.webkit].map((n) => n.session.readyMs));
+  playToEnd(r);
+  const players = [r.keeper, r.firefox, r.webkit];
+  const readyMs = Math.max(...players.map((n) => n.session.readyMs));
   const endMs = Math.max(...r.pages.map((n) => r.endMs.get(n)!));
   const at = (n: Node, id: string): Readonly<Terrier> => final(n).terriers[findTerrier(final(n), id)]!;
   return {
-    ...base, options: o, late: periods.map((_, k) => late(k)), periods, headSaw, goals, readyMs, endMs,
-    keeperInputs: inputs.filter(([u]) => u >= c0 + 1 + D), bHeld: bHeld.filter(([, u]) => u >= c0).map(([id, u]) => `${id} ${u}`),
-    gapsMs: [gaps.min, gaps.max], own,
+    ...outcome(r), ...rec.record(), readyTicks: players.map((n) => n.session.readyTick), readyMs, endMs,
     keeperJumpsAtEnd: r.pages.map((n) => jumpCount(at(n, me).prevInput)),
     webkitAtPlay: atPlay, webkitLeaving: r.seen.leaving, webkitAtEnd: r.pages.map((n) => ({ ...at(n, webkitId) })),
     rebases: r.back.session.rebases.map((x) => ({ ...x })),
   };
+}
+
+/** The run's room played only until the keeper's final state shows its n-th play, the start's the first,
+ *  for the hold's start (M4's design §9.1, §9.2, setups-F2): the keeper's record to there. */
+export function playScreensTo(o: ScreensOptions, n: number): KeeperRecord {
+  const r = screensRoom(o);
+  const rec = recordKeeper(r, o);
+  r.room.run(400_000, () => rec.plays.length >= n);
+  expect([rec.plays.length >= n, r.room.problems], screensName(o)).toEqual([true, []]);
+  return rec.record();
 }
 
 /** A run's figures, for a failure's message. */
@@ -562,6 +631,24 @@ export const screensLabel = (r: ScreensRun): string =>
 export function expectScreensDecisive(r: ScreensRun): void {
   expect([r.overtime, r.score[0] > r.score[1], r.firstGoalTick >= 0, r.spectatorClock >= 0, r.reloadClock >= 0], screensLabel(r)).toEqual([
     false, true, true, true, true,
+  ]);
+}
+
+/** The ticks a page's local tick moves in one of its timer runs: one at the timer's own pace, a run of
+ *  every 4 ms, and its pace's worth at a slower one. */
+const ticksPerRun = (paceMs: number | null): number => (paceMs === null ? 1 : Math.max(1, Math.round(paceMs / NET.tickMs)));
+
+/** The run played the start its name says (M4's design §9.1, setups-F3): each player page pressed Ready at
+ *  its first timer run at or past the run's Ready tick, at it unless the page is the paced keeper, whose
+ *  runs move its local tick a run's ticks at once; and the start countdown began at the latest READY's
+ *  tick, d + 1 after its press, a paced keeper's later by the ticks its next catch-up skipped, since an
+ *  event rides the first input a timer run sends (the timeline's queueEvent, A.4's Timer stall). */
+export function expectReady(r: ScreensRun): void {
+  const pace = (k: number): number | null => (k === 0 ? r.options.paceMs : null);
+  const within = r.readyTicks.map((u, k) => u - r.ready >= 0 && u - r.ready < ticksPerRun(pace(k)));
+  const readyAt = r.readyTicks.map((u, k) => u + 1 + D + Math.max(0, ticksPerRun(pace(k)) - NET.timeline.stallSendTicks));
+  expect([within, r.countdownTick], `${screensLabel(r)}: Ready pressed at ${r.readyTicks.join(', ')}`).toEqual([
+    within.map(() => true), Math.max(...readyAt),
   ]);
 }
 
@@ -585,18 +672,21 @@ export function expectPressesDropped(r: ScreensRun): void {
 }
 
 /** The keeper's player's holds, as its timeline recorded its own input (M4's design §9.1): from the
- *  sample after the timer run whose head first showed each countdown, d + 1 ticks past that run's
- *  local tick, unless one is still held, to the sample a second of play and e ticks more shows, d
- *  ticks on; nothing else held from the start countdown on. A paced keeper's catch-ups skip ticks,
- *  which hold nothing either way, and its release comes after a timer run that moved up to a run's
- *  ticks past the second and e, so the release may be that much later. And pack B's players held
- *  nothing from the start countdown on, as the keeper's timeline received them. */
-export function expectHolds(r: ScreensRun): void {
+ *  sample after the timer run whose head first showed each countdown, or showed it `from` ticks in if
+ *  that came later, d + 1 ticks past that run's local tick, unless one is still held, to the sample a
+ *  second of play and e ticks more shows, d ticks on; nothing else held from the start countdown on. A
+ *  paced keeper's catch-ups skip ticks, which hold nothing either way, and its release comes after a
+ *  timer run that moved up to a run's ticks past the second and e, so the release may be that much
+ *  later. And pack B's players held nothing from the start countdown on, as the keeper's timeline
+ *  received them. */
+export function expectHolds(r: KeeperRecord, label: string = screensName(r.options)): void {
   const lag = r.options.paceMs === null ? 0 : Math.ceil(r.options.paceMs / NET.tickMs);
+  const from = r.options.from === undefined ? HOLD_STARTS.first : HOLD_STARTS[r.options.from];
   const spans: [number, number][] = [];
   let open: number | null = null;
   r.periods.forEach((p, k) => {
-    open ??= (r.headSaw.find(([c]) => c === p.countdown)?.[1] ?? p.countdown) + 1 + D;
+    const saw = r.headSaw.find(([c]) => c === p.countdown)?.[1] ?? p.countdown;
+    open ??= Math.max(saw, p.countdown + from(p.countdownTicks)) + 1 + D;
     if (p.play === null) return;
     const release = p.play + TPS + r.late[k]!;
     if (release < p.playEnd) {
@@ -616,41 +706,64 @@ export function expectHolds(r: ScreensRun): void {
     if (held !== want && !either) wrong.push(`${u}: ${held ? 'held' : 'let go'}`);
   }
   const holds = r.keeperInputs.filter(([, v]) => heldDirection(v)).length;
-  expect({ wrong: wrong.slice(0, 10), any: holds > 0, b: r.bHeld.slice(0, 10) }, `${screensLabel(r)}: spans ${JSON.stringify(spans)}`).toEqual({
+  expect({ wrong: wrong.slice(0, 10), any: holds > 0, b: r.bHeld.slice(0, 10) }, `${label}: spans ${JSON.stringify(spans)}`).toEqual({
     wrong: [], any: true, b: [],
   });
 }
 
-/** The keeper's timers ran at its pace, every one of its gaps, and it sent for its player and its bot
- *  (M4's design §8.1). */
+/** The keeper's timers ran at its pace, every one of its gaps; it sent for its player and its bot; and its
+ *  catch-ups skipped the share its pace makes them skip (M4's design §8.1, setups-F4): none at the
+ *  timer's own pace or at 50 ms, whose runs of 3 ticks send every one, and half at 100 ms, whose runs of
+ *  6 send their newest 3. */
 export function expectPaced(r: ScreensRun): void {
   const pace = r.options.paceMs ?? NET.timerMs;
-  expect([r.gapsMs, r.own.senders], screensLabel(r)).toEqual([[pace, pace], 2]);
+  const k = ticksPerRun(r.options.paceMs);
+  const want = Math.max(0, k - NET.timeline.stallSendTicks) / k;
+  const share = r.own.ticks > 0 ? r.own.skipped / r.own.ticks : 0;
+  const skipped = want === 0 ? r.own.skipped : Math.abs(share - want) <= SKIPPED_SLACK;
+  expect([r.gapsMs, r.own.senders, skipped, r.own.ticks > 0], `${screensLabel(r)}: skipped ${r.own.skipped} of ${r.own.ticks}`).toEqual([
+    [pace, pace], 2, want === 0 ? 0 : true, true,
+  ]);
 }
 
 /** Every check a screens run takes (M4's design §9.2, §9.4). */
 export function expectScreens(r: ScreensRun): void {
   expectScreensDecisive(r);
+  expectReady(r);
   expectPressesDropped(r);
-  expectHolds(r);
+  expectHolds(r, screensLabel(r));
   expectPaced(r);
 }
 
 const seconds = (ticks: number): string => (ticks / TPS).toFixed(1);
 
-/** Each run's figures, for e2e/match.screens.net.spec.ts's timeout (M4's design §9.4): its score and
- *  goals, the end's tick from genesis, every page's confirmed end in virtual seconds after the last
- *  Ready press, and the keeper's skipped share. */
+/** Each run's figures, for e2e/match.screens.net.spec.ts's timeout (M4's design §9.4): its Ready presses
+ *  and start countdown, its score and goals, the end's tick from genesis, every page's confirmed end in
+ *  virtual seconds after the last Ready press, and the keeper's skipped share. */
 export function printScreens(file: string, runs: readonly ScreensRun[]): void {
   const after = (r: ScreensRun): number => (r.endMs - r.readyMs) / 1000;
   for (const r of runs) {
     const share = r.own.ticks > 0 ? (100 * r.own.skipped) / r.own.ticks : 0;
     console.log(
-      `${file}: ${screensName(r.options)}: ${r.score.join('–')}, ${r.goals.length} goals, the first after ${seconds(r.firstGoalPlayTicks)} s of play; ` +
+      `${file}: ${screensName(r.options)}: Ready pressed at ${r.readyTicks.join(', ')}, the start countdown at ${r.countdownTick}; ` +
+        `${r.score.join('–')}, ${r.goals.length} goals, the first after ${seconds(r.firstGoalPlayTicks)} s of play; ` +
         `the end at tick ${r.endTick}, ${seconds(r.endTick)} s from genesis, every page's confirmed ${after(r).toFixed(1)} s after Ready; ` +
         `the keeper skipped ${r.own.skipped} of ${r.own.ticks} ticks (${share.toFixed(1)}%) for ${r.own.senders} senders`,
     );
   }
+}
+
+/** A sweep's summary, for the spec's timeout (M4's design §9.4): how many runs, their scores, and the run
+ *  whose every page held its confirmed end latest after the last Ready press. */
+export function printSlowestScreens(file: string, runs: readonly ScreensRun[]): void {
+  if (runs.length === 0) return; // every run failed: its own failure says why
+  const after = (r: ScreensRun): number => r.endMs - r.readyMs;
+  const slow = runs.reduce((a, b) => (after(b) > after(a) ? b : a));
+  const scores = [...new Set(runs.map((r) => r.score.join('–')))].sort();
+  console.log(
+    `${file}: ${runs.length} runs, scores ${scores.join(', ')}; the slowest, ${screensName(slow.options)}: ${slow.score.join('–')}, ` +
+      `the end at tick ${slow.endTick}, ${seconds(slow.endTick)} s from genesis, every page's confirmed ${(after(slow) / 1000).toFixed(1)} s after Ready`,
+  );
 }
 
 /** The run's room played only until the keeper's final state is a second into the start countdown, for
