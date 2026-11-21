@@ -159,6 +159,86 @@ Started and prepared are the hook's `startMs`, in ms after navigation, at `start
 
 The spec timed its waits by the machine's clock, which a 4-minute probe after the runs found stepping a second ahead of the monotonic clock every 32 s, 3.4% in all, so the waits' figures in the lines include those steps, where Playwright's durations and the pages' own clocks don't. From the same commit the waits go by the monotonic clock. The timeouts set from these runs, each with its margin beside it: `e2e/lib/practice.ts`' `PREPARED_MS` 4 s, `READY_ACTS_MS` 3 s, `TO_ANCHOR_MS` 21 s, `COUNTDOWN_MS` 3 s, `FIRST_GOAL_MS` 65 s, `RESULTS_MS` 225 s and `SHOWN_MS` 5 s; `e2e/practice.spec.ts`' whole match 315 s, controls run 110 s and `ARROW_MS` 3 s; and `e2e/dev-practice.run.ts`' `WARM_MS` 5 s and its test 105 s.
 
+### M4 phase 2c: the timers' cadence and the slow-frame share
+
+The bench's runs 4 and 6 (M4's design §8.4, §12's 2c, §0's "Measurements run alone"; D-15, D-31, M4-Q6), from 18:40 to 20:20 UTC on 2026-11-21, at 724dbaf, alone on the development machine (WSL2 with 12 threads, the i7-1255U, Node 22.23.4, on WSLg's display), in Playwright's Chromium 156.0.8078.4, Firefox 157.0 and WebKit 27.2. One build, then every run on it in one command under the e2e lock, by `e2e/frames.run.ts` and `playwright.frames.config.ts` as phase 2b left them, the tree clean from the first run to the last and every line written to a file outside it; the 33 lines are `research/m4/phase2c-frames.jsonl`, copied unmodified after the last run. Each page is `#test=frames`: the 4-a-side match, every terrier driven by the bots' brain, the page's own and seven virtual players' at 20–80 ms one way with 15 ms of jitter, measured for 90 s, the run file's default window, from the moment all eight were in. Every page ran its window to the end with no error, and nothing compiled in play (8 programs throughout).
+
+- **Run 4,** the timers' cadence with real frames: each engine at high and at low quality, at 1280 × 720, in software GL as the gate draws (SwiftShader in Chromium, llvmpipe in Firefox and WebKit). Then, after run 6, once more on C-6's GPU path, `GALLIUM_DRIVER=d3d12`, recorded apart and deciding nothing. A probe before the runs found that path drawing headless here in each engine: a busy shader at 56 to 59 frames a second, against 15 to 18 in software GL, Chromium and Firefox naming the Iris Xe through Direct3D 12, and WebKit masking its renderer. The run file takes every engine, so WebKit's GPU lines are there too.
+- **Run 6,** the slow-frame share, three times: Chromium at 1280 × 720 and its default quality, high, with each frame held by a busy wait to 33, 50, 67 and 100 ms, the governor measuring but never acting; then its gate-like part, the three engines at once at 640 × 360 and low quality, the governor acting, in software GL as the screens' match will draw.
+
+**The quiet rule,** as the run file keeps it: before its first page each run waited until the 1-minute load had fallen under 1, then 8 more minutes; its other pages followed one another, each starting at the load the one before left, so run 6's gate-like pages, after its four held pages, started at 6.2 to 8.6. The loads are WSL2's, which don't see the Windows side's. The times are the machine's clock, which runs ahead of the monotonic one (phase 1c, above), so each 8-minute wait reads 8 minutes and 20 to 24 s on it.
+
+| Run | The load fell under 1 | Its first page began | The load then | Loads before its pages; after them |
+|---|---|---|---|---|
+| 4, software GL | 18:40:54 | 18:49:13 | 0.35 | 0.35 to 11.67; 5.91 to 11.67 |
+| 6, first | 19:01:43 | 19:10:05 | 0.20 | 0.20 to 8.62; 5.34 to 17.63 |
+| 6, second | 19:21:42 | 19:30:07 | 0.68 | 0.68 to 6.88; 4.17 to 12.92 |
+| 6, third | 19:42:16 | 19:50:40 | 0.55 | 0.55 to 8.49; 6.83 to 16.60 |
+| 4, GPU path | 20:02:02 | 20:10:26 | 1.32 | 0.70 to 1.32; 0.65 to 1.07 |
+
+The GPU run's load rose back past 1 during its wait, which the run file doesn't check again; that run decides nothing anyway.
+
+**Run 4, software GL.** In the tables, *skipped* is the page's own ticks that a catch-up sent no input for, of the ticks it moved (§8.1), and *late* the seven players' inputs that reached the page after it had finalised their ticks without them, of about 37,800 in a window.
+
+| Engine, quality | Timer runs a second | Timer gaps: p95, largest | Clock samples taken, dropped | Kept samples' age: p50, p95, largest | Frames a second; interval p95 | Skipped | Late; clock jumps | Load before, after |
+|---|---|---|---|---|---|---|---|---|
+| Chromium, high | 65.7 | 46.8, 206.6 ms | 37,598, 0 | 18.8, 653, 1,013 ms | 46.0; 33.4 ms | 251 of 5,371, 4.67% | 4,885; 0 | 0.35, 7.98 |
+| Chromium, low | 81.7 | 33.4, 183.2 ms | 32,761, 0 | 30.4, 2,094, 3,832 ms | 53.9; 33.3 ms | 83 of 4,680, 1.77% | 11,408; 27 | 7.98, 10.77 |
+| Firefox, high | 191.2 | 10.0, 31.0 ms | 37,803, 0 | 2.1, 8.4, 54.3 ms | 33.0; 50.3 ms | 0 of 5,400 | 0; 0 | 10.77, 11.67 |
+| Firefox, low | 193.4 | 9.0, 33.0 ms | 37,802, 0 | 2.1, 6.6, 33.3 ms | 59.6; 17.3 ms | 0 of 5,400 | 0; 0 | 11.67, 7.60 |
+| WebKit, high | 78.3 | 31.0, 82.0 ms | 37,809, 0 | 6.0, 26.2, 78.8 ms | 23.5; 57.0 ms | 8 of 5,401, 0.15% | 0; 0 | 7.60, 6.71 |
+| WebKit, low | 107.0 | 17.0, 58.0 ms | 37,806, 0 | 3.6, 13.2, 58.7 ms | 33.5; 41.0 ms | 1 of 5,400, 0.02% | 0; 0 | 6.71, 5.91 |
+
+The governor acted 26 and 39 times in Chromium's windows, 3 more before each, twice in each of WebKit's and never in Firefox's.
+
+**Run 6, held frames** (Chromium, 1280 × 720, high quality, the governor not acting). §8.1's arithmetic is the share a timer run skips if it runs once a frame and each frame blocks it for its whole length, here at the held length and at the interval the frames actually took.
+
+| Each frame held to | The frames' interval, p50 | §8.1's arithmetic: at the held length; at the interval | Skipped, in the three runs | Timer runs a second; ticks a run | Largest timer gap; gaps over the freeze | Samples dropped | Kept samples' age: p50; largest |
+|---|---|---|---|---|---|---|---|
+| 33 ms | 100.0 ms | 0%; 50.0% | 60.3%, 57.7%, 57.8% | 7.7–8.3; 5.9–6.3 | 294–527 ms; 12–24 | 1.0–5.0% | 192–207; 526–759 ms |
+| 50 ms | 116.7 ms | 0%; 57.1% | 63.4%, 67.6%, 65.6% | 6.1–7.0; 6.7–7.5 | 404–551 ms; 59–115 | 7.7–16.3% | 229–266; 647–897 ms |
+| 67 ms | 133.3 ms | 25.0%; 62.5% | 69.1%, 70.8%, 70.0% | 5.6–5.9; 7.8–8.1 | 351–367 ms; 131–143 | 17.1–18.4% | 275–287; 702–846 ms |
+| 100 ms | 166.7 ms | 50.0%; 70.0% | 74.0%, 75.4%, 75.7% | 4.5–5.0; 9.0–9.7 | 381–492 ms; 93–115 | 16.5–20.5% | 344–371; 805–917 ms |
+
+No gap passed the stall's 2 s. Each held frame ran 4 vsyncs, 66.7 ms, past its hold: SwiftShader's drawing at this size and quality, which the governor didn't lighten, so the frames took 100 to 167 ms, not 33 to 100, and these runs read the share only at frames of 100 ms and over. The timer ran less than once a frame, 4.5 to 8.3 runs a second against 5.7 to 10.4 frames, each run moving 5.9 to 9.7 ticks, so the share ran 4.0 to 10.5 points over the arithmetic even at the interval, as the gate's smoke at 50 ms had at low quality (phase 2b's 35% to 42% against its 25%). The page's clock, following samples a median 192 to 371 ms old, ran at 43.6 to 49.0 ticks a second, and 45% to 63% of the players' inputs came late. So frames of §8.1's 33 to 67 ms need a cheaper drawing than this: at 640 × 360 and low quality the gate's smoke at 50 ms drew 66.7 ms frames (phase 2b), and on the GPU path Chromium drew 60 frames a second at 1280 × 720 at both qualities (below).
+
+**Run 6's gate-like part,** the three engines at once (640 × 360, low quality, the governor acting, software GL):
+
+| Run | Engine | Skipped | The governor: actions in the window, before it; how far | Timer runs a second; gaps p95, largest | Frames a second; interval p95 | Kept samples' age: p50, p95, largest | Late; clock jumps | Load before, after |
+|---|---|---|---|---|---|---|---|---|
+| First | Chromium | 73 of 5,037, 1.45% | 36, 2; to 0.5 | 65.1; 37.4, 91.7 ms | 54.5; 33.3 ms | 54.4, 643, 2,092 ms | 8,957; 27 | 8.58, 16.46 |
+| | Firefox | 1 of 5,400, 0.02% | none | 195.8; 8.0, 68.0 ms | 59.0; 17.4 ms | 2.0, 7.0, 120.1 ms | 0; 0 | 8.62, 17.63 |
+| | WebKit | 0 of 5,400 | none | 104.9; 19.0, 64.0 ms | 23.8; 62.0 ms | 3.5, 15.5, 57.8 ms | 0; 0 | 8.58, 17.63 |
+| Second | Chromium | 25 of 5,102, 0.49% | 37, 2; to 0.5, then every other frame | 80.8; 35.5, 80.6 ms | 55.4; 33.3 ms | 33.6, 455, 1,344 ms | 8,144; 22 | 6.20, 12.37 |
+| | Firefox | 1 of 5,400, 0.02% | none | 197.2; 8.0, 63.0 ms | 59.2; 17.4 ms | 2.0, 7.0, 137.9 ms | 0; 0 | 6.20, 12.92 |
+| | WebKit | 0 of 5,400 | none | 105.5; 19.0, 45.0 ms | 24.9; 62.0 ms | 3.4, 15.0, 46.3 ms | 0; 0 | 6.20, 12.92 |
+| Third | Chromium | 57 of 4,967, 1.15% | 35, 2; to 0.5, then every other frame | 72.9; 37.0, 162.8 ms | 54.1; 33.3 ms | 41.6, 631, 1,452 ms | 8,968; 25 | 6.83, 16.60 |
+| | Firefox | 0 of 5,399 | none | 194.6; 8.0, 45.0 ms | 58.7; 17.4 ms | 2.0, 7.0, 109.1 ms | 0; 0 | 6.92, 15.27 |
+| | WebKit | 0 of 5,400 | 2, 0; to 0.75 | 109.9; 18.0, 52.0 ms | 24.9; 60.0 ms | 3.2, 14.3, 68.0 ms | 0; 0 | 6.92, 16.60 |
+
+No gap passed the freeze, and no sample was dropped. Chromium's governor acted about every 2.5 s: down for timer gaps 16 to 19 times and for skipped ticks 1 to 3 times, and back 18 or 19 times, counting the 2 before each window.
+
+**The decision (M4-Q6, §8.1's "The decision"), Claude's call:** with three gate-like runs, K = 5 is adopted only if, in two or more of them, a page skips more than 10% of any sender's inputs. In none did any page skip more than 1.5%: Chromium 1.45%, 0.49% and 1.15%, Firefox 0.02%, 0.02% and none, WebKit none. Each bench page sends for one sender, its own terrier, and a catch-up marks every sender a page sends for absent at once, so a proposer that hosts bots skips the same share for each. So K = 5 isn't adopted: `stallSendTicks` stays 3, A.4's Timer stall row stands, and nothing in the timeline changes. The oldest input a catch-up sends keeps its 12 ticks of slack, 163.3 ms one way without loss and 54.4 ms with one resend, where under K = 5 it would have had 10, 130.0 and 43.3 ms (§8.1's table). The newest-3 rule is the one §9.4's setup is played under (§8.1's "The setup under it").
+
+**Beside D-15's and D-31's M3 figures:**
+- No timer gap in run 4 or in the gate-like runs passed the freeze's 233⅓ ms, let alone the stall's 2 s: the largest were 207 ms in Chromium, 33 ms in Firefox and 82 ms in WebKit in run 4, and 163, 68 and 64 ms in the gate-like runs. WebKit's gaps of up to 1.76 s at frames held to 250 ms (D-31) don't recur with real frames, at either quality. So the freeze rule dropped no sample in those pages, where M3's, at frames held to 150–200 ms, dropped 26–28% in Chromium, 13–92% in WebKit and at most 8% in Firefox (D-15); only the held frames here dropped any, 1.0% to 20.5% at frames of 100 to 167 ms.
+- The 4 ms timer's cadence in software GL: Firefox's ran 191 to 197 times a second, WebKit's 78 to 110 and Chromium's 65 to 82, about once a frame; on the GPU path 234 to 235, 125 and 250. A Chromium frame's own work stayed under 1 ms on the mean, so what held its thread was the engine's software drawing.
+- The kept samples' age, from each message's due time to its handling, against M3's median of 559 ms at 250 ms frames: in Firefox and WebKit a median of 2.0 to 6.0 ms and a p95 of 6.6 to 26.2 ms, and under 8 ms at the p95 on the GPU path. In Chromium in software GL the median was 19 to 54 ms, but the p95 455 to 2,094 ms and the largest 1.0 to 3.8 s: its timer ran on, but the bench's messages to the page fell behind for seconds at a time, up to 767 due and undelivered, so its clock took samples the freeze rule can't see were stale, since no timer run froze. Its clock jumped 22 to 27 times in a window and ran at 52.0 to 56.7 ticks a second (run 4's high-quality page never jumped and kept 59.7), and 13% to 30% of the players' inputs came late. Firefox and WebKit had no late input, nor had Chromium on the GPU path, whose backlog stayed at 5 or under.
+- The bench's players vote the page's own hash (M4-Q16), so a late input costs the bench nothing. On a real page it makes the page's final state differ from its peers', a disagreement and a resync. Whether Chromium's data channel messages queue behind SwiftShader's frames as the bench's MessageChannel tasks did, §9.4's match through the screens shows (phase 2d).
+
+**Run 4 on the GPU path** (`GALLIUM_DRIVER=d3d12`, the Iris Xe), deciding nothing:
+
+| Engine, quality | Timer runs a second | Timer gaps: p95, largest | Clock samples taken, dropped | Kept samples' age: p50, p95, largest | Frames a second; interval p95 | Skipped | Late; clock jumps | Load before, after |
+|---|---|---|---|---|---|---|---|---|
+| Chromium, high | 249.9 | 4.7, 10.3 ms | 37,800, 0 | 1.3, 3.6, 7.2 ms | 60.0; 16.8 ms | 0 of 5,400 | 0; 0 | 1.32, 0.80 |
+| Chromium, low | 249.9 | 4.7, 8.7 ms | 37,801, 0 | 1.3, 3.6, 7.4 ms | 60.0; 16.8 ms | 0 of 5,400 | 0; 0 | 0.80, 0.67 |
+| Firefox, high | 233.6 | 5.0, 32.0 ms | 37,801, 0 | 1.4, 4.1, 50.4 ms | 59.7; 17.2 ms | 0 of 5,400 | 0; 0 | 0.70, 1.07 |
+| Firefox, low | 235.1 | 5.0, 63.0 ms | 37,801, 0 | 1.5, 4.1, 84.1 ms | 59.9; 17.2 ms | 0 of 5,400 | 0; 0 | 1.07, 0.93 |
+| WebKit, high | 124.6 | 9.0, 45.0 ms | 37,801, 0 | 2.5, 7.3, 41.7 ms | 61.7; 17.0 ms | 0 of 5,400 | 0; 0 | 0.93, 0.68 |
+| WebKit, low | 124.6 | 10.0, 46.0 ms | 37,801, 0 | 2.6, 7.2, 43.2 ms | 61.9; 17.0 ms | 0 of 5,400 | 0; 0 | 1.11, 0.65 |
+
+The governor acted once in each of WebKit's windows, once more before each, and never in the others'.
+
 ## Log
 
 ### The gate's wall time (PLAN §16)
