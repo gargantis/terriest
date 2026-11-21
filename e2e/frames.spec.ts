@@ -7,9 +7,15 @@
 //   with frames, timer runs, TICKs and clock samples in it, no verdict for a
 //   cut-short window, its own landmark and no #app, and no Trystero or
 //   witness chunk requested;
-// - repair=1 with a hold 1 s into play: the witness's module Worker, a
-//   chunk of its own, joins, and answers the page's STATE_REQ with a real
-//   STATE, which the page adopts, its resync done (M3-Q14).
+// - repair=1 with a hold 1 s into play, once the room is calm: the
+//   witness's module Worker, a chunk of its own, joins, and answers the
+//   page's STATE_REQ with a real STATE, which the page adopts, its resync
+//   done (M3-Q14);
+// - frameMs=50: each frame held 50 ms from the window's opening, all eight
+//   still in and the page's clock keeping real time, as run 6 needs
+//   (§8.1, phase 2b's review, bench-F1);
+// - a refused fragment: the page says so and contacts nothing, with no
+//   hook, no stage and no bench chunk past its own (bench-F10).
 // Each draws at 640 × 360 and low quality, the gate's (§9.1), and reads the
 // bench's status through the hook, polled, never on animation frames
 // (C-6), and its report once; the guard fails a console error or a request
@@ -31,12 +37,22 @@ const POLL_MS = 250;
 const BENCH_DONE_MS = 26_000;
 const BENCH_TEST_MS = 30_000;
 /** The repair's: all eight in at worst 3.9 s from load (the start-up's stall in SwiftShader among it), 3 × 3.9
- *  + 2 = 13.7 s; the page's repair at worst 15.9 s from load, the start countdown, 1 s of play and the 4.1 s
- *  hold on the page's clock, 1.5 × 15.9 + 2 = 25.9 s; the whole test at worst 16.4 s, × 2 = 32.8 s, and at
- *  least its waits. */
+ *  + 2 = 13.7 s. The page's repair, from all eight in, on the page's clock: the start countdown and 1 s of play,
+ *  8 s at worst; the hold's wait for a calm room, up to its 15 s (bench-F2; 0 to 4 s in phase 2b's review's
+ *  runs); the 4.1 s hold and the repair, 1 s; 1.5 × 28.1 + 2 = 44.2 s. The whole test more than its waits and
+ *  the start's together, so a wait fails first, with its status (bench-F2); it ran 15.7 to 19.6 s. */
 const EIGHT_IN_MS = 14_000;
-const REPAIRED_MS = 26_000;
-const REPAIR_TEST_MS = 40_000;
+const REPAIRED_MS = 45_000;
+const REPAIR_TEST_MS = 30_000 + EIGHT_IN_MS + REPAIRED_MS + 5_000;
+/** The held frames' 5 s bench from load to its report: at worst 7.4 s in phase 2b's review's runs (load 1.4 to
+ *  2.5), 3 × 7.4 + 2 = 24.2 s; the whole test as the 5 s bench's. */
+const HELD_DONE_MS = 26_000;
+const HELD_TEST_MS = 30_000;
+/** A held frame's length, and how far below real time the window's ticks may fall: its clock keeps time but
+ *  for following its peers' samples as they age from the window's opening, a tenth of a 5 s window in phase 2b's
+ *  review's runs, where a task a message starved them and moved under half (bench-F1). */
+const HELD_MS = 50;
+const KEEPS_TIME = 0.8;
 
 test.beforeEach(async ({ page }) => {
   await expectWebGL2(page);
@@ -115,6 +131,11 @@ test('#test=frames&seconds=5 plays and reports, eight terriers in, no error', as
   expect(scripts.some((p) => /\/frames-[\w-]+\.js$/.test(p)), scripts.join(', ')).toBe(true);
   expect(scripts.filter((p) => /\/(trystero|witness)-[\w-]+\.js$/.test(p))).toEqual([]);
   await expect(page.locator('#frames pre')).toContainText('Frame-time bench: no verdict');
+  // And beside the verdict, for a person without the hook, what compiled in play (§2.11, bench-F9).
+  await expect(page.locator('#frames pre')).toContainText(
+    `Drawing: ${r.render.atStart!.programs} programs, ${r.render.atStart!.geometries} geometries, ${r.render.atStart!.textures} textures as the window opened`,
+  );
+  await expect(page.locator('#frames pre')).toContainText('nothing compiled in play');
 });
 
 test("repair=1 with a hold 1 s into play: the witness's Worker answers the page's STATE_REQ, and the page repairs from it (M4-Q18)", async ({ page, guard }) => {
@@ -152,4 +173,53 @@ test("repair=1 with a hold 1 s into play: the witness's Worker answers the page'
   expect(workers.map((u) => u.pathname)).toEqual([expect.stringMatching(/\/witness-[\w-]+\.js$/)]);
   expect(workers[0]!.origin).toBe(new URL(page.url()).origin);
   expect(chunks(guard.requests).filter((p) => /\/trystero-[\w-]+\.js$/.test(p))).toEqual([]);
+  // It began once the room was calm, or said it didn't (bench-F2).
+  expect(r.room.hold!.armedMs).toBeLessThanOrEqual(r.room.hold!.fromMs);
+  expect(r.room.hold!.repairedMs).not.toBe(null);
+});
+
+test('frameMs=50 holds each frame from the window on, all eight in, the clock keeping real time (§8.1, bench-F1)', async ({ page, guard }) => {
+  test.setTimeout(HELD_TEST_MS);
+  await page.goto(`./#test=frames&seconds=5&quality=low&frameMs=${HELD_MS}`);
+  await expectBenchPage(page);
+  const r = await waitForBench(page, (x) => x.done, 'the held frames, 5 s', HELD_DONE_MS);
+  const ticks = r.window.seconds * 1000 / (1000 / 60);
+  console.log(
+    `the held frames, ${HELD_MS} ms: ${r.terriers} terriers, frames ${r.frames.count} (interval p50 ${r.frames.interval.p50.toFixed(1)} ms), ` +
+      `moved ${r.own.ticks} of ${ticks.toFixed(0)} ticks in ${r.window.seconds.toFixed(2)} s, skipped ${r.own.skipped}, ` +
+      `kept samples' age p50 ${r.clock.keptAgeMs.p50.toFixed(0)} ms, the backlog's largest ${Math.max(...r.room.backlog.map((b) => b.total))}`,
+  );
+  expect(r.error).toBe(null);
+  expect(r.terriers).toBe(8);
+  expect(r.window.endedBy).toBe('seconds');
+  // Held: every frame at least its length; not governed.
+  expect(r.frames.interval.p50).toBeGreaterThanOrEqual(HELD_MS - 1);
+  expect(r.governor).toMatchObject({ governs: false, actions: 0, before: 0 });
+  // Its clock kept real time: the ticks it moved are the window's, not a starved delivery's dragged-back clock's.
+  expect(r.own.ticks).toBeGreaterThanOrEqual(KEEPS_TIME * ticks);
+  expect(r.clock.keptAgeMs.p50).toBeLessThan(250);
+  expect(r.verdict).toBe('none');
+  expect(r.why).toMatch(/each frame was held to 50 ms/);
+  expect(chunks(guard.requests).filter((p) => /\/(trystero|witness)-[\w-]+\.js$/.test(p))).toEqual([]);
+});
+
+test('a refused fragment says so and contacts nothing: no hook, no stage, no bench past its own chunk (bench-F10)', async ({ page, guard }) => {
+  await page.goto(`./#test=frames&model=${encodeURIComponent('https://example.invalid/standin.glb')}`);
+  await expect(page.locator('html')).toHaveAttribute('data-boot', 'started', { timeout: 30_000 });
+  await expect(page.getByRole('main')).toHaveAttribute('id', 'frames');
+  await expect(page.locator('#frames pre')).toHaveText(
+    "The bench didn't start, and contacted nothing: model: a relative path on this page's origin, with no scheme, '//' or '..'.",
+  );
+  // Still none, a while later: nothing it started.
+  await page.waitForTimeout(1000);
+  expect(await page.evaluate(() => window.terriestTest !== undefined && window.terriestTest.bench === undefined)).toBe(true);
+  await expect(page.locator('canvas')).toHaveCount(0);
+  await expect(page.locator('#app')).toHaveCount(0);
+  expect(page.workers()).toEqual([]);
+  const scripts = chunks(guard.requests);
+  expect(scripts.some((p) => /\/frames-[\w-]+\.js$/.test(p)), scripts.join(', ')).toBe(true);
+  expect(scripts.filter((p) => /\/(trystero|witness)-[\w-]+\.js$/.test(p))).toEqual([]);
+  // Nothing but the preview's origin, which the guard holds every request to (§16).
+  const origin = new URL(page.url()).origin;
+  expect(guard.requests.filter((u) => new URL(u).origin !== origin)).toEqual([]);
 });

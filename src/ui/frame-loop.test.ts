@@ -307,6 +307,48 @@ describe('the governor (§8.2, M4-Q17)', () => {
     expect(p.log).toEqual([{ atMs: expect.any(Number), scale: 1 - STEP, skipping: false, why: 'skipped' }]);
   });
 
+  it('judges the skipped share of the ticks moved, and steps only past drawingLateShare, never at it (phase 2b\'s review, bench-F8)', () => {
+    /** A second of timer runs every timerMs, on time, the match's figures at its end `moved` ticks on with
+     *  `skipped` of them unsent; the log after it. */
+    const second = (moved: number, skipped: number): ReturnType<FrameLoop['inspect']>['log'] => {
+      const p = new Page(null);
+      p.loop.start();
+      while (p.clock.now() < 1000) {
+        p.frames.run();
+        p.clock.advance(NET.timerMs);
+        const end = p.clock.now() >= 1000;
+        p.loop.timerRan(p.clock.now(), { ticks: end ? moved : 0, sent: end ? moved - skipped : 0, skipped: end ? skipped : 0, senders: 1 });
+      }
+      return p.log;
+    };
+    const share = config.drawingLateShare;
+    // Exactly the share, of the ticks moved: not past it, so nothing. Of the ticks sent it would be past it.
+    expect(second(100, Math.round(100 * share))).toEqual([]);
+    expect(second(100, Math.round(100 * share) + 1)).toEqual([{ atMs: expect.any(Number), scale: 1 - STEP, skipping: false, why: 'skipped' }]);
+  });
+
+  it('steps for late gaps past drawingLateShare of the second, never at it (bench-F8)', () => {
+    /** Runs every timerMs from the start, but one late gap of `late` ms ending at the second's end, then a run at
+     *  exactly 1,000 ms; the log after it. */
+    const gap = (late: number): ReturnType<FrameLoop['inspect']>['log'] => {
+      const p = new Page(null);
+      p.loop.start();
+      while (p.clock.now() + NET.timerMs <= 1000 - late) {
+        p.frames.run();
+        p.clock.advance(NET.timerMs);
+        p.loop.timerRan(p.clock.now(), null);
+      }
+      p.clock.advance(1000 - p.clock.now());
+      p.loop.timerRan(p.clock.now(), null);
+      return p.log;
+    };
+    const share = config.drawingLateShare;
+    // A gap of exactly the share's of the second: not past it, so nothing; a timer period longer, past it.
+    expect(share * 1000).toBeGreaterThan(LATE);
+    expect(gap(share * 1000)).toEqual([]);
+    expect(gap(share * 1000 + NET.timerMs)).toEqual([{ atMs: 1000, scale: 1 - STEP, skipping: false, why: 'gaps' }]);
+  });
+
   it('judges nothing on a hidden page, whose timer wakes once a second, nor the gap that ends as it shows again (D-31)', () => {
     const p = new Page();
     p.loop.start();

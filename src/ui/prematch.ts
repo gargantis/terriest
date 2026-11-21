@@ -146,8 +146,8 @@ export function prematchPanel(host: PrematchHost): PrematchPanel {
   let key = '';
   let keyFinal: Readonly<MatchState> | null = null;
 
-  const ready = h('button', { type: 'button', class: 'primary', 'data-test': 'ready', onclick: () => pressReady() }, 'Joining…');
-  const switchPack = h('button', { type: 'button', class: 'secondary', 'data-test': 'switch-pack', onclick: () => pressSwitch() }, 'Switch pack');
+  const ready = h('button', { type: 'button', class: 'primary prematch-wide', 'data-test': 'ready', onclick: () => pressReady() }, 'Joining…');
+  const switchPack = h('button', { type: 'button', class: 'secondary prematch-wide', 'data-test': 'switch-pack', onclick: () => pressSwitch() }, 'Switch pack');
   const leave = h('button', { type: 'button', class: 'secondary', 'data-test': 'prematch-leave', onclick: () => host.leave() }, 'Leave');
   const inviteToggle = h('button', {
     type: 'button', class: 'secondary', 'data-test': 'invite-button', 'aria-expanded': 'false', onclick: () => toggleInvite(),

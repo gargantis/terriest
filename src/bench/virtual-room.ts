@@ -25,7 +25,12 @@
 //   a capacity, at most that many a second, so a run can reproduce a path
 //   that falls behind (the load run's lesson). The queue's backlog, the
 //   messages due and not yet delivered, is kept every second, by link and
-//   summed, from the room's start, before the countdown;
+//   summed, from the room's start, before the countdown. With the bench's
+//   frames held (frameMs, §8.1), each task delivers every message due:
+//   Chromium then runs about one task between two held frames, so a task a
+//   message would deliver about one message a frame, the joins would never
+//   land and the page's clock would follow samples seconds old (phase 2b's
+//   review, bench-F1);
 // - no witness in the frame-time run (M4-Q16): each TICK votes the page's
 //   own final hash for its sender's newest final tick, as honest peers'
 //   agreeing votes would, so the page's thread carries one timeline, as a
@@ -40,17 +45,25 @@
 //   the page asked, as the witness's own join asks reach the page. So the
 //   page repairs from a real STATE while its thread does a real page's
 //   work (§8.3);
-// - the hold (§2.11): holdAtMs into play, every message to the page waits
-//   until holdMs from the hold's start, FIFO, as M3's cap check held them in
-//   Node (dev/corrections.measure.ts), so the page finalises its peers'
-//   inputs absent, tallies alone, and repairs from about 240 ticks back
-//   once the late votes come: about 1,700 TICKs fall due as it ends, every
-//   link's in the order they were sent, each a task of its own, so the
-//   first votes for the first ticks the hold parted come before any input
-//   recent enough to re-simulate the page's chain, which would set late
-//   votes aside while it spreads; and the page's TICKs reach the witness
-//   without their votes during it, as the witness's reach the page without
-//   theirs before it, so neither's transient decides the other's tallies;
+// - the hold (§2.11): armed holdAtMs into play, it begins once the room is
+//   calm, nothing overdue to the page and neither the page nor the witness
+//   in a transient for CALM_MS, or CALM_WITHIN_MS after arming whatever,
+//   the report saying which, so the repair starts from a settled page and
+//   witness (phase 2b's review, bench-F2); then every message to the page
+//   waits until holdMs from the hold's start, FIFO, as M3's cap check held
+//   them in Node (dev/corrections.measure.ts), so the page finalises its
+//   peers' inputs absent, tallies alone, and repairs from about 240 ticks
+//   back once the late votes come: about 1,700 TICKs fall due as it ends,
+//   every link's in the order they were sent, each a task of its own, so
+//   the first votes for the first ticks the hold parted come before any
+//   input recent enough to re-simulate the page's chain, which would set
+//   late votes aside while it spreads; and the page's TICKs reach the
+//   witness without their votes during it, as the witness's reach the page
+//   without theirs before it, so neither's transient decides the other's
+//   tallies. The witness's hashes rule the votes from the hold's start to
+//   the page's first completed resync after it, and the page's own again
+//   from then, so a later transient of the witness's can't cascade into
+//   the page's (bench-F2);
 // - its report: the page's message calls, and the timer runs src/frames.ts
 //   times, from the hold to a second after the repair, with their steps;
 //   the backlog; the room's own time on the page, its brains, encoding and
@@ -95,6 +108,13 @@ const LEAD_TICKS = 6; // not a setting: the room's lead, 100 ms
 /** The virtual players join staggered, at the page's local ticks JOIN_FIRST + JOIN_EVERY × k, roslambo's. */
 const JOIN_FIRST = 20; // not a setting: roslambo's bench
 const JOIN_EVERY = 10; // not a setting: roslambo's bench
+/** The hold begins once neither the page nor the witness has been in a transient, a disagreeing tally or a
+ *  resync, for CALM_MS, and nothing to the page has been overdue a tick; or CALM_WITHIN_MS after it was due
+ *  to, calm or not (bench-F2). */
+const CALM_MS = 2000; // not a setting: the bench's method
+const CALM_WITHIN_MS = 15_000; // not a setting: the bench's method
+/** With a witness, the hold starts this long after it's decided, so no TICK made ahead before then is held. */
+const HOLD_LEAD_MS = (LEAD_TICKS + 1) * NET.tickMs; // not a setting: the room's lead and a tick
 /** The repair's calls are kept until this long after it completes, and the kept calls at most. */
 const AROUND_MS = 1000; // not a setting: the report's window
 const CALLS_KEPT = 50_000; // not a setting: the report's bound
@@ -125,6 +145,8 @@ export interface VirtualRoomOptions {
   /** false for the frame-time run: the peers vote the page's own final hash (M4-Q16). true for the forced
    *  repair: a real Session and timeline in a module Worker votes and answers STATE_REQ with a real STATE. */
   readonly witness: boolean;
+  /** Each delivery's task delivers every message due, not one: the bench's held frames alone (§8.1). */
+  readonly drain?: boolean;
   /** Tests: the page clock and its timers (browserClock), its time origin (performance.timeOrigin), a task
    *  of its own for each delivery (a MessageChannel post), and the witness's Worker (src/bench/witness.ts's). */
   readonly clock?: Clock;
@@ -226,9 +248,13 @@ export interface RoomReport {
   readonly delivered: { readonly total: number; readonly byKind: Readonly<Record<string, number>> };
   /** The page's message calls, every one: their time each. */
   readonly messageMs: Spread;
-  /** The hold, on the page clock: when it began and when it was to end, and the page's resyncs before it;
-   *  null without one. */
-  readonly hold: { readonly fromMs: number; readonly toMs: number; readonly resyncsBefore: number } | null;
+  /** The hold, on the page clock: when it began and when it was to end, the page's resyncs before it, when it
+   *  was due to begin (armedMs) and whether it began calm or at CALM_WITHIN_MS (bench-F2), and when the page's
+   *  first resync after it completed, ending the witness's rule over the votes; null without one. */
+  readonly hold: {
+    readonly fromMs: number; readonly toMs: number; readonly resyncsBefore: number; readonly armedMs: number; readonly calm: boolean;
+    readonly repairedMs: number | null;
+  } | null;
   /** Each TICK the page's clock took as a sample, from its due time to its handling (§8.4's run 4): over the
    *  window asked, else the whole run. */
   readonly keptSampleAgeMs: Spread;
@@ -351,10 +377,19 @@ class Room {
   private startedAt = 0;
   private nextBacklogAt = 0;
   private nextPingAt = 0;
+  private holdArmAt: number | null = null;
   private holdFrom: number | null = null;
+  private holdCalm = false;
   private holdBegun = false;
   private resyncsAtHold = 0;
+  private repairedAt: number | null = null;
   private callsUntil = -Infinity;
+  /** The page's and the witness's transients, a disagreeing tally or a resync, by their counts, and when each
+   *  count last moved (the witness's from its figures, a second apart). */
+  private pageTransients = 0;
+  private pageTransientAt = -Infinity;
+  private witnessTransients = 0;
+  private witnessTransientAt = -Infinity;
   private readonly calls: RoomCall[] = [];
   private readonly backlog: Backlog[] = [];
   private readonly messageMs: number[] = [];
@@ -446,7 +481,10 @@ class Room {
       peers: this.links.map((l) => ({ id: l.id, pack: l.pack, latencyMs: l.latency, witness: l.witness })),
       delivered: { total: this.delivered, byKind: { ...this.byKind } },
       messageMs: spread(this.messageMs),
-      hold: this.holdFrom === null || !this.holdBegun ? null : { fromMs: this.holdFrom, toMs: this.holdFrom + holdMs, resyncsBefore: this.resyncsAtHold },
+      hold: this.holdFrom === null || this.holdArmAt === null || !this.holdBegun ? null : {
+        fromMs: this.holdFrom, toMs: this.holdFrom + holdMs, resyncsBefore: this.resyncsAtHold, armedMs: this.holdArmAt, calm: this.holdCalm,
+        repairedMs: this.repairedAt,
+      },
       keptSampleAgeMs: spread(ages),
     };
   }
@@ -530,9 +568,16 @@ class Room {
         }
         for (const tick of this.finals.keys()) if (this.finals.size > FINALS_KEPT) this.finals.delete(tick);
         break;
-      case 'figures':
+      case 'figures': {
         this.witnessFigures = m.figures;
+        const s = m.figures.stats;
+        const transients = s.disagree + s.resyncs + s.resyncFailed;
+        if (transients !== this.witnessTransients) {
+          this.witnessTransients = transients;
+          this.witnessTransientAt = now;
+        }
         break;
+      }
       case 'error':
         this.witnessError = m.message;
         console.error(`The bench's witness failed: ${m.message}`);
@@ -540,12 +585,19 @@ class Room {
     }
   }
 
-  /** A TICK of the witness's, sent before the hold, without its vote: until then the page's tallies are its own
-   *  and the six's, as in the frame-time run, so a transient of the witness's, a vote it sends on time from its
-   *  Worker while the six's wait out a stall of the page's thread, can't tie the page's and win (M4-Q16). From
-   *  the hold's start it votes, as the six then vote its hashes. */
+  /** A TICK of the witness's, sent outside its rule over the votes, without its vote: until the hold the page's
+   *  tallies are its own and the six's, as in the frame-time run, so a transient of the witness's, a vote it
+   *  sends on time from its Worker while the six's wait out a stall of the page's thread, can't tie the page's
+   *  and win (M4-Q16). From the hold's start it votes, as the six then vote its hashes, until the page's
+   *  repair has completed; then the page's tallies are its own and the six's again (bench-F2). */
   private unvoted(bytes: Uint8Array, sentAt: number): Uint8Array {
-    return this.holdFrom !== null && sentAt >= this.holdFrom ? bytes : withoutVote(bytes);
+    return this.witnessRules(sentAt) ? bytes : withoutVote(bytes);
+  }
+
+  /** Whether the witness's hashes rule the votes of what's sent at sentAt: from the hold's start until the
+   *  page's first resync after it completed; never without a witness (§2.11, bench-F2). */
+  private witnessRules(sentAt: number): boolean {
+    return this.witnessLink !== null && this.holdFrom !== null && sentAt >= this.holdFrom && (this.repairedAt === null || sentAt < this.repairedAt);
   }
 
   /** In the hold, a TICK of the page's reaches the witness without its vote: the page is the side the hold
@@ -625,39 +677,57 @@ class Room {
     });
   }
 
+  /** The task's delivery: the next message due, or with drain every message due (§8.1). */
   private deliverOne(): void {
     this.posted = false;
     if (this.closed) return;
-    const start = this.clock.now();
-    const m = this.queue[0];
-    if (m === undefined || m.due > start || start < this.nextFreeAt) return;
-    this.queue.shift();
-    if (this.capacityGapMs > 0) this.nextFreeAt = Math.max(start, this.nextFreeAt) + this.capacityGapMs;
-    const kind = KINDS[m.bytes[0] ?? -1] ?? 'other';
-    if (!this.dropped.has(m.link.peer)) {
-      const t = this.timeline?.() ?? null;
-      const samples = t?.stats.clockSamples ?? 0;
-      const steps = t?.stats.steps ?? 0;
-      this.replyAs = m.replyAs;
-      const at = this.clock.now();
-      try {
-        this.page!.onMessage(m.peer, m.bytes, at);
-      } finally {
-        this.replyAs = null;
-      }
-      const ms = this.clock.now() - at;
-      this.delivered++;
-      this.byKind[kind] = (this.byKind[kind] ?? 0) + 1;
-      if (this.messageMs.length < PER_TICK_KEPT) this.messageMs.push(ms);
-      const took = (t?.stats.steps ?? 0) - steps;
-      if (at <= this.callsUntil && this.calls.length < CALLS_KEPT) this.calls.push({ at, ms, kind, steps: took });
-      if (t !== null && t.stats.clockSamples > samples && this.sampleAges.length < PER_TICK_KEPT) {
-        this.sampleAges.push(at - m.due);
-        this.sampleAt.push(at);
-      }
-      this.roomTotal += this.clock.now() - start - ms;
+    for (let first = true; first || this.o.drain === true; first = false) {
+      const start = this.clock.now();
+      const m = this.queue[0];
+      if (m === undefined || m.due > start || start < this.nextFreeAt) break;
+      this.queue.shift();
+      if (this.capacityGapMs > 0) this.nextFreeAt = Math.max(start, this.nextFreeAt) + this.capacityGapMs;
+      // A message on a connection the page dropped goes nowhere; an answer the witness sends as another
+      // player goes on that player's, whatever became of the witness's own (bench-F5).
+      if (!this.dropped.has(m.peer)) this.deliver(m, start);
     }
     this.kick();
+  }
+
+  /** One message to the page, timed: the page's handling, and the room's own part around it, which counts
+   *  in the room's time a tick as its timer's does (§8.3, bench-F7). */
+  private deliver(m: Due, start: number): void {
+    const kind = KINDS[m.bytes[0] ?? -1] ?? 'other';
+    const t = this.timeline?.() ?? null;
+    const samples = t?.stats.clockSamples ?? 0;
+    const steps = t?.stats.steps ?? 0;
+    this.replyAs = m.replyAs;
+    const at = this.clock.now();
+    try {
+      this.page!.onMessage(m.peer, m.bytes, at);
+    } finally {
+      this.replyAs = null;
+    }
+    const ms = this.clock.now() - at;
+    this.delivered++;
+    this.byKind[kind] = (this.byKind[kind] ?? 0) + 1;
+    if (this.messageMs.length < PER_TICK_KEPT) this.messageMs.push(ms);
+    const took = (t?.stats.steps ?? 0) - steps;
+    if (at <= this.callsUntil && this.calls.length < CALLS_KEPT) this.calls.push({ at, ms, kind, steps: took });
+    if (t !== null && t.stats.clockSamples > samples && this.sampleAges.length < PER_TICK_KEPT) {
+      this.sampleAges.push(at - m.due);
+      this.sampleAt.push(at);
+    }
+    const own = this.clock.now() - start - ms;
+    this.roomTotal += own;
+    this.carryMs += own;
+  }
+
+  /** Messages to the page due a tick ago or longer and not yet delivered. */
+  private overdue(now: number): number {
+    let n = 0;
+    while (n < this.queue.length && this.queue[n]!.due <= now - NET.tickMs) n++;
+    return n;
   }
 
   // --- The room's timer ---
@@ -693,20 +763,38 @@ class Room {
     if (tick >= 0) this.lastTick = tick;
   }
 
-  /** The hold, set for holdAtMs after the page's head first shows play, so every TICK sent from then on is
-   *  held, those made ahead of it too; and from its start, the repair's calls kept to AROUND_MS after the
-   *  page's next completed resync. */
+  /** The hold, armed holdAtMs after the page's head first shows play and begun once the room is calm: nothing
+   *  to the page overdue, the page not repairing, and neither the page nor the witness in a transient for
+   *  CALM_MS; or CALM_WITHIN_MS after arming, calm or not (bench-F2). Every TICK sent from its start is held,
+   *  those made ahead of it too, so with a witness it starts HOLD_LEAD_MS after it's decided. From its start,
+   *  the repair's calls are kept to AROUND_MS after the page's next completed resync, which ends the witness's
+   *  rule over the votes. */
   private watchHold(t: PageTimeline, now: number): void {
     const at = this.o.holdAtMs;
     if (at === null) return;
-    if (this.holdFrom === null && t.head.phase === IN_PLAY) this.holdFrom = now + at;
-    if (this.holdFrom === null || now < this.holdFrom) return;
+    const transients = t.stats.disagree + t.stats.resyncs + t.stats.resyncFailed;
+    if (transients !== this.pageTransients) {
+      this.pageTransients = transients;
+      this.pageTransientAt = now;
+    }
+    if (this.holdArmAt === null && t.head.phase === IN_PLAY) this.holdArmAt = now + at;
+    if (this.holdFrom === null) {
+      if (this.holdArmAt === null || now < this.holdArmAt) return;
+      const calm = this.overdue(now) === 0 && !t.repairing && now - this.pageTransientAt >= CALM_MS && now - this.witnessTransientAt >= CALM_MS;
+      if (!calm && now - this.holdArmAt < CALM_WITHIN_MS) return;
+      this.holdCalm = calm;
+      this.holdFrom = now + (this.witnessLink === null ? 0 : HOLD_LEAD_MS);
+    }
+    if (now < this.holdFrom) return;
     if (!this.holdBegun) {
       this.holdBegun = true;
       this.resyncsAtHold = t.stats.resyncs;
       this.callsUntil = Infinity;
     }
-    if (this.callsUntil === Infinity && t.stats.resyncs > this.resyncsAtHold) this.callsUntil = now + AROUND_MS;
+    if (this.repairedAt === null && t.stats.resyncs > this.resyncsAtHold) {
+      this.repairedAt = now;
+      this.callsUntil = now + AROUND_MS;
+    }
   }
 
   /** Each of the page's local ticks from its join tick on, a TICK from l: made when the page's clock reaches
@@ -738,9 +826,9 @@ class Room {
     // made late, its thread held.
     const sentAt = now + (n + l.phase - t.clock(now)) * NET.tickMs;
     // Its vote, for its newest final tick, or the newest final known now for one made ahead: the page's own
-    // final hash (M4-Q16); with a witness, for a TICK sent from the hold's start, the witness's, so the page
-    // loses its tallies to it, and before it the page's.
-    const witnessed = this.witnessLink !== null && this.holdFrom !== null && sentAt >= this.holdFrom;
+    // final hash (M4-Q16); with a witness, for a TICK sent from the hold's start until the page's repair, the
+    // witness's, so the page loses its tallies to it, and before and after that the page's (bench-F2).
+    const witnessed = this.witnessRules(sentAt);
     const g = Math.min(n - W, witnessed ? this.newestFinal : t.finalTick);
     const hash = g < 0 ? '' : witnessed ? (this.finals.get(g) ?? '') : t.hashAt(g);
     const phase = l.phase;

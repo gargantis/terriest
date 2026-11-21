@@ -49,6 +49,10 @@ function rig(o: { screen?: KeyboardScreen; sampling?: boolean } = {}) {
 }
 
 describe("the standard mapping on a player's pitch (D-29)", () => {
+  it("numbers its buttons as the W3C standard mapping and §4.4 do, written out, never read from the table it pins (phase 2b's review, specs-F1)", () => {
+    expect(PAD).toEqual({ jump: 0, pounce: 2, bark: 3, prev: 4, view: 5, zoomies: 7, back: 8, start: 9, up: 12, down: 13, left: 14, right: 15 });
+  });
+
   it("runs on the left stick, counter-clockwise from screen up, with the stick's steps", () => {
     const r = rig();
     for (const steps of [0, 8, 16, 24, 5]) {

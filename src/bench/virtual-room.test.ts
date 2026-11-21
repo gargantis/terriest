@@ -7,6 +7,7 @@ import { netSettings } from '../core/session/settings';
 import { defaultParams, genesis, IN_PLAY, JOIN, type MatchState, type Phase } from '../core/sim/index';
 import { TEST_BUILD } from '../core/timeline/testing';
 import type { TimelineStats } from '../core/timeline/timeline';
+import type { Clock } from '../ui/clock';
 import { FakeClock } from '../ui/clock-testing';
 import { type FromWitness, PAGE_PEER, type PageTimeline, type ToWitness, virtualRoom, type VirtualRoomOptions, type WitnessPort } from './virtual-room';
 
@@ -59,8 +60,8 @@ class Page implements RoomPeer {
 /** The page's timeline as the room reads it: its clock the FakeClock's, at the base rate. */
 class FakeTimeline implements PageTimeline {
   readonly started = true;
-  readonly stats = { clockSamples: 0, steps: 0, resyncs: 0 } as TimelineStats;
-  readonly repairing = false;
+  readonly stats = { clockSamples: 0, steps: 0, resyncs: 0, disagree: 0, resyncFailed: 0 } as TimelineStats;
+  repairing = false;
   readonly head: MatchState;
   private readonly c: FakeClock;
   constructor(c: FakeClock, phase: Phase = 0) {
@@ -355,9 +356,225 @@ describe("the bench's room (§1.53, §8.3)", () => {
     transport.broadcast(tick(29));
     fromWorker({ kind: 'broadcast', bytes: tick(30), at: clock.now() });
     clock.advance(1500);
-    expect(room.report().hold).toMatchObject({ fromMs: 1004, toMs: 2004 });
+    // Armed at 1,004 ms and calm then, it begins a tick past the room's lead, so no TICK made ahead is held.
+    expect(room.report().hold).toMatchObject({ fromMs: 1004 + HOLD_LEAD, toMs: 1004 + HOLD_LEAD + 1000, armedMs: 1004, calm: true, repairedMs: null });
     // Before the hold the page's vote goes through and the witness's doesn't; in it, the other way round.
     expect(witnessGot()).toEqual([25, NO_TICK, 29]);
     expect(pageGot).toEqual([NO_TICK, 28, 30]);
+  });
+
+  it('delivers every message due in each task with drain, for the held frames (§8.1, bench-F1), and one a task without', async () => {
+    const r = await rig({ drain: true });
+    r.clock.advance(3000);
+    // A stall's backlog, a task for it all.
+    const before = r.page.got.length;
+    const tasks = r.tasks.n;
+    r.clock.stall(500);
+    expect(r.page.got.length - before).toBeGreaterThan(7 * 15);
+    expect(r.tasks.n - tasks).toBeLessThanOrEqual(2);
+    // In order, FIFO a link, as without it.
+    for (const [peer, got] of byLink(r)) {
+      const ticks = got.map((g) => g.m.t);
+      expect(ticks, peer).toEqual(Array.from({ length: ticks.length }, (_, k) => ticks[0]! + k));
+    }
+    expect(r.room.report().delivered.total).toBe(r.page.got.length);
+  });
+
+  it("counts the room's own part of each delivery in its time a tick, as its timer's, the page's handling apart (§8.3, bench-F7)", async () => {
+    // A clock whose time moves as the code runs: a hundredth of a ms each time the room reads the page's
+    // timeline, its own work, once a timer run and once a delivery; and a fiftieth each message the page
+    // handles, the page's.
+    const fake = new FakeClock(0);
+    let spent = 0;
+    const clock: Clock = { now: () => fake.now() + spent, every: (ms, fn) => fake.every(ms, fn), after: (ms, fn) => fake.after(ms, fn) };
+    const t = new FakeTimeline(fake);
+    const page = new Page(t);
+    const handle = page.onMessage.bind(page);
+    page.onMessage = (peer, bytes, now) => {
+      spent += 0.02;
+      handle(peer, bytes, now);
+    };
+    const room = virtualRoom({
+      peers: 7, seed: 7, latencyMs: [20, 80], jitterMs: 15, build: TEST_BUILD, capacityPerSecond: null, holdAtMs: null, holdMs: 4100,
+      witness: false, clock, task: (fn) => fake.after(0, fn),
+    });
+    await room(page, () => clock.now(), { matchId: 'x', relays: ['ws://127.0.0.1:9'], ice: 'none', settings: NET.transport });
+    let reads = 0;
+    room.attach(() => {
+      reads++;
+      spent += 0.01;
+      return t;
+    });
+    fake.advance(4000);
+    const report = room.report();
+    // Every hundredth the room spent is its own, the page's handling none of it.
+    expect(report.roomMs.total).toBeCloseTo(reads * 0.01, 6);
+    expect(report.messageMs.p50).toBeCloseTo(0.02, 6);
+    // Once all seven send: 7 deliveries a tick and about 4.2 timer runs, 0.112 ms a tick, the deliveries
+    // most of it; the timer's alone would be 0.042.
+    expect(report.roomMs.p95PerTick).toBeGreaterThan(0.1);
+    expect(report.roomMs.p95PerTick).toBeLessThan(0.2);
+  });
+
+  it("lets the witness's answers through on a live connection once the page has dropped the witness's own (bench-F5)", async () => {
+    const clock = new FakeClock(0);
+    const t = new FakeTimeline(clock);
+    const port: WitnessPort = { postMessage: () => {}, onmessage: null, onerror: null, terminate: () => {} };
+    const fromWorker = (m: FromWitness): void => port.onmessage!({ data: m } as MessageEvent<FromWitness>);
+    const got: { peer: string; type: number }[] = [];
+    const page: RoomPeer = {
+      hello: () => ({ type: T.HELLO, protocol: PROTOCOL_VERSION, build: TEST_BUILD, player: ME, role: ROLE.KEEPER, ...NO_TIMELINE, phase: 0, name: 'Page' }),
+      checkHello: (hello) => ({ ok: true, hello }),
+      onPeerJoin: () => {}, onHandshakeFailed: () => {}, onPeerLeave: () => {}, onRtt: () => {}, advance: () => {},
+      onMessage: (peer, bytes) => {
+        if (bytes[0] !== T.TICK) got.push({ peer, type: bytes[0]! });
+      },
+    };
+    const room = virtualRoom({
+      peers: 7, seed: 7, latencyMs: [20, 80], jitterMs: 15, build: TEST_BUILD, capacityPerSecond: null, holdAtMs: null, holdMs: 4100,
+      witness: true, clock, origin: 0, task: (fn) => clock.after(0, fn), worker: () => port,
+    });
+    const transport = await room(page, () => clock.now(), { matchId: 'x', relays: ['ws://127.0.0.1:9'], ice: 'none', settings: NET.transport });
+    room.attach(() => t);
+    fromWorker({ kind: 'hello', hello: { type: T.HELLO, protocol: PROTOCOL_VERSION, build: TEST_BUILD, player: personId(7, 1), role: ROLE.PLAYER, ...NO_TIMELINE, phase: 0, name: 'Peer 2' } });
+    // The page drops the witness's connection, then asks virtual-3; the witness answers as virtual-3.
+    transport.drop!('virtual-1');
+    transport.send('virtual-3', Uint8Array.of(T.STATE_REQ, 1));
+    fromWorker({ kind: 'send', to: PAGE_PEER, bytes: Uint8Array.of(T.STATE, 7), as: 'virtual-3', at: clock.now(), state: { g: 100, senderTick: 340 } });
+    // And sends on its own connection, which goes nowhere.
+    fromWorker({ kind: 'send', to: PAGE_PEER, bytes: Uint8Array.of(T.AGAIN), as: null, at: clock.now() });
+    clock.advance(500);
+    expect(got).toEqual([{ peer: 'virtual-3', type: T.STATE }]);
+  });
+});
+
+/** The hold's start past its decision, with a witness: the room's lead and a tick (bench-F2). */
+const HOLD_LEAD = 7 * NET.tickMs;
+
+describe("the forced repair's hold, from a calm room (§2.11, bench-F2)", () => {
+  /** The room with a witness of the test's own, at play, the hold armed holdAtMs on: the page's TICKs, its
+   *  connection, the witness's port and its figures and finals as the test posts them. */
+  async function witnessRig(o: { holdAtMs: number; holdMs: number }) {
+    const clock = new FakeClock(0);
+    const t = new FakeTimeline(clock, IN_PLAY);
+    const toWorker: ToWitness[] = [];
+    const port: WitnessPort = { postMessage: (m) => toWorker.push(m), onmessage: null, onerror: null, terminate: () => {} };
+    const fromWorker = (m: FromWitness): void => port.onmessage!({ data: m } as MessageEvent<FromWitness>);
+    const got: { peer: string; m: Tick }[] = [];
+    const page: RoomPeer = {
+      hello: () => ({ type: T.HELLO, protocol: PROTOCOL_VERSION, build: TEST_BUILD, player: ME, role: ROLE.KEEPER, ...NO_TIMELINE, phase: 0, name: 'Page' }),
+      checkHello: (hello) => ({ ok: true, hello }),
+      onPeerJoin: () => {}, onHandshakeFailed: () => {}, onPeerLeave: () => {}, onRtt: () => {}, advance: () => {},
+      onMessage: (peer, bytes) => {
+        if (bytes[0] === T.TICK) got.push({ peer, m: decode(bytes) as Tick });
+      },
+    };
+    const room = virtualRoom({
+      peers: 7, seed: 7, latencyMs: [20, 80], jitterMs: 15, build: TEST_BUILD, capacityPerSecond: null, holdAtMs: o.holdAtMs, holdMs: o.holdMs,
+      witness: true, clock, origin: 0, task: (fn) => clock.after(0, fn), worker: () => port,
+    });
+    const transport = await room(page, () => clock.now(), { matchId: 'x', relays: ['ws://127.0.0.1:9'], ice: 'none', settings: NET.transport });
+    room.attach(() => t);
+    let resyncs = 0;
+    /** The witness's figures, a second apart as its Worker posts them: its resyncs so far. */
+    const figures = (): void => fromWorker({
+      kind: 'figures',
+      figures: {
+        localTick: t.localTick, finalTick: t.finalTick, log: [],
+        stats: { late: 0, lateAbsent: 0, agree: 0, disagree: 0, resyncs, resyncFailed: 0, jumps: 0, medianOffset: 0, joinedAt: 0, warmMs: 0, statesSent: 0, statesRefused: 0 },
+      },
+    });
+    return { clock, t, room, transport, fromWorker, got, toWorker, figures, resync: () => resyncs++ };
+  }
+
+  it('begins only once nothing to the page is overdue and neither the page nor the witness has been in a transient for 2 s', async () => {
+    const r = await witnessRig({ holdAtMs: 3000, holdMs: 1000 });
+    // The witness resyncs at 1.5 s, its figures saying so; the page disagrees at 2 s, seen at the room's next
+    // run; the hold, due at 3 s into play, waits for both to be 2 s past.
+    for (let s = 0; s < 6; s++) {
+      r.clock.advance(500);
+      if (s === 2) r.resync();
+      if (s === 3) r.t.stats.disagree++;
+      r.figures();
+    }
+    r.clock.advance(2000);
+    const hold = r.room.report().hold!;
+    expect(hold).toMatchObject({ armedMs: 3004, calm: true });
+    // 2 s after the page's transient, seen at the room's first run after 2 s, and the lead.
+    expect(hold.fromMs).toBeGreaterThanOrEqual(2000 + 2000 + HOLD_LEAD);
+    expect(hold.fromMs).toBeLessThanOrEqual(2000 + NET.timerMs + 2000 + HOLD_LEAD);
+    expect(r.room.peek().holdFromMs).toBe(hold.fromMs);
+  });
+
+  it('waits for the page to stop repairing, and begins 15 s after it was due whatever, saying it was not calm', async () => {
+    const r = await witnessRig({ holdAtMs: 1000, holdMs: 1000 });
+    r.t.repairing = true;
+    r.clock.advance(10_000);
+    expect(r.room.report().hold).toBe(null);
+    // A witness in transients every second, and the page repairing still: at 15 s after arming, it begins.
+    for (let s = 0; s < 10; s++) {
+      r.resync();
+      r.figures();
+      r.clock.advance(1000);
+    }
+    const hold = r.room.report().hold!;
+    expect(hold).toMatchObject({ armedMs: 1004, calm: false });
+    expect(hold.fromMs).toBeGreaterThanOrEqual(1004 + 15_000 + HOLD_LEAD);
+    expect(hold.fromMs).toBeLessThanOrEqual(1004 + 15_000 + NET.timerMs + HOLD_LEAD);
+  });
+
+  it('waits while a backlog to the page is overdue, here a capacity it outruns, without a witness from the moment it decides', async () => {
+    const r = await rig({ phase: IN_PLAY, holdAtMs: 2000, holdMs: 1000, capacityPerSecond: 100 });
+    r.clock.advance(20_000);
+    const hold = r.room.report().hold!;
+    expect(hold).toMatchObject({ armedMs: 2004, calm: false });
+    expect(hold.fromMs).toBeGreaterThanOrEqual(2004 + 15_000);
+    expect(hold.fromMs).toBeLessThanOrEqual(2004 + 15_000 + NET.timerMs);
+  });
+
+  it("gives the votes to the witness's hashes from the hold's start until the page's first completed resync, then to the page's own again", async () => {
+    const r = await witnessRig({ holdAtMs: 2000, holdMs: 1000 });
+    // The witness's final hashes, posted as it takes them: unlike the page's.
+    const witnessHash = (g: number): string => (0xf00000 + g).toString(16).padStart(16, '0');
+    let posted = -1;
+    const post = (): void => {
+      const finals: [number, string][] = [];
+      for (let g = posted + 1; g <= r.t.finalTick; g++) finals.push([g, witnessHash(g)]);
+      posted = r.t.finalTick;
+      r.fromWorker({ kind: 'finals', finals });
+    };
+    for (let k = 0; k < 35; k++) {
+      r.clock.advance(100);
+      post();
+    }
+    const hold = r.room.report().hold!;
+    expect(hold.repairedMs).toBe(null);
+    // The page repairs at 3.5 s, past the hold's end.
+    r.t.stats.resyncs = 1;
+    for (let k = 0; k < 15; k++) {
+      r.clock.advance(100);
+      post();
+    }
+    // The witness's TICK after the repair reaches the page without its vote again.
+    r.fromWorker({ kind: 'broadcast', bytes: encodeTick({ t: 300, own: { input: 0, present: 0, hist: Array(16).fill(0), events: [] }, voteTick: 200, voteHash: witnessHash(200), phase: 0, bots: [] }), at: r.clock.now() });
+    r.clock.advance(1000);
+    const repairedMs = r.room.report().hold!.repairedMs!;
+    expect(repairedMs).toBeGreaterThanOrEqual(3500);
+    expect(repairedMs).toBeLessThanOrEqual(3500 + NET.timerMs);
+    // The six's TICKs, by when each was due to be sent: the page's hashes before the hold, the witness's from
+    // its start to the repair, and the page's after it; a tick's slack each side.
+    const six = r.got.filter((g) => g.peer !== 'virtual-1' && g.m.voteTick !== NO_TICK);
+    const sent = (g: (typeof six)[number]): number => tickStart(g.m);
+    const by = (x: (typeof six)[number]): string => (x.m.voteHash === witnessHash(x.m.voteTick) ? 'witness' : x.m.voteHash === r.t.hashAt(x.m.voteTick) ? 'page' : 'other');
+    // TICKs made ahead before the repair was seen still vote the witness's: the room's lead past it.
+    const margin = NET.tickMs;
+    const before = six.filter((g) => sent(g) < hold.fromMs - margin);
+    const ruled = six.filter((g) => sent(g) >= hold.fromMs + margin && sent(g) < repairedMs - margin);
+    const after = six.filter((g) => sent(g) >= repairedMs + HOLD_LEAD);
+    for (const [part, xs, want] of [['before', before, 'page'], ['ruled', ruled, 'witness'], ['after', after, 'page']] as const) {
+      expect(xs.length, part).toBeGreaterThan(100);
+      expect(new Set(xs.map(by)), part).toEqual(new Set([want]));
+    }
+    expect(r.got.filter((g) => g.peer === 'virtual-1').map((g) => g.m.voteTick)).toEqual([NO_TICK]);
   });
 });

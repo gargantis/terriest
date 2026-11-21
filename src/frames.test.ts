@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { config } from './config';
-import { parseFrameParams } from './frames';
+import { benchVerdict, parseFrameParams, repairFigures, type VerdictFacts } from './frames';
 
 // The #test=frames page's parameters, in its own fragment (M4's design, research/m4/DESIGN.md, §1.53,
 // M4-Q4): seconds, quality, frameMs, capacity, repair=1 with holdAt and hold, and model=<path>, a
 // same-origin relative path only, with no scheme, no // and no ..; a parameter it doesn't take, one
-// given twice, or one out of its range is refused, so the page says why and contacts nothing. The page
-// itself plays through e2e/frames.spec.ts and e2e/frames.run.ts.
+// given twice, or one out of its range is refused, so the page says why and contacts nothing. And L286's
+// verdict, condition by condition (M4-Q17, phase 2b's review, bench-F7). The page itself plays through
+// e2e/frames.spec.ts and e2e/frames.run.ts.
 
 describe("the bench's parameters (§1.53, M4-Q4)", () => {
   it('takes none but its own: a whole match at the default quality, no busy wait, capacity, repair or model', () => {
@@ -60,5 +61,60 @@ describe("the bench's parameters (§1.53, M4-Q4)", () => {
       const p = parseFrameParams(`#test=frames&model=${encodeURIComponent(model)}`);
       expect('error' in p && p.error, model).toMatch(/^model: a relative path on this page's origin/);
     }
+  });
+});
+
+describe("L286's verdict (M4-Q17, bench-F6, bench-F7)", () => {
+  /** A whole match to Results with a goal, its celebration and a kickoff, the code-built drawer, the governor
+   *  idle from the loop's start: the run a verdict is given for. */
+  const whole: VerdictFacts = {
+    params: { repair: false, frameMs: 0, model: null }, error: null, done: true, endedBy: 'results', goals: 1, celebration: true, kickoff: true,
+    model: { url: '', state: 'none', ms: null, error: null }, actions: 0, interval: { p50: 16.7, p95: 18, p99: 33, max: 50 },
+  };
+
+  it('passes at p95 ≤ 18 ms and max ≤ 50 ms, and fails past either', () => {
+    expect(benchVerdict(whole)).toEqual({ verdict: 'pass', pass: true, why: 'p95 18.0 ms (≤ 18) and max 50.0 ms (≤ 50)' });
+    expect(benchVerdict({ ...whole, interval: { ...whole.interval, p95: 18.1 } })).toMatchObject({ verdict: 'fail', pass: false });
+    expect(benchVerdict({ ...whole, interval: { ...whole.interval, max: 50.1 } })).toMatchObject({ verdict: 'fail', pass: false });
+  });
+
+  it('gives none, saying why, for each condition a run misses', () => {
+    const none = (o: Partial<VerdictFacts>, why: RegExp): void => {
+      const v = benchVerdict({ ...whole, ...o });
+      expect(v, JSON.stringify(o)).toMatchObject({ verdict: 'none', pass: false });
+      expect(v.why, JSON.stringify(o)).toMatch(why);
+    };
+    none({ error: 'the match had 7 terriers in 60 s, not 8' }, /^no verdict: the match had 7 terriers/);
+    none({ params: { ...whole.params, repair: true } }, /a forced repair decides nothing/);
+    none({ params: { ...whole.params, frameMs: 50 } }, /each frame was held to 50 ms/);
+    none({ endedBy: 'seconds' }, /the window ended by seconds, not at Results/);
+    none({ done: false, endedBy: null }, /still measuring/);
+    none({ goals: 0 }, /no goal, its celebration and a kickoff/);
+    none({ celebration: false }, /no goal, its celebration and a kickoff/);
+    none({ kickoff: false }, /no goal, its celebration and a kickoff/);
+    none({ params: { ...whole.params, model: 'standin.glb' } }, /the model standin.glb wasn't drawn: none/);
+    none({ params: { ...whole.params, model: 'standin.glb' }, model: { url: 'standin.glb', state: 'failed', ms: null, error: 'a 404' } }, /wasn't drawn: failed, a 404/);
+    // The governor's actions from the loop's start, before the window as well as in it: a page that stepped
+    // down before the window and stayed down is judged at a lower scale (bench-F6).
+    none({ actions: 1 }, /the governor acted 1 times/);
+    // The figures go with it, so a person reads them all the same.
+    expect(benchVerdict({ ...whole, goals: 0 }).why).toMatch(/; p95 18.0 ms \(≤ 18\) and max 50.0 ms \(≤ 50\)$/);
+    // A model drawn is a verdict's.
+    expect(benchVerdict({ ...whole, params: { ...whole.params, model: 'standin.glb' }, model: { url: 'standin.glb', state: 'drawn', ms: 40, error: null } }).verdict)
+      .toBe('pass');
+  });
+});
+
+describe("the forced repair's figures (M3-Q14, bench-F4)", () => {
+  it("reads its depth off the first STATE the witness sent from the hold's start, not a rejoin's or a transient's before it", () => {
+    const hold = { fromMs: 20_000, toMs: 24_100, resyncsBefore: 0, armedMs: 19_000, calm: true, repairedMs: 24_500 };
+    const states = [{ atMs: 8_884, g: 499, senderTick: 512 }, { atMs: 24_150, g: 850, senderTick: 1107 }, { atMs: 24_700, g: 900, senderTick: 1110 }];
+    const calls = [
+      { at: 24_120, ms: 0.2, kind: 'TICK', steps: 0 }, { at: 24_160, ms: 5.3, kind: 'STATE', steps: 14 }, { at: 24_170, ms: 7.1, kind: 'timer', steps: 20 },
+    ];
+    const r = repairFigures(calls, { hold, states, witnessStates: 3 }, 1);
+    expect(r).toMatchObject({ back: 257, statesFromHold: 2, witnessStates: 3, adoptMs: 5.3, worstMs: 7.1, worstSteps: 20, steps: 34, resyncs: 1 });
+    // No hold yet: no forced repair's depth, whatever came before.
+    expect(repairFigures(calls, { hold: null, states, witnessStates: 3 }, 0)).toMatchObject({ back: null, statesFromHold: 0 });
   });
 });

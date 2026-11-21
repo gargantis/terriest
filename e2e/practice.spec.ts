@@ -102,6 +102,8 @@ const left = (...used: Control[]): Control[] => SIX.filter((c) => !used.includes
 const HINTS_AGAIN = 'Each control’s hint shows again until you use it.';
 /** Every control's bit in a kind's hints mask: all six used (A.3, M4-Q28). */
 const ALL_SIX = (1 << SIX.length) - 1;
+/** A name as long as C-17 allows, of its widest letter (phase 2b's review, P3). */
+const LONG_NAME = 'W'.repeat(20);
 
 /** The origin every request stays under (P10): the preview's. */
 const originOf = (baseURL: string | undefined): string => `${new URL(baseURL!).origin}/`;
@@ -124,7 +126,8 @@ test.describe('the whole match', () => {
       await expectWebGL2(page);
       // Copy writes the clipboard, which Chromium lets a page read back once granted (§9.5).
       await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(baseURL!).origin });
-      await run.load('./');
+      // A name as long as C-17 allows, of its widest letter, which Results' table wraps (P3).
+      await run.load('./', { profile: { name: LONG_NAME } });
       await run.practice();
       await run.ready(WHOLE_ANCHOR);
 
@@ -181,6 +184,16 @@ test.describe('the whole match', () => {
       await expect(page.locator('[data-test="outcome"]')).toHaveText(/ pack wins\. Your pack lost\.$/);
       await expect(page.locator('[data-test="results"] tbody tr')).toHaveCount(2);
       await expect(page.locator('[data-test="terriest"]')).toHaveText(/^The Terriests?: .+\.$/);
+      // The table inside its screen, the long name wrapping in its cell (P3).
+      const fits = await page.evaluate(() => {
+        const screen = document.querySelector('.screen.results')!;
+        const s = screen.getBoundingClientRect();
+        const pad = parseFloat(getComputedStyle(screen).paddingRight) || 0;
+        const t = document.querySelector('[data-test="results"]')!.getBoundingClientRect();
+        return { table: Math.round(t.right), screen: Math.round(s.right - pad) };
+      });
+      expect(fits.table, `Results' table's right edge within its screen's content, ${JSON.stringify(fits)}`).toBeLessThanOrEqual(fits.screen + 1);
+      await expect(page.locator('[data-test="results"] tbody th').filter({ hasText: LONG_NAME })).toHaveCount(1);
 
       // The network figures, Practice's own (§5.9, M3-Q24): its lone timeline takes no input from another
       // browser, so no late input, resync or repair; its final ticks those that ended it, at the least, and
@@ -221,8 +234,10 @@ test.describe('the whole match', () => {
       await page.keyboard.press('ArrowLeft');
       await expectFocusOnce(page, 'again', 'Play again', 'Play again, two back from Copy, in view again');
       await clearReadyStates(page);
+      // Its drawing counted past the stage's frames on Results, which drew the match before (specs-F3).
+      const onResults = (await run.poll()).render.frames;
       await page.keyboard.press('Enter');
-      const again = await run.readyActs();
+      const again = await run.readyActs(onResults);
       run.mark('again');
       expect(again.announcements, 'a fresh log for the new match').toMatchObject({ matchId: null, arrivalTick: 0, countdowns: [], goals: [], results: null });
       expect(again.match?.localTick ?? Infinity, 'a new Practice, from its own start').toBeLessThan(WHOLE_ANCHOR);
@@ -308,11 +323,13 @@ test('every control on the keyboard and the gamepad, to the first confirmed goal
   await run.measured(async () => {
     await expectWebGL2(page);
     acceptLeavePrompt(page);
-    await run.load('./', { gamepad: true });
+    // The touch's hints seeded cleared, as a player who once played by touch has them, so Show control hints
+    // again is seen to clear them (specs-F8).
+    await run.load('./', { gamepad: true, profile: { hints: { keyboard: 0, touch: ALL_SIX, gamepad: 0 } } });
     const pre = await run.practice();
     expect(pre.gamepad?.connected, 'the stubbed pad, connected').toBe(true);
     // A fresh context: no hints until a control is used on the pitch (§4.7, L83).
-    expect(hintsOf(pre), 'no hints before any control is used').toMatchObject({ shown: null, seen: [], used: { keyboard: 0, touch: 0, gamepad: 0 } });
+    expect(hintsOf(pre), 'no hints before any control is used').toMatchObject({ shown: null, seen: [], used: { keyboard: 0, touch: ALL_SIX, gamepad: 0 } });
 
     // The warm-up (§9.5): your mark over your terrier in ball view (L52), drawn by the page's own styles and
     // on top of the HUD and Pre-match's panel wherever it meets them (§2.6, M4-Q10).
@@ -469,11 +486,13 @@ test('every control on the keyboard and the gamepad, to the first confirmed goal
     // The hints stay cleared after it (M4-Q28): a new Practice's Pre-match, a bark and the pad's stick used,
     // shows no panel, the profile's masks holding all six for the keyboard and the pad.
     await run.practice('prematchAfterReload');
+    // Barked once your terrier is in view, as the warm-up's first bark is (a bark mark is counted as it's drawn).
+    await run.until((i) => overlayOf(i)?.mine?.shown === true && i.render.camera.view === 'ball', { what: 'your mark, in ball view, after the reload', timeoutMs: SHOWN_MS });
     await presses(run, 'KeyQ', barked, 'a bark after the reload');
     await runs(run, 'KeyW', 'pad');
     const cleared = await run.hints(null, [], 'none after the reload, every control used before it');
     expect(hintsOf(cleared), 'the keyboard and the pad used here, each with all six cleared').toMatchObject({
-      seen: ['keyboard', 'gamepad'], used: { keyboard: ALL_SIX, touch: 0, gamepad: ALL_SIX },
+      seen: ['keyboard', 'gamepad'], used: { keyboard: ALL_SIX, touch: ALL_SIX, gamepad: ALL_SIX },
     });
     await leave(run, 'after the reload');
 
@@ -485,15 +504,18 @@ test('every control on the keyboard and the gamepad, to the first confirmed goal
     await dpad(run, PAD.down, ['quality-high', 'quality-low', 'sound', 'names', 'ball-view', 'calm-camera', 'mirror-touch', 'hints-again'], 'Settings');
     await run.pad(PAD.start, "Show control hints again, by the pad's Start");
     await expect(page.locator('[data-test="settings-message"]'), 'Show control hints again, said').toHaveText(HINTS_AGAIN, { timeout: SHOWN_MS });
+    // Said where it's seen, at the window's foot, though the status line sits below the screen's fold (P4).
+    await expect(page.locator('[data-test="settings-message"]'), 'Show control hints again, said in view').toBeInViewport();
     await dpad(run, PAD.down, ['back'], 'Settings');
     await run.pad(PAD.start, "Settings' Back, by the pad's Start");
     await run.until((i) => i.screen === 'home', { what: "Home, by Settings' Back", timeoutMs: SHOWN_MS });
     await expectFocusOnce(page, 'h1', 'terriest', "Home's heading, back from Settings (Q-17)");
 
     // And a new Practice's Pre-match shows the keyboard's hints again from its first use, then the pad's
-    // (§9.5, M4-Q28), the touch's cleared too.
+    // (§9.5, M4-Q28), the touch's cleared too, from the all six seeded.
     await clearReadyStates(page);
     await run.practice('prematchHintsAgain');
+    await run.until((i) => overlayOf(i)?.mine?.shown === true && i.render.camera.view === 'ball', { what: 'your mark, in ball view, the hints shown again', timeoutMs: SHOWN_MS });
     await presses(run, 'KeyQ', barked, 'a bark, the hints shown again');
     await run.hints('keyboard', left('bark'), "the keyboard's again, once Q barked");
     await runs(run, 'KeyW', 'pad');

@@ -61,6 +61,21 @@ describe("the gamepad's stub (§1.62)", () => {
     w.terriestPadStub.stick(0, -1);
     expect(g.read().stickStep).toBe(0);
   });
+
+  it("presses the standard mapping's buttons, D-29's numbers written out, which the page's own Gamepad must act on (specs-F1)", () => {
+    expect(PAD).toEqual({ jump: 0, pounce: 2, bark: 3, prev: 4, view: 5, zoomies: 7, back: 8, start: 9, up: 12, down: 13, left: 14, right: 15 });
+    const w = stubbed();
+    const g = new Gamepad({ clock: new FakeClock(0), onUi: () => {}, onConnected: () => {}, pads: () => w.navigator.getGamepads() });
+    for (const press of ['jump', 'pounce', 'bark', 'view'] as const) {
+      w.terriestPadStub.set(PAD[press], 1);
+      const s = g.read();
+      expect([s.jump, s.pounce, s.bark, s.view], press).toEqual(['jump', 'pounce', 'bark', 'view'].map((x) => x === press));
+      w.terriestPadStub.set(PAD[press], 0);
+      g.read();
+    }
+    w.terriestPadStub.set(PAD.zoomies, 1);
+    expect(g.read().zoomies).toBe(true);
+  });
 });
 
 // The stub's waits (§9.1), on the monotonic clock as e2e/lib/page.ts' are: the machine's clock, which

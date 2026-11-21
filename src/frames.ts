@@ -25,7 +25,9 @@
 // Ready once in the roster, the virtual players joining and readying; the
 // frame loop with its governor (src/ui/frame-loop.ts) drawing the pitch
 // screen, each frame held by a busy wait to frameMs when one is given
-// (§8.1). It measures from the moment all eight are in the final roster,
+// (§8.1), from the window's opening, so the joins it doesn't measure aren't
+// starved, the room then delivering every message due a task (phase 2b's
+// review, bench-F1). It measures from the moment all eight are in the final roster,
 // through warm-up, the start countdown and play, to Results, or for
 // `seconds`: the interval between animation frames, the frame's own work
 // and its draw submission, the timer runs' cost and gaps (timed by the
@@ -39,8 +41,11 @@
 // after is e2e/frames.run.ts's. L286's verdict, p95 ≤ 18 ms and max ≤
 // 50 ms, is given only for a whole match with no witness and no busy wait,
 // a goal, its celebration and a kickoff inside it, the model drawn if one
-// was named, and the governor never acting (M4-Q17); otherwise the report
-// says why there's none, and a repair run's intervals decide nothing. Its
+// was named, and the governor never acting from the loop's start, the
+// window's opening included (M4-Q17, bench-F6; benchVerdict); otherwise the
+// report says why there's none, and a repair run's intervals decide nothing.
+// The window's timeline counts are the match's, summed over every timeline
+// it passed through, a rejoin's included (bench-F3). Its
 // pitch draws names over the terriers, the most drawing a page does, as
 // roslambo's bench did; sound is off. New at M4.
 
@@ -203,8 +208,11 @@ export interface FrameReport {
   /** The forced repair: its calls, the STATE's adoption alone, the worst call (M3-Q14); null without one. */
   readonly repair: {
     readonly calls: readonly RoomCall[]; readonly adoptMs: number | null; readonly worstMs: number; readonly worstSteps: number;
-    readonly steps: number; readonly resyncs: number; readonly witnessStates: number;
-    /** How far back the first STATE the witness sent was: its sender's tick less its own (§2.11's about 240). */
+    readonly steps: number; readonly resyncs: number;
+    /** The witness's STATEs to the page: in the whole run, and from the hold's start. */
+    readonly witnessStates: number; readonly statesFromHold: number;
+    /** How far back the first STATE the witness sent from the hold's start was: its sender's tick less its own
+     *  (§2.11's about 240); null before one (bench-F4). */
     readonly back: number | null;
   } | null;
   readonly room: Omit<RoomReport, 'calls'>;
@@ -212,8 +220,11 @@ export interface FrameReport {
     readonly quality: RenderQuality; readonly cap: number; readonly drawer: RenderInfo['drawer']; readonly model: RenderInfo['model'];
     readonly atStart: ResourceCounts | null; readonly atEnd: ResourceCounts | null; readonly compiledInPlay: boolean;
   };
-  /** The governor's actions in the window, and its log (§8.2); with frames held (frameMs), it doesn't govern. */
-  readonly governor: { readonly governs: boolean; readonly actions: number; readonly scale: number; readonly log: Inspection['frames']['log'] };
+  /** The governor's actions in the window and before it, from the loop's start, and its log (§8.2); with frames
+   *  held (frameMs), it doesn't govern. */
+  readonly governor: {
+    readonly governs: boolean; readonly actions: number; readonly before: number; readonly scale: number; readonly log: Inspection['frames']['log'];
+  };
   /** From this page's input sampled to the first frame drawing its tick, ms (R-6, §8.4's run 7). */
   readonly latency: Spread;
   /** Since navigation: boot.started() and prepare()'s end (§2.1). */
@@ -267,6 +278,44 @@ declare module './ui/inspect' {
     /** The #test=frames page's (M4's design §1.53). */
     bench?: BenchHook;
   }
+}
+
+/** What L286's verdict is made of (M4-Q17). */
+export interface VerdictFacts {
+  readonly params: Pick<FrameParams, 'repair' | 'frameMs' | 'model'>;
+  readonly error: string | null;
+  readonly done: boolean;
+  readonly endedBy: FrameReport['window']['endedBy'];
+  /** Goals scored in the window, and whether a celebration and a kickoff after it were. */
+  readonly goals: number;
+  readonly celebration: boolean;
+  readonly kickoff: boolean;
+  /** The model's state as the window opened; null before. */
+  readonly model: RenderInfo['model'] | null;
+  /** The governor's actions from the loop's start to the window's end, its opening included: a governor that
+   *  stepped down before the window and stayed down would have the window judged at half scale (bench-F6). */
+  readonly actions: number;
+  readonly interval: FrameReport['frames']['interval'];
+}
+
+/** L286's verdict (M4-Q17): given only for a whole match, to Results, with no witness and no busy wait, a goal,
+ *  its celebration and a kickoff in it, the model drawn if one was named, and the governor never acting; else
+ *  none, saying why (bench-F7). */
+export function benchVerdict(o: VerdictFacts): Pick<FrameReport, 'verdict' | 'pass' | 'why'> {
+  const none: string[] = [];
+  if (o.error !== null) none.push(o.error);
+  if (o.params.repair) none.push('a forced repair decides nothing by its frames (M4-Q16)');
+  if (o.params.frameMs > 0) none.push(`each frame was held to ${o.params.frameMs} ms`);
+  if (o.endedBy !== 'results') none.push(o.done ? `the window ended by ${o.endedBy}, not at Results` : 'still measuring');
+  if (o.goals < 1 || !o.celebration || !o.kickoff) none.push('no goal, its celebration and a kickoff inside the window');
+  if (o.params.model !== null && o.model?.state !== 'drawn') {
+    none.push(`the model ${o.params.model} wasn't drawn: ${o.model?.state ?? 'none'}${o.model?.error ? `, ${o.model.error}` : ''}`);
+  }
+  if (o.actions > 0) none.push(`the governor acted ${o.actions} times (§8.2)`);
+  const figures = `p95 ${o.interval.p95.toFixed(1)} ms (≤ ${P95_MS}) and max ${o.interval.max.toFixed(1)} ms (≤ ${MAX_MS})`;
+  if (none.length > 0) return { verdict: 'none', pass: false, why: `no verdict: ${none.join('; ')}; ${figures}` };
+  const pass = o.interval.p95 <= P95_MS && o.interval.max <= MAX_MS;
+  return { verdict: pass ? 'pass' : 'fail', pass, why: figures };
 }
 
 const stats = (xs: readonly number[]): Stats => {
@@ -330,10 +379,29 @@ function timedStage(s: Stage, took: (ms: number) => void): Stage {
 
 const counts = (r: RenderInfo): ResourceCounts => ({ programs: r.programs, geometries: r.geometries, textures: r.textures });
 
+/** The drawing's counts, for a person to read. */
+const drawn = (c: ResourceCounts | null): string => (c === null ? '…' : `${c.programs} programs, ${c.geometries} geometries, ${c.textures} textures`);
+
 /** The timeline's counts the report gives over the window. */
 const COUNTED = ['late', 'lateAbsent', 'disagree', 'resyncs', 'resyncFailed', 'rollbacks', 'corrections', 'jumps'] as const; // not a setting
 type Counts = Record<(typeof COUNTED)[number], number>;
 const countsOf = (s: TimelineStats): Counts => Object.fromEntries(COUNTED.map((k) => [k, s[k]])) as Counts;
+
+/** The forced repair's figures from the calls kept (M3-Q14): the STATE's adoption alone, the worst call,
+ *  their steps, the resyncs the page completed, and the first STATE the witness sent from the hold's start,
+ *  not one of a rejoin's or a transient's before it (bench-F4). */
+export function repairFigures(calls: readonly RoomCall[], room: Pick<RoomReport, 'hold' | 'states' | 'witnessStates'>, resyncs: number): NonNullable<FrameReport['repair']> {
+  const adopt = calls.find((c) => c.kind === 'STATE');
+  const stepped = calls.filter((c) => c.steps > 0);
+  const worst = stepped.reduce<RoomCall | null>((a, c) => (a === null || c.ms > a.ms ? c : a), null);
+  const from = room.hold?.fromMs ?? null;
+  const states = from === null ? [] : room.states.filter((s) => s.atMs >= from);
+  return {
+    calls: calls.map((c) => ({ ...c })), adoptMs: adopt?.ms ?? null, worstMs: worst?.ms ?? 0, worstSteps: worst?.steps ?? 0,
+    steps: stepped.reduce((n, c) => n + c.steps, 0), resyncs, witnessStates: room.witnessStates, statesFromHold: states.length,
+    back: states.length === 0 ? null : states[0]!.senderTick - states[0]!.g,
+  };
+}
 
 // --- The page ---
 
@@ -421,7 +489,9 @@ class Bench {
   private countsFrom: Counts | null = null;
   private countsTo: Counts | null = null;
   private samplesTo = { taken: 0, dropped: 0 };
+  /** The governor's actions from the loop's start as the window opened, and as it closed. */
   private actionsFrom = 0;
+  private actionsTo: number | null = null;
   private renderFrom: ResourceCounts | null = null;
   private renderTo: ResourceCounts | null = null;
   private modelAtStart: RenderInfo['model'] | null = null;
@@ -452,6 +522,8 @@ class Bench {
     this.room = virtualRoom({
       peers: 2 * this.settings.packSize - 1, seed: SEED, latencyMs: LATENCY_MS, jitterMs: JITTER_MS, build: buildHash(config, BUILD_INPUTS),
       capacityPerSecond: p.capacity, holdAtMs: p.repair ? p.holdAt * 1000 : null, holdMs: p.hold, witness: p.repair,
+      // Held frames starve a task a message (bench-F1): every message due goes in each task instead.
+      drain: p.frameMs > 0,
     });
   }
 
@@ -574,7 +646,8 @@ class Bench {
     this.drawMs = 0;
     screen.frame(now);
     const work = performance.now() - t0;
-    if (this.p.frameMs > 0) {
+    // Held from the window's opening, so the joins it doesn't measure aren't starved (bench-F1).
+    if (this.p.frameMs > 0 && this.open) {
       const until = t0 + this.p.frameMs;
       while (performance.now() < until) {
         // The held frame (§8.1): the thread does nothing else.
@@ -616,15 +689,18 @@ class Bench {
     if (this.p.seconds !== null && now - this.fromMs >= this.p.seconds * 1000) this.finish('seconds');
   }
 
+  /** The window opened: the counts it's measured from, the timeline's the match's over every timeline it has
+   *  passed through, so a rejoin in the window mixes nothing (bench-F3). */
   private openWindow(now: number): void {
     const m = this.match!;
     const t = m.session.timeline;
+    const st = m.stats();
     this.fromMs = now;
     this.fromTick = t.localTick;
     this.terriers = t.final.terriers.length;
     this.ownFrom = { ...m.own() };
-    this.samplesFrom = { taken: t.stats.clockSamples, dropped: t.stats.clockSamplesDropped };
-    this.countsFrom = countsOf(t.stats);
+    this.samplesFrom = { taken: st.clockSamples, dropped: st.clockSamplesDropped };
+    this.countsFrom = countsOf(st);
     this.actionsFrom = this.loop!.inspect().actions;
     const r = this.stage.info();
     this.renderFrom = counts(r);
@@ -635,12 +711,13 @@ class Bench {
   private closeWindow(now: number): void {
     const m = this.match;
     if (this.fromMs === null || this.toMs !== null || m === null) return;
-    const t = m.session.timeline;
+    const st = m.stats();
     this.toMs = now;
-    this.toTick = t.localTick;
+    this.toTick = m.session.timeline.localTick;
     this.ownTo = { ...m.own() };
-    this.samplesTo = { taken: t.stats.clockSamples, dropped: t.stats.clockSamplesDropped };
-    this.countsTo = countsOf(t.stats);
+    this.samplesTo = { taken: st.clockSamples, dropped: st.clockSamplesDropped };
+    this.countsTo = countsOf(st);
+    this.actionsTo = this.loop?.inspect().actions ?? null;
     this.renderTo = counts(this.stage.info());
   }
 
@@ -674,13 +751,15 @@ class Bench {
     return {
       done: this.doneValue, error: this.error, terriers: this.terriers,
       window: { fromMs: this.fromMs, seconds: this.fromMs === null ? 0 : ((this.toMs ?? now) - this.fromMs) / 1000, endedBy: this.endedBy },
-      resyncs: this.match?.session.timeline.stats.resyncs ?? 0, witness: this.p.repair ? 'worker' : 'none', ...room,
+      resyncs: this.match?.stats().resyncs ?? 0, witness: this.p.repair ? 'worker' : 'none', ...room,
     };
   }
 
   private makeReport(): FrameReport {
     const m = this.match;
     const t = m?.session.timeline ?? null;
+    // The match's counts, over every timeline it passed through (bench-F3).
+    const st = m?.stats();
     const now = performance.now();
     const intervals: number[] = [];
     for (let k = 1; k < this.stamps.length; k++) intervals.push(this.stamps[k]! - this.stamps[k - 1]!);
@@ -691,20 +770,25 @@ class Bench {
     const own: OwnFigures = ownNow === null || ownFrom === null
       ? { ticks: 0, sent: 0, skipped: 0, senders: 0 }
       : { ticks: ownNow.ticks - ownFrom.ticks, sent: ownNow.sent - ownFrom.sent, skipped: ownNow.skipped - ownFrom.skipped, senders: ownNow.senders };
-    const samplesTo = this.toMs !== null || t === null ? this.samplesTo : { taken: t.stats.clockSamples, dropped: t.stats.clockSamplesDropped };
+    const samplesTo = this.toMs !== null || st === undefined ? this.samplesTo : { taken: st.clockSamples, dropped: st.clockSamplesDropped };
     const taken = this.fromMs === null ? 0 : samplesTo.taken - this.samplesFrom.taken;
     const dropped = this.fromMs === null ? 0 : samplesTo.dropped - this.samplesFrom.dropped;
     const { calls, ...room } = this.room.report(this.fromMs === null ? undefined : { fromMs: this.fromMs, toMs: this.toMs ?? Infinity });
     const frames = this.loop?.inspect() ?? null;
-    const actions = frames === null ? 0 : frames.actions - this.actionsFrom;
+    // The governor's actions from the loop's start: before the window, and in it, to its close (bench-F6).
+    const actionsNow = this.actionsTo ?? frames?.actions ?? 0;
+    const before = this.fromMs === null ? actionsNow : this.actionsFrom;
+    const actions = actionsNow - before;
     const r = this.stage.info();
     const atEnd = this.renderTo ?? (this.fromMs === null ? null : counts(r));
     const goals = m === null ? 0 : m.scoreboard.goals.length - this.goalsFrom;
     const ended = m !== null && m.scoreboard.end !== null;
-    const repair = this.p.repair ? this.repairOf(calls, room) : null;
+    const repair = this.p.repair ? repairFigures(calls, room, st?.resyncs ?? 0) : null;
     const seconds = this.fromMs === null ? 0 : ((this.toMs ?? now) - this.fromMs) / 1000;
-    const verdict = this.verdictOf({ interval, actions, goals, model: this.modelAtStart });
-    const st = t?.stats;
+    const verdict = benchVerdict({
+      params: this.p, error: this.error, done: this.doneValue, endedBy: this.endedBy, goals, celebration: this.celebration, kickoff: this.kickoff,
+      model: this.modelAtStart, actions: before + actions, interval,
+    });
     const countsNow = this.countsTo ?? (st === undefined ? null : countsOf(st));
     const over = (k: (typeof COUNTED)[number]): number => (countsNow === null || this.countsFrom === null ? 0 : countsNow[k] - this.countsFrom[k]);
     return {
@@ -724,7 +808,7 @@ class Bench {
         quality: r.quality, cap: r.cap, drawer: r.drawer, model: { ...r.model }, atStart: this.renderFrom, atEnd,
         compiledInPlay: this.renderFrom !== null && atEnd !== null && atEnd.programs !== this.renderFrom.programs,
       },
-      governor: { governs: this.p.frameMs === 0, actions, scale: frames?.scale ?? 1, log: frames?.log ?? [] },
+      governor: { governs: this.p.frameMs === 0, actions, before, scale: frames?.scale ?? 1, log: frames?.log ?? [] },
       latency: spreadOf(this.latencies),
       startMs: { started: this.startedMs, prepared: this.preparedMs },
       match: {
@@ -741,38 +825,6 @@ class Bench {
     };
   }
 
-  /** The forced repair's figures from the calls kept (M3-Q14): the STATE's adoption alone, the worst call,
-   *  their steps, and the resyncs the page completed. */
-  private repairOf(calls: readonly RoomCall[], room: Omit<RoomReport, 'calls'>): FrameReport['repair'] {
-    const adopt = calls.find((c) => c.kind === 'STATE');
-    const stepped = calls.filter((c) => c.steps > 0);
-    const worst = stepped.reduce<RoomCall | null>((a, c) => (a === null || c.ms > a.ms ? c : a), null);
-    return {
-      calls: calls.map((c) => ({ ...c })), adoptMs: adopt?.ms ?? null, worstMs: worst?.ms ?? 0, worstSteps: worst?.steps ?? 0,
-      steps: stepped.reduce((n, c) => n + c.steps, 0), resyncs: this.match?.session.timeline.stats.resyncs ?? 0, witnessStates: room.witnessStates,
-      back: room.states.length === 0 ? null : room.states[0]!.senderTick - room.states[0]!.g,
-    };
-  }
-
-  /** L286's verdict (M4-Q17): given only for a whole match, to Results, with no witness and no busy wait, a
-   *  goal, its celebration and a kickoff in it, the model drawn if one was named, and the governor never
-   *  acting. */
-  private verdictOf(o: {
-    interval: FrameReport['frames']['interval']; actions: number; goals: number; model: RenderInfo['model'] | null;
-  }): Pick<FrameReport, 'verdict' | 'pass' | 'why'> {
-    const none: string[] = [];
-    if (this.error !== null) none.push(this.error);
-    if (this.p.repair) none.push('a forced repair decides nothing by its frames (M4-Q16)');
-    if (this.p.frameMs > 0) none.push(`each frame was held to ${this.p.frameMs} ms`);
-    if (this.endedBy !== 'results') none.push(this.doneValue ? `the window ended by ${this.endedBy}, not at Results` : 'still measuring');
-    if (o.goals < 1 || !this.celebration || !this.kickoff) none.push('no goal, its celebration and a kickoff inside the window');
-    if (this.p.model !== null && o.model?.state !== 'drawn') none.push(`the model ${this.p.model} wasn't drawn: ${o.model?.state ?? 'none'}${o.model?.error ? `, ${o.model.error}` : ''}`);
-    if (o.actions > 0) none.push(`the governor acted ${o.actions} times (§8.2)`);
-    const figures = `p95 ${o.interval.p95.toFixed(1)} ms (≤ ${P95_MS}) and max ${o.interval.max.toFixed(1)} ms (≤ ${MAX_MS})`;
-    if (none.length > 0) return { verdict: 'none', pass: false, why: `no verdict: ${none.join('; ')}; ${figures}` };
-    const pass = o.interval.p95 <= P95_MS && o.interval.max <= MAX_MS;
-    return { verdict: pass ? 'pass' : 'fail', pass, why: figures };
-  }
 
   /** The status, for a person to read: while the bench measures, from counters alone, so the window pays
    *  nothing for it; once done, the report. */
@@ -801,6 +853,9 @@ class Bench {
       `Sent ${r.own.sent} of ${r.own.ticks} ticks, ${r.own.skipped} skipped; clock samples ${r.clock.samples}, ${r.clock.dropped} dropped; ` +
         `the room ${f(r.room.roomMs.p95PerTick, 3)} ms a tick at the p95; governor ${r.governor.actions} actions, scale ${r.governor.scale}`,
       `Sample to screen ${f(r.latency.p50)} p50, ${f(r.latency.p95)} p95 ms; started ${f(r.startMs.started, 0)} ms, prepared ${r.startMs.prepared === null ? '…' : f(r.startMs.prepared, 0)} ms`,
+      // What compiled in play, for a person reading the page without the hook (§2.11, bench-F9).
+      `Drawing: ${drawn(r.render.atStart)} as the window opened, ${drawn(r.render.atEnd)} as it closed; ` +
+        `${r.render.compiledInPlay ? 'a program compiled in play' : 'nothing compiled in play'}; the governor acted ${r.governor.before} times before the window`,
       ...(r.repair === null ? [] : [
         `Repair: ${r.repair.resyncs} resyncs, the STATE adopted in ${r.repair.adoptMs === null ? '…' : f(r.repair.adoptMs, 2)} ms, ` +
           `the worst call ${f(r.repair.worstMs, 2)} ms for ${r.repair.worstSteps} steps; the witness sent ${r.repair.witnessStates} STATEs` +

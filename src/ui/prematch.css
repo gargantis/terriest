@@ -20,14 +20,22 @@
 .prematch-packs { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .prematch-pack h2 { margin: 0; font-size: 14px; display: flex; align-items: center; gap: 6px; }
 .prematch-count { margin-left: auto; font-weight: 400; color: var(--muted); }
-.prematch-pack ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; }
+.prematch-pack ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .prematch-pack li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 22px; font-size: 13px; }
+/* A name wraps where it must, so a long one, C-17's 20 wide letters, keeps its row's Ready inside the panel
+   (L166; phase 2b's review, P3). */
+.prematch-pack li .name { min-width: 0; overflow-wrap: anywhere; }
 .prematch-pack li .ready { margin-left: auto; color: var(--muted); }
 .prematch-pack li.you .name { font-weight: 700; }
 .prematch-pack li.free { color: var(--muted); font-style: italic; }
 .prematch .notice { font-size: 13px; }
-.prematch-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.prematch-buttons button { padding: 8px 12px; }
+/* Ready and Switch pack a row each, Leave and Invite halves of the next, so no relabel moves a button: as
+   the person joins the roster ("Joining…" to "Ready") or the start countdown locks it ("Starting…",
+   "Switch pack: starting…"), a row that re-wrapped moved Leave under a press (phase 2b's review, P6). Each
+   label keeps to its line, clipped where a panel is too narrow for it. */
+.prematch-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.prematch-buttons button { padding: 8px 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prematch-buttons .prematch-wide { grid-column: 1 / -1; }
 /* Each pack's bots' buttons, under its list (D-39). */
 .prematch-bots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .prematch-bots button { padding: 4px 10px; font-size: 13px; }

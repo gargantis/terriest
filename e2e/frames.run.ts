@@ -33,7 +33,8 @@
 //      throttling doesn't slow, so they're no phone proxy (PLAN §16);
 //   3. the forced repair (M3-Q14): repair=1, the witness in its Worker, at
 //      4× throttle in Chromium, 20 pages, a fresh one each: every call of
-//      the repair and the STATE's adoption alone, against M3's 25 ms;
+//      the repair and the STATE's adoption alone, against M3's 25 ms; a
+//      60 s window, as the hold waits up to 15 s for a calm room (bench-F2);
 //   4. the timers' cadence with real frames (D-15, D-31): each engine at
 //      both qualities, the timer gaps against the freeze's 233 ms and the
 //      stall's 2 s, and the clock's samples taken, dropped and their age;
@@ -60,6 +61,7 @@ import { type Browser, type BrowserContextOptions, chromium, firefox, type Page,
 import type { BenchStatus, FrameParams, FrameReport } from '../src/frames';
 import { CHROMIUM_GL_ARGS, GL_PATH } from './lib/gl';
 import { expect, expectEverywhere, expectWebGL2, test, watchPage } from './lib/guards';
+import { monotonicMs } from './lib/page';
 
 type Engine = 'chromium' | 'firefox' | 'webkit';
 
@@ -153,12 +155,14 @@ async function onePage(browser: Browser, base: string, run: PageRun, timeoutMs: 
     const query = new URLSearchParams([['test', 'frames']]);
     for (const [k, v] of Object.entries(run.params)) query.set(k, String(v));
     const before = loadavg();
-    const from = Date.now();
+    // The deadline and the line's time on the monotonic clock: Date.now() can step a second ahead (phase 2b's
+    // review, specs-F10).
+    const from = monotonicMs();
     await page.goto(`${base}#${query.toString()}`);
     for (;;) {
       const s = await benchStatus(page);
       if (s?.done === true) break;
-      if (Date.now() - from > timeoutMs) throw new Error(`${run.label}: no report within ${timeoutMs / 1000} s: ${JSON.stringify(s)}`);
+      if (monotonicMs() - from > timeoutMs) throw new Error(`${run.label}: no report within ${timeoutMs / 1000} s: ${JSON.stringify(s)}`);
       await sleep(POLL_MS);
     }
     const r = (await page.evaluate(() => window.terriestTest!.bench!.report())) as FrameReport;
@@ -173,7 +177,7 @@ async function onePage(browser: Browser, base: string, run: PageRun, timeoutMs: 
     );
     return {
       label: run.label, engine: run.engine, browser: browser.version(), params: run.params, context: run.context, throttle: run.throttle ?? 1,
-      gl: GL_PATH, load: { before, after }, ms: Date.now() - from, report: r,
+      gl: GL_PATH, load: { before, after }, ms: monotonicMs() - from, report: r,
     };
   } finally {
     await context.close();
@@ -242,7 +246,7 @@ test("run 2: the CPU figures at the Pixel 8a's size in Chromium, at 1× and 4× 
 test('run 3: the forced repair (M3-Q14), the witness in its Worker, at 4× throttle in Chromium, 20 pages', async ({ baseURL }) => {
   out();
   const pages = Array.from({ length: REPAIR_PAGES }, (_, k) => ({
-    label: `run 3: repair ${k + 1} of ${REPAIR_PAGES}`, engine: 'chromium' as const, params: params({ repair: 1, seconds: 45 }), context: SMALL, throttle: 4,
+    label: `run 3: repair ${k + 1} of ${REPAIR_PAGES}`, engine: 'chromium' as const, params: params({ repair: 1, seconds: 60 }), context: SMALL, throttle: 4,
   }));
   await runPages(3, 'the forced repair', baseURL!, pages, { decides: REPAIR_PAGES >= REPAIR_PAGES_METHOD });
 });

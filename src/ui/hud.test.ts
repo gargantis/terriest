@@ -336,6 +336,24 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
     expect(follow.querySelectorAll('button')[1]).toBe(buttons[1]);
   });
 
+  it("brings each newly followed choice into the list's view, sideways, once as it's pressed, never every frame (phase 2b's review, P5)", () => {
+    const r = rig({ spectator: true });
+    const scrolls = dom.document.defaultView.scrolls;
+    r.layer.frame!(r.ctx());
+    const intoView = (): string[] => scrolls.flatMap((x) => ('intoView' in x ? [`${x.intoView.getAttribute('data-follow')} ${x.block}`] : []));
+    // Ball, pressed as the list is made.
+    expect(intoView()).toEqual(['ball nearest']);
+    const cmd = (kind: UiCommand['kind']): UiCommand => ({ kind, pressedAt: 0, source: 'keyboard', repeat: false });
+    r.layer.ui(cmd('next'));
+    r.layer.frame!(r.ctx());
+    r.layer.frame!(r.ctx());
+    r.layer.ui(cmd('next'));
+    r.layer.frame!(r.ctx());
+    only(r.el, `[data-follow="${BOT}"]`).click();
+    r.layer.frame!(r.ctx());
+    expect(intoView()).toEqual(['ball nearest', `${ME} nearest`, `${BEA} nearest`, `${BOT} nearest`]);
+  });
+
   it("cycles what a spectator follows on next and prev, the view key's and the shoulders', a repeat doing nothing; a player's HUD has no choice and takes neither", () => {
     const r = rig({ spectator: true });
     r.layer.frame!(r.ctx());
@@ -399,6 +417,21 @@ describe("the HUD's places (§5.8, §5.13, §5.14; a browser confirms them)", ()
     expect(cssLength(cssDeclarations(css('./hud.css'), '.hud-graphics').top, 360)).toBeGreaterThan(below);
     // The choice takes taps, though the HUD over the pitch takes none.
     expect([cssDeclarations(css('./hud.css'), '.hud')['pointer-events'], cssDeclarations(css('./hud.css'), '.hud-follow')['pointer-events']]).toEqual(['none', 'auto']);
+  });
+
+  it("keeps a goal's banner right of the control hints at their widest while they show, at the gate's size, a phone's and wider (phase 2b's review, P2)", () => {
+    // The gate's scripted matches have no person scoring, so no spec meets a long scorer's name under the hints:
+    // the stylesheets' boxes, by their own lengths.
+    const hints = cssDeclarations(css('./touch.css'), '.hints');
+    const band = cssDeclarations(css('./hud.css'), '.hud-centre');
+    const banner = cssDeclarations(css('./hud.css'), '.pitch-screen:has(> .hints:not([hidden])) .hud-banner');
+    expect([banner['justify-self'], cssDeclarations(css('./hud.css'), '.hud-banner')['overflow-wrap']]).toEqual(['end', 'anywhere']);
+    for (const w of [640, 667, 915, 1280, 1920]) {
+      const hintsRight = cssLength(hints.left, w) + cssLength(hints['max-width'], w);
+      const across = w - cssLength(band.left, w) - cssLength(band.right, w);
+      const bannerLeft = w - cssLength(band.right, w) - cssLength(banner['max-width'], across);
+      expect(bannerLeft, `${w} wide`).toBeGreaterThan(hintsRight);
+    }
   });
 
   it('keeps the HUD inside the safe area, and every piece of its text on an opaque backing', () => {

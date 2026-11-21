@@ -9,7 +9,7 @@ import { fake, FakeEvent, type FakeDocument, type FakeElement, installDom, only,
 import { MemoryProfile, stateWith, StateMatch } from '../pitch-testing';
 import { homeScreen, NOT_A_CODE } from './home';
 import { COPIED, invitePanel, NOT_COPIED } from './invite';
-import { joinScreen, playState, suggestedPack } from './join';
+import { joinScreen, joinStatus, playState, suggestedPack } from './join';
 import { createdScreen, joinedText, playText, proposeScreen } from './propose';
 
 // The networked screens' own parts (M4's design §1.43, §5.3, §5.5, §5.6,
@@ -249,6 +249,30 @@ describe('Join (§5.6, M4-Q2)', () => {
     expect(only(el, '[data-test="join-status"]').textContent).toBe('This match has started: you can watch it.');
     for (const p of [0, 1] as Pack[]) expect(button(el, `play-${p}`).getAttribute('aria-disabled')).toBe('true');
     expect(button(el, 'watch').hidden).toBe(false);
+  });
+
+  it("says so when both packs are full, and puts Watch, the only choice, right under the status, first in the pad's nav (phase 2b's review, P8)", () => {
+    const { s, el, chose } = join();
+    const full = stateWith(1, 100, [{ id: B(0), pack: 0 }, { id: B(1), pack: 1 }]);
+    expect(joinStatus(full)).toBe('Both packs are full: you can watch.');
+    s.update(new StateMatch(ME, full));
+    const status = only(el, '[data-test="join-status"]');
+    expect(status.textContent).toBe('Both packs are full: you can watch.');
+    // Watch next to the status, above the packs, so a short window shows it without scrolling.
+    const order = (): string[] => el.querySelectorAll('button, [data-test="join-status"]').map((b) => b.getAttribute('data-test')!);
+    expect(order()).toEqual(['join-status', 'watch', 'play-0', 'play-1', 'join-home']);
+    expect(only(el, '[data-test="watch-alone"]').hidden).toBe(false);
+    s.ui?.(pad('down'));
+    expect(dom.document.activeElement.getAttribute('data-test')).toBe('watch');
+    s.ui?.(pad('press'));
+    expect(chose).toEqual(['watch']);
+    // A place freed: Watch back beside Home, the focus it had kept, and the packs first again.
+    s.update(new StateMatch(ME, stateWith(1, 100, [{ id: B(0), pack: 0 }])));
+    expect([status.textContent, order()]).toEqual(['Play in a pack, or watch.', ['join-status', 'play-0', 'play-1', 'watch', 'join-home']]);
+    expect([only(el, '[data-test="watch-alone"]').hidden, dom.document.activeElement.getAttribute('data-test')]).toEqual([true, 'watch']);
+    // And the match started: watching alone again.
+    s.update(new StateMatch(ME, { ...full, phase: IN_PLAY } as MatchState));
+    expect([status.textContent, order()[1]]).toEqual(['This match has started: you can watch it.', 'watch']);
   });
 });
 

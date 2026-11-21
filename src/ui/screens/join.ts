@@ -9,7 +9,10 @@
 // each pack: its swatch, its free places and who's in it, each by name and
 // coat; Play in either pack, the smaller suggested (the first on a tie), a
 // full pack's marked aria-disabled and reading "full", every Play so once
-// the start countdown has locked the roster; and Watch. Its controls are
+// the start countdown has locked the roster; and Watch, which moves up
+// beside the status when it's the only choice, both packs full or the
+// match started, so it shows without scrolling past the packs (phase 2b's
+// review, P8). Its controls are
 // native, for the keyboard's own Tab and Enter; the gamepad's commands move
 // among and press its buttons (Q-17, L82). A JOIN given up later is the
 // pitch's to say (src/ui/layers/net.ts), and the refusals' messages the
@@ -58,6 +61,13 @@ export function playState(F: Readonly<MatchState>, look: Look, pack: Pack): { re
   return { enabled: true, text: playText(look, pack) };
 }
 
+/** What Join says once the state is held: playing or watching in warm-up while a pack has a place, else
+ *  watching alone, saying why (P8). */
+export function joinStatus(F: Readonly<MatchState>): string {
+  if (F.phase !== WARM_UP) return 'This match has started: you can watch it.';
+  return suggestedPack(F) === null ? 'Both packs are full: you can watch.' : 'Play in a pack, or watch.';
+}
+
 /** A Play button that acts, or one marked aria-disabled, never disabled, saying why, beside its swatch (§1.42). */
 function setPlay(b: HTMLButtonElement, on: boolean, text: string): void {
   const label = b.querySelector<HTMLElement>('.play-label');
@@ -85,23 +95,42 @@ export function joinScreen(host: JoinHost): JoinScreen {
   });
   const offer = h('div', { class: 'join-packs', hidden: true }, ...packs.map((x) => x.section));
   setShown(watch, false);
-  const nav = new ButtonNav(() => [...plays, watch, home]);
+  // Watch's two places: under the packs beside Home, or under the status when it's the only choice (P8).
+  const watchAlone = h('div', { class: 'row', 'data-test': 'watch-alone', hidden: true });
+  const below = h('div', { class: 'row' }, watch, home);
+  let alone = false;
+  const nav = new ButtonNav(() => (alone ? [watch, ...plays, home] : [...plays, watch, home]));
   const el = h('section', { class: 'screen join' },
     h('h1', {}, 'Join a match'),
     h('p', { class: 'join-code-row' }, h('span', { class: 'muted small' }, 'Code'), h('span', { class: 'join-code', 'data-test': 'join-code' }, formatMatchId(host.matchId))),
     status,
+    watchAlone,
     offer,
-    h('div', { class: 'row' }, watch, home),
+    below,
   );
+
+  /** Watch where it shows: beside the status alone, or below the packs; the focus kept on Watch or Home, which
+   *  a move takes out of the document for a moment. */
+  function placeWatch(only: boolean): void {
+    if (only === alone) return;
+    alone = only;
+    const active = el.ownerDocument.activeElement;
+    if (only) watchAlone.append(watch);
+    else below.replaceChildren(watch, home);
+    setShown(watchAlone, only);
+    if (active === watch) watch.focus({ preventScroll: true });
+    else if (active === home) home.focus({ preventScroll: true });
+  }
 
   function update(m: Match | null): void {
     const t = m?.session.timeline ?? null;
     if (t === null || !t.started) return;
     const F = t.final;
-    setText(status, F.phase === WARM_UP ? 'Play in a pack, or watch.' : 'This match has started: you can watch it.');
+    setText(status, joinStatus(F));
     setShown(offer, true);
     setShown(watch, true);
     const suggested = suggestedPack(F);
+    placeWatch(suggested === null);
     for (const p of [0, 1] as const) {
       const s = playState(F, look, p);
       const b = plays[p]!;

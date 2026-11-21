@@ -9,7 +9,10 @@
 // WebGL contexts counted as it goes: a stage made at a change's first ask
 // and the other kept while Home and Settings show, so twenty changes make
 // one and the page never holds more than two, the unused one giving its
-// context back once Practice opens (§2.8, phase 2b). Two tests, one load
+// context back as Practice opens (§2.8, phase 2b), and a Practice then
+// drawn on the stage swapped back in. Each read checks the buffer by the
+// governor's scale it reads (§9.1), and Leave keeps its place as Ready
+// relabels (phase 2b's review). Two tests, one load
 // each (§9.9). Nothing here depends on the frame rate: the rate is measured
 // and reported, with the GL path, never judged. What's drawn is read off a
 // capture taken at a steady drawing buffer: WebKit's capture of a WebGL
@@ -34,9 +37,22 @@ test.beforeEach(async ({ page }) => {
   await installHook(page);
 });
 
-/** Pre-match drawing: the pitch ready and a few frames on it. */
+/** The page's live WebGL contexts as expected: a context given back is lost at once, and phase 2b's review
+ *  saw each count within 64 ms at worst, in each engine (load 1.4 to 2.5); 3 × 0.064 + 2 = 2.2 s, as
+ *  e2e/lib/practice.ts' margins go for a wait that load lengthens (specs-F9). */
+const CONTEXTS_MS = 2_500;
+
+/** Pre-match drawing on the stage held: the pitch ready and a few frames on it past `after`, its frames on
+ *  Home, since a stage counts its frames over its whole life and one kept off the pitch drew before (§2.8). */
 function drawing(page: Page, after = 0): Promise<Inspection> {
   return waitForInspection(page, (i) => i.screen === 'prematch' && i.render.frames > after + 3, { what: 'Pre-match drawing' });
+}
+
+/** An element's box, by its data-test. */
+async function boxOf(page: Page, test: string): Promise<{ x: number; y: number; width: number; height: number }> {
+  const b = await page.locator(`[data-test="${test}"]`).boundingBox();
+  if (b === null) throw new Error(`no box for ${test}`);
+  return b;
 }
 
 /** The median colour of small samples along a row, so a terrier or the ball in one of them changes nothing. */
@@ -103,7 +119,8 @@ async function expectFilled(page: Page, r: Inspection['render'], width: number, 
 
 test("Practice's Pre-match draws the pitch from the player's ball view, fills the window and compiles nothing after prepare", async ({ page, browserName }, testInfo) => {
   test.setTimeout(90_000);
-  await seedStorage(page, { profile: { playerId: personId(7, 0) }, settings: { quality: 'low' } });
+  // A name as long as C-17 allows, of its widest letter.
+  await seedStorage(page, { profile: { playerId: personId(7, 0), name: 'W'.repeat(20) }, settings: { quality: 'low' } });
   await page.goto('./');
   await expectStarted(page);
   // Home draws nothing: the stage's box is hidden off the pitch screens (M4-Q9).
@@ -114,6 +131,18 @@ test("Practice's Pre-match draws the pitch from the player's ball view, fills th
   expect(first.camera).toMatchObject({ kind: 'player', view: 'ball' });
   expect(first.calls).toBeGreaterThan(0);
   expect(first.triangles).toBeGreaterThan(0);
+
+  // Each pack's list, the long name wrapping in its row, so every row's Ready, the bots' too, stays inside the
+  // panel (L166; phase 2b's review, P3).
+  await expect(page.locator('.prematch-pack li .ready')).toHaveCount(8);
+  const rows = await page.evaluate(() => {
+    const panel = document.querySelector('[data-test="prematch"]')!.getBoundingClientRect();
+    return [...document.querySelectorAll('.prematch-pack li')].map((li) => {
+      const r = li.querySelector('.ready')!.getBoundingClientRect();
+      return { row: li.textContent, inside: r.left >= panel.left - 0.5 && r.right <= panel.right + 0.5 };
+    });
+  });
+  expect(rows.filter((r) => !r.inside), "rows whose Ready runs past the panel's edge").toEqual([]);
 
   // The one landmark, the app's, with the pitch a named image in it (M4-Q1), and axe (§5.14).
   await expect(page.getByRole('main')).toHaveCount(1);
@@ -196,18 +225,29 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
     /** The page's contexts, made and alive, once they're as expected: a context given back is lost at once,
      *  but the read polls, never on animation frames (C-6). */
     const held = async (made: number, alive: number, what: string): Promise<void> => {
-      await expect.poll(() => contexts(page), { message: `the page's WebGL contexts ${what}` }).toEqual({ made, alive });
+      await expect.poll(() => contexts(page), { message: `the page's WebGL contexts ${what}`, timeout: CONTEXTS_MS }).toEqual({ made, alive });
     };
     await waitForScreen(page, 'home');
     await held(1, 1, 'on Home');
-    /** Practice's Pre-match at this quality, read, then Leave to Home. */
-    const read = async (what: string): Promise<Inspection['render']> => {
+    const dpr = await page.evaluate(() => devicePixelRatio);
+    /** Practice's Pre-match at this quality, read, then Leave to Home: drawing on the stage held, its frames
+     *  counted from Home's, since a stage kept off the pitch drew before (§2.8, specs-F3); the other stage's
+     *  context given back as the pitch opens, before Leave (specs-F5); the buffer and the pixel ratio by the
+     *  governor's scale the read reports, which the governor may step on Pre-match's opening (§9.1, specs-F2),
+     *  its actions logged; and Leave where it was from the screen's entry, as Ready relabels (P6). */
+    const read = async (what: string, made: number): Promise<Inspection['render']> => {
+      const home = (await inspect(page)).render.frames;
       await openPractice(page, { packSize: 1, minutes: 1 });
-      const r = (await drawing(page)).render;
+      const entry = { leave: await boxOf(page, 'prematch-leave'), ready: await page.locator('[data-test="ready"]').textContent() };
+      const shown = await drawing(page, home);
+      await held(made, 1, `with ${what}'s Practice opened: the other stage given back`);
+      const r = shown.render;
       await expectFilled(page, r, smallViewport.width, smallViewport.height);
-      // Leave once Ready can act: joining the final roster relabels Ready and Switch pack, which moves Leave
-      // up a row, so a click across that change would miss it.
+      expect(r.pixelRatio, `${what}: min(devicePixelRatio, cap) × the scale read`).toBeCloseTo(Math.min(dpr, r.cap) * r.scale, 6);
+      console.log(`${what}: scale ${r.scale}, the governor acted ${shown.frames.actions} times, ${JSON.stringify(shown.frames.log)}`);
+      // Leave once Ready can act; the relabel moves no button (P6), checked from the screen's entry.
       await expect(page.locator('[data-test="ready"]'), 'Ready, the person in the final roster').toHaveText('Ready');
+      expect(await boxOf(page, 'prematch-leave'), `Leave where it was as Ready read "${entry.ready}"`).toEqual(entry.leave);
       await page.locator('[data-test="prematch-leave"]').click();
       await waitForScreen(page, 'home');
       expect(r.quality, what).toBe(r.cap === 2 ? 'high' : 'low');
@@ -220,30 +260,32 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
       await waitForScreen(page, 'settings');
       expect(await focusInView(page), "Settings' heading, in view").toEqual({ what: 'h1 Settings', inView: true });
       await page.locator(`[data-test="quality-${quality}"]`).check();
+      // Said where it's seen, though the status line sits at the screen's foot (P4).
       await expect(page.locator('[data-test="settings-message"]')).toHaveText('Saved.');
+      await expect(page.locator('[data-test="settings-message"]')).toBeInViewport();
       await page.locator('[data-test="back"]').click();
       await waitForInspection(page, (i) => i.screen === 'home' && i.render.quality === quality, { what: `the ${quality} stage behind Home` });
       expect(await focusInView(page), "Home's heading, in view").toEqual({ what: 'h1 terriest', inView: true });
     };
 
-    const byDefault = await read('no setting');
-    expect([byDefault.quality, byDefault.cap, byDefault.pixelRatio]).toEqual(['high', 2, 2]);
+    const byDefault = await read('no setting', 1);
+    expect([byDefault.quality, byDefault.cap]).toEqual(['high', 2]);
     expect(byDefault.samples).toBeGreaterThan(0);
     await held(1, 1, 'after a Practice');
     // The first change makes a stage at low, the high one kept while Home and Settings show; Practice's
     // opening gives the unused one's context back.
     await choose('low');
     await held(2, 2, 'with low chosen on Home: the high stage kept');
-    const low = await read('low');
-    await held(2, 1, "with low's Practice opened: the high stage given back");
-    expect([low.cap, low.pixelRatio, low.samples]).toEqual([1, 1, 0]);
+    const low = await read('low', 2);
+    await held(2, 1, "after low's Practice: the high stage given back");
+    expect([low.cap, low.samples]).toEqual([1, 0]);
     // Low draws the nets with fewer ropes.
     expect(low.lines).toBeLessThan(byDefault.lines);
     await choose('high');
     await held(3, 2, 'with high chosen on Home: the low stage kept');
-    const high = await read('high');
-    await held(3, 1, "with high's Practice opened: the low stage given back");
-    expect([high.cap, high.pixelRatio]).toEqual([2, 2]);
+    const high = await read('high', 3);
+    await held(3, 1, "after high's Practice: the low stage given back");
+    expect(high.cap).toBe(2);
     expect(high.samples).toBeGreaterThan(0);
     expect(low.lines).toBeLessThan(high.lines);
 
@@ -262,6 +304,11 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
     await page.locator('[data-test="back"]').click();
     await waitForInspection(page, (i) => i.screen === 'home' && i.render.prepared, { what: 'the last stage, prepared behind Home' });
     await held(4, 2, 'after twenty changes: one stage made for them, two kept');
+    // And a Practice drawn on the stage the last change swapped back in, high's from before the changes, as a
+    // player who changes their mind then plays draws on it (§2.8, specs-F3).
+    const again = await read('high, swapped back in', 4);
+    expect([again.quality, again.cap]).toEqual(['high', 2]);
+    await held(4, 1, 'after it: the low stage given back');
     expect(tooMany, 'contexts kept past the browser\'s cap').toEqual([]);
   });
 });

@@ -6,10 +6,13 @@
 // stored low quality, Home and the setup by keys, since a mouse's press
 // hides the control layer:
 // - the control layer hidden until the page's first touch, then shown;
-// - the stick: its base where the thumb lands, A's step from a thumb moved
-//   left, the terrier running sideways in ball view; past its rim zoomies,
-//   held until the thumb comes back inside it; the touch hints from its
-//   first use, and axe on the control layer with the hints showing;
+// - the stick: its base drawn where the thumb lands, away from where it
+//   rests, A's step from a thumb moved left, the terrier running sideways in
+//   ball view; past its rim zoomies, held in the input sent until the thumb
+//   comes back inside it; the touch hints from its first use, and axe on
+//   the control layer with the hints showing;
+// - the HUD's gauges clear of the buttons and the stick's resting base, in
+//   either layout (phase 2b's review, P1);
 // - jump and pounce held at once by two thumbs, both pressed, lifted
 //   together; a thumb that slides off its button holding it, by pointer
 //   capture, until it lifts; bark and view, each pressed by a tap, view
@@ -18,15 +21,18 @@
 // - a touch inside the edge margin, even one that slides into the stick's
 //   area, never moving the stick, and one just inside it taking it;
 // - the mirrored layout, chosen by touch in the match menu's Settings
-//   panel, putting the stick on the right and the buttons on the left, the
-//   stick's steps still the screen's;
+//   panel, scrolled to by a thumb's swipes, its status said in view,
+//   putting the stick on the right and the buttons on the left, the stick's
+//   steps still the screen's, and the edge margin at the right edge then;
+// - a mouse's press hiding the layer, and a touch showing it again;
 // - a phone held upright (412 × 915, with touch) showing the turn prompt
-//   on Pre-match, axe on it, and turned sideways (915 × 412) clearing it.
+//   on Pre-match, axe on it, and turned sideways (915 × 412) clearing it,
+//   the HUD's clock clear of its Menu button either way (P7).
 // Every look polls the hook every 50 ms, never on animation frames (C-6).
 // New at M4.
 
 import type { Page } from '@playwright/test';
-import { heldDirection, stepOf } from '../src/core/sim/input';
+import { heldDirection, stepOf, ZOOMIES } from '../src/core/sim/input';
 import { ZOOMING } from '../src/core/sim/state';
 import type { Inspection } from '../src/main';
 import { expect, expectWebGL2, test } from './lib/guards';
@@ -39,8 +45,9 @@ test.skip(({ browserName }) => browserName !== 'chromium', "touches go through C
 /** Each test's whole timeout, from phase 2b's measured runs, × 2 as e2e/lib/practice.ts' whole tests are:
  *  its worst run, made as long as a hang in its longest wait would make it, the start's 30 s
  *  (expectStarted), so each wait inside it fails first, with its own message. The control layer's ran
- *  6.5 s at worst (load 7.23), (6.5 + 30) × 2 = 73 s; the phone's 2.5 s (load 1.05), (2.5 + 30) × 2 = 65 s. */
-const TOUCH_TEST_MS = 75_000;
+ *  6.5 s at worst (load 7.23), 8.6 s with phase 2b's review's swipes, margin and mouse (load 1.8),
+ *  (8.6 + 30) × 2 = 77.2 s; the phone's 2.5 s (load 1.05), (2.5 + 30) × 2 = 65 s. */
+const TOUCH_TEST_MS = 78_000;
 const PHONE_TEST_MS = 65_000;
 /** How far the stick's thumb moves from its base: inside the rim (its travel is 56 CSS px, src/input/touch.ts),
  *  past the dead zone, and past the rim for zoomies. Test distances, not settings. */
@@ -93,10 +100,46 @@ async function taps(run: PracticeRun, f: Fingers, button: string, shown: (i: Ins
   return run.until((i) => shown(i, before), { what, timeoutMs: SHOWN_MS });
 }
 
-/** The point at the middle of an element's box, scrolled into view first: a control a finger can reach. */
-async function reach(page: Page, test: string): Promise<Point> {
-  await page.locator(`[data-test="${test}"]`).scrollIntoViewIfNeeded();
-  return pointIn(page, test);
+type Box = { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
+
+/** Two boxes overlap, edges touching aside. */
+const overlap = (a: Box, b: Box): boolean => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+/** The boxes of the control layer's buttons and of the stick's base, at rest, that the HUD's gauges overlap:
+ *  none, in either layout (P1). */
+async function underGauges(page: Page): Promise<string[]> {
+  const gauges = await page.locator('.hud-gauges').boundingBox();
+  if (gauges === null) throw new Error("the HUD's gauges aren't shown");
+  const out: string[] = [];
+  for (const b of ['touch-jump', 'touch-pounce', 'touch-bark', 'touch-view']) if (overlap(await boxOf(page, b), gauges)) out.push(b);
+  const base = await page.locator('.touch-stick-base').boundingBox();
+  if (base !== null && overlap(base, gauges)) out.push('the stick at rest');
+  return out;
+}
+
+/** A control of the Settings panel scrolled into its view by a thumb's swipes, as a touch player scrolls it,
+ *  clear of its sticky head and of the status line at its foot, then its middle, for a tap (specs-F7). */
+async function swipeTo(page: Page, f: Fingers, test: string): Promise<Point> {
+  for (let k = 0; k < 10; k++) {
+    const seen = await page.evaluate((t) => {
+      const el = document.querySelector(`[data-test="${t}"]`)!;
+      const panel = el.closest('.settings-panel')!;
+      const top = panel.querySelector('.settings-panel-head')!.getBoundingClientRect().bottom;
+      const status = panel.querySelector('[data-test="settings-message"]')!.getBoundingClientRect();
+      const p = panel.getBoundingClientRect();
+      const bottom = status.height > 0 ? Math.min(p.bottom, status.top) : p.bottom;
+      const r = el.getBoundingClientRect();
+      return { above: r.top < top, below: r.bottom > bottom, x: p.left + p.width / 2, top, bottom };
+    }, test);
+    if (!seen.above && !seen.below) return pointIn(page, test);
+    // A swipe up brings what's below into view; a swipe down, what's above.
+    const [from, to] = seen.below ? [seen.bottom - 20, seen.top + 20] : [seen.top + 20, seen.bottom - 20];
+    const id = await f.press({ x: seen.x, y: from });
+    await f.move(id, { x: seen.x, y: from + (to - from) / 2 }, 6);
+    await f.lift(id);
+    await page.waitForTimeout(SHOWN_MS / 10);
+  }
+  throw new Error(`${test}: not swiped into the Settings panel's view`);
 }
 
 test.describe('the control layer', () => {
@@ -121,11 +164,22 @@ test.describe('the control layer', () => {
         await expect(page.locator('[data-test="touch"]')).toBeVisible();
         expect(hintsOf(await run.poll())?.shown, 'no hints until a control is used').toBeNull();
 
-        // The stick (§4.3): its base where the thumb lands in its area, the lower half of the left side; A's
-        // step from a thumb moved left, the terrier running sideways; the touch hints from its first use.
-        const stickAt = await pointIn(page, 'touch-stick', 0.5, 0.6);
+        // The HUD's gauges clear of the buttons and of the stick at rest (P1).
+        expect(await underGauges(page), "the controls under the HUD's gauges").toEqual([]);
+
+        // The stick (§4.3): its base where the thumb lands in its area, the lower half of the left side, drawn
+        // there, away from where it rests; A's step from a thumb moved left, the terrier running sideways; the
+        // touch hints from its first use.
+        const rest = await page.locator('.touch-stick-base').boundingBox();
+        // A whole pixel, as a touch's point goes to the page as a float.
+        const landing = await pointIn(page, 'touch-stick', 0.3, 0.8);
+        const stickAt = { x: Math.round(landing.x), y: Math.round(landing.y) };
+        expect(Math.hypot(rest!.x + rest!.width / 2 - stickAt.x, rest!.y + rest!.height / 2 - stickAt.y), 'the thumb away from the base at rest').toBeGreaterThan(30);
         const stick = await stickLeft(run, f, stickAt, 'its first use');
         expect(touchOf(await run.poll())?.stick.base, "the base where the thumb landed").toEqual(stickAt);
+        const drawnBase = await page.locator('.touch-stick-base').boundingBox();
+        expect([drawnBase!.x + drawnBase!.width / 2 - stickAt.x, drawnBase!.y + drawnBase!.height / 2 - stickAt.y].map((d) => Math.abs(d) <= 1),
+          `the base drawn where the thumb landed, ${JSON.stringify(drawnBase)} for ${JSON.stringify(stickAt)} (specs-F6)`).toEqual([true, true]);
         await run.hints('touch', SIX.filter((c) => c !== 'run'), 'once the stick ran');
         // axe on the control layer, its hints panel showing (§9.6), the thumb still down.
         await expectAxeClean(page);
@@ -136,7 +190,11 @@ test.describe('the control layer', () => {
         });
         await run.hints('touch', ['jump', 'pounce', 'bark', 'view'], 'once the rim zoomed');
         await f.move(stick, { x: stickAt.x - INSIDE_PX, y: stickAt.y }, 4);
-        await run.until((i) => touchOf(i)?.stick.zoomies === false && touchOf(i)?.stick.step === LEFT_STEP, { what: 'zoomies let go, the thumb back inside the rim', timeoutMs: SHOWN_MS });
+        // Let go in the input sent, not only the layer's reading of the thumb (C-20, specs-F4).
+        const back = await run.until((i) => touchOf(i)?.stick.zoomies === false && touchOf(i)?.stick.step === LEFT_STEP && (i.controls!.lastInput! & ZOOMIES) === 0, {
+          what: 'zoomies let go in the input sent, the thumb back inside the rim', timeoutMs: SHOWN_MS,
+        });
+        expect([heldDirection(back.controls!.lastInput!), stepOf(back.controls!.lastInput!)], 'still running left, without zoomies').toEqual([true, LEFT_STEP]);
         await f.lift(stick);
         await run.until((i) => touchOf(i)?.stick.held === false && !heldDirection(i.controls!.lastInput!), { what: 'the stick let go, no direction', timeoutMs: SHOWN_MS });
 
@@ -200,9 +258,12 @@ test.describe('the control layer', () => {
         await run.until((i) => i.menu === 'menu', { what: "the menu, by the HUD's Menu button", timeoutMs: SHOWN_MS });
         await f.tap(await pointIn(page, 'menu-settings'));
         await run.until((i) => i.menu === 'settings', { what: 'the Settings panel, by its button', timeoutMs: SHOWN_MS });
-        await f.tap(await reach(page, 'mirror-touch'));
+        await f.tap(await swipeTo(page, f, 'mirror-touch'));
         await expect(page.locator('[data-test="mirror-touch"]'), 'the mirrored layout, chosen').toBeChecked();
-        await f.tap(await reach(page, 'back'));
+        // What it came to, said in view at the panel's foot (P4).
+        await expect(page.locator('[data-test="settings-message"]')).toHaveText('Saved.');
+        await expect(page.locator('[data-test="settings-message"]')).toBeInViewport();
+        await f.tap(await pointIn(page, 'back'));
         await run.until((i) => i.menu === 'closed' && touchOf(i)?.mirrored === true, { what: "the panel's Back, the layout mirrored", timeoutMs: SHOWN_MS });
         const width = page.viewportSize()!.width;
         const right = await boxOf(page, 'touch-stick');
@@ -212,9 +273,35 @@ test.describe('the control layer', () => {
           expect(box.x + box.width, `${b} on the left half`).toBeLessThanOrEqual(width / 2);
         }
         await expect(page.locator('[data-test="touch-jump"]'), 'the words unturned').toHaveText('Jump');
-        const mirroredStick = await stickLeft(run, f, await pointIn(page, 'touch-stick', 0.5, 0.6), 'the stick mirrored');
+        expect(await underGauges(page), "the controls under the HUD's gauges, mirrored").toEqual([]);
+        const mirroredAt = await pointIn(page, 'touch-stick', 0.5, 0.6);
+        const mirroredStick = await stickLeft(run, f, mirroredAt, 'the stick mirrored');
         await f.lift(mirroredStick);
         await run.until((i) => touchOf(i)?.stick.held === false, { what: 'the mirrored stick let go', timeoutMs: SHOWN_MS });
+        // The edge margin at the right edge now (specs-F6): a thumb inside it, sliding into the area, takes
+        // nothing; one just inside it does.
+        const area = await boxOf(page, 'touch-stick');
+        const rightEdge = { x: (area.x + area.width + width) / 2, y: mirroredAt.y };
+        const ignoredRight = await run.poll();
+        const rightThumb = await f.press(rightEdge);
+        await f.move(rightThumb, { x: area.x + area.width - INSIDE_PX, y: rightEdge.y }, 4);
+        await page.waitForTimeout(SHOWN_MS / 10);
+        const afterRight = await run.poll();
+        expect({ held: touchOf(afterRight)?.stick.held, refused: touchOf(afterRight)?.refused, direction: heldDirection(afterRight.controls!.lastInput!) },
+          `a thumb in the right edge's margin, ${width - area.x - area.width} px wide, at ${rightEdge.x}`).toEqual({ held: false, refused: touchOf(ignoredRight)?.refused, direction: false });
+        await f.lift(rightThumb);
+        const insideRight = await f.press({ x: area.x + area.width - 8, y: mirroredAt.y });
+        await run.until((i) => touchOf(i)?.stick.held === true, { what: "a thumb just inside the right edge's margin, the stick taking it", timeoutMs: SHOWN_MS });
+        await f.lift(insideRight);
+        await run.until((i) => touchOf(i)?.stick.held === false, { what: 'the mirrored stick let go again', timeoutMs: SHOWN_MS });
+
+        // A mouse's press hides the layer, and a touch shows it again (§4.3, specs-F6).
+        await page.mouse.click(PITCH.x, PITCH.y);
+        await run.until((i) => touchOf(i)?.shown === false && touchOf(i)?.mode === 'mouse', { what: 'the control layer hidden by a mouse press', timeoutMs: SHOWN_MS });
+        await expect(page.locator('[data-test="touch"]')).toBeHidden();
+        await f.tap(PITCH);
+        await run.until((i) => touchOf(i)?.shown === true && touchOf(i)?.mode === 'touch', { what: 'the control layer shown again by a touch', timeoutMs: SHOWN_MS });
+        await expect(page.locator('[data-test="touch"]')).toBeVisible();
       } finally {
         await f.liftAll();
         await f.detach();
@@ -241,11 +328,15 @@ test.describe('a phone', () => {
       await expect(prompt).toBeVisible();
       await expect(prompt.getByRole('heading', { level: 2 })).toHaveText('Turn your phone sideways to play');
       await expectAxeClean(page);
+      // The HUD's clock clear of its Menu button, upright as anyone looking sees it (P7).
+      const clockClear = async (): Promise<boolean> => !overlap(await boxOf(page, 'hud-clock'), await boxOf(page, 'menu-button'));
+      expect(await clockClear(), "the clock clear of the Menu button, upright").toBe(true);
       // Sideways: the prompt goes, still a phone (L170).
       await page.setViewportSize({ width: 915, height: 412 });
       const sideways = await run.until((i) => turnOf(i)?.shown === false, { what: 'the turn prompt gone, sideways', timeoutMs: SHOWN_MS });
       expect(turnOf(sideways), 'a phone, sideways').toMatchObject({ phone: true, upright: false, shown: false });
       await expect(prompt).toBeHidden();
+      expect(await clockClear(), "the clock clear of the Menu button, sideways").toBe(true);
       await expectNothingContacted(page, guard, { origin: originOf(baseURL) });
     });
   });

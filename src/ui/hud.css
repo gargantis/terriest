@@ -5,14 +5,20 @@
    button (§5.13). The top bar holds the score, the clock and the Menu
    button; the middle, each countdown and a goal's banner, one under the
    other; the top left, under the bar, the graphics note; the bottom left, a
-   player's gauges or a spectator's follow choice. The note and the follow
+   player's gauges, at the bottom's middle with the touch controls, or a
+   spectator's follow choice. The note and the follow
    choice keep left of Pre-match's panel, which sits right of the middle
    (src/ui/prematch.css). */
 .hud {
   position: absolute; z-index: 20; pointer-events: none; color: var(--fg);
   inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
-.hud-top { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+/* The top bar keeps the Menu button's width free at both ends, so the score and the clock, centred, never
+   run under it, and wraps on a window too narrow for both, a phone held upright (phase 2b's review, P7). */
+.hud-top {
+  position: absolute; top: 8px; left: 8px; right: 8px; padding: 0 56px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 6px 10px;
+}
 .hud-score, .hud-clock, .hud-gauge-label, .hud-countdown, .hud-banner, .hud-graphics, .hud-follow-label {
   background: var(--bg); border: 1px solid var(--line); border-radius: 10px; font-variant-numeric: tabular-nums;
 }
@@ -24,7 +30,10 @@
 /* The middle: a band across the pitch, its pieces centred in it, the countdown over the banner. */
 .hud-centre { position: absolute; left: 8px; right: 8px; top: 38%; transform: translateY(-50%); display: grid; justify-items: center; gap: 8px; }
 .hud-countdown { margin: 0; padding: 8px 28px; font-size: 56px; font-weight: 800; line-height: 1.1; }
-.hud-banner { margin: 0; padding: 6px 16px; font-size: 24px; font-weight: 800; line-height: 1.2; text-align: center; }
+.hud-banner { margin: 0; padding: 6px 16px; max-width: 100%; font-size: 24px; font-weight: 800; line-height: 1.2; text-align: center; overflow-wrap: anywhere; }
+/* While the control hints show at the top left (src/ui/touch.css), a goal's banner keeps right of their
+   widest, its names wrapping where they must, so it hides none of their lines (phase 2b's review, P2). */
+.pitch-screen:has(> .hints:not([hidden])) .hud-banner { justify-self: end; max-width: calc(100% - min(17rem, 42%) - 16px); }
 /* The graphics note at the left under the top bar, a line below the sound's prompt, which shares the
    corner (src/ui/layers/sound.css), and over the control hints, which sit under the HUD. */
 .hud-graphics { position: absolute; left: 8px; top: 96px; max-width: 55%; margin: 0; padding: 6px 12px; font-weight: 700; }
@@ -33,6 +42,10 @@
 .hud-gauge-label { padding: 2px 8px; font-size: 14px; font-weight: 600; }
 .hud-gauge-bar { height: 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--fg); overflow: hidden; }
 .hud-gauge-fill { display: block; height: 100%; width: var(--fill, 100%); background: var(--primary); }
+/* With the touch controls shown (src/ui/touch.css), the gauges move to the bottom's middle, each label over
+   its bar, clear of the stick's resting base and of the buttons in either layout (phase 2b's review, P1). */
+.pitch-screen:has(> .touch:not([hidden])) .hud-gauges { left: 50%; transform: translateX(-50%); gap: 4px; }
+.pitch-screen:has(> .touch:not([hidden])) .hud-gauge { grid-template-columns: 7rem; gap: 2px; }
 .hud-gauge.waiting .hud-gauge-fill { background: var(--muted); }
 /* A spectator's follow choice: one row of buttons that scrolls sideways, padded so a focused button's
    outline shows; the one followed pressed, by its colours and a check mark, never by colour alone. */

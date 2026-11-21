@@ -52,6 +52,7 @@ import { CELEBRATION, IN_PLAY, KICKOFF_COUNTDOWN, START_COUNTDOWN } from '../../
 import type { Control, InputKind } from '../../src/input/source';
 import type { Inspection } from '../../src/main';
 import type { ResourceCounts } from '../../src/render/stage-types';
+import type { Profile } from '../../src/storage/schema';
 import type { CueKind } from '../../src/ui/inspect';
 import { countPeerConnections } from './browsers';
 import { installGamepad, PAD, press } from './gamepad';
@@ -685,10 +686,10 @@ export class PracticeRun {
 
   /** Storage as a player's would hold it, the hook, the recorders, the stubbed gamepad for a run that plays
    *  one (from phase 2), then the page, to Home with its heading focused and the pitch prepared behind it,
-   *  and no RTCPeerConnection made (P10). */
-  async load(url: string, o: { readonly gamepad?: boolean } = {}): Promise<Inspection> {
+   *  and no RTCPeerConnection made (P10). `profile` seeds the profile's other fields: a name, the hints. */
+  async load(url: string, o: { readonly gamepad?: boolean; readonly profile?: Partial<Pick<Profile, 'name' | 'hints'>> } = {}): Promise<Inspection> {
     const page = this.page;
-    await seedStorage(page, { profile: { playerId: ME }, settings: { quality: 'low' } });
+    await seedStorage(page, { profile: { ...o.profile, playerId: ME }, settings: { quality: 'low' } });
     await installHook(page);
     await countPeerConnections(page);
     await recordReady(page);
@@ -715,7 +716,9 @@ export class PracticeRun {
    *  and focused from the screen's entry (Q-15, Q-17). `mark` names the step in the line's wallMs. */
   async practice(mark = 'prematch'): Promise<Inspection> {
     const page = this.page;
-    await this.until((i) => i.screen === 'home', { what: 'Home', timeoutMs: SHOWN_MS });
+    // The stage's frames on Home: a stage counts its frames over its whole life, so a second Practice on it
+    // draws only once they've moved past these (phase 2b's review, specs-F3).
+    const home = (await this.until((i) => i.screen === 'home', { what: 'Home', timeoutMs: SHOWN_MS })).render.frames;
     expect(await focused(page), "Home's heading, before its Tab order").toBe('h1');
     await tabThrough(page, ['name', 'coat-0', 'propose', 'code', 'join', 'practice'], 'Home');
     await page.keyboard.press('Enter');
@@ -732,18 +735,19 @@ export class PracticeRun {
     await page.keyboard.press('Enter');
     await this.until((i) => i.screen === 'prematch', { what: 'Pre-match, by Enter on Start', timeoutMs: SHOWN_MS });
     this.mark(mark);
-    const i = await this.readyActs();
+    const i = await this.readyActs(home);
     expect(i.match?.kind).toBe('practice');
     expect(i.match?.roster.map((r) => [r.id, r.pack]), 'the person in A and its bot in B, 1 a side (Q-15)').toEqual([[ME, 0], [BOT, 1]]);
     expect(i.match?.clock, 'a match of 1 minute, its clock unstarted in warm-up').toBe(MINUTES * 60 * SECOND);
     return i;
   }
 
-  /** A Pre-match just shown, drawing, with the person in the final roster and Ready able to act: Ready
-   *  focused at every state it showed, "Joining…" among them (§9.6). */
-  async readyActs(): Promise<Inspection> {
+  /** A Pre-match just shown, drawing, its frames past `framesBefore`, the stage's before it opened, with the
+   *  person in the final roster and Ready able to act: Ready focused at every state it showed, "Joining…"
+   *  among them (§9.6). */
+  async readyActs(framesBefore = 0): Promise<Inspection> {
     const page = this.page;
-    const i = await this.until((x) => x.screen === 'prematch' && x.render.frames > 0 && x.match?.inRoster === true, {
+    const i = await this.until((x) => x.screen === 'prematch' && x.render.frames > framesBefore && x.match?.inRoster === true, {
       what: 'Pre-match drawing, the person in the final roster', timeoutMs: READY_ACTS_MS,
     });
     const ready = page.locator('[data-test="ready"]');
@@ -764,6 +768,9 @@ export class PracticeRun {
   async ready(anchor: number, by: 'enter' | 'start' = 'enter'): Promise<Inspection> {
     const page = this.page;
     this.measure.ready = { anchor, pollTick: -1, tick: null, countdown: null, late: null, latitude: READY_LATITUDE };
+    // Leave's place in warm-up, which the countdown's relabel of Ready and Switch pack keeps (phase 2b's
+    // review, P6), read before the anchor's look, so the press isn't held up.
+    const leaveAt = await page.locator('[data-test="prematch-leave"]').boundingBox();
     const at = await this.until((i) => (i.match?.localTick ?? 0) >= anchor, { what: `local tick ${anchor}, Ready's anchor`, timeoutMs: TO_ANCHOR_MS });
     expect(await focused(page), 'Ready focused at its press (Q-17)').toBe('ready');
     if (by === 'enter') await page.keyboard.press('Enter');
@@ -780,6 +787,10 @@ export class PracticeRun {
     const seconds = page.locator('[data-test="hud-countdown"]');
     await expect(seconds, "the start countdown's seconds on the HUD").toBeVisible({ timeout: SHOWN_MS });
     await expect(seconds).toHaveText(/^[1-5]$/);
+    // The roster locked: Ready and Switch pack say so, and Leave stays where it was (P6).
+    await expect(page.locator('[data-test="ready"]'), 'Ready, the roster locked').toHaveText('Starting…', { timeout: SHOWN_MS });
+    await expect(page.locator('[data-test="switch-pack"]'), 'Switch pack, the roster locked').toHaveText('Switch pack: starting…', { timeout: SHOWN_MS });
+    expect(await page.locator('[data-test="prematch-leave"]').boundingBox(), 'Leave where it was in warm-up, Ready and Switch pack relabelled').toEqual(leaveAt);
     return c;
   }
 

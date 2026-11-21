@@ -9,14 +9,31 @@
 // however often the page polls (§16); the pad's figures are at the hook's
 // top level, so it presses on Results and Home as on the pitch. Each wait
 // polls the hook every 50 ms, never on animation frames (C-6), its deadline
-// on the monotonic clock (e2e/lib/page.ts' monotonicMs). New at M4.
+// on the monotonic clock (e2e/lib/page.ts' monotonicMs). The buttons the
+// specs press are the W3C standard mapping's, as D-29 and §4.4 number them,
+// written out here, never the page's own table, so a page that maps a
+// button wrong fails the specs (phase 2b's review, specs-F1). New at M4.
 
 import type { Page } from '@playwright/test';
-import { PAD } from '../../src/input/gamepad';
 import type { GamepadInspection } from '../../src/input/source';
 import { inspect, monotonicMs, POLL_MS } from './page';
 
-export { PAD };
+/** The standard mapping's buttons, by what §4.4 has each do (D-29): the face buttons, the right shoulder and
+ *  trigger, Back and Start, and the d-pad. */
+export const PAD = {
+  jump: 0, // the bottom face button
+  pounce: 2, // the left face button
+  bark: 3, // the top face button
+  prev: 4, // the left shoulder
+  view: 5, // the right shoulder
+  zoomies: 7, // the right trigger
+  back: 8,
+  start: 9,
+  up: 12,
+  down: 13,
+  left: 14,
+  right: 15,
+} as const;
 
 /** window.terriestPadStub: the spec's alone. */
 export interface PadStub {

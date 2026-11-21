@@ -19,9 +19,17 @@
   width: min(32rem, 100%); max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
   background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 14px;
   /* A control scrolled to, by the nav or by Tab, clear of the sticky head: its Back's 46px, its padding
-     twice, its border and the focus ring's 5px (§5.14). */
-  scroll-padding: 76px 0 8px;
+     twice, its border and the focus ring's 5px (§5.14); and clear of the status line at its foot. */
+  scroll-padding: 76px 0 72px;
 }
+/* The status line, on the screen and in the panel, kept at the foot of what shows whatever is scrolled to,
+   on its opaque backing, so what a change came to is seen beside it, Show control hints again's among them;
+   empty, it takes no room (phase 2b's review, P4). The screen's page keeps a focus scrolled to clear of it. */
+.settings > p[role="status"], .settings-panel-body > p[role="status"] {
+  position: sticky; bottom: 0; z-index: 1; margin: 0; padding: 8px 0; background: var(--bg); border-top: 1px solid var(--line);
+}
+.settings > p[role="status"]:empty, .settings-panel-body > p[role="status"]:empty { padding: 0; border-top: 0; }
+:root:has(.screen.settings) { scroll-padding-bottom: 72px; }
 .settings-panel-head {
   position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 12px;
   padding: 12px 16px; background: var(--bg); border-bottom: 1px solid var(--line);
