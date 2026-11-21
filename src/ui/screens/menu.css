@@ -1,0 +1,7 @@
+/* The match menu (M4's design §5.8, §5.14): an opaque panel over the pitch,
+   above every other layer, the pitch still drawing behind its backdrop. */
+.match-menu { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 0.45); pointer-events: auto; }
+.match-menu-panel { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 12px; width: min(22rem, 100%); }
+.match-menu-panel h2 { margin: 0; font-size: 22px; }
+.match-menu-panel p { margin: 0; color: var(--muted); }
+.match-menu-buttons { display: grid; gap: 10px; }

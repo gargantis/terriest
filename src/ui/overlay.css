@@ -1,0 +1,19 @@
+/* The marks over the pitch (M4's design §1.45, §2.6, §5.14, M4-Q10): placed
+   by transform from the canvas's top left, each centred on its point; shapes
+   that need no colour to see (L52), and the bark's word on an opaque bubble.
+   On top of the HUD and Pre-match's panel, so your mark and the ball's arrow
+   always show (L52, L90), and under the menu and the "Getting the pitch
+   ready…" message; they take no pointer, so every button under them works. */
+.overlay { position: absolute; inset: 0; z-index: 25; pointer-events: none; overflow: hidden; }
+.overlay-mark { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
+.overlay-mark > span { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); }
+/* The shapes' outline, on their marks: a filter on the clipped shape itself would be clipped away. */
+.overlay-mine, .overlay-arrow { filter: drop-shadow(0 0 1.5px #000) drop-shadow(0 0 1.5px #000); }
+/* Your terrier's chevron, pointing down at it, outlined so it shows on any coat or grass. */
+.overlay-chevron { width: 26px; height: 18px; background: #fff; clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 40%, 50% 100%, 0 40%); }
+/* The ball's arrow, pointing right before its rotation. */
+.overlay-arrow-shape { width: 30px; height: 30px; background: #fff; clip-path: polygon(0 15%, 100% 50%, 0 85%, 22% 50%); }
+.overlay-bark-bubble {
+  padding: 2px 8px; border-radius: 10px; background: #fff; color: #1d2b1f; border: 2px solid #1d2b1f;
+  font-size: 14px; font-weight: 800; white-space: nowrap;
+}

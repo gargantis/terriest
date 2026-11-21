@@ -1,0 +1,28 @@
+/* The pitch screen (M4's design §5.7, §5.8, §5.14): it fills the box the
+   stage's canvas fills, so the layers' marks, placed in CSS px from the
+   canvas's top left, land on it. Pre-match's panel is a column on the
+   right, under the HUD's top bar and clear of its gauges at the bottom left,
+   its left edge well right of the middle, where your terrier, its mark and
+   the countdown are drawn (L52); its buttons first, the lists scrolling
+   below them; every piece of text on an opaque backing. */
+.pitch-screen { position: absolute; inset: 0; overflow: hidden; color: var(--fg); }
+.pitch-preparing {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 30; margin: 0;
+  padding: 10px 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; font-weight: 600;
+}
+.prematch {
+  position: absolute; top: 56px; right: 8px; z-index: 15; display: grid; gap: 8px; align-content: start;
+  width: min(17rem, 40%); max-height: calc(100% - 64px); overflow: auto;
+  padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+}
+.prematch-packs { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.prematch-pack h2 { margin: 0; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.prematch-count { margin-left: auto; font-weight: 400; color: var(--muted); }
+.prematch-pack ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; }
+.prematch-pack li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 22px; font-size: 13px; }
+.prematch-pack li .ready { margin-left: auto; color: var(--muted); }
+.prematch-pack li.you .name { font-weight: 700; }
+.prematch-pack li.free { color: var(--muted); font-style: italic; }
+.prematch .notice { font-size: 13px; }
+.prematch-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.prematch-buttons button { padding: 8px 12px; }

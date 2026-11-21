@@ -1,0 +1,10 @@
+/* Results (M4's design §5.9, §5.14): the final score, and the table with its headers. */
+.results .results-said { display: grid; gap: 16px; }
+.results .final-score { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.results table { width: 100%; border-collapse: collapse; }
+.results th, .results td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
+.results thead th { font-size: 14px; color: var(--muted); font-weight: 600; }
+.results .num { text-align: right; font-variant-numeric: tabular-nums; }
+.results th.name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.results .pack-cell { display: inline-flex; align-items: center; gap: 6px; }
+.results tr.you th, .results tr.you td { background: var(--surface); }

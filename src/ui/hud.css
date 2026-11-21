@@ -1,0 +1,23 @@
+/* The HUD (M4's design §5.8, §5.14): over the pitch, under the menu; every
+   piece of text on an opaque backing, so axe judges its contrast against a
+   known colour rather than the canvas. */
+.hud { position: absolute; inset: 0; z-index: 20; pointer-events: none; color: var(--fg); }
+.hud-top { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.hud-score, .hud-clock, .hud-gauge-label, .hud-countdown {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px; font-variant-numeric: tabular-nums;
+}
+.hud-score { display: flex; align-items: center; gap: 10px; padding: 4px 12px; font-weight: 600; }
+.hud-pack { display: inline-flex; align-items: center; gap: 6px; }
+.hud-goals { font-size: 22px; font-weight: 800; min-width: 1ch; text-align: center; }
+.hud-clock { padding: 6px 12px; font-weight: 700; }
+.hud-menu { position: absolute; right: 0; top: 0; pointer-events: auto; min-width: 44px; padding: 6px 12px; background: var(--bg); font-size: 20px; line-height: 1; }
+.hud-countdown {
+  position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); margin: 0;
+  padding: 8px 28px; font-size: 56px; font-weight: 800; line-height: 1.1;
+}
+.hud-gauges { position: absolute; left: 8px; bottom: 8px; display: grid; gap: 6px; }
+.hud-gauge { display: grid; grid-template-columns: 5.5rem 7rem; align-items: center; gap: 6px; }
+.hud-gauge-label { padding: 2px 8px; font-size: 14px; font-weight: 600; }
+.hud-gauge-bar { height: 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--fg); overflow: hidden; }
+.hud-gauge-fill { display: block; height: 100%; width: var(--fill, 100%); background: var(--primary); }
+.hud-gauge.waiting .hud-gauge-fill { background: var(--muted); }
