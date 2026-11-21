@@ -3,15 +3,20 @@
 // each engine, the stubbed pad's d-pad, Start and Back the only input:
 // Home's nav to Settings; Settings' d-pad through its controls, Start
 // turning Sound off, and on down to Back, at the foot of a screen taller
-// than the gate's window, which the nav brings into view; Back to Home,
-// then Practice's setup and its Start; on Pre-match the pad's Back opening
-// the menu, its Settings panel, Start turning Sound on again there, the
-// d-pad down to Show control hints again below the panel's fold and back up
-// to the first radio, each focus brought into the panel's view clear of
-// its sticky head; and the pad's Back closing the menu. Every read polls
-// the hook, never animation frames (C-6). New at M4, by phase 2a's review.
+// than the gate's window, which the nav brings into view; Back to Home;
+// Propose, its pack size and length chosen by the d-pad's left and right,
+// a step past the last size going no further, and Back, creating nothing;
+// Practice's setup likewise, 1 a side and 1 minute, and its Start, the
+// match made at what was chosen; on Pre-match the pad's Back opening the
+// menu, its Settings panel, Start turning Sound on again there, the d-pad
+// down to Show control hints again below the panel's fold and back up to
+// the first radio, each focus brought into the panel's view clear of its
+// sticky head; and the pad's Back closing the menu. Every read polls the
+// hook or the DOM, never animation frames (C-6). New at M4, by phase 2a's
+// review; the choices by phase 2b (§4.9's pad parts, extended).
 
 import type { Page } from '@playwright/test';
+import { config } from '../src/config';
 import { personId } from '../src/core/bot/bot-id';
 import { PAD, installGamepad, press } from './lib/gamepad';
 import { expect, expectWebGL2, test } from './lib/guards';
@@ -53,7 +58,17 @@ async function dpad(page: Page, button: number, expected: readonly string[], why
   }
 }
 
-test('a gamepad alone works Settings from Home and in the match menu, and Practice\'s setup, every focus brought into view (L82)', async ({ page }) => {
+/** Presses of the d-pad's left or right on a focused select, its value after each as `values` says, the focus
+ *  staying on it. */
+async function choose(page: Page, button: number, select: string, values: readonly string[], why: string): Promise<void> {
+  for (const want of values) {
+    await press(page, button);
+    await expect(page.locator(`[data-test="${select}"]`), `${why}: ${select}`).toHaveValue(want);
+    expect((await focusBox(page)).what, `${why}: the focus on ${select}`).toBe(select);
+  }
+}
+
+test('a gamepad alone works Settings from Home and in the match menu, and the choices of Propose and Practice\'s setup, every focus brought into view (L82)', async ({ page }) => {
   test.setTimeout(90_000);
   await expectWebGL2(page);
   await seedStorage(page, { profile: { playerId: personId(7, 0) }, settings: { quality: 'low' } });
@@ -79,13 +94,37 @@ test('a gamepad alone works Settings from Home and in the match menu, and Practi
   await press(page, PAD.start);
   await waitForScreen(page, 'home');
 
-  // Practice's setup by the pad, and its Start.
+  // Propose by the pad: the pack size up past the last, and the length down a minute, then Back, creating
+  // nothing: the d-pad's left and right step a focused choice, its up and down move on (§4.9).
+  await dpad(page, PAD.down, ['propose'], "Home's nav to Propose");
+  await press(page, PAD.start);
+  await waitForScreen(page, 'propose');
+  await dpad(page, PAD.down, ['pack-size'], "Propose's nav");
+  const sizes = Array.from({ length: config.packSizeMax - config.packSizeDefault }, (_, k) => String(config.packSizeDefault + k + 1));
+  await choose(page, PAD.right, 'pack-size', [...sizes, String(config.packSizeMax)], "Propose's size, to the last and no further");
+  await dpad(page, PAD.down, ['match-length'], "Propose's nav");
+  await choose(page, PAD.left, 'match-length', [String(config.matchLengthDefaultMinutes - 1)], "Propose's length");
+  await dpad(page, PAD.down, ['create', 'back'], "Propose's nav to Back");
+  await press(page, PAD.start);
+  await waitForScreen(page, 'home');
+  expect((await inspect(page)).match, 'no match proposed').toBeNull();
+
+  // Practice's setup by the pad: 1 a side and 1 minute, then Start, the match made at both.
   await dpad(page, PAD.down, ['propose', 'join', 'practice'], "Home's nav to Practice");
   await press(page, PAD.start);
   await waitForScreen(page, 'practice');
+  await dpad(page, PAD.down, ['pack-size'], "Practice's setup");
+  const down = Array.from({ length: config.packSizeDefault - config.packSizeMin }, (_, k) => String(config.packSizeDefault - k - 1));
+  await choose(page, PAD.left, 'pack-size', [...down, String(config.packSizeMin)], "Practice's size, to 1 a side and no further");
+  await dpad(page, PAD.down, ['match-length'], "Practice's setup");
+  const minutes = Array.from({ length: config.matchLengthDefaultMinutes - 1 }, (_, k) => String(config.matchLengthDefaultMinutes - k - 1));
+  await choose(page, PAD.left, 'match-length', minutes, "Practice's length, to 1 minute");
   await dpad(page, PAD.down, ['start'], "Practice's setup");
   await press(page, PAD.start);
   await waitForScreen(page, 'prematch');
+  const made = await waitForInspection(page, (i) => i.match?.inRoster === true, { what: 'the person in the final roster', timeoutMs: 5_000 });
+  expect([made.match!.roster.map((r) => r.pack), made.match!.clock], 'the person in A and a bot in B, a match of 1 minute (Q-15)')
+    .toEqual([[0, 1], 60 * config.ticksPerSecond]);
 
   // The match menu by the pad's Back, its Settings panel by Start.
   await press(page, PAD.back);

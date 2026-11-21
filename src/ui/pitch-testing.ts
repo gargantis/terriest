@@ -99,7 +99,7 @@ export class FakeStage implements Stage {
     return Promise.resolve();
   }
 
-  setScale(): void {}
+  setScale(_scale: number): void {}
 
   dispose(): void {}
 }

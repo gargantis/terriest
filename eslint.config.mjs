@@ -17,7 +17,11 @@
 // §1.36): src/core imports nothing outside src/core but src/config.ts, and
 // src/net/trystero.ts and src/net/dev-relay.ts are loaded only by import(),
 // Trystero's file from src/ui/game.ts alone, and by its own unit test, which
-// no build bundles and which mocks Trystero (M3 phase 2's integration).
+// no build bundles and which mocks Trystero (M3 phase 2's integration). M4
+// adds the test pages, src/frames.ts, src/determinism.ts and
+// src/nettest.ts, loaded only by import() from src/main.ts, and the bench's
+// Worker, src/bench/witness.ts, which nothing imports (M4's design §1.55);
+// each may be imported by its own unit test, which no build bundles.
 import { dirname, posix, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'eslint/config';
@@ -141,6 +145,12 @@ const coreImports = {
 const GAME_FILE = 'src/ui/game.ts';
 // TrysteroRoom's own test, against a mocked Trystero: never bundled.
 const TRYSTERO_TEST = 'src/net/trystero.test.ts';
+// The #test= pages, each a chunk of its own that src/main.ts loads by import() for its fragment (M4's
+// design §1.55), and the bench's Worker, which src/bench/virtual-room.ts names only in its Worker's
+// new URL('./witness.ts', import.meta.url) (§1.53). Each one's own test, <module>.test.ts, may import it.
+const MAIN_FILE = 'src/main.ts';
+const TEST_PAGES = ['src/frames', 'src/determinism', 'src/nettest'];
+const WITNESS = 'src/bench/witness';
 const lazyImports = {
   meta: {
     type: 'problem',
@@ -151,6 +161,10 @@ const lazyImports = {
       trysteroDynamic: 'Only src/ui/game.ts loads src/net/trystero.ts, with import(), when a networked match opens (L238, PLAN D-18, M3 design §1.36).',
       devRelay:
         "src/net/dev-relay.ts is loaded only with import(), under import.meta.env.DEV, so a production build never bundles npm run dev:local's relay, and a chunk of its own would show if one did (PLAN §15, M3 design §1.29, §1.33).",
+      testPage:
+        "src/frames.ts, src/determinism.ts and src/nettest.ts are the #test= pages, each a chunk of its own: only src/main.ts loads one, with import(), for its fragment, so a normal page never does, and only its own test imports it otherwise; their types may be imported anywhere (CLAUDE.md, M4's design §1.55).",
+      witness:
+        "src/bench/witness.ts is the bench's Worker, a chunk of its own: nothing imports it, its types included, but its own test; src/bench/virtual-room.ts names it only in its Worker's new URL('./witness.ts', import.meta.url) (M4's design §1.53, §1.55).",
     },
   },
   create(context) {
@@ -163,6 +177,11 @@ const lazyImports = {
         else if (how === 'dynamic' && file !== GAME_FILE) context.report({ node, messageId: 'trysteroDynamic' });
       } else if (to === 'src/net/dev-relay' && how === 'static') {
         context.report({ node, messageId: 'devRelay' });
+      } else if (TEST_PAGES.includes(to)) {
+        if (file === `${to}.test.ts`) return;
+        if (how === 'static' || (how === 'dynamic' && file !== MAIN_FILE)) context.report({ node, messageId: 'testPage' });
+      } else if (to === WITNESS) {
+        if (file !== `${WITNESS}.test.ts`) context.report({ node, messageId: 'witness' });
       }
     });
   },

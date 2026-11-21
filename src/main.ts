@@ -2,9 +2,10 @@
 // §5.1, M4-Q1, M4-Q38): wiring. public/boot.js runs its checks first and
 // defines window.terriestBoot only if they pass (D-30). The fragment's
 // #test=determinism opens the determinism page, from a chunk of its own and
-// with no canvas (M2's design §7.5), and #test=net the network test page
-// likewise (M3's design §1.28, §7); each makes its own landmark and no
-// #app. Otherwise, in this order:
+// with no canvas (M2's design §7.5), #test=net the network test page
+// likewise (M3's design §1.28, §7), and #test=frames the frame-time bench,
+// which makes its own stage (M4's design §1.53); each makes its own
+// landmark and no #app. Otherwise, in this order:
 // - the settings store, whose render quality the stage is made at (A.3,
 //   D-33, M4-Q4: M1's ?quality= is gone);
 // - the stage, the page's one WebGL 2 context, with the code-built drawer,
@@ -71,6 +72,10 @@ async function start(boot: Boot): Promise<void> {
   }
   if (which === 'net') {
     (await import('./nettest')).run(boot);
+    return;
+  }
+  if (which === 'frames') {
+    (await import('./frames')).run(boot);
     return;
   }
   const test = window.terriestTest ?? null;

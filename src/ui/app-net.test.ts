@@ -216,6 +216,10 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     expect(b.look().match).toMatchObject({ kind: 'net', matchId: id, started: true, inRoster: true, returning: false });
     expect(b.look().announcements).toMatchObject({ matchId: id, arrivalTick: arrived });
     expect(b.look().match!.own.senders).toBe(1);
+    // The clock's samples, taken and dropped by its freeze rule: the held timeline's (§1.40, §8.4's run 4).
+    const st = held(b).session.timeline.stats;
+    expect(st.clockSamples).toBeGreaterThan(0);
+    expect(b.look().match!.stats).toMatchObject({ clockSamples: st.clockSamples, clockSamplesDropped: st.clockSamplesDropped });
     // Ready on both: the start countdown, Pre-match still (M4-Q8).
     button(a, 'ready').click();
     button(b, 'ready').click();

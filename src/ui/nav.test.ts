@@ -3,7 +3,7 @@ import { config } from '../config';
 import type { InputKind, UiCommand } from '../input/source';
 import { FakeClock } from './clock-testing';
 import { isEnabled, setEnabled } from './dom';
-import { ButtonNav, padOnly, type PressSource } from './nav';
+import { ButtonNav, type NavControl, padOnly, type PressSource } from './nav';
 
 // Q-17's menus without a mouse (M4's design §1.46, §4.9, §9.2; M4-Q26), on
 // buttons that keep only what the nav reads, so no DOM is needed: the
@@ -11,10 +11,17 @@ import { ButtonNav, padOnly, type PressSource } from './nav';
 // something hidden, each brought into view; a press of the focused button,
 // never of an aria-disabled one, by key, pad or click, and never on a
 // repeat; Results' guard for keys, the pad and a pointer, each press
-// reported once; and a pad-only nav, whose keys stay the browser's.
+// reported once; a pad-only nav, whose keys stay the browser's; and a
+// select the pad's left and right step, an option at a time, with the
+// events a person's choice fires, its keys the browser's (L82, phase 2b).
 
 class Doc {
   activeElement: unknown = null;
+  /** The window's Event, for the events a stepped select fires: none in a document without one. */
+  readonly defaultView: { readonly Event?: typeof Event } | null;
+  constructor(withEvents = true) {
+    this.defaultView = withEvents ? { Event } : null;
+  }
 }
 
 class FakeEvent {
@@ -102,6 +109,48 @@ class Button {
   }
 }
 
+/** A select as the nav reads it: its options, its value, its focus, and each event it's sent. */
+class Select {
+  readonly tagName = 'SELECT';
+  hidden = false;
+  parentNode = null;
+  value: string;
+  clicks = 0;
+  /** Each event dispatched on it: its type, and whether it bubbles. */
+  readonly events: string[] = [];
+  readonly scrolled: unknown[] = [];
+  readonly ownerDocument: Doc;
+  private readonly options: { readonly value: string; readonly disabled: boolean }[];
+  constructor(ownerDocument: Doc, values: readonly string[], value: string, disabled: readonly string[] = []) {
+    this.ownerDocument = ownerDocument;
+    this.options = values.map((v) => ({ value: v, disabled: disabled.includes(v) }));
+    this.value = value;
+  }
+  querySelectorAll(selector: string): readonly { readonly value: string; readonly disabled: boolean }[] {
+    if (selector !== 'option') throw new Error(`a select's fake reads only its options, not ${selector}`);
+    return this.options;
+  }
+  getAttribute(): string | null {
+    return null;
+  }
+  focus(): void {
+    this.ownerDocument.activeElement = this;
+  }
+  scrollIntoView(o: unknown): void {
+    this.scrolled.push(o);
+  }
+  contains(n: unknown): boolean {
+    return n === this;
+  }
+  click(): void {
+    this.clicks++;
+  }
+  dispatchEvent(e: Event): boolean {
+    this.events.push(`${e.type}${e.bubbles ? ' bubbling' : ''}`);
+    return true;
+  }
+}
+
 function screen(n: number, clock = new FakeClock(1000)): { doc: Doc; root: Root; buttons: Button[]; clock: FakeClock } {
   const doc = new Doc();
   const root = new Root();
@@ -183,6 +232,52 @@ describe('ButtonNav (Q-17)', () => {
     ui(cmd('down', 0, 'gamepad'));
     ui(cmd('press', 0, 'gamepad'));
     expect([doc.activeElement, a!.acted]).toEqual([a, 1]);
+  });
+
+  it("steps a focused select by the pad's left and right, an option at a time, none past either end, with a person's input and change; up and down move on", () => {
+    const { doc, buttons: [start] } = screen(1);
+    const size = new Select(doc, ['1', '2', '3', '4'], '2');
+    const minutes = new Select(doc, ['1', '2', '3'], '3', ['2']);
+    const nav = new ButtonNav(() => [size, minutes, start!] as unknown as readonly NavControl[]);
+    nav.ui(cmd('down', 0, 'gamepad'));
+    expect(doc.activeElement).toBe(size);
+    nav.ui(cmd('right', 0, 'gamepad'));
+    expect([size.value, size.events]).toEqual(['3', ['input bubbling', 'change bubbling']]);
+    nav.ui(cmd('right', 0, 'gamepad'));
+    nav.ui(cmd('right', 0, 'gamepad')); // the last option: no further, and nothing fired
+    expect([size.value, size.events.length, doc.activeElement]).toEqual(['4', 4, size]);
+    for (let k = 0; k < 4; k++) nav.ui(cmd('left', 0, 'gamepad'));
+    expect([size.value, size.events.length]).toEqual(['1', 10]); // three steps down, the first option the end
+    // Start presses no select: no click, no step, the focus kept.
+    nav.ui(cmd('press', 0, 'gamepad'));
+    expect([size.clicks, size.value, doc.activeElement]).toEqual([0, '1', size]);
+    // Down to the next select, whose disabled option a step passes over; up and round the ends, as Q-17's.
+    nav.ui(cmd('down', 0, 'gamepad'));
+    nav.ui(cmd('left', 0, 'gamepad'));
+    expect([doc.activeElement, minutes.value]).toEqual([minutes, '1']);
+    nav.ui(cmd('down', 0, 'gamepad'));
+    expect(doc.activeElement).toBe(start);
+    nav.ui(cmd('right', 0, 'gamepad')); // on a button, left and right move as ever
+    expect(doc.activeElement).toBe(size);
+    nav.ui(cmd('up', 0, 'gamepad'));
+    expect(doc.activeElement).toBe(start);
+    nav.ui(cmd('press', 0, 'gamepad'));
+    expect(start!.acted).toBe(1);
+    expect([size.scrolled.length, minutes.scrolled.length]).toEqual([2, 1]); // each focus brought into view
+  });
+
+  it("leaves a focused select's keys to the browser, and fires nothing in a document whose window has no Event", () => {
+    const doc = new Doc(false);
+    const size = new Select(doc, ['1', '2', '3'], '2');
+    const other = new Select(doc, ['1', '2'], '1');
+    const nav = new ButtonNav(() => [size, other] as unknown as readonly NavControl[]);
+    size.focus();
+    for (const kind of ['left', 'right', 'up', 'down', 'press'] as const) {
+      nav.ui(cmd(kind));
+      expect([doc.activeElement, size.value, size.clicks], kind).toEqual([size, '2', 0]); // the browser's own keys act
+    }
+    nav.ui(cmd('right', 0, 'gamepad'));
+    expect([size.value, size.events]).toEqual(['3', []]);
   });
 
   it('presses the focused button once a press, never an aria-disabled one, never on a repeat', () => {

@@ -65,7 +65,7 @@ test('a normal page loads no test page and no Trystero, and has no net hook', as
   const own = [new URL('boot.js', baseURL).href, ...statics.map((s) => new URL(s, baseURL).href)].sort();
   const scripts = [...new Set(guard.requests.filter((u) => new URL(u).pathname.endsWith('.js')))].sort();
   expect(scripts, "the normal page's scripts").toEqual(own);
-  for (const s of statics) expect(s, "a chunk the normal page imports statically").not.toMatch(/\/(nettest|determinism|trystero|golden)-[\w-]+\.js$/);
+  for (const s of statics) expect(s, "a chunk the normal page imports statically").not.toMatch(/\/(nettest|determinism|trystero|golden|frames|witness)-[\w-]+\.js$/);
   // The build has the chunks the normal page leaves alone, and its module holds no Trystero code,
   // which the Trystero chunk shows the marker finds.
   expect(chunks('nettest'), 'the net page chunk').toHaveLength(1);

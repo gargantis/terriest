@@ -28,7 +28,8 @@ import { NetGame, type NetGameOptions } from './game';
 // a fifth spectator, and a page a full room refused, leave; Play again
 // proposes only without an AGAIN, under the press tick's ID, and the earlier
 // of two presses wins; the counting link; the summary over every timeline a
-// match passes through, a rejoin's and a merge's; and only this glue loads
+// match passes through, a rejoin's and a merge's, and from M4 the clock's
+// samples taken and dropped over a rejoin's; and only this glue loads
 // src/net/trystero.ts, by import().
 
 vi.setConfig({ testTimeout: 60_000 });
@@ -541,6 +542,32 @@ describe('stalls and hidden pages (D-31, §4.12)', () => {
     expect([st.sent, st.received, st.agree]).toEqual([o.sent + n.sent, o.received + n.received, o.agree + n.agree]);
     expect(o.medianOffset).not.toBe(n.medianOffset);
     expect([st.medianOffset, st.rateAdj, st.warmMs, st.joinedAt]).toEqual([n.medianOffset, n.rateAdj, n.warmMs, n.joinedAt]);
+    agree([a, b]);
+    expectClean(world);
+  });
+
+  it("sums the clock's samples over the timelines a rejoin passes through, those its freeze rule dropped among them (M4's design §8.4's run 4)", async () => {
+    const world = new World(5);
+    const [a, b] = await pair(world);
+    toPlay(world, [a, b]);
+    world.run(500);
+    const old = b.game.session.timeline;
+    // A freeze past d + w ticks but short of a stall: the TICKs held through it are dropped, no samples (D-15).
+    world.freeze(b);
+    world.run(400);
+    world.thaw(b);
+    world.run(500);
+    expect([old.stats.clockSamples, old.stats.clockSamplesDropped].every((x) => x > 0)).toBe(true);
+    // Then one past the stall: a rejoin, into a new timeline, which samples the clock in turn.
+    world.freeze(b);
+    world.run(3000);
+    world.thaw(b);
+    world.until(() => b.game.session.timeline !== old && b.game.session.stall === 'none', 3000);
+    world.run(500);
+    const [o, n] = [old.stats, b.game.session.timeline.stats];
+    expect(n.clockSamples).toBeGreaterThan(0);
+    const st = b.game.stats();
+    expect([st.clockSamples, st.clockSamplesDropped]).toEqual([o.clockSamples + n.clockSamples, o.clockSamplesDropped + n.clockSamplesDropped]);
     agree([a, b]);
     expectClean(world);
   });

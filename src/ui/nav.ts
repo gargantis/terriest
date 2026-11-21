@@ -13,7 +13,10 @@
 // browser won't focus it; one the nav moves to is brought into view, its
 // window's or its panel's scroll, so a short window never hides the focus
 // (§5.14). Settings' pad nav holds its checkboxes and radios too, each
-// pressed as a pointer would press it (padOnly, L82). New at M4.
+// pressed as a pointer would press it (padOnly, L82); Practice's setup's and
+// Propose's hold their selects, whose value the d-pad's left and right step
+// an option at a time, up and down still moving on, and whose keys stay the
+// browser's (§4.9's pad parts, extended for L82 in phase 2b). New at M4.
 
 import type { InputKind, UiCommand } from '../input/source';
 import { browserClock, type Clock } from './clock';
@@ -21,8 +24,24 @@ import { isEnabled } from './dom';
 
 export type PressSource = InputKind | 'pointer';
 
-/** What a nav moves among and presses: buttons, and Settings' checkboxes and radios (L82). */
-export type NavControl = HTMLButtonElement | HTMLInputElement;
+/** What a nav moves among: buttons and Settings' checkboxes and radios, which it presses, and selects,
+ *  which the pad's left and right step (L82). */
+export type NavControl = HTMLButtonElement | HTMLInputElement | HTMLSelectElement;
+
+/** A select's value one option along, none past either end, as the browser's own arrows step a closed one,
+ *  with the input and change a person's choice fires, from the element's own window, which the tests' DOM
+ *  lacks (L82). */
+function stepSelect(sel: HTMLSelectElement, by: 1 | -1): void {
+  const options = Array.from(sel.querySelectorAll('option')).filter((o) => !o.disabled);
+  const at = options.findIndex((o) => o.value === sel.value);
+  const next = at < 0 ? undefined : options[at + by];
+  if (next === undefined) return;
+  sel.value = next.value;
+  const EventOf = (sel.ownerDocument.defaultView as { readonly Event?: typeof Event } | null)?.Event;
+  if (EventOf === undefined) return;
+  sel.dispatchEvent(new EventOf('input', { bubbles: true }));
+  sel.dispatchEvent(new EventOf('change', { bubbles: true }));
+}
 
 /** Shown: neither it nor an element holding it hidden, as setShown hides them; a browser focuses no other.
  *  Elements only: the document's own hidden is the page's visibility, and a hidden page still opens
@@ -64,19 +83,28 @@ export class ButtonNav {
 
   /** Q-17: up and left move the focus to the button before, down and right to the one after, round the
    *  ends, aria-disabled ones included; press activates the focused one unless it's aria-disabled or the
-   *  guard takes it, and a repeat never does. */
+   *  guard takes it, and a repeat never does. On a focused select, left and right step its value instead,
+   *  and press does nothing; and the keyboard's commands do nothing there, its keys the browser's (§4.9). */
   ui(c: UiCommand): void {
+    const select = this.focusedSelect();
+    if (select !== null && c.source === 'keyboard') return;
     switch (c.kind) {
       case 'up':
-      case 'left':
         this.move(-1);
         break;
+      case 'left':
+        if (select !== null) stepSelect(select, -1);
+        else this.move(-1);
+        break;
       case 'down':
-      case 'right':
         this.move(1);
         break;
+      case 'right':
+        if (select !== null) stepSelect(select, 1);
+        else this.move(1);
+        break;
       case 'press':
-        this.pressFocused(c);
+        if (select === null) this.pressFocused(c);
         break;
       default:
         break;
@@ -122,6 +150,13 @@ export class ButtonNav {
   private focusedIn(list: readonly NavControl[]): number {
     const active = list[0]?.ownerDocument.activeElement ?? null;
     return active === null ? -1 : list.indexOf(active as NavControl);
+  }
+
+  /** The focused control, if it's one of the nav's selects. */
+  private focusedSelect(): HTMLSelectElement | null {
+    const list = this.list();
+    const f = list[this.focusedIn(list)];
+    return f !== undefined && f.tagName === 'SELECT' ? (f as HTMLSelectElement) : null;
   }
 
   /** The focus to the next button, or the one before, brought into view as little as it takes: the

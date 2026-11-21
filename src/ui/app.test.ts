@@ -5,11 +5,10 @@ import type { UiCommand } from '../input/source';
 import type { Timeline } from '../core/session/index';
 import { MemoryStorage } from '../storage/kv';
 import { browserLocation } from './app';
-import { type AppRig, appRig, type AppRigOptions, Frames, Locks, ME, nowhere } from './app-testing';
+import { type AppRig, appRig, type AppRigOptions, Locks, ME, nowhere, type RecordingStage } from './app-testing';
 import { FakeClock } from './clock-testing';
 import { pageDevices } from './devices';
 import { fake, FakeEvent, type FakeDocument, FakeNode, installDom, only } from './dom-testing';
-import { FrameLoop } from './frame-loop';
 import type { Inspection } from './inspect';
 import type { HudInspection } from './inspect';
 import { PITCH_LAYERS, pitchLayers } from './layers/index';
@@ -37,17 +36,21 @@ import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-te
 // leaving the match; the hook's match figures, the drawn head's apart from
 // the final state's, a lunge latched, each match's from its opening, P11's
 // count and the timer's gaps past the freeze and the stall; Settings'
-// quality re-creating the stage behind Home, the old one disposed only once
-// its own prepare has settled, and one chosen in a match's Settings panel
-// once the pitch screen goes, the hook reading the panel; Settings saying
-// when the browser keeps nothing, from Home and in the match; the pad alone
-// from Home to Settings and back, and to Practice's Pre-match; the graphics
+// quality applied behind Home, a stage made at a change's first ask and the
+// other kept, so twenty changes make one and two at most are alive, the
+// unused one disposed once a pitch screen opens and its own prepare has
+// settled, never mid-compile, a change off the pitch taking it back
+// meanwhile (phase 2b), and one chosen in a match's Settings panel once the
+// pitch screen goes, the hook reading the panel; Settings saying when the
+// browser keeps nothing, from Home and in the match; the pad alone from
+// Home to Settings and back, and to Practice's Pre-match, its pack size and
+// length chosen by the d-pad's left and right on the way; the graphics
 // message a networked match gets, and a context lost before the pitch
 // screen; the page's fragment set by location.replace; and the page's own
-// leave guard on the window before any room. And the frame loop's phase-1
-// fallback, every other frame drawn however long the gaps stay late, its
-// log capped; the layers' order and the page's devices. The networked
-// screens over M3's network simulator are app-net.test.ts's.
+// leave guard on the window before any room. And the layers' order and the
+// page's devices. The networked screens over M3's network simulator are
+// app-net.test.ts's, and the frame loop and its governor, in virtual time,
+// src/ui/frame-loop.test.ts's (phase 2b).
 
 let dom: { readonly document: FakeDocument; restore(): void };
 beforeEach(() => {
@@ -685,20 +688,44 @@ describe('the gamepad alone, from Home (L82, Q-17, §4.4)', () => {
     expect(focused()).toBe('back');
     r.app.ui(pad('press'));
     expect(look(r).screen).toBe('home');
-    // Practice's setup: Start by the d-pad and pressed.
+    // Practice's setup: 1 a side and 1 minute by the d-pad's left on each select, then Start pressed.
     for (let k = 0; k < 3; k++) r.app.ui(pad('down'));
     expect(focused()).toBe('practice');
     r.app.ui(pad('press'));
     expect(look(r).screen).toBe('practice');
     r.app.ui(pad('down'));
+    expect(focused()).toBe('pack-size');
+    for (let k = config.packSizeDefault; k > config.packSizeMin; k--) r.app.ui(pad('left'));
+    r.app.ui(pad('down'));
+    expect(focused()).toBe('match-length');
+    for (let k = config.matchLengthDefaultMinutes; k > config.matchLengthMinMinutes; k--) r.app.ui(pad('left'));
+    r.app.ui(pad('down'));
     expect(focused()).toBe('start');
     r.app.ui(pad('press'));
     expect([look(r).screen, look(r).match!.kind]).toEqual(['prematch', 'practice']);
+    playUntil(r, () => look(r).match!.inRoster, 2_000);
+    const m = look(r).match!;
+    // 1 a side, the person in A and a bot in B, and 1 minute on the clock (Q-15).
+    expect([config.packSizeMin, m.roster.map((x) => x.pack), m.clock]).toEqual([1, [0, 1], config.matchLengthMinMinutes * 60 * config.ticksPerSecond]);
   });
 });
 
 describe("Settings' render quality from Home (§2.8, D-33)", () => {
-  it('re-creates the stage at once, preparing the new one behind Home, the old disposed only once its own prepare has settled', async () => {
+  /** The stages not disposed. */
+  const alive = (r: Rig): string[] => r.stages.filter((s) => !s.disposed).map((s) => s.quality);
+  /** The stage whose canvas is in #stage. */
+  const shownStage = (r: Rig): RecordingStage => r.stages.find((s) => fake(s.canvas) === only(stageBox(r), 'canvas'))!;
+  /** Home, its stage prepared, then Settings. */
+  async function settingsOpen(r: Rig): Promise<void> {
+    await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
+    button(r, 'settings').click();
+  }
+
+  it('applies at once: a stage at the new quality made at the first change, prepared behind the screen, the old one kept, and a change back swapping to it', async () => {
     const r = rig();
     await r.app.start();
     r.frames.run();
@@ -717,27 +744,157 @@ describe("Settings' render quality from Home (§2.8, D-33)", () => {
     const next = r.stages[1]!;
     expect(only(stageBox(r), 'canvas')).toBe(fake(next.canvas));
     expect(look(r).render.quality).toBe('low');
-    expect(old!.disposed).toBe(false); // mid-compile: never disposed under it
     await old!.finish();
     await settle();
-    expect(old!.disposed).toBe(true);
+    expect([old!.disposed, next.disposed]).toEqual([false, false]); // the old one kept, mid-compile or not
     expect(next.prepares).toBe(0);
     r.frames.run();
     r.clock.advance(0);
-    expect(next.prepares).toBe(1);
-    // A change that changes nothing makes no stage; one before a stage's prepare began disposes it at once.
+    expect(next.prepares).toBe(1); // behind the screen, once it has been painted (M4-Q38)
+    // A change that changes nothing makes no stage; a change back swaps to the kept one, its prepare
+    // done, and makes none.
     r.settings.set({ quality: 'low' });
     expect(r.stages.length).toBe(2);
     r.settings.set({ quality: 'high' });
-    expect(r.stages.length).toBe(3);
-    r.settings.set({ quality: 'low' });
-    expect(r.stages.length).toBe(4);
-    expect(r.stages[2]!.disposed).toBe(true); // its prepare hadn't begun
-    expect(r.stages[2]!.prepares).toBe(0);
-    // Back goes Home, at its top, where a Practice draws on the newest stage.
+    expect([r.stages.length, shownStage(r), look(r).render.quality]).toEqual([2, old, 'high']);
+    r.frames.run();
+    r.clock.advance(0);
+    expect([old!.prepares, next.prepares, alive(r)]).toEqual([1, 1, ['high', 'low']]);
+    // Back goes Home, at its top, where a Practice draws on the stage shown; both kept, prepared, while
+    // Home and Settings show, so Settings again swaps back to low and makes none.
+    await next.finish();
+    await settle();
     dom.document.defaultView.scrollTo(0, 90);
     button(r, 'back').click();
-    expect([look(r).screen, dom.document.defaultView.scrollY]).toEqual(['home', 0]);
+    expect([look(r).screen, dom.document.defaultView.scrollY, alive(r)]).toEqual(['home', 0, ['high', 'low']]);
+    button(r, 'settings').click();
+    tick(only(screenEl(r), 'input[data-test="quality-low"]'), true);
+    expect([r.stages.length, shownStage(r), alive(r)]).toEqual([2, next, ['high', 'low']]);
+  });
+
+  it('makes one stage for twenty changes, two alive at most, and disposes the unused one when Practice opens, once its own prepare has settled', async () => {
+    const r = rig();
+    await settingsOpen(r);
+    for (let k = 0; k < 20; k++) {
+      const quality = k % 2 === 0 ? 'low' : 'high';
+      tick(only(screenEl(r), `input[data-test="quality-${quality}"]`), true);
+      expect([look(r).render.quality, shownStage(r).quality], `change ${k + 1}`).toEqual([quality, quality]);
+      expect(alive(r).length, `change ${k + 1}`).toBeLessThanOrEqual(2);
+      r.frames.run(); // a frame and a task between changes: a stage shown then begins its prepare
+      r.clock.advance(0);
+    }
+    expect([r.stages.map((s) => s.quality), r.stages.map((s) => s.prepares), alive(r)]).toEqual([['high', 'low'], [1, 1], ['high', 'low']]);
+    // Practice at high: the low stage, mid-compile, is disposed only once its prepare has settled.
+    button(r, 'back').click();
+    startPractice(r);
+    await settle();
+    expect([look(r).screen, alive(r)]).toEqual(['prematch', ['high', 'low']]);
+    await r.stages[1]!.finish();
+    await settle();
+    expect(alive(r)).toEqual(['high']);
+    expect(look(r).render.quality).toBe('high');
+  });
+
+  /** Off the pitch, high shown and nothing kept: a stage made at `q`, its prepare begun, then `back` shown
+   *  again while that one compiles. */
+  function compiling(r: Rig, q: 'high' | 'low', back: RecordingStage): RecordingStage {
+    r.settings.set({ quality: q });
+    const s = r.stages.at(-1)!;
+    r.frames.run();
+    r.clock.advance(0);
+    r.settings.set({ quality: back.quality });
+    expect([s.quality, s.prepares, s.disposed, shownStage(r)]).toEqual([q, 1, false, back]);
+    return s;
+  }
+
+  it('disposes a kept stage whose prepare never began as Practice opens, and keeps one still compiling until it settles with a pitch screen showing', async () => {
+    const r = rig();
+    await settingsOpen(r);
+    const [high] = r.stages;
+    // Low, then high again before a frame: low's prepare never begins, and Practice disposes it at once.
+    r.settings.set({ quality: 'low' });
+    r.settings.set({ quality: 'high' });
+    const [, low] = r.stages;
+    button(r, 'back').click();
+    startPractice(r);
+    expect([low!.prepares, low!.disposed, alive(r)]).toEqual([0, true, ['high']]);
+    button(r, 'prematch-leave').click();
+    // A low stage compiling as Practice opens is kept; Home again before it settles, and it stays when it
+    // does, off the pitch, so a change to low swaps to it and makes no third stage.
+    const fresh = compiling(r, 'low', high!);
+    startPractice(r);
+    await settle();
+    expect(alive(r)).toEqual(['high', 'low']);
+    button(r, 'prematch-leave').click();
+    await fresh.finish();
+    await settle();
+    expect(alive(r)).toEqual(['high', 'low']);
+    r.settings.set({ quality: 'low' });
+    expect([r.stages.length, shownStage(r)]).toEqual([3, fresh]);
+    // The next Practice, at low, disposes high, prepared long since, at once.
+    startPractice(r);
+    expect([alive(r), look(r).render.quality]).toEqual([['low'], 'low']);
+  });
+
+  it('never disposes a kept stage that a change took back while it compiled, though it settles under the pitch it then draws', async () => {
+    const r = rig();
+    await settingsOpen(r);
+    const [high] = r.stages;
+    const low = compiling(r, 'low', high!);
+    // Practice opens with low compiling: kept, its disposal waiting on its prepare.
+    button(r, 'back').click();
+    startPractice(r);
+    await settle();
+    button(r, 'prematch-leave').click();
+    // Low asked for again before it settles: taken back, high kept in its place; the next Practice draws
+    // on low and disposes high at once.
+    r.settings.set({ quality: 'low' });
+    startPractice(r);
+    expect([shownStage(r), alive(r)]).toEqual([low, ['low']]);
+    // Its prepare settles under that Practice: the stage it draws on stays.
+    await low.finish();
+    await settle();
+    expect([low.disposed, alive(r), look(r).render.quality]).toEqual([false, ['low'], 'low']);
+  });
+
+  it("draws a kept stage swapped back in at the governor's scale, not the one it last drew a pitch at (§2.8, §8.2)", async () => {
+    const r = rig();
+    await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    const high = r.stages[0]!;
+    expect(high.prepares).toBe(1); // begun, and left compiling
+    // A Practice on it while it compiles, each frame holding the timer past drawingLateTimerMs, until the
+    // governor's step down reaches it.
+    startPractice(r);
+    for (let k = 0; k < 100 && high.scale === 1; k++) {
+      r.frames.run();
+      r.clock.stall(config.drawingLateTimerMs + 20);
+    }
+    expect(high.scale).toBeLessThan(1);
+    // Home, and low chosen: a stage made at low, high kept; a Practice at low draws at full scale, high kept
+    // while it compiles.
+    button(r, 'prematch-leave').click();
+    button(r, 'settings').click();
+    r.settings.set({ quality: 'low' });
+    const low = r.stages[1]!;
+    r.frames.run();
+    r.clock.advance(0);
+    button(r, 'back').click();
+    startPractice(r);
+    r.frames.run();
+    expect([low.scale, look(r).frames.scale]).toEqual([1, 1]);
+    button(r, 'prematch-leave').click();
+    // High settles off the pitch, so it stays kept, at the scale it was left at; chosen again, it's swapped
+    // back in, and the next Practice's first frame draws it at the governor's full scale.
+    await high.finish();
+    await settle();
+    expect([alive(r), high.scale < 1]).toEqual([['high', 'low'], true]);
+    r.settings.set({ quality: 'high' });
+    expect(r.stages.length).toBe(2);
+    startPractice(r);
+    r.frames.run();
+    expect([shownStage(r), high.scale, look(r).frames.scale, look(r).render.scale]).toEqual([high, 1, 1, 1]);
   });
 });
 
@@ -769,11 +926,14 @@ describe("Settings in a match's menu, through the app (§5.8, §6, PLAN §10, §
     expect([look(r).menu, look(r).match!.paused]).toEqual(['closed', false]);
     play(r, 200);
     expect([r.stages.length, look(r).render.quality]).toEqual([1, 'high']);
-    // Leave: Home, and the new stage at the quality chosen, the old disposed once its prepare has settled.
+    // Leave: Home, and the new stage at the quality chosen, the old kept while no pitch screen shows,
+    // then disposed by the next Practice's opening, its prepare long settled.
     button(r, 'prematch-leave').click();
     expect([look(r).screen, r.stages.map((x) => x.quality), look(r).render.quality]).toEqual(['home', ['high', 'low'], 'low']);
     await settle();
-    expect(r.stages[0]!.disposed).toBe(true);
+    expect(r.stages.map((x) => x.disposed)).toEqual([false, false]);
+    startPractice(r);
+    expect(r.stages.map((x) => x.disposed)).toEqual([true, false]);
   });
 
   it("says a change is in use for this visit alone when the browser keeps nothing, from Home's Settings and from the panel", async () => {
@@ -796,112 +956,37 @@ describe("Settings in a match's menu, through the app (§5.8, §6, PLAN §10, §
   });
 });
 
-describe("the frame loop's phase-1 fallback (§1.47, §8.2, R-3)", () => {
-  function loop(): { loop: FrameLoop; clock: FakeClock; frames: Frames; drawn: [number, number][] } {
-    const clock = new FakeClock(0);
-    const frames = new Frames();
-    const drawn: [number, number][] = [];
-    const l = new FrameLoop({ frame: (now, dt) => drawn.push([now, dt]), clock, stage: { setScale: () => {} }, frames });
-    return { loop: l, clock, frames, drawn };
-  }
-  /** A frame of `ms`, the timer running every 4 ms through it, or held for the whole frame. */
-  function frame(x: ReturnType<typeof loop>, ms: number, held: boolean): void {
-    x.frames.run();
-    if (held) {
-      x.clock.advance(ms);
-      x.loop.timerRan(x.clock.now(), null);
-    } else {
-      for (let t = 4; t <= ms; t += 4) {
-        x.clock.advance(4);
-        x.loop.timerRan(x.clock.now(), null);
-      }
+describe("the frame loop's governor, through the app (§1.47, §8.2, D-31)", () => {
+  it("steps drawing down on a shown page's late timer gaps, and judges nothing while the page is hidden", async () => {
+    const r = rig();
+    await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
+    startPractice(r);
+    // Frames holding the timer past drawingLateTimerMs for a second: a step down, on the gaps alone, as
+    // Practice sends every tick (D-22), applied to the stage at the next frame drawn.
+    const held = config.drawingLateTimerMs + 20;
+    for (let t = 0; t <= 1000; t += held) {
+      r.frames.run();
+      r.clock.stall(held);
     }
-  }
-
-  it('draws every frame while the timer keeps its time, with the page clock and the time since the last frame drawn', () => {
-    const x = loop();
-    x.loop.start();
-    for (let k = 0; k < 10; k++) frame(x, 16, false);
-    expect(x.drawn.length).toBe(10);
-    expect(x.drawn[0]).toEqual([0, 0]);
-    expect(x.drawn[1]).toEqual([16, 16]);
-    expect(x.loop.inspect()).toMatchObject({ frames: 10, scale: 1, skipping: false, actions: 0, log: [] });
-  });
-
-  it('skips the frame after one whose timer gap passed drawingLateTimerMs, so slow frames draw every other one, and recovers', () => {
-    const x = loop();
-    x.loop.start();
-    frame(x, 16, false);
-    frame(x, 16, false);
-    expect(x.drawn.length).toBe(2);
-    // Frames that hold the timer past the threshold: every other one drawn.
-    const late = config.drawingLateTimerMs + 20;
-    for (let k = 0; k < 8; k++) frame(x, k % 2 === 0 ? late : 4, k % 2 === 0);
-    expect(x.drawn.length).toBe(2 + 4);
-    expect(x.loop.skippedFrames).toBe(4);
-    expect(x.loop.inspect()).toMatchObject({ skipping: true, actions: 1, log: [{ skipping: true, why: 'gaps', scale: 1 }] });
-    // A gap just at the threshold isn't late.
-    frame(x, config.drawingLateTimerMs, true);
-    frame(x, 16, false);
-    frame(x, 16, false);
-    const f = x.loop.inspect();
-    expect([f.skipping, f.actions, f.log.at(-1)!.why]).toEqual([false, 2, 'recovered']);
-    expect(x.loop.skippedFrames).toBe(4);
-  });
-
-  it('draws every other frame while every timer gap is late, never none (§1.47)', () => {
-    const x = loop();
-    x.loop.start();
-    // Each frame holds the timer past the threshold, as a page drawing too slowly does: the first draws, having
-    // no gap before it, then every other one.
-    for (let k = 0; k < 21; k++) frame(x, config.drawingLateTimerMs + 20, true);
-    expect([x.drawn.length, x.loop.skippedFrames]).toEqual([11, 10]);
-    expect(x.loop.inspect()).toMatchObject({ skipping: true, actions: 1 });
-  });
-
-  it('keeps the newest 200 of its log, and counts every action', () => {
-    const x = loop();
-    x.loop.start();
-    const late = config.drawingLateTimerMs + 20;
-    // On and off: a late frame, skipped, then two drawn on time, which end it; each action's time noted.
-    const acted: number[] = [];
-    const note = (): void => {
-      const n = x.loop.inspect().actions;
-      while (acted.length < n) acted.push(x.clock.now());
-    };
-    for (let k = 0; k < 150; k++) {
-      for (const [ms, heldUp] of [[late, true], [4, false], [16, false]] as const) {
-        x.frames.run();
-        note();
-        if (heldUp) {
-          x.clock.advance(ms);
-          x.loop.timerRan(x.clock.now(), null);
-        } else {
-          for (let t = 4; t <= ms; t += 4) {
-            x.clock.advance(4);
-            x.loop.timerRan(x.clock.now(), null);
-          }
-        }
-      }
+    r.frames.run();
+    const down = look(r).frames;
+    expect([down.actions, down.log.at(-1)?.why, r.stages[0]!.scale]).toEqual([1, 'gaps', down.scale]);
+    expect(down.scale).toBeLessThan(1);
+    // Hidden, its timers woken about once a second (D-31): nothing judged, nor the gap ending as it shows.
+    r.page.hide();
+    r.clock.throttle = 1000;
+    r.clock.advance(5000);
+    r.clock.throttle = null;
+    r.page.show();
+    for (let k = 0; k < 20; k++) {
+      r.frames.run();
+      r.clock.advance(16);
     }
-    const f = x.loop.inspect();
-    expect(acted.length).toBeGreaterThan(250);
-    expect([f.actions, f.log.length]).toEqual([acted.length, 200]);
-    expect(f.log.map((e) => e.atMs)).toEqual(acted.slice(-200));
-  });
-
-  it('runs only between start and stop, a new start drawing from a fresh time', () => {
-    const x = loop();
-    x.loop.start();
-    frame(x, 16, false);
-    x.loop.stop();
-    expect(x.frames.pending).toBe(0);
-    x.clock.advance(1000);
-    x.loop.start();
-    x.loop.start();
-    expect(x.frames.pending).toBe(1);
-    frame(x, 16, false);
-    expect(x.drawn).toEqual([[0, 0], [1016, 0]]);
+    expect(look(r).frames.actions).toBe(1);
   });
 });
 

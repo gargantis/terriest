@@ -9,8 +9,10 @@
 // in either pack, Watch and Leave (L163). A screen wake lock is held while
 // nobody has joined (D-30): the app's, by peers(). Both screens' controls
 // are native, for the keyboard's own Tab and Enter; the gamepad's commands
-// move among and press their buttons (Q-17, L82). roslambo's propose and
-// created screens, with packs, Watch at once, and Share…. New at M4.
+// move among and press their buttons, and on Propose its left and right
+// step a focused choice, as on Practice's setup (Q-17, L82, §4.9's pad
+// parts, extended in phase 2b). roslambo's propose and created screens,
+// with packs, Watch at once, and Share…. New at M4.
 
 import type { MatchSettings, Pack } from '../../core/sim/index';
 import type { Look } from '../../render/look';
@@ -59,7 +61,7 @@ export function proposeScreen(host: ProposeHost): Screen {
     },
   }, 'Create');
   const back = h('button', { type: 'button', class: 'secondary', 'data-test': 'back', onclick: () => host.home() }, 'Back');
-  const nav = new ButtonNav(() => [create, back]);
+  const nav = new ButtonNav(() => [size, minutes, create, back]);
   const el = h('section', { class: 'screen propose' },
     h('h1', {}, 'Propose a match'),
     h('p', { class: 'muted' }, 'Choose the pack size and the length. Then share the link or the code, and play or watch at once.'),

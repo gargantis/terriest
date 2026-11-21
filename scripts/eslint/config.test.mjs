@@ -168,9 +168,10 @@ const EXPECT = {
   'src/net in an import type': { [CORE_IMPORTS]: CORE },
   'src/storage': { [CORE_IMPORTS]: CORE },
   'src/main, for its side effects': { [CORE_IMPORTS]: CORE },
-  'the net page': { [CORE_IMPORTS]: CORE },
+  // The #test= pages by import() from src/main.ts alone, their types anywhere (M4's design §1.55).
+  'the net page': { [LAZY]: ALL, [CORE_IMPORTS]: CORE },
   "the net page's parameters": { [CORE_IMPORTS]: CORE },
-  'the determinism page imported dynamically': { [CORE_IMPORTS]: CORE },
+  'the determinism page imported dynamically': { [LAZY]: but('main'), [CORE_IMPORTS]: CORE },
   'the build info': { [CORE_IMPORTS]: CORE },
   'a module outside src': { [CORE_IMPORTS]: CORE, [IMPORTS]: ['dev'] },
   'a file outside src': { [CORE_IMPORTS]: CORE, [IMPORTS]: ['dev'] },
@@ -369,6 +370,34 @@ describe('the files the lint reaches', { timeout: LINT_TIMEOUT_MS }, () => {
     expect(await ruleIds("export const m = import('./trystero');\n", 'src/net/trystero.test.ts')).toEqual([]);
     expect(await ruleIds("import './trystero';\n", 'src/net/loopback.test.ts')).toEqual([LAZY]);
     expect(await ruleIds("export const m = import('./trystero');\n", 'src/net/trystero.test.tsx')).toEqual([LAZY]);
+  });
+
+  it("holds M4's test pages to src/main.ts's import(), and the bench's Worker to its own URL: each imported by its own test alone (§1.55)", async () => {
+    const run = "import { run } from './PAGE';\nexport const r = run;\n";
+    for (const page of ['frames', 'determinism', 'nettest']) {
+      const of = (code) => code.replaceAll('PAGE', page);
+      // By import() from src/main.ts, as its fragment routes, and from nowhere else.
+      expect(await ruleIds(of("export const m = import('./PAGE');\n"), 'src/main.ts'), `${page} from main`).toEqual([]);
+      expect(await ruleIds(of("export const m = import('../PAGE');\n"), 'src/ui/app.ts'), `${page} from the app`).toEqual([LAZY]);
+      expect(await ruleIds(of("export const m = import('./PAGE');\n"), 'src/main.test.ts'), `${page} from main's test`).toEqual([LAZY]);
+      // Never statically, from src/main.ts either: the normal page would bundle it.
+      expect(await ruleIds(of(run), 'src/main.ts'), `${page} statically from main`).toEqual([LAZY]);
+      expect(await ruleIds(of("export * from '../PAGE';\n"), 'src/bench/a.ts'), `${page} re-exported`).toEqual([LAZY]);
+      // Its types anywhere, and the page by its own test, which no build bundles.
+      expect(await ruleIds(of("import type { X } from '../PAGE';\nexport type Y = X;\n"), 'src/ui/a.ts'), `${page}'s types`).toEqual([]);
+      expect(await ruleIds(of(run), `src/${page}.test.ts`), `${page} from its own test`).toEqual([]);
+      expect(await ruleIds(of(run), 'src/config.test.ts'), `${page} from another test`).toEqual([LAZY]);
+    }
+    // The witness: named only in its Worker's URL, which no import rule reads.
+    const worker = "export const w = new Worker(new URL('./witness.ts', import.meta.url), { type: 'module' });\n";
+    expect(await ruleIds(worker, 'src/bench/virtual-room.ts')).toEqual([]);
+    const serve = "import { serveWitness } from './witness';\nexport const s = serveWitness;\n";
+    expect(await ruleIds(serve, 'src/bench/virtual-room.ts')).toEqual([LAZY]);
+    expect(await ruleIds("export const m = import('./witness');\n", 'src/bench/virtual-room.ts')).toEqual([LAZY]);
+    expect(await ruleIds("import type { WitnessScope } from './witness';\nexport type S = WitnessScope;\n", 'src/bench/virtual-room.ts')).toEqual([LAZY]);
+    expect(await ruleIds("import { serveWitness } from './bench/witness';\nexport const s = serveWitness;\n", 'src/frames.ts')).toEqual([LAZY]);
+    expect(await ruleIds(serve, 'src/bench/witness.test.ts')).toEqual([]);
+    expect(await ruleIds(serve, 'src/bench/virtual-room.test.ts')).toEqual([LAZY]);
   });
 
   it("gives every test in src/core the environment, and src/core's own code none", async () => {

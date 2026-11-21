@@ -169,7 +169,7 @@ const STATS: TimelineStats = {
   sent: 900, received: 2700, receivedInputs: 3400, late: 6, lateBy: [3, 2, 0, 1], lateAbsent: 2, agree: 800, disagree: 1, split: 0, resyncs: 1, resyncMs: [180],
   resyncFailed: 1, lateVoteFlips: 0, statesSent: 0, statesTruncated: 0, statesRefused: 0, steps: 4000, maxStepsPerAdvance: 13,
   spreadTicks: 0, holds: 0, reusedFinals: 700, steppedFinals: 190, rollbacks: 120, corrections: 95, verifyMismatches: 0, jumps: 0,
-  rateAdj: 0, medianOffset: 0, warmMs: 0, joinedAt: 0, log: [],
+  rateAdj: 0, medianOffset: 0, clockSamples: 0, clockSamplesDropped: 0, warmMs: 0, joinedAt: 0, log: [],
 };
 
 describe('the summary builder (design §1.16)', () => {

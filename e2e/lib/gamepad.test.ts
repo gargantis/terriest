@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import type { Page } from '@playwright/test';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Gamepad, type PadLike } from '../../src/input/gamepad';
+import type { GamepadInspection } from '../../src/input/source';
 import { FakeClock } from '../../src/ui/clock-testing';
-import { PAD, type PadStub, stubGamepad } from './gamepad';
+import { PAD, type PadStub, stubGamepad, waitForPad } from './gamepad';
 
 // The specs' gamepad stub (M4's design §1.62, §16): its init script stands
 // alone, as Playwright sends its source to the page; navigator.getGamepads
@@ -58,5 +60,36 @@ describe("the gamepad's stub (§1.62)", () => {
     expect(g.inspect().presses[String(PAD.jump)]).toBe(2);
     w.terriestPadStub.stick(0, -1);
     expect(g.read().stickStep).toBe(0);
+  });
+});
+
+// The stub's waits (§9.1), on the monotonic clock as e2e/lib/page.ts' are: the machine's clock, which
+// phase 1c measured a second ahead every 32 s, stepping ahead ends none early.
+describe("the stub's waits (§9.1)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** A page whose pad has polled once more at each look; its waits move a fake monotonic clock, while the
+   *  machine's steps a minute ahead each time it's read. */
+  function polling(): Page {
+    let polls = 0;
+    let mono = 0;
+    let wall = 1.8e12;
+    vi.spyOn(performance, 'now').mockImplementation(() => mono);
+    vi.spyOn(Date, 'now').mockImplementation(() => (wall += 60_000));
+    const pad = (): GamepadInspection => ({ connected: true, polls: polls++, presses: {} });
+    return {
+      evaluate: async () => ({ gamepad: pad() }),
+      waitForTimeout: async (ms: number) => {
+        mono += ms;
+      },
+    } as unknown as Page;
+  }
+
+  it("go by the monotonic clock, and fail once it's past the deadline", async () => {
+    const page = polling();
+    expect((await waitForPad(page, (g) => g.polls >= 4, 'four polls', 1000)).polls).toBe(4);
+    await expect(waitForPad(page, () => false, 'a press never made', 1000)).rejects.toThrow(/^a press never made: not seen within 1000 ms/);
   });
 });

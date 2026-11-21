@@ -16,7 +16,8 @@ import { createdScreen, joinedText, playText, proposeScreen } from './propose';
 // §5.14; PLAN §11, L163, L190, C-15, Q-17, M4-Q2), on the DOM fake: Home's
 // Propose a match and Join with a code, a code taken in lowercase, dashes,
 // spaces and Crockford's look-alikes, one that isn't a code said so and
-// nothing joined; Propose's choices and Create, "Creating…" once pressed;
+// nothing joined; Propose's choices and Create, "Creating…" once pressed,
+// the choices made by the pad's d-pad too (L82);
 // Created's link, code, joiners and choices; Join's "Connecting to the
 // match…" until the state is held, then each pack with its places, a full
 // pack's Play marked, the smaller suggested, the countdown's lock; the
@@ -127,6 +128,33 @@ describe('Propose and Created (§5.5, L163)', () => {
     s.ui?.(pad('press'));
     expect(made).toEqual([{ packSize: 4, matchMinutes: 10 }]);
     button(el, 'back').click();
+    expect(went).toEqual(['home']);
+  });
+
+  it("takes the gamepad's d-pad among its choices, Create and Back, its left and right stepping a focused choice, so a pad player proposes what it chose (L82)", () => {
+    const made: MatchSettings[] = [];
+    const went: string[] = [];
+    const s = mount(proposeScreen({ create: (x) => made.push(x), home: () => went.push('home') }));
+    const el = fake(s.el);
+    const focused = (): string | null => dom.document.activeElement.getAttribute('data-test');
+    const value = (test: string): string => only(el, `select[data-test="${test}"]`).value;
+    s.ui?.(pad('down'));
+    expect(focused()).toBe('pack-size');
+    for (let k = config.packSizeDefault; k <= config.packSizeMax; k++) s.ui?.(pad('right')); // one past the last size
+    s.ui?.(key('left')); // the browser's own arrows, never the nav too
+    expect([focused(), value('pack-size')]).toEqual(['pack-size', String(config.packSizeMax)]);
+    s.ui?.(pad('down'));
+    s.ui?.(pad('left'));
+    expect([focused(), value('match-length')]).toEqual(['match-length', String(config.matchLengthDefaultMinutes - 1)]);
+    s.ui?.(pad('press')); // a select isn't pressed
+    s.ui?.(pad('down'));
+    expect(focused()).toBe('create');
+    s.ui?.(key('press')); // the browser's own Enter there
+    expect(made).toEqual([]);
+    s.ui?.(pad('press'));
+    expect(made).toEqual([{ packSize: config.packSizeMax, matchMinutes: config.matchLengthDefaultMinutes - 1 }]);
+    s.ui?.(pad('down'));
+    s.ui?.(pad('press'));
     expect(went).toEqual(['home']);
   });
 

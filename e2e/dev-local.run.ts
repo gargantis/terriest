@@ -28,6 +28,7 @@ import { ENDED } from '../src/core/sim/state';
 import type { NetReport } from '../src/nettest-params';
 import { freshRoom, hashAt, launch, type NetPage, openNetPage, report, waitFor } from './lib/browsers';
 import { expect, expectEverywhere, test } from './lib/guards';
+import { monotonicMs } from './lib/page';
 
 const SEED = 7; // not a setting: the end-to-end setups' seed
 /** The tick at which both press Ready, once in the roster: 10 s, by which the dev server's pages have
@@ -83,7 +84,7 @@ test('two desktop engines connect, tick and agree through a match over npm run d
     // Connected first: the keeper's page holds the match before the player's has opened.
     const failed = (rs: readonly NetReport[]): string | null => rs.map((r) => (r.failed || r.refused !== null ? `${r.role}: failed ${r.failed}, refused ${r.refused}` : null)).find((x) => x !== null) ?? null;
     await waitFor(pages, (rs) => rs.every((r) => r.started && r.peers === 1), { timeoutMs: CONNECT_MS, fail: failed });
-    const deadline = Date.now() + MATCH_MS;
+    const deadline = monotonicMs() + MATCH_MS;
     let last: NetReport[] | null = null;
     let checks = 0;
     for (;;) {
@@ -92,7 +93,7 @@ test('two desktop engines connect, tick and agree through a match over npm run d
       expect(why, `check ${checks + 1}`).toBeNull();
       checks++;
       if (rs.every((r) => r.end !== null)) break;
-      if (Date.now() > deadline) throw new Error(`no confirmed end within ${MATCH_MS} ms: ${rs.map((r) => `${r.role} phase ${r.phase}, score ${r.score.join('-')}, clock ${r.clock}`).join('; ')}`);
+      if (monotonicMs() > deadline) throw new Error(`no confirmed end within ${MATCH_MS} ms: ${rs.map((r) => `${r.role} phase ${r.phase}, score ${r.score.join('-')}, clock ${r.clock}`).join('; ')}`);
       last = rs;
       await new Promise((done) => setTimeout(done, CHECK_EVERY_MS));
     }

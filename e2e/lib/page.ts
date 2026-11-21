@@ -8,16 +8,21 @@
 // 50 ms, never on animation frames (C-6); the leave prompt accepted; a boot
 // failure's message, checked with axe; and the built page answered from
 // dist/ by request interception, at an address no server here answers: an
-// insecure host, or a subpath of the preview's origin (§16).
+// insecure host, or a subpath of the preview's origin (§16). Every wait's
+// deadline goes by the monotonic clock: the machine's, Date.now(), can step
+// a second ahead (phase 1c's measurements), which would end a wait early.
 
 import AxeBuilder from '@axe-core/playwright';
 import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { extname, join, normalize, posix } from 'node:path';
 import type { Page } from '@playwright/test';
+import type { TouchInspection } from '../../src/input/touch';
 import type { Inspection, TerriestTest } from '../../src/main';
 import { DEFAULT_SETTINGS, type Profile, PROFILE_KEY, SETTINGS_KEY, type StoredSettings } from '../../src/storage/schema';
 import type { HudInspection, OverlayInspection, ScreenName } from '../../src/ui/inspect';
+import type { HintsInspection } from '../../src/ui/layers/devices';
+import type { TurnInspection } from '../../src/ui/phone';
 import { expect } from './guards';
 import { DIST, headersFor, parseHeadersFile } from './serve.mjs';
 
@@ -30,6 +35,10 @@ export const smallViewport = { width: 640, height: 360 } as const;
 
 /** How often the specs read the hook: never on animation frames (C-6, §9.1). */
 export const POLL_MS = 50;
+
+/** The monotonic clock, in ms, which every wait's deadline goes by: Date.now() can step (phase 1c's runs saw
+ *  WSL2's step a second ahead every 32 s), and a step would end a wait early. */
+export const monotonicMs = (): number => performance.now();
 
 /** The fields a spec may set on the hook before load (CLAUDE.md's test hook): modelUrl (D-27), and from
  *  phase 2 relay and ice (M4-Q3). */
@@ -83,6 +92,10 @@ export const hudOf = (i: Inspection): HudInspection | null => (i.layers['hud'] a
 export const overlayOf = (i: Inspection): OverlayInspection | null => (i.layers['overlay'] as OverlayInspection | undefined) ?? null;
 export const menuOf = (i: Inspection): { readonly shown: boolean; readonly buttons: readonly string[] } | null =>
   (i.layers['menu'] as { shown: boolean; buttons: string[] } | undefined) ?? null;
+/** The devices' layers (src/ui/layers/devices.ts): the control layer, the control hints and the turn prompt. */
+export const touchOf = (i: Inspection): TouchInspection | null => (i.layers['touch'] as TouchInspection | undefined) ?? null;
+export const hintsOf = (i: Inspection): HintsInspection | null => (i.layers['hints'] as HintsInspection | undefined) ?? null;
+export const turnOf = (i: Inspection): TurnInspection | null => (i.layers['turn'] as TurnInspection | undefined) ?? null;
 
 /** The held timeline's final hash at t, '' if not held (P1, P2). */
 export function hashAt(page: Page, t: number): Promise<string> {
@@ -92,10 +105,10 @@ export function hashAt(page: Page, t: number): Promise<string> {
 /** Polls the hook every 50 ms until `until` holds of it, and returns that inspection; on a timeout, fails
  *  with `what` and the match's figures, never waiting on animation frames (§9.1). */
 export async function waitForInspection(page: Page, until: (i: Inspection) => boolean, o: { what: string; timeoutMs?: number }): Promise<Inspection> {
-  const deadline = Date.now() + (o.timeoutMs ?? 30_000);
+  const deadline = monotonicMs() + (o.timeoutMs ?? 30_000);
   let last = await inspect(page);
   while (!until(last)) {
-    if (Date.now() > deadline) {
+    if (monotonicMs() > deadline) {
       const m = last.match;
       const at = m === null ? 'no match' : `tick ${m.localTick}, phase ${m.phase}, score ${m.score.join('–')}, clock ${m.clock}, timer ${JSON.stringify(m.timer)}`;
       throw new Error(`${o.what}: not reached within ${o.timeoutMs ?? 30_000} ms (screen ${last.screen}, ${at})`);

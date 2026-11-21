@@ -36,11 +36,13 @@ import { FakeStage } from './pitch-testing';
 /** The rigs' player: seed 7's first, as the specs' profiles are seeded (§9.1). */
 export const ME = personId(7, 0);
 
-/** A stage that records its prepare and disposal, with a canvas and the figures the hook reads. */
+/** A stage that records its prepare and disposal, with a canvas and the figures the hook reads, the
+ *  governor's scale among them (§8.2). */
 export class RecordingStage extends FakeStage {
   override readonly canvas: HTMLCanvasElement;
   prepares = 0;
   disposed = false;
+  scale = 1;
   readonly quality: 'high' | 'low';
 
   constructor(doc: FakeDocument, calls: string[], quality: 'high' | 'low') {
@@ -55,7 +57,11 @@ export class RecordingStage extends FakeStage {
   }
 
   override info(): RenderInfo {
-    return { quality: this.quality, frames: this.drawn.length, lost: this.lost } as RenderInfo;
+    return { quality: this.quality, frames: this.drawn.length, lost: this.lost, scale: this.scale } as RenderInfo;
+  }
+
+  override setScale(scale: number): void {
+    this.scale = scale;
   }
 
   override dispose(): void {

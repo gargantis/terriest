@@ -33,9 +33,13 @@
 //   other pack's Play makes it a player again (§5.6);
 // - the tab lock lost to another tab's Use here: the match closed, its
 //   terrier kept for the tab that takes over, and the same message here;
-// - Settings from Home, whose render quality applies at once by
-//   re-creating the stage behind Home, its prepare() run again, the old
-//   stage disposed only once its own prepare has settled (§2.8, D-33);
+// - Settings from Home, whose render quality applies at once behind Home
+//   (§2.8, D-33): the first change makes a stage at the new quality, its
+//   prepare() run behind the screen, and keeps the old one, so a change back
+//   swaps to it, and so on, the page never holding more than two stages nor
+//   making more than one a quality while it stays off the pitch; the unused
+//   one is disposed once a pitch screen opens and its own prepare has
+//   settled, never mid-compile;
 // - on every change the old screen is disposed, the controls released, the
 //   stage shown only for Pre-match and Match, the frame loop running only
 //   then (M4-Q9), the leave guard active only then, Practice's too
@@ -284,10 +288,15 @@ export class App {
   private readonly stallGapMs: number;
   private stage: Stage;
   private quality: RenderQuality;
+  /** The other quality's stage, kept while no pitch screen shows, so a change back swaps to it rather than
+   *  making another: two stages at most, one a quality while the page stays off the pitch (§2.8, D-33).
+   *  Settings offers high and low alone, so it's always the quality a change asks for. */
+  private spare: Stage | null = null;
   /** The quality Settings chose while a pitch screen showed (phase 2's in-match panel): applied once it goes. */
   private pendingQuality: RenderQuality | null = null;
-  /** The stage's prepare() once started, its failure reported: a stage is disposed only once it settles. */
-  private readonly preparing = new Map<Stage, Promise<void>>();
+  /** Each stage's prepare() once started, its failure reported, and whether it has settled: a stage is
+   *  disposed only once it has (§2.8). */
+  private readonly preparing = new Map<Stage, { done: boolean; settled: Promise<void> }>();
   private prepareBegun = false;
   private screen: Screen | null = null;
   private pitch: PitchScreen | null = null;
@@ -346,6 +355,8 @@ export class App {
       clock: d.clock,
       stage: { setScale: (s) => this.stage.setScale(s) },
       frames: this.frames,
+      // The page's visibility, as the timeline's: a hidden page's frames aren't judged (D-31, §8.2).
+      hidden: () => d.page.hidden(),
     });
     d.settings.subscribe((s) => this.settingsChanged(s));
     this.location.onHashChange((hash) => this.hashChanged(hash));
@@ -882,7 +893,8 @@ export class App {
     this.guard.set(pitch !== null);
     this.wakeFor();
     focusScreen(next);
-    if (pitch === null && this.pendingQuality !== null) this.restage(this.pendingQuality);
+    if (pitch !== null) this.dropSpare();
+    else if (this.pendingQuality !== null) this.restage(this.pendingQuality);
   }
 
   /** The wake lock on Created until someone joins (§5.13, D-30): Pre-match's and Match's is the turn
@@ -917,17 +929,21 @@ export class App {
 
   private prepare(stage: Stage, startup: boolean): void {
     if (this.preparing.has(stage)) return;
-    this.preparing.set(stage, stage.prepare().then(
+    const run = { done: false, settled: Promise.resolve() };
+    run.settled = stage.prepare().then(
       () => {
         this.preparedAt ??= this.d.clock.now();
         if (startup) this.d.clock.after(0, () => void this.canaryPasses());
       },
       // Not a refusal the page expects: the page's own error, which the gate's guard fails (§9.1).
       (e: unknown) => console.error('The pitch could not be prepared:', e),
-    ));
+    ).then(() => {
+      run.done = true;
+    });
+    this.preparing.set(stage, run);
   }
 
-  /** Settings' quality: from Home at once, re-creating the stage; while a pitch screen shows, once it goes. */
+  /** Settings' quality: from Home at once, swapping the stage; while a pitch screen shows, once it goes. */
   private settingsChanged(s: Settings): void {
     if (s.quality === this.quality) {
       this.pendingQuality = null;
@@ -937,21 +953,41 @@ export class App {
     else this.restage(s.quality);
   }
 
-  /** A new stage at the quality, its canvas in #stage at once and its prepare() behind the screen; the old
-   *  one disposed once its own prepare has settled, never mid-compile, or at once if it never began. */
+  /** A stage at the quality in place of the one drawing now (§2.8, D-33): the kept one, or else one made,
+   *  the one it replaces kept in turn, so twenty changes make one stage; its canvas in #stage at once, and
+   *  its prepare() behind the screen unless that has begun. */
   private restage(quality: RenderQuality): void {
     this.pendingQuality = null;
-    const next = this.d.makeStage(quality);
+    const next = this.spare ?? this.d.makeStage(quality);
     if (next === null) return;
-    const old = this.stage;
+    this.spare = this.stage;
     this.stage = next;
     this.quality = quality;
     this.mount(next);
-    this.prepareSoon(next);
-    const settling = this.preparing.get(old);
-    this.preparing.delete(old);
-    if (settling === undefined) old.dispose();
-    else void settling.then(() => old.dispose());
+    if (!this.preparing.has(next)) this.prepareSoon(next);
+  }
+
+  /** A pitch screen has opened: the kept stage, unused there, disposed at once if its prepare() has
+   *  settled or never began, and otherwise once it settles, never mid-compile, unless a change off the
+   *  pitch has taken it back by then (§2.8). */
+  private dropSpare(): void {
+    const spare = this.spare;
+    if (spare === null) return;
+    const run = this.preparing.get(spare);
+    if (run === undefined || run.done) {
+      this.disposeSpare(spare);
+      return;
+    }
+    void run.settled.then(() => {
+      if (this.pitch !== null) this.disposeSpare(spare);
+    });
+  }
+
+  private disposeSpare(stage: Stage): void {
+    if (this.spare !== stage) return;
+    this.spare = null;
+    this.preparing.delete(stage);
+    stage.dispose();
   }
 
   // --- The hook's match (§1.40) ---
@@ -990,10 +1026,9 @@ export class App {
       ball: started ? { x: H.ball.x, y: H.ball.y, z: H.ball.z } : { x: 0, y: 0, z: 0 },
       timer: { runs: f.runs, gapMaxMs: f.gapMaxMs, gapsOverFreeze: f.gapsOverFreeze, gapsOverStall: f.gapsOverStall },
       own: { ...m.own() },
-      // The clock's two counters come with phase 2b's timeline (§8.4).
       stats: {
         late: st.late, lateAbsent: st.lateAbsent, disagree: st.disagree, resyncs: st.resyncs, rollbacks: st.rollbacks,
-        corrections: st.corrections, clockSamples: 0, clockSamplesDropped: 0,
+        corrections: st.corrections, clockSamples: st.clockSamples, clockSamplesDropped: st.clockSamplesDropped,
       },
     };
   }

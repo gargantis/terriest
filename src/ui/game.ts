@@ -154,6 +154,8 @@ function combined(a: Readonly<TimelineStats>, b: Readonly<TimelineStats>): Timel
     corrections: a.corrections + b.corrections,
     verifyMismatches: a.verifyMismatches + b.verifyMismatches,
     jumps: a.jumps + b.jumps,
+    clockSamples: a.clockSamples + b.clockSamples,
+    clockSamplesDropped: a.clockSamplesDropped + b.clockSamplesDropped,
     rateAdj: b.rateAdj,
     medianOffset: b.medianOffset,
     warmMs: b.warmMs,

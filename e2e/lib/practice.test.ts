@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '../../src/config';
-import { HOLD, holdProblems, LATEST_START_TICKS, type Period, RELEASE_LATITUDE } from './practice';
+import type { CorrectionFigures } from '../../src/core/session/index';
+import { readoutLines, readoutText, REPAIR_SIZES_CAPTION, SIZES_CAPTION, sizeLines } from '../../src/ui/screens/readout';
+import { quantiles, summaryOf } from '../../src/ui/screens/readout-testing';
+import { copiedFrom, HOLD, holdProblems, kickoffWhistles, LATEST_START_TICKS, type Period, type ReadoutSeen, RELEASE_LATITUDE } from './practice';
 
 // The Practice spec's check of what the person played (M4's design §9.1,
 // §9.5; e2e/lib/practice.ts' holdProblems), by the rules the Node replays
@@ -73,5 +76,63 @@ describe("the Practice spec's holds (M4's design §9.1)", () => {
     expect(holdProblems([span(FIRST, null), span(K + 3 + D, K + 240 + D)], two, 1000)).toHaveLength(1);
     // And with no end, an open span is a failure.
     expect(holdProblems([span(FIRST, null)], periods)).toHaveLength(1);
+  });
+});
+
+// The kickoff whistles a match's sound must have decided by its end (M4's design §7; e2e/lib/practice.ts'
+// kickoffWhistles): one at each start of play; every countdown's but the last's certain, a goal having ended
+// its play; the last's none when the end came at its play's first tick, certain when its play outlasted the
+// most ticks a timer run can move the head, and either way when shorter.
+describe('the kickoff whistles a whole match decided (§7)', () => {
+  const periods = [
+    { countdown: 605, countdownTicks: 300 }, { countdown: 1415, countdownTicks: 180 }, { countdown: 2100, countdownTicks: 180 },
+  ] as const;
+  const play = 2100 + 180;
+
+  it('counts every start of play, the last too when its play outlasts a timer run', () => {
+    expect(kickoffWhistles([], 0, 50)).toEqual({ min: 0, max: 0 });
+    expect(kickoffWhistles(periods.slice(0, 1), 905 + 3600, 50)).toEqual({ min: 1, max: 1 });
+    // 50 ms is 3 ticks, so a run moves the head 4 at the most.
+    expect(kickoffWhistles(periods, play + 4, 50)).toEqual({ min: 3, max: 3 });
+    expect(kickoffWhistles(periods, play + 600, 250)).toEqual({ min: 3, max: 3 });
+  });
+
+  it('counts none for a last kickoff whose play never came, the end at its first tick', () => {
+    expect(kickoffWhistles(periods, play, 50)).toEqual({ min: 2, max: 2 });
+  });
+
+  it('allows either for a last play shorter than a timer run can move the head', () => {
+    expect(kickoffWhistles(periods, play + 1, 50)).toEqual({ min: 2, max: 3 });
+    expect(kickoffWhistles(periods, play + 3, 50)).toEqual({ min: 2, max: 3 });
+    // 250 ms is 15 ticks: a 15-tick play may pass between two runs.
+    expect(kickoffWhistles(periods, play + 15, 250)).toEqual({ min: 2, max: 3 });
+    expect(kickoffWhistles(periods, play + 16, 250)).toEqual({ min: 3, max: 3 });
+  });
+});
+
+// What Copy put on the clipboard, rebuilt from the figures Results drew (M4's design §5.9, §9.5; M3-Q24;
+// e2e/lib/practice.ts' copiedFrom): the page's own text for the same summary, Practice's and a match with
+// others', a repair's sizes among the latter's, so the spec's check follows src/ui/screens/readout.ts.
+describe('the copied figures (§5.9)', () => {
+  const s = summaryOf({
+    ticks: 3600, remoteInputs: 7200, late: 12, lateAbsent: 1, rollbacks: 40, corrections: 31, resyncs: 2, resyncFailed: 1,
+    ball: quantiles(30, 2, 0.0123, 0.217, 1.2), remote: quantiles(60, 10, 0.0694, 0.25, 3), own: quantiles(30, 30, 0, 0, 0), headings: quantiles(60, 5, 2.5, 56.3, 120),
+    repair: { count: 1, ball: quantiles(1, 0, 0.5, 0.5, 0.5), remote: quantiles(2, 1, 0.75, 0.75, 0.75), own: quantiles(1, 1, 0, 0, 0), headings: quantiles(2, 0, 10, 12, 12) },
+  });
+  /** The figures as Results draws them for `s`, from the panel's own parts, in readoutSeen's shape. */
+  const drawn = (practice: boolean): ReadoutSeen => {
+    const rows = (f: CorrectionFigures): string[][] => sizeLines(f).map((z) => [z.label, z.moved, z.p50, z.p95, z.max]);
+    return {
+      lines: readoutLines(s, practice).map((l) => ({ test: l.test, label: l.label, value: l.value })),
+      tables: [
+        { test: 'readout-sizes', caption: SIZES_CAPTION, rows: rows(s) },
+        ...(practice ? [] : [{ test: 'readout-repair-sizes', caption: REPAIR_SIZES_CAPTION, rows: rows(s.repair) }]),
+      ],
+      note: '', copy: 'idle', status: '', statusInView: false,
+    };
+  };
+
+  it("is the page's own text for the figures drawn, Practice's and a match with others'", () => {
+    for (const practice of [true, false]) expect(copiedFrom(drawn(practice), practice), practice ? 'Practice' : 'networked').toBe(readoutText(s, practice));
   });
 });

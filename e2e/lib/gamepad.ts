@@ -8,12 +8,13 @@
 // lets go and waits for a poll that saw it go, so each press counts once,
 // however often the page polls (§16); the pad's figures are at the hook's
 // top level, so it presses on Results and Home as on the pitch. Each wait
-// polls the hook every 50 ms, never on animation frames (C-6). New at M4.
+// polls the hook every 50 ms, never on animation frames (C-6), its deadline
+// on the monotonic clock (e2e/lib/page.ts' monotonicMs). New at M4.
 
 import type { Page } from '@playwright/test';
 import { PAD } from '../../src/input/gamepad';
 import type { GamepadInspection } from '../../src/input/source';
-import { inspect, POLL_MS } from './page';
+import { inspect, monotonicMs, POLL_MS } from './page';
 
 export { PAD };
 
@@ -106,10 +107,10 @@ export async function padFigures(page: Page): Promise<GamepadInspection> {
 
 /** Polls the hook every 50 ms until `until` holds of the pad's figures. */
 export async function waitForPad(page: Page, until: (g: GamepadInspection) => boolean, what: string, timeoutMs = 10_000): Promise<GamepadInspection> {
-  const deadline = Date.now() + timeoutMs;
+  const deadline = monotonicMs() + timeoutMs;
   for (let g = await padFigures(page); ; g = await padFigures(page)) {
     if (until(g)) return g;
-    if (Date.now() > deadline) throw new Error(`${what}: not seen within ${timeoutMs} ms (pad ${JSON.stringify(g)})`);
+    if (monotonicMs() > deadline) throw new Error(`${what}: not seen within ${timeoutMs} ms (pad ${JSON.stringify(g)})`);
     await page.waitForTimeout(POLL_MS);
   }
 }

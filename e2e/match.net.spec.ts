@@ -39,6 +39,7 @@ import type { NetReport } from '../src/nettest-params';
 import { startNostrRelay } from '../vendor/hermet/nostr-relay.mjs';
 import { type Engine, freshRoom, hashAt, launch, type NetPage, openNetPage, waitFor } from './lib/browsers';
 import { expect, expectEverywhere, test } from './lib/guards';
+import { monotonicMs } from './lib/page';
 
 const SEED = 7;
 const READY = 600; // not a setting: the setup's Ready tick (design §8.4)
@@ -101,8 +102,8 @@ test('three engines, a spectator and a reload play a scripted match to one confi
     const [cr, ff, wk] = [browsers[0]!, browsers[1]!, browsers[2]!];
     const common = { room, seed: SEED, packSize: 2, minutes: 1, ready: READY };
     const keeper = await openNetPage(cr, 'chromium', baseURL!, relay, { ...common, k: 0, role: 'keeper', pack: 0, script: 'back', bots: '0' });
-    const genesis = Date.now();
-    const left = (): number => Math.max(1, genesis + MATCH_MS - Date.now());
+    const genesis = monotonicMs();
+    const left = (): number => Math.max(1, genesis + MATCH_MS - monotonicMs());
     const [firefox, webkit] = await Promise.all([
       openNetPage(ff, 'firefox', baseURL!, relay, { ...common, k: 1, role: 'player', pack: 1, script: 'none' }),
       openNetPage(wk, 'webkit', baseURL!, relay, { ...common, k: 2, role: 'player', pack: 1, script: 'none' }),
@@ -139,7 +140,7 @@ test('three engines, a spectator and a reload play a scripted match to one confi
     const ends = await waitFor(all, (rs) => rs.every((r) => r.end !== null), { timeoutMs: left(), fail: overtime });
     const tick = Math.min(...ends.map((r) => r.finalTick));
     const hashes = await Promise.all(all.map((p) => hashAt(p.page, tick)));
-    console.log(`the match ended ${((Date.now() - genesis) / 1000).toFixed(1)} s after genesis`);
+    console.log(`the match ended ${((monotonicMs() - genesis) / 1000).toFixed(1)} s after genesis`);
     for (const [k, p] of all.entries()) console.log(`  ${line(p, ends[k]!)}`);
 
     const end = ends[0]!.end!;

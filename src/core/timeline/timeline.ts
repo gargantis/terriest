@@ -74,7 +74,7 @@ import {
   canonicalInputs, cloneState, decodeState, encodeState, genesis, hash64, hashState, JOIN, KEPT_BITS, LEAVE, makeSim,
   type MatchSettings, type MatchState, NEVER, READY, sameInputs, type Sim, type SimParams, step, SWITCH, type TickInput, UNREADY,
 } from '../sim';
-import { TickClock } from './clock';
+import { PHASE_CAP, TickClock } from './clock';
 import { FinalHistory } from './history';
 import { InputStore, type PutResult, type Recorded } from './inputs';
 import { type TallyResult, VoteBook } from './votes';
@@ -143,6 +143,10 @@ export interface TimelineStats {
   jumps: number;
   rateAdj: number;
   medianOffset: number;
+  /** The clock's samples (D-15, M4's design §8.4's run 4): direct TICKs it took, and those its freeze
+   *  rule dropped, as held for this page through a freeze of its timers. */
+  clockSamples: number;
+  clockSamplesDropped: number;
   warmMs: number;
   joinedAt: number;
   log: [number, string][]; // [local tick, event], the first 300
@@ -400,7 +404,7 @@ export class Timeline {
       statesSent: 0, statesTruncated: 0, statesRefused: 0,
       steps: 0, maxStepsPerAdvance: 0, spreadTicks: 0, holds: 0,
       reusedFinals: 0, steppedFinals: 0, rollbacks: 0, corrections: 0, verifyMismatches: 0,
-      jumps: 0, rateAdj: 0, medianOffset: 0, warmMs: 0, joinedAt: 0, log: [],
+      jumps: 0, rateAdj: 0, medianOffset: 0, clockSamples: 0, clockSamplesDropped: 0, warmMs: 0, joinedAt: 0, log: [],
     };
   }
 
@@ -750,7 +754,12 @@ export class Timeline {
     this.heard(origin, now);
     this.see(origin, this.local);
     this.ticks.heard(origin, now);
-    if (direct) this.ticks.sample(origin, m.t, m.phase, this.oneWayMs.get(origin) ?? 0, now);
+    if (direct) {
+      // The clock's samples, taken and dropped by its freeze rule, as TickClock.sample checks them (M4's
+      // design §8.4's run 4, D-15).
+      if (this.ticks.sample(origin, m.t, m.phase, this.oneWayMs.get(origin) ?? 0, now)) this.stats.clockSamples++;
+      else if (!this.ticks.paused && m.phase < PHASE_CAP && this.ticks.holding(now)) this.stats.clockSamplesDropped++;
+    }
   }
 
   /** One sender's input from a TICK: for tick t, its history, then its events, so an event finds its

@@ -17,7 +17,8 @@ import { NOT_SAVED, settingsScreen } from './settings';
 // The screens' parts (M4's design §1.42, §1.43, §5.3, §5.4, §5.8, §6, §9.2;
 // PLAN §10, §11, C-17): the shared helpers; Home's name, fitted and stored
 // on change, its coat stored on change, and its notice when the browser
-// won't keep them; Practice's choices from the configuration; Settings'
+// won't keep them; Practice's choices from the configuration, made by the
+// pad's d-pad too, its left and right stepping a focused one (L82); Settings'
 // minimal screen storing each choice, the rules' defaults shown until one
 // is made; and the menu's buttons for Practice and a networked match.
 
@@ -175,13 +176,27 @@ describe("Practice's setup (§5.4)", () => {
     expect([started, went]).toEqual([[{ packSize: 1, matchMinutes: 1 }], ['home']]);
   });
 
-  it("takes the gamepad's d-pad between Start and Back and its Start presses, so a pad player who came from Home goes on (L82), the keys left to the browser", () => {
+  it("takes the gamepad's d-pad among its choices, Start and Back, its left and right stepping a focused choice, so a pad player who came from Home chooses and goes on (L82), the keys left to the browser", () => {
     const started: MatchSettings[] = [];
     const went: string[] = [];
     const screen = practiceScreen({ start: (s) => started.push(s), home: () => went.push('home') });
     dom.document.body.append(fake(screen.el));
-    const cmd = (kind: 'down' | 'up' | 'press', source: 'gamepad' | 'keyboard' = 'gamepad'): void => screen.ui!({ kind, pressedAt: 0, source, repeat: false });
+    const cmd = (kind: 'down' | 'up' | 'left' | 'right' | 'press', source: 'gamepad' | 'keyboard' = 'gamepad'): void =>
+      screen.ui!({ kind, pressedAt: 0, source, repeat: false });
     const focused = (): string | null => dom.document.activeElement.getAttribute('data-test');
+    const value = (test: string): string => only(fake(screen.el), `select[data-test="${test}"]`).value;
+    cmd('down');
+    expect(focused()).toBe('pack-size');
+    for (let k = config.packSizeDefault; k >= config.packSizeMin; k--) cmd('left'); // one past the first size: no further
+    expect(value('pack-size')).toBe(String(config.packSizeMin));
+    cmd('right', 'keyboard'); // the browser's own arrows change a focused select, never the nav too
+    expect([focused(), value('pack-size')]).toEqual(['pack-size', String(config.packSizeMin)]);
+    cmd('down');
+    expect(focused()).toBe('match-length');
+    cmd('right');
+    expect(value('match-length')).toBe(String(config.matchLengthDefaultMinutes + 1));
+    for (let k = config.matchLengthDefaultMinutes + 1; k > config.matchLengthMinMinutes; k--) cmd('left');
+    expect(value('match-length')).toBe(String(config.matchLengthMinMinutes));
     cmd('down');
     expect(focused()).toBe('start');
     cmd('down');
@@ -190,7 +205,10 @@ describe("Practice's setup (§5.4)", () => {
     expect(went).toEqual([]);
     cmd('up');
     cmd('press');
-    expect(started).toEqual([{ packSize: config.packSizeDefault, matchMinutes: config.matchLengthDefaultMinutes }]);
+    expect(started).toEqual([{ packSize: config.packSizeMin, matchMinutes: config.matchLengthMinMinutes }]);
+    cmd('down');
+    cmd('press');
+    expect(went).toEqual(['home']);
   });
 });
 

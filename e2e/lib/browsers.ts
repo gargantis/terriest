@@ -24,7 +24,7 @@ import { generateMatchId } from '../../src/core/match-id';
 import type { NetReport } from '../../src/nettest-params';
 import { CHROMIUM_GL_ARGS } from './gl';
 import { expectWebGL2, type PageWatch, watchPage } from './guards';
-import { installHook } from './page';
+import { installHook, monotonicMs } from './page';
 
 export type Engine = 'chromium' | 'firefox' | 'webkit';
 
@@ -105,13 +105,13 @@ export async function waitFor(
   test: (r: readonly NetReport[]) => boolean,
   o: { timeoutMs: number; fail?: (r: readonly NetReport[]) => string | null },
 ): Promise<NetReport[]> {
-  const deadline = Date.now() + o.timeoutMs;
+  const deadline = monotonicMs() + o.timeoutMs;
   for (;;) {
     const reports = await Promise.all(pages.map((p) => report(p.page)));
     const why = o.fail?.(reports) ?? null;
     if (why !== null) throw new Error(`${why}\n${described(pages, reports)}`);
     if (test(reports)) return reports;
-    if (Date.now() >= deadline) throw new Error(`not reached within ${o.timeoutMs} ms\n${described(pages, reports)}`);
+    if (monotonicMs() >= deadline) throw new Error(`not reached within ${o.timeoutMs} ms\n${described(pages, reports)}`);
     await new Promise((resolve) => setTimeout(resolve, POLL_MS));
   }
 }

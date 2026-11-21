@@ -27,13 +27,20 @@
 //   the countdown's seconds, the gauges' fills, the marks shown and which
 //   of them stacks over the HUD and Pre-match's panel (topAt);
 // - nothing contacted (P10, L238);
+// - from phase 2: the stubbed gamepad (e2e/lib/gamepad.ts) for a run that
+//   plays it, Ready by its Start and the menu by its Back; the control
+//   hints as the hook and the page both show them (§4.7, L83); Results'
+//   network figures as drawn, and what Copy put on the clipboard (§5.9,
+//   M3-Q24); and the kickoff whistles a match's sound must have decided
+//   (§7);
 // - one JSON line a run, `practice-measure {…}`, also attached to the test,
 //   logged whether the run passed or not, with what phase 1c's Measure step
 //   reads: the start and prepare(), the Ready tick against its anchor, each
 //   hold against its countdown and play, the timer's figures, the
-//   key-to-screen latency, whether anything compiled, and each wait's
-//   length.
-// Its timeouts are set from that step's measured runs, each with its margin.
+//   key-to-screen latency, whether anything compiled, each wait's length,
+//   and from phase 2 the sound's decided cues.
+// Its timeouts are set from that step's measured runs, each with its margin,
+// and phase 2b's runs checked against them for the waits it adds.
 
 import { readFileSync } from 'node:fs';
 import type { Page, TestInfo } from '@playwright/test';
@@ -42,11 +49,14 @@ import { botIds, personId } from '../../src/core/bot/bot-id';
 import { SIDEWAYS_IN_BALL_VIEW } from '../../src/core/bot/setups';
 import { frameOf, stepOf } from '../../src/core/sim/input';
 import { CELEBRATION, IN_PLAY, KICKOFF_COUNTDOWN, START_COUNTDOWN } from '../../src/core/sim/state';
+import type { Control, InputKind } from '../../src/input/source';
 import type { Inspection } from '../../src/main';
 import type { ResourceCounts } from '../../src/render/stage-types';
+import type { CueKind } from '../../src/ui/inspect';
 import { countPeerConnections } from './browsers';
+import { installGamepad, PAD, press } from './gamepad';
 import { expect, type PageWatch } from './guards';
-import { expectStarted, inspect, installHook, POLL_MS, seedStorage } from './page';
+import { expectStarted, hintsOf, inspect, installHook, monotonicMs, POLL_MS, seedStorage } from './page';
 
 // --- What the replays validated (src/net/practice-spec-testing.ts) ---
 
@@ -107,7 +117,8 @@ export const PREPARED_MS = 4_000;
 export const READY_ACTS_MS = 3_000;
 /** To an anchor from the look that chose it: the controls run's is the first at least 120 ticks after its
  *  last input, and the anchors are 600 apart, so it's at most 721 ticks away, 12.02 s; the runs waited 5.9 to
- *  10.6 s (load 0.79); 1.5 × 12.02 + 2 = 20.03 s. */
+ *  10.6 s (load 0.79), and with phase 2b's gamepad warm-up 2.0 to 12.02 s, Chromium's warm-up leaving the
+ *  1,200 anchor that far (load 7.23); 1.5 × 12.02 + 2 = 20.03 s. */
 export const TO_ANCHOR_MS = 21_000;
 /** Ready to the start countdown on the head, d + 1 ticks: at worst 94 ms (Chromium's whole match, load
  *  0.98); 3 × 0.09 + 2 = 2.3 s. */
@@ -121,18 +132,20 @@ export const FIRST_GOAL_MS = 65_000;
  *  1.5 × 147.7 + 2 = 223.6 s. */
 export const RESULTS_MS = 225_000;
 /** A key's effect on a screen, the menu's opening or the HUD showing a goal: at worst 923 ms, a jump's
- *  landing (Chromium, load 0.79), the next longest a half-metre run, 487 ms; 3 × 0.92 + 2 = 4.8 s. */
+ *  landing (Chromium, load 0.79), the next longest a half-metre run, 487 ms; 3 × 0.92 + 2 = 4.8 s. Phase
+ *  2b's waits, a pad's press, a touch's, the hints and the end whistle, took at most 857 ms, the landing
+ *  after the pad's jump (Firefox, load 6.39). */
 export const SHOWN_MS = 5_000;
 
 /** The monotonic clock, in ms, which the waits and the marks go by: the machine's own, Date.now(), can step
  *  (WSL2's stepped a second ahead every 32 s in phase 1c's runs), and a step would end a wait early. */
-const now = (): number => performance.now();
+const now = monotonicMs;
 
 // --- One run ---
 
 type Hold = NonNullable<Inspection['controls']>['holds'][number];
 type Presses = NonNullable<Inspection['controls']>['presses'];
-export type RunKind = 'whole' | 'controls' | 'dev';
+export type RunKind = 'whole' | 'controls' | 'touch' | 'dev';
 
 /** A countdown the spec played, and the play after it, as the looks showed the drawn head. */
 export interface Period {
@@ -195,6 +208,8 @@ export interface Measure {
   /** The controls run's warm-up: its last input's tick at the latest, its last held tick, the anchor chosen
    *  from them, and its presses. */
   warmUp: { lastInputTick: number; lastHoldTo: number | null; anchor: number; presses: Presses } | null;
+  /** The sound's cues decided by the last look at the match played (§7), whatever the context did. */
+  decided: Readonly<Record<CueKind, number>> | null;
   /** Each wait's longest, in ms on the monotonic clock, by what it waited for: what the timeouts are set from. */
   readonly waits: Record<string, number>;
   polls: number;
@@ -294,22 +309,29 @@ export function focused(page: Page): Promise<string> {
 
 /** The focus as a look finds it, read once: what has it, its text, and whether its whole box is inside the
  *  window, unscrolled to it, so a target Q-17 focused below the fold or above the top counts as hidden
- *  (§5.14). */
+ *  (§5.14); its box and the window's size, for a failure's message. A box inside to within a pixel counts
+ *  as inside: the layout's lengths are fractional, a line of 28 px type at 1.2 among them, and a scroll
+ *  that brings a box to the window's edge stops on a whole pixel. */
 export interface FocusSeen {
   readonly what: string;
   readonly text: string;
   readonly inMain: boolean;
   readonly inView: boolean;
+  readonly box: readonly [top: number, right: number, bottom: number, left: number] | null;
+  readonly viewport: readonly [width: number, height: number];
 }
 
 export function focusSeen(page: Page): Promise<FocusSeen> {
   return page.evaluate(() => {
     const a = document.activeElement;
-    if (a === null || a === document.body) return { what: 'nothing', text: '', inMain: false, inView: false };
+    const viewport = [innerWidth, innerHeight] as const;
+    if (a === null || a === document.body) return { what: 'nothing', text: '', inMain: false, inView: false, box: null, viewport };
     const r = a.getBoundingClientRect();
+    const PIXEL = 1; // a whole pixel's scroll
     return {
       what: a.getAttribute('data-test') ?? a.tagName.toLowerCase(), text: (a.textContent ?? '').trim(), inMain: a.closest('main') !== null,
-      inView: r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth,
+      inView: r.width > 0 && r.height > 0 && r.top >= -PIXEL && r.left >= -PIXEL && r.bottom <= innerHeight + PIXEL && r.right <= innerWidth + PIXEL,
+      box: [r.top, r.right, r.bottom, r.left] as const, viewport,
     };
   });
 }
@@ -479,6 +501,102 @@ export const lastInputBy = (i: Inspection): number => i.match!.localTick + D;
 /** The first anchor at least AFTER_WARM_UP_TICKS after `lastInput` (§9.1), or null: none left. */
 export const anchorAfter = (lastInput: number): number | null => GOAL_ANCHORS.find((a) => a >= lastInput + AFTER_WARM_UP_TICKS) ?? null;
 
+// --- The sound (§7) ---
+
+/**
+ * How many kickoff whistles a match's sound decided by its confirmed end at `endTick` (§7): one each time
+ * the head's phase becomes in play, as the sound's layer sees the head after each timer run. Every
+ * countdown but the last led to a play a goal ended, long enough for every timer run to see; the last's
+ * play ran from its countdown's end to the end, and had no tick at all where the end came at its first
+ * (a kickoff with a tick left on the clock ends the match there, src/core/sim/rules.ts). A play shorter
+ * than the most ticks one run can move the head, by the timer's largest gap, may pass between two runs
+ * unseen, so it's counted either way.
+ */
+export function kickoffWhistles(periods: readonly { readonly countdown: number; readonly countdownTicks: number }[], endTick: number, gapMaxMs: number): { min: number; max: number } {
+  const last = periods.at(-1);
+  if (last === undefined) return { min: 0, max: 0 };
+  const before = periods.length - 1;
+  const lastPlay = endTick - (last.countdown + last.countdownTicks);
+  if (lastPlay <= 0) return { min: before, max: before };
+  const step = Math.ceil((gapMaxMs * SECOND) / 1000) + 1;
+  return { min: lastPlay >= step ? before + 1 : before, max: before + 1 };
+}
+
+// --- The control hints (§4.7, L83) ---
+
+/** Each kind's panel's heading, as the page words it (src/ui/layers/devices.ts). */
+export const HINT_TITLES: Readonly<Record<InputKind, string>> = { keyboard: 'Keyboard controls', touch: 'Touch controls', gamepad: 'Gamepad controls' };
+
+/** A hints panel as the page drew it: its heading, the controls its lines list, by data-control, and
+ *  whether its whole box is inside the window. */
+export interface HintsSeen {
+  readonly title: string;
+  readonly lines: readonly string[];
+  readonly inView: boolean;
+}
+
+/** Every hints panel the page shows: visible, with a box. */
+export function hintsSeen(page: Page): Promise<HintsSeen[]> {
+  return page.evaluate(() => Array.from(document.querySelectorAll<HTMLElement>('[data-test="hints"]')).flatMap((el) => {
+    const r = el.getBoundingClientRect();
+    if (el.hidden || el.closest('[hidden]') !== null || getComputedStyle(el).visibility !== 'visible' || r.width === 0 || r.height === 0) return [];
+    return [{
+      title: el.querySelector('h2')?.textContent ?? '', lines: Array.from(el.querySelectorAll('li'), (li) => li.getAttribute('data-control') ?? ''),
+      inView: r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth,
+    }];
+  }));
+}
+
+// --- Results' network figures (§5.9, M3-Q24) ---
+
+/** The network figures as Results drew them: each figure's data-test, label and value; each sizes table's
+ *  caption and rows; the note under the heading; and Copy's outcome and its status. */
+export interface ReadoutSeen {
+  readonly lines: readonly { readonly test: string; readonly label: string; readonly value: string }[];
+  readonly tables: readonly { readonly test: string; readonly caption: string; readonly rows: readonly (readonly string[])[] }[];
+  readonly note: string;
+  readonly copy: string;
+  readonly status: string;
+  /** The status line's box inside the window: false while it says nothing. */
+  readonly statusInView: boolean;
+}
+
+export function readoutSeen(page: Page): Promise<ReadoutSeen> {
+  return page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('[data-test="readout"]')!;
+    const dts = Array.from(el.querySelectorAll('dl > dt'));
+    const status = el.querySelector<HTMLElement>('[data-test="copy-status"]')!;
+    const r = status.getBoundingClientRect();
+    return {
+      lines: dts.map((dt) => {
+        const dd = dt.nextElementSibling!;
+        return { test: (dd.getAttribute('data-test') ?? '').replace(/^readout-/, ''), label: dt.textContent ?? '', value: dd.textContent ?? '' };
+      }),
+      tables: Array.from(el.querySelectorAll('table')).map((t) => ({
+        test: t.getAttribute('data-test') ?? '', caption: t.querySelector('caption')?.textContent ?? '',
+        rows: Array.from(t.querySelectorAll('tbody tr'), (tr) => Array.from(tr.children, (c) => c.textContent ?? '')),
+      })),
+      note: el.querySelector('h2 + p')?.textContent ?? '',
+      copy: el.getAttribute('data-copy') ?? '',
+      status: status.textContent ?? '',
+      statusInView: r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth,
+    };
+  });
+}
+
+/** What Copy puts on the clipboard for the figures Results drew (src/ui/screens/readout.ts' readoutText, as
+ *  a player reads it off the screen): a heading line, each figure, then each sizes table's caption and rows. */
+export function copiedFrom(r: ReadoutSeen, practice: boolean): string {
+  return [
+    `terriest network figures: ${practice ? 'Practice' : 'a match with others'}`,
+    ...r.lines.map((l) => `${l.label}: ${l.value}`),
+    ...r.tables.flatMap((t) => [
+      `${t.caption}, moved and p50 / p95 / max of those moved:`,
+      ...t.rows.map(([label, moved, p50, p95, max]) => `${label}: ${moved} moved, ${p50} / ${p95} / ${max}`),
+    ]),
+  ].join('\n');
+}
+
 /**
  * One Practice through the real page: its looks at the hook, the hold it plays from each countdown, its
  * checks at every look, and its line for the Measure step.
@@ -503,7 +621,7 @@ export class PracticeRun {
     this.measure = {
       spec: testInfo.file.split(/[\\/]/).at(-1) ?? '', run, engine: page.context().browser()?.browserType().name() ?? 'unknown', ok: false, error: null,
       wallMs: {}, startMs: null, prepareMs: null, ready: null, holds: [], timer: null, latencyMs: null, compiled: null, counts: null,
-      frames: null, goals: [], score: null, end: null, menus: [], warmUp: null, waits: {}, polls: 0,
+      frames: null, goals: [], score: null, end: null, menus: [], warmUp: null, decided: null, waits: {}, polls: 0,
     };
   }
 
@@ -565,15 +683,17 @@ export class PracticeRun {
     }
   }
 
-  /** Storage as a player's would hold it, the hook, the recorders, then the page, to Home with its heading
-   *  focused and the pitch prepared behind it, and no RTCPeerConnection made (P10). */
-  async load(url: string): Promise<Inspection> {
+  /** Storage as a player's would hold it, the hook, the recorders, the stubbed gamepad for a run that plays
+   *  one (from phase 2), then the page, to Home with its heading focused and the pitch prepared behind it,
+   *  and no RTCPeerConnection made (P10). */
+  async load(url: string, o: { readonly gamepad?: boolean } = {}): Promise<Inspection> {
     const page = this.page;
     await seedStorage(page, { profile: { playerId: ME }, settings: { quality: 'low' } });
     await installHook(page);
     await countPeerConnections(page);
     await recordReady(page);
     await recordBarks(page);
+    if (o.gamepad === true) await installGamepad(page);
     await page.goto(url);
     await expectStarted(page);
     this.mark('started');
@@ -592,8 +712,8 @@ export class PracticeRun {
    *  the setup's heading focused at its top; Tab to each
    *  select, its option chosen by the arrows, the browser's own keys, then to Start and Enter.
    *  Then Pre-match: drawing, the person in A and its bot in B, 1 a side for 1 minute, Ready able to act
-   *  and focused from the screen's entry (Q-15, Q-17). */
-  async practice(): Promise<Inspection> {
+   *  and focused from the screen's entry (Q-15, Q-17). `mark` names the step in the line's wallMs. */
+  async practice(mark = 'prematch'): Promise<Inspection> {
     const page = this.page;
     await this.until((i) => i.screen === 'home', { what: 'Home', timeoutMs: SHOWN_MS });
     expect(await focused(page), "Home's heading, before its Tab order").toBe('h1');
@@ -611,7 +731,7 @@ export class PracticeRun {
     await tabThrough(page, ['start'], "Practice's setup");
     await page.keyboard.press('Enter');
     await this.until((i) => i.screen === 'prematch', { what: 'Pre-match, by Enter on Start', timeoutMs: SHOWN_MS });
-    this.mark('prematch');
+    this.mark(mark);
     const i = await this.readyActs();
     expect(i.match?.kind).toBe('practice');
     expect(i.match?.roster.map((r) => [r.id, r.pack]), 'the person in A and its bot in B, 1 a side (Q-15)').toEqual([[ME, 0], [BOT, 1]]);
@@ -637,14 +757,17 @@ export class PracticeRun {
     return i;
   }
 
-  /** Ready by Enter at the first look at or past `anchor`, its focus checked first; then the start
-   *  countdown, whose first look presses A: from here the hold is played at every look. */
-  async ready(anchor: number): Promise<Inspection> {
+  /** Ready by Enter, or from phase 2 by the gamepad's Start (§9.5, Q-17), at the first look at or past
+   *  `anchor`, its focus checked first; then the start countdown, whose first look presses A: from here the
+   *  hold is played at every look. The pad's press holds Start until the page's pad counts it, so it's
+   *  sampled at the anchor's look as Enter is, and lets go of it at once. */
+  async ready(anchor: number, by: 'enter' | 'start' = 'enter'): Promise<Inspection> {
     const page = this.page;
     this.measure.ready = { anchor, pollTick: -1, tick: null, countdown: null, late: null, latitude: READY_LATITUDE };
     const at = await this.until((i) => (i.match?.localTick ?? 0) >= anchor, { what: `local tick ${anchor}, Ready's anchor`, timeoutMs: TO_ANCHOR_MS });
     expect(await focused(page), 'Ready focused at its press (Q-17)').toBe('ready');
-    await page.keyboard.press('Enter');
+    if (by === 'enter') await page.keyboard.press('Enter');
+    else await this.pad(PAD.start, "Ready by the pad's Start");
     this.mark('ready');
     this.holding = true;
     this.measure.ready.pollTick = at.match!.localTick;
@@ -709,35 +832,80 @@ export class PracticeRun {
    * The menu at a goal's latch, in its celebration (§9.5), with nothing held, since the menu lets go of what
    * is (§4.8) and the validated match holds nothing then: Escape opens it, paused, Resume focused (Q-17);
    * then either the clock checked still over 30 ticks' worth of time and Enter on Resume, or Escape again;
-   * either way the clock runs on after. The still check starts once a frame has been drawn under the menu:
-   * the drawing clock notices a pause at its next frame or timer run (src/render/view.ts' observe), so a
-   * look before then reads it from before the pause.
+   * either way the clock runs on after (menuBy).
    */
   async menuAt(goal: number, close: 'resume' | 'escape'): Promise<void> {
-    const page = this.page;
     const at = this.last!;
     expect(this.down, `A held at goal ${goal}'s latch, which the menu would let go: the validated match holds nothing then (M4's design §4.8)`).toBe(false);
     expect(at.match?.phase, `goal ${goal}'s latch in its celebration; ${where(at)}`).toBe(CELEBRATION);
-    await page.keyboard.press('Escape');
-    const open = await this.until((i) => i.menu === 'menu' && i.match?.paused === true, { what: `the menu by Escape at goal ${goal}`, timeoutMs: SHOWN_MS });
-    expect(await focused(page), "Resume first in Practice's menu (Q-17)").toBe('resume');
-    const seen: Measure['menus'][number] = { goal, phase: at.match!.phase, tick: null, drawMs: null };
-    this.measure.menus.push(seen);
+    await this.menuBy('escape', close, `goal ${goal}`, goal);
+  }
+
+  /**
+   * The menu opened on the pitch by Escape or the pad's Back, paused, Resume focused (Q-17, §4.4, §4.9);
+   * then closed: by Enter on Resume, after the clock is checked still over 30 ticks' worth of time, by the
+   * pad's Start on Resume, or by Escape or the pad's Back again; either way the clock runs on after. The
+   * still check starts once a frame has been drawn under the menu: the drawing clock notices a pause at its
+   * next frame or timer run (src/render/view.ts' observe), so a look before then reads it from before the
+   * pause. A goal's menu goes into the line's menus.
+   */
+  async menuBy(open: 'escape' | 'back', close: 'resume' | 'start' | 'escape' | 'back', what: string, goal: number | null = null): Promise<void> {
+    const page = this.page;
+    const at = this.last!;
+    if (open === 'escape') await page.keyboard.press('Escape');
+    else await this.pad(PAD.back, `the pad's Back opening the menu, ${what}`);
+    const opened = await this.until((i) => i.menu === 'menu' && i.match?.paused === true, { what: `the menu by ${open === 'escape' ? 'Escape' : "the pad's Back"}, ${what}`, timeoutMs: SHOWN_MS });
+    expect(await focused(page), `Resume first in Practice's menu (Q-17), ${what}`).toBe('resume');
+    const seen: Measure['menus'][number] | null = goal === null ? null : { goal, phase: at.match!.phase, tick: null, drawMs: null };
+    if (seen !== null) this.measure.menus.push(seen);
     if (close === 'resume') {
-      const base = await this.until((i) => i.render.frames > open.render.frames, { what: `a frame drawn under the menu at goal ${goal}`, timeoutMs: SHOWN_MS });
+      const base = await this.until((i) => i.render.frames > opened.render.frames, { what: `a frame drawn under the menu, ${what}`, timeoutMs: SHOWN_MS });
       await page.waitForTimeout((STILL_TICKS * 1000) / config.ticksPerSecond);
       const still = await this.poll();
-      seen.tick = [open.match!.localTick, base.match!.localTick, still.match!.localTick];
-      seen.drawMs = [open.view!.drawMs, base.view!.drawMs, still.view!.drawMs];
-      expect({ tick: [seen.tick[0], seen.tick[2]], drawMs: seen.drawMs[2] }, `the local tick and the drawing clock over ${STILL_TICKS} ticks' worth of the menu (Q-15)`)
-        .toEqual({ tick: [seen.tick[1], seen.tick[1]], drawMs: seen.drawMs[1] });
+      const tick = [opened.match!.localTick, base.match!.localTick, still.match!.localTick] as [number, number, number];
+      const drawMs = [opened.view!.drawMs, base.view!.drawMs, still.view!.drawMs] as [number, number, number];
+      if (seen !== null) {
+        seen.tick = tick;
+        seen.drawMs = drawMs;
+      }
+      expect({ tick: [tick[0], tick[2]], drawMs: drawMs[2] }, `the local tick and the drawing clock over ${STILL_TICKS} ticks' worth of the menu (Q-15), ${what}`)
+        .toEqual({ tick: [tick[1], tick[1]], drawMs: drawMs[1] });
       expect(still.menu).toBe('menu');
       await page.keyboard.press('Enter');
-    } else {
+    } else if (close === 'start') {
+      await this.pad(PAD.start, `the pad's Start on Resume, ${what}`);
+    } else if (close === 'escape') {
       await page.keyboard.press('Escape');
+    } else {
+      await this.pad(PAD.back, `the pad's Back closing the menu, ${what}`);
     }
-    const closed = await this.until((i) => i.menu === 'closed' && i.match?.paused === false, { what: `the menu closed at goal ${goal}`, timeoutMs: SHOWN_MS });
-    await this.until((i) => (i.match?.localTick ?? 0) > closed.match!.localTick, { what: `the clock running on after the menu at goal ${goal}`, timeoutMs: SHOWN_MS });
+    const closed = await this.until((i) => i.menu === 'closed' && i.match?.paused === false, { what: `the menu closed, ${what}`, timeoutMs: SHOWN_MS });
+    await this.until((i) => (i.match?.localTick ?? 0) > closed.match!.localTick, { what: `the clock running on after the menu, ${what}`, timeoutMs: SHOWN_MS });
+  }
+
+  /** One press of a pad button (e2e/lib/gamepad.ts' press): held until the page's pad counts it, then let go
+   *  and a poll seen after, timed into the line's waits under `what`. */
+  async pad(button: number, what: string): Promise<void> {
+    const began = now();
+    await press(this.page, button, SHOWN_MS);
+    const waits = this.measure.waits;
+    waits[what] = Math.max(waits[what] ?? 0, Math.round(now() - began));
+  }
+
+  /**
+   * The control hints as the player sees them (§4.7, L83, M4-Q28): looks until the hook's panel shows
+   * `kind` listing `lines`, the controls it has left in the panel's order, or no panel for null; then the
+   * page must draw the same, one panel, its heading the kind's, its lines those, inside the window.
+   */
+  async hints(kind: InputKind | null, lines: readonly Control[], what: string): Promise<Inspection> {
+    const want = kind === null ? [] : lines;
+    const i = await this.until((x) => {
+      const h = hintsOf(x);
+      return h !== null && h.shown === kind && h.lines.length === want.length && h.lines.every((c, k) => c === want[k]);
+    }, { what: `the hints, ${what}`, timeoutMs: SHOWN_MS });
+    const drawn = await hintsSeen(this.page);
+    expect(drawn, `the hints as drawn, ${what}`).toEqual(kind === null ? [] : [{ title: HINT_TITLES[kind], lines: want, inView: true }]);
+    return i;
   }
 
   /**
@@ -806,5 +974,6 @@ export class PracticeRun {
     this.measure.goals = m?.goals.map((g) => g.tick) ?? [];
     this.measure.score = m?.score ?? null;
     this.measure.end = m?.end?.tick ?? null;
+    this.measure.decided = last?.audio?.decided ?? null;
   }
 }

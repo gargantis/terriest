@@ -5,10 +5,17 @@
 // from the player's ball view, at the gate's 640 × 360 and stored low
 // quality, as every spec that plays draws (C-6, D-33); the quality test
 // sets both through Home's Settings, a player's real choice (M4-Q4), each
-// screen opening at its top, and changes it twenty times more, every stage
-// gone giving its context back. Two tests, one load each (§9.9). Nothing
-// here depends on the frame rate: the rate is measured and reported, with
-// the GL path, never judged.
+// screen opening at its top, and changes it twenty times more, the page's
+// WebGL contexts counted as it goes: a stage made at a change's first ask
+// and the other kept while Home and Settings show, so twenty changes make
+// one and the page never holds more than two, the unused one giving its
+// context back once Practice opens (§2.8, phase 2b). Two tests, one load
+// each (§9.9). Nothing here depends on the frame rate: the rate is measured
+// and reported, with the GL path, never judged. What's drawn is read off a
+// capture taken at a steady drawing buffer: WebKit's capture of a WebGL
+// canvas reads black just after the buffer is reallocated, as a resize or a
+// step of the governor's scale reallocates it (§8.2), which phase 2b's Wire
+// step saw once in the gate and measured off it.
 
 import type { Page } from '@playwright/test';
 import { personId } from '../src/core/bot/bot-id';
@@ -49,6 +56,43 @@ function focusInView(page: Page): Promise<{ what: string; inView: boolean }> {
   });
 }
 
+/** The WebGL contexts the page makes, counted before its scripts run: each context getContext hands back,
+ *  once, and how many of them aren't lost, so a spec reads how many stages the page holds (§2.8). It only
+ *  watches; Playwright sends its source, so it reads nothing from outside itself. */
+function countContexts(): void {
+  const made: { isContextLost(): boolean }[] = [];
+  const get = HTMLCanvasElement.prototype.getContext as (this: HTMLCanvasElement, ...a: unknown[]) => RenderingContext | null;
+  HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: unknown, ...rest: unknown[]) {
+    const c = get.call(this, kind, ...rest);
+    if (c !== null && (kind === 'webgl2' || kind === 'webgl') && !made.includes(c as WebGL2RenderingContext)) made.push(c as WebGL2RenderingContext);
+    return c;
+  } as typeof HTMLCanvasElement.prototype.getContext;
+  Object.defineProperty(window, 'terriestContexts', {
+    value: () => ({ made: made.length, alive: made.filter((c) => !c.isContextLost()).length }),
+  });
+}
+
+/** The page's WebGL contexts so far: made, and alive, not lost. */
+function contexts(page: Page): Promise<{ made: number; alive: number }> {
+  return page.evaluate(() => (window as unknown as { terriestContexts: () => { made: number; alive: number } }).terriestContexts());
+}
+
+/** The page captured, and the inspection read just before, at a steady drawing buffer: after a frame drawn at
+ *  the size first read, and again if the size changed across the capture, since WebKit's capture just after a
+ *  reallocation, by a resize or the governor's step (§8.2), reads the canvas black (phase 2b's Wire step, at 4
+ *  a side: 14 of 30 captures at once after a resize read black, none of 30 taken this way). */
+async function steadyCapture(page: Page): Promise<{ readonly image: Image; readonly shown: Inspection }> {
+  const size = (i: Inspection): string => `${i.render.width}×${i.render.height}`;
+  for (let k = 1; ; k++) {
+    const before = await inspect(page);
+    const shown = await waitForInspection(page, (i) => i.render.frames > before.render.frames, { what: 'a frame drawn before the capture' });
+    const png = await page.screenshot();
+    const after = await inspect(page);
+    if (size(before) === size(shown) && size(shown) === size(after)) return { image: decodePng(png), shown };
+    if (k === 5) throw new Error(`the drawing buffer changed size across ${k} captures, the last ${size(before)}, ${size(shown)}, ${size(after)}`);
+  }
+}
+
 /** The drawing buffer by §9.1's rule: the CSS size times min(devicePixelRatio, cap) times the governor's scale. */
 async function expectFilled(page: Page, r: Inspection['render'], width: number, height: number): Promise<void> {
   const dpr = await page.evaluate(() => devicePixelRatio);
@@ -80,8 +124,7 @@ test("Practice's Pre-match draws the pitch from the player's ball view, fills th
   // What it drew, from behind the player in pack A, which defends −x: its own half near, tinted blue,
   // and pack B's far, tinted orange (L68), each read off the medians of a row on the left, clear of
   // Pre-match's panel on the right and the gauges at the bottom.
-  const shown = await inspect(page);
-  const image = decodePng(await page.screenshot());
+  const { image, shown } = await steadyCapture(page);
   const xs = [0.2, 0.25, 0.3, 0.35, 0.4];
   const near = median(image, 0.68, xs);
   const far = median(image, 0.505, xs);
@@ -125,7 +168,7 @@ test("Practice's Pre-match draws the pitch from the player's ball view, fills th
   console.log(`The pitch's frame rate, ${line}`);
   testInfo.annotations.push({ type: 'frame rate', description: line });
   const frames = await inspect(page);
-  console.log(`${browserName}: the frame loop's fallback acted ${frames.frames.actions} times (§1.47)`);
+  console.log(`${browserName}: the governor acted ${frames.frames.actions} times (§1.47, §8.2)`);
 
   // The canvas fills the window, and redraws at a new size, by the scale rule (§9.1).
   for (const [width, height] of [[480, 800], [1600, 500]] as const) {
@@ -147,20 +190,31 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
     page.on('console', (m) => {
       if (/too many active webgl contexts/i.test(m.text())) tooMany.push(m.text());
     });
+    await page.addInitScript(countContexts);
     await page.goto('./');
     await expectStarted(page);
+    /** The page's contexts, made and alive, once they're as expected: a context given back is lost at once,
+     *  but the read polls, never on animation frames (C-6). */
+    const held = async (made: number, alive: number, what: string): Promise<void> => {
+      await expect.poll(() => contexts(page), { message: `the page's WebGL contexts ${what}` }).toEqual({ made, alive });
+    };
+    await waitForScreen(page, 'home');
+    await held(1, 1, 'on Home');
     /** Practice's Pre-match at this quality, read, then Leave to Home. */
     const read = async (what: string): Promise<Inspection['render']> => {
       await openPractice(page, { packSize: 1, minutes: 1 });
       const r = (await drawing(page)).render;
       await expectFilled(page, r, smallViewport.width, smallViewport.height);
+      // Leave once Ready can act: joining the final roster relabels Ready and Switch pack, which moves Leave
+      // up a row, so a click across that change would miss it.
+      await expect(page.locator('[data-test="ready"]'), 'Ready, the person in the final roster').toHaveText('Ready');
       await page.locator('[data-test="prematch-leave"]').click();
       await waitForScreen(page, 'home');
       expect(r.quality, what).toBe(r.cap === 2 ? 'high' : 'low');
       return r;
     };
-    /** Home's Settings, the quality chosen, and Back: the stage re-created behind Home (§2.8). The click scrolls
-     *  Home down to its Settings at 640 × 360, and each screen still opens at its top, its heading in view. */
+    /** Home's Settings, the quality chosen, and Back: a stage at it behind Home (§2.8). The click scrolls Home
+     *  down to its Settings at 640 × 360, and each screen still opens at its top, its heading in view. */
     const choose = async (quality: 'high' | 'low'): Promise<void> => {
       await page.locator('[data-test="settings"]').click();
       await waitForScreen(page, 'settings');
@@ -175,28 +229,39 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
     const byDefault = await read('no setting');
     expect([byDefault.quality, byDefault.cap, byDefault.pixelRatio]).toEqual(['high', 2, 2]);
     expect(byDefault.samples).toBeGreaterThan(0);
+    await held(1, 1, 'after a Practice');
+    // The first change makes a stage at low, the high one kept while Home and Settings show; Practice's
+    // opening gives the unused one's context back.
     await choose('low');
+    await held(2, 2, 'with low chosen on Home: the high stage kept');
     const low = await read('low');
+    await held(2, 1, "with low's Practice opened: the high stage given back");
     expect([low.cap, low.pixelRatio, low.samples]).toEqual([1, 1, 0]);
     // Low draws the nets with fewer ropes.
     expect(low.lines).toBeLessThan(byDefault.lines);
     await choose('high');
+    await held(3, 2, 'with high chosen on Home: the low stage kept');
     const high = await read('high');
+    await held(3, 1, "with high's Practice opened: the low stage given back");
     expect([high.cap, high.pixelRatio]).toEqual([2, 2]);
     expect(high.samples).toBeGreaterThan(0);
     expect(low.lines).toBeLessThan(high.lines);
 
-    // A player changing their mind: twenty changes in a row on Settings, each re-creating the stage, every
-    // stage gone giving its context back, so the page never holds more than the browser keeps (§2.8).
+    // A player changing their mind: twenty changes in a row on Settings, the first making a stage at low and
+    // each after it swapping to the other kept, so the page never holds more than two, and never more than
+    // the browser keeps (§2.8).
     await page.locator('[data-test="settings"]').click();
     await waitForScreen(page, 'settings');
     for (let k = 0; k < 20; k++) {
       const quality = k % 2 === 0 ? 'low' : 'high';
       await page.locator(`[data-test="quality-${quality}"]`).check();
       await waitForInspection(page, (i) => i.render.quality === quality, { what: `change ${k + 1}, to ${quality}` });
+      const c = await contexts(page);
+      expect(c.alive, `the page's live WebGL contexts at change ${k + 1}`).toBeLessThanOrEqual(2);
     }
     await page.locator('[data-test="back"]').click();
     await waitForInspection(page, (i) => i.screen === 'home' && i.render.prepared, { what: 'the last stage, prepared behind Home' });
+    await held(4, 2, 'after twenty changes: one stage made for them, two kept');
     expect(tooMany, 'contexts kept past the browser\'s cap').toEqual([]);
   });
 });

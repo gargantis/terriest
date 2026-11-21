@@ -2,10 +2,11 @@
 // Q-15, D-22; L158, L164): the pack size and the match length, from the
 // configuration's ranges and defaults, then Start, which goes to Pre-match
 // with Practice's match made, or Back, Home. Native controls, so the
-// browser's own keys work them; the gamepad's d-pad moves between Start and
-// Back and its Start presses, as on Propose, so a pad player who comes here
-// from Home's nav isn't left needing a mouse (L82, §4.4); the two choices
-// stay at their defaults for a pad alone. New at M4.
+// browser's own keys work them; the gamepad's d-pad moves among the two
+// choices, Start and Back, its left and right step a focused choice an
+// option at a time, and its Start presses a button, as on Propose, so a pad
+// player who comes here from Home's nav needs no mouse (L82, §4.4, §4.9's
+// pad parts, extended in phase 2b). New at M4.
 
 import { config } from '../../config';
 import type { MatchSettings } from '../../core/sim/index';
@@ -47,7 +48,7 @@ export function practiceScreen(host: PracticeHost): Screen {
     onclick: () => host.start({ packSize: Number(size.value), matchMinutes: Number(minutes.value) }),
   }, 'Start');
   const back = h('button', { type: 'button', class: 'secondary', 'data-test': 'back', onclick: () => host.home() }, 'Back');
-  const nav = new ButtonNav(() => [go, back]);
+  const nav = new ButtonNav(() => [size, minutes, go, back]);
   const el = h('section', { class: 'screen practice' },
     h('h1', {}, 'Practice'),
     h('p', { class: 'muted' }, 'A match against bots in this browser, contacting no one: you play in the first pack, and bots take every other place.'),
