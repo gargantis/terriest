@@ -448,6 +448,28 @@ describe("the counts' overlays: drawing now, and shown since the drawer was made
     d.dispose();
   });
 
+  it("counts a bark and a celebration again at a start it counted before after a frame has handed that terrier none, as the stage's next match, its ticks from 0 again, can start one; and a showing the pose hides a while once", () => {
+    const d = createCodeDrawer(PLACEHOLDER_LOOK, CAPACITY);
+    const bark = { start: 18, weight: 1 };
+    const cheer = { start: 900, weight: 1 };
+    // One match: the bark over three frames, the celebration over two; then frames of neither.
+    for (const time of [18.4, 19, 20]) d.draw(drawerFrame([frame({ bark })], time));
+    for (const time of [900.5, 901]) d.draw(drawerFrame([frame({ celebrate: cheer })], time));
+    d.draw(drawerFrame([frame()], 1000));
+    expect(d.counts().overlaysShown).toMatchObject({ barking: 1, celebrating: 1 });
+    // The next match on the stage, from its own tick 0: the same terrier's bark and celebration at the same starts.
+    for (const time of [0, 10]) d.draw(drawerFrame([frame()], time));
+    for (const time of [18.6, 19.5]) d.draw(drawerFrame([frame({ bark })], time));
+    d.draw(drawerFrame([frame({ celebrate: cheer })], 900.2));
+    expect(d.counts().overlaysShown).toMatchObject({ barking: 2, celebrating: 2 });
+    // Still handed while a tumble hides it, then shown again: the same showing.
+    d.draw(drawerFrame([frame({ celebrate: cheer, layers: [{ anim: TUMBLED, start: 900, weight: 1 }] })], 901));
+    expect(d.counts().overlays.celebrating).toBe(0);
+    d.draw(drawerFrame([frame({ celebrate: cheer })], 902));
+    expect(d.counts().overlaysShown).toMatchObject({ barking: 2, celebrating: 2 });
+    d.dispose();
+  });
+
   it('counts a celebration only where the pose shows it, over standing or running', () => {
     const d = createCodeDrawer(PLACEHOLDER_LOOK, CAPACITY);
     const cheer = { start: TIME - 10, weight: 1 };

@@ -221,9 +221,10 @@ test.describe('the control layer', () => {
         await f.lift(slide);
         await run.until((i) => touchOf(i)?.held.length === 0, { what: 'jump let go as the slid thumb lifts', timeoutMs: SHOWN_MS });
 
-        // Bark and view by taps: the bark's mark and the drawer's bark; chase view, the sixth control, the
-        // panel gone; then ball view again.
-        await taps(run, f, 'touch-bark', (i, b) => i.announcements!.barksShown > b.announcements!.barksShown
+        // Bark and view by taps: the bark acted, so a bot's bark never passes for a lost one, its mark and the
+        // drawer's bark; chase view, the sixth control, the panel gone; then ball view again.
+        await taps(run, f, 'touch-bark', (i, b) => i.controls!.presses.bark > b.controls!.presses.bark
+          && i.announcements!.barksShown > b.announcements!.barksShown
           && i.render.drawer!.overlaysShown.barking > b.render.drawer!.overlaysShown.barking, "the bark button: its mark and the drawer's bark");
         await run.hints('touch', ['view'], 'once the bark button barked');
         await taps(run, f, 'touch-view', (i) => i.render.camera.view === 'chase', 'the view button: chase view');

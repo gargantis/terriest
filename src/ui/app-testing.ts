@@ -1,9 +1,10 @@
 // Test support for the app (M4's design, research/m4/DESIGN.md, §1.41,
 // §5.1, §5.2, §9.2's app row): an App on the screens' DOM fake, its timers
 // and matches in virtual time, with a fake for each part the page would
-// hand it: a stage that records its prepares, animation frames the test
-// runs, a keyboard-like device, the fragment as a page's (its hashchange a
-// task after the change), the leave guard, or the App's own on a window the
+// hand it: a stage that records its prepares, drawing with a real terrier
+// drawer if the test gives one, animation frames the test runs, a
+// keyboard-like device, the fragment as a page's (its hashchange a task
+// after the change), the leave guard, or the App's own on a window the
 // test gives, one browser's Web Locks for its tabs, the canary,
 // results-hud's message screens by their shape, every code of §5.10's
 // table among them, the real screen wake lock over a browser that refuses
@@ -13,10 +14,14 @@
 // bundles it. New at M4, by phase 2's net-screens; the refusals by 2d's
 // net-int.
 
+import { config } from '../config';
 import { personId } from '../core/bot/bot-id';
 import { TEST_BUILD } from '../core/timeline/testing';
 import type { Device, DeviceState } from '../input/source';
 import type { TransportOptions } from '../net/transport';
+import type { DrawerFactory, DrawerFrame, TerrierDrawer } from '../render/drawer';
+import type { FrameOut, StageFrame } from '../render/frame';
+import { PLACEHOLDER_LOOK } from '../render/look';
 import type { RenderInfo } from '../render/stage-types';
 import { MemoryStorage } from '../storage/kv';
 import { ProfileStore } from '../storage/profile';
@@ -38,19 +43,27 @@ import { FakeStage } from './pitch-testing';
 /** The rigs' player: seed 7's first, as the specs' profiles are seeded (§9.1). */
 export const ME = personId(7, 0);
 
+/** The stage's drawer input when it draws no match (src/render/scene.ts's NO_TERRIERS). */
+const NO_TERRIERS: DrawerFrame = { time: 0, tick: 0, fraction: 0, terriers: [] };
+
 /** A stage that records its prepare and disposal, with a canvas and the figures the hook reads, the
- *  governor's scale among them (§8.2). */
+ *  governor's scale among them (§8.2), and its terrier drawer's counts if it has one. */
 export class RecordingStage extends FakeStage {
   override readonly canvas: HTMLCanvasElement;
   prepares = 0;
   disposed = false;
   scale = 1;
   readonly quality: 'high' | 'low';
+  /** A real terrier drawer, for a test that reads its counts: each frame's drawer input drawn, as the
+   *  stage's own draw hands it (src/render/scene.ts), and its counts the hook's render.drawer; disposed
+   *  with the stage. */
+  readonly drawer: TerrierDrawer | null;
 
-  constructor(doc: FakeDocument, calls: string[], quality: 'high' | 'low') {
+  constructor(doc: FakeDocument, calls: string[], quality: 'high' | 'low', drawer: TerrierDrawer | null = null) {
     super(calls);
     this.canvas = doc.createElement('canvas') as unknown as HTMLCanvasElement;
     this.quality = quality;
+    this.drawer = drawer;
   }
 
   override prepare(): Promise<void> {
@@ -58,8 +71,15 @@ export class RecordingStage extends FakeStage {
     return super.prepare();
   }
 
+  override draw(frame: StageFrame | null): FrameOut {
+    this.drawer?.draw(frame !== null && frame.match !== null ? (frame.drawer ?? NO_TERRIERS) : NO_TERRIERS);
+    return super.draw(frame);
+  }
+
   override info(): RenderInfo {
-    return { quality: this.quality, frames: this.drawn.length, lost: this.lost, scale: this.scale } as RenderInfo;
+    return {
+      quality: this.quality, frames: this.drawn.length, lost: this.lost, scale: this.scale, ...(this.drawer === null ? {} : { drawer: this.drawer.counts() }),
+    } as RenderInfo;
   }
 
   override setScale(scale: number): void {
@@ -68,6 +88,7 @@ export class RecordingStage extends FakeStage {
 
   override dispose(): void {
     this.disposed = true;
+    this.drawer?.dispose();
   }
 }
 
@@ -98,19 +119,22 @@ export class Frames implements AnimationFrames {
   }
 }
 
-/** A device the test presses, as a keyboard would: a direction held, screen-relative, and a pounce. */
+/** A device the test presses, as a keyboard would: a direction held, screen-relative, a pounce and a bark. */
 export class Pad implements Device {
   readonly kind = 'keyboard' as const;
   direction: number | null = null;
   pounce = false;
+  bark = false;
   read(): DeviceState {
-    const s: DeviceState = { direction: this.direction, stickStep: null, zoomies: false, jump: false, pounce: this.pounce, bark: false, view: false, changedAtMs: null };
+    const s: DeviceState = { direction: this.direction, stickStep: null, zoomies: false, jump: false, pounce: this.pounce, bark: this.bark, view: false, changedAtMs: null };
     this.pounce = false;
+    this.bark = false;
     return s;
   }
   release(): void {
     this.direction = null;
     this.pounce = false;
+    this.bark = false;
   }
   dispose(): void {}
 }
@@ -276,6 +300,9 @@ export interface AppRigOptions {
   /** The App installs its own leave guard, on the global window the test has set, as a page's does
    *  (installLeaveGuard); the rig's guard is then left unused. */
   readonly realGuard?: boolean;
+  /** Each stage's terrier drawer, made with it for the page's look and capacity, as the real stage makes one
+   *  for its life (src/render/scene.ts); none by default. */
+  readonly drawer?: DrawerFactory;
 }
 
 /** An App in the document `doc`, with every fake, its landmark hidden until boot says started. */
@@ -287,7 +314,7 @@ export function appRig(o: AppRigOptions): AppRig {
   const frames = new Frames();
   const stages: RecordingStage[] = [];
   const makeStage = (q: 'high' | 'low'): RecordingStage => {
-    const s = new RecordingStage(o.doc, calls, q);
+    const s = new RecordingStage(o.doc, calls, q, o.drawer?.(PLACEHOLDER_LOOK, 2 * config.packSizeMax) ?? null);
     stages.push(s);
     return s;
   };

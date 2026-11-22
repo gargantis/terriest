@@ -304,9 +304,11 @@ async function dpad(run: PracticeRun, button: number, stops: readonly string[], 
   }
 }
 
-/** A bark sent and shown: its mark counted and the drawer's bark begun (§9.1's latched). */
+/** Your bark sent and shown: the press acted, so a bot's bark never passes for a lost one, its mark counted and
+ *  the drawer's bark begun (§9.1's latched). */
 const barked = (i: Inspection, b: Inspection): boolean =>
-  i.announcements!.barksShown > b.announcements!.barksShown && i.render.drawer!.overlaysShown.barking > b.render.drawer!.overlaysShown.barking;
+  i.controls!.presses.bark > b.controls!.presses.bark
+  && i.announcements!.barksShown > b.announcements!.barksShown && i.render.drawer!.overlaysShown.barking > b.render.drawer!.overlaysShown.barking;
 
 /** Leave from Pre-match, two along from Ready by the arrows (Q-17), and Enter: Home. */
 async function leave(run: PracticeRun, what: string): Promise<void> {

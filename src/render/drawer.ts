@@ -72,7 +72,9 @@ export interface DrawerCounts {
   readonly coatsPainted: readonly number[]; readonly packsPainted: readonly number[];
   /** Drawing now. */
   readonly overlays: { readonly barking: number; readonly celebrating: number; readonly pushing: number };
-  /** Since the drawer was made, each counted once as it starts. */
+  /** Since the drawer was made, each counted once as it starts showing: a bark or a celebration again at a start
+   *  counted before after a frame has handed its terrier none, as the stage's next match, its ticks from 0 again,
+   *  can start one. */
   readonly overlaysShown: { readonly barking: number; readonly celebrating: number; readonly pushing: number };
 }
 

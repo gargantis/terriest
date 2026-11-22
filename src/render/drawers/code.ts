@@ -23,7 +23,10 @@
 // coats and packs painted in the frame drawn last, as the spike's were, so
 // prepare()'s frame of placeholders leaves nothing behind it; the overlays
 // drawing now; and the overlays shown since it was made, each bark and
-// celebration counted once by its start, each push once as it begins.
+// celebration counted once as it starts showing, its start forgotten when
+// a frame hands its terrier none, since the drawer outlives each match on
+// its stage and the next one's ticks count from 0 again; each push once as
+// it begins.
 //
 // A port of the M0 spike's research/spike/src/scene/code-drawer.ts
 // (terrierGeometries, triangleCount, the parts, their painting and counts),
@@ -175,7 +178,8 @@ function coatIndex(look: Look, index: number): number {
 
 type Shown = { barking: number; celebrating: number; pushing: number };
 
-/** Each terrier's latest bark and celebration counted, by its start, and whether it was pushing in the last frame. */
+/** Each terrier's bark and celebration counted as it shows, by its start, null when a frame hands it none; and
+ *  whether it was pushing in the last frame. */
 interface Seen {
   bark: number | null;
   celebrate: number | null;
@@ -323,6 +327,10 @@ class CodeDrawer implements TerrierDrawer {
       seen = { bark: null, celebrate: null, pushing: false };
       this.seen.set(id, seen);
     }
+    // A frame that hands the terrier none has ended its last: the drawer outlives each match on its stage,
+    // whose ticks count from 0 again, so the same terrier's next one may start at the same tick.
+    if (barkStart === null) seen.bark = null;
+    if (celebrateStart === null) seen.celebrate = null;
     if (w.bark > 0) {
       now.barking++;
       if (barkStart !== seen.bark) this.shown.barking++;
