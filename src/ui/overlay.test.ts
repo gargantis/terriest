@@ -123,7 +123,9 @@ describe('the overlay layer', () => {
     expect(mine.hidden).toBe(false);
     expect(mine.style['transform']).toBe('translate(100.0px, 166.0px)');
     expect(only(el, '.overlay-arrow').hidden).toBe(true);
-    expect(layer.inspect!()).toEqual({ mine: { shown: true, x: 100, y: 200 }, names: [], barks: [], away: [], arrow: { shown: false, angle: 0 } } satisfies OverlayInspection);
+    expect(layer.inspect!()).toEqual({
+      mine: { shown: true, x: 100, y: 200 }, names: [], barks: [], away: [], arrow: { shown: false, angle: 0 }, ball: { x: 320, y: 180, inView: true },
+    } satisfies OverlayInspection);
     layer.frame!(ctx([], out({ x: 320, y: 180, inView: true, angle: 0 }, false, true)));
     expect(mine.hidden).toBe(true);
   });

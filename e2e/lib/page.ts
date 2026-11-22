@@ -6,9 +6,11 @@
 // waiting for the app to start, and for a screen; Practice opened through
 // the real screens; a key held and let go by the hook's state, polled every
 // 50 ms, never on animation frames (C-6); the leave prompt accepted; a boot
-// failure's message, checked with axe; and the built page answered from
-// dist/ by request interception, at an address no server here answers: an
-// insecure host, or a subpath of the preview's origin (§16). Every wait's
+// failure's message, checked with axe; the page captured at a steady
+// drawing buffer, with the inspection read just before; and the built page
+// answered from dist/ by request interception, at an address no server here
+// answers: an insecure host, or a subpath of the preview's origin (§16).
+// Every wait's
 // deadline goes by the monotonic clock: the machine's, Date.now(), can step
 // a second ahead (phase 1c's measurements), which would end a wait early.
 
@@ -24,6 +26,7 @@ import type { HudInspection, OverlayInspection, ScreenName } from '../../src/ui/
 import type { HintsInspection } from '../../src/ui/layers/devices';
 import type { TurnInspection } from '../../src/ui/phone';
 import { expect } from './guards';
+import { decodePng, type Image } from './png';
 import { DIST, headersFor, parseHeadersFile } from './serve.mjs';
 
 /** The boot failures' codes (D-30): file://, insecure context, no WebGL 2, the load timeout. */
@@ -147,6 +150,30 @@ export async function openPractice(page: Page, o: { packSize: number; minutes: n
   await page.locator('[data-test="start"]').focus();
   await page.keyboard.press('Enter');
   return waitForScreen(page, 'prematch');
+}
+
+/** The page captured, and the inspection read just before, at a steady drawing buffer: after a frame drawn at
+ *  the size first read, and again if the size changed across the capture, since WebKit's capture just after a
+ *  reallocation, by a resize or the governor's step (§8.2), reads the canvas black (phase 2b's Wire step, at 4
+ *  a side: 14 of 30 captures at once after a resize read black, none of 30 taken this way). With `still`, again
+ *  too until it holds of the inspections read before and after the capture, so the capture shows what the
+ *  inspection reports: a spec's terrier and camera at rest (C-57). */
+export async function steadyCapture(
+  page: Page, still: (before: Inspection, after: Inspection) => boolean = () => true,
+): Promise<{ readonly image: Image; readonly shown: Inspection }> {
+  const size = (i: Inspection): string => `${i.render.width}×${i.render.height}`;
+  for (let k = 1; ; k++) {
+    const before = await inspect(page);
+    const shown = await waitForInspection(page, (i) => i.render.frames > before.render.frames, { what: 'a frame drawn before the capture' });
+    const png = await page.screenshot();
+    const after = await inspect(page);
+    const steady = size(before) === size(shown) && size(shown) === size(after);
+    if (steady && still(before, after)) return { image: decodePng(png), shown };
+    if (k === 5) {
+      const why = steady ? 'what it shows moved across the last' : `the drawing buffer changed size across the last, ${size(before)}, ${size(shown)}, ${size(after)}`;
+      throw new Error(`no steady capture in ${k}: ${why}`);
+    }
+  }
 }
 
 /** Every dialog accepted, the leave prompt among them (§5.11): a spec that reloads or leaves a match. */

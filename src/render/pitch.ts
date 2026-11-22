@@ -18,14 +18,17 @@
 // calls: the floor, its lines, the ground, the rail, the glass's inner
 // draw, the goal frames, the overhead net and the goals' netting; and a
 // ninth, the glass's outer draw, only while the camera is outside some
-// pane's plane. The goal frames and the overhead net are occluders (D-28,
+// wall's plane. The goal frames and the overhead net are occluders (D-28,
 // L89, §2.6): each material is made in two variants by src/render/fade.ts,
 // with an object holding the other variant for prepare()'s compile, and
 // setFade() puts each part on the variant it needs, the dithered one only
 // in a frame one of its pieces crosses the fade's capsule. The glass, the
 // frames and the netting fade round the capsule's line by their alpha too
-// (fade.ts's line fade), which setFade() updates. Phase 3's effects builder
-// adds the netting's bulge (setBulge) and fills the fade. Metres, z up.
+// (fade.ts's line fade), which setFade() updates; and setFade() decides,
+// from the camera's place, which panes each of the glass's draws keeps and
+// how much of each netting face shows, which their shaders read, and
+// reports both (C-57). Phase 3's effects builder adds the netting's bulge
+// (setBulge) and fills the fade. Metres, z up.
 
 import {
   Box3, BufferAttribute, type BufferGeometry, CapsuleGeometry, DataTexture, Group, LineBasicMaterial, LineSegments,
@@ -35,11 +38,11 @@ import {
 import { FRAME, GOAL_NET, NET, type Pack, type Piece, type Pitch, type Point } from '../core/sim/pitch';
 import { crossesFade, type Faded, fadeVariants, lineFadeUniforms, updateLineFade } from './fade';
 import type { Bulge } from './frame';
-import { glassGeometry, glassMaterial, outerDrawn, railGeometry, wallPlanes } from './glass';
-import { goalFrameMaterial, goalNettingMaterial } from './goal-fade';
+import { glassGeometry, glassMaterial, outerDrawn, railGeometry, wallPlanes, wallSides, wallSidesUniform } from './glass';
+import { facesShown, facesShownUniform, goalFrameMaterial, goalNettingMaterial, nettingFaces } from './goal-fade';
 import { groundGeometry, groundMaterial } from './ground';
 import type { Look } from './look';
-import { along, edge1, edge2, Lines, mix, offsetOf, origin, shade, Triangles, type V, WHITE } from './shapes';
+import { along, edge1, edge2, Lines, mix, origin, shade, Triangles, type V, WHITE } from './shapes';
 
 export interface PitchDetail {
   readonly ropeSpacingMetres: number;
@@ -52,11 +55,17 @@ export interface DrawnPitch {
   /** One object for each occluder's other variant, hidden but for prepare()'s compile (M4's design §2.1). */
   readonly variants: readonly Object3D[];
   /** Each frame, after fade.ts's setFade, with the placed camera's position, whichever camera it is, the
-   *  overview's included: each occluder on the variant it needs, the line fade from the capsule, and the glass's
-   *  outer draw only while the camera is outside some pane's plane. */
+   *  overview's included: each occluder on the variant it needs, the line fade from the capsule, the panes each of
+   *  the glass's draws keeps, the outer draw only while the camera is outside some wall's plane, and how much of
+   *  each netting face shows. */
   setFade(camera: Readonly<Vector3>): void;
-  /** Whether the glass's outer draw draws, as the last setFade decided. */
-  readonly outerGlass: boolean;
+  /** The glass as the last setFade decided it (C-57): outer, whether its outer draw draws; outside, the walls whose
+   *  plane the camera is outside of, by the simulation's names, whose panes the outer draw keeps and the inner
+   *  draw drops. */
+  readonly glass: { readonly outer: boolean; readonly outside: readonly string[] };
+  /** The goals' netting as the last setFade decided it (C-57): each face drawn less than whole, by the simulation's
+   *  name, with how much of it shows, 0 for none. */
+  readonly netting: readonly { readonly name: string; readonly shown: number }[];
   /** A goal's netting bulging round the ball (§2.6): phase 3's; nothing until then. */
   setBulge(b: Bulge | null): void;
   dispose(): void;
@@ -282,11 +291,12 @@ function overheadNet(p: Pitch, detail: PitchDetail, look: Look): BufferGeometry 
   return t.geometry();
 }
 
-/** Each goal's back, side and top netting, as lines tinted by its pack, each vertex with its face's plane, its
- *  normal into the goal and its offset, by which goal-fade.ts's shader drops a face from behind its goal line. */
+/** Each goal's back, side and top netting, as lines tinted by its pack, each vertex with its face's index in
+ *  goal-fade.ts's nettingFaces order, by which the netting's shader reads how much of the face shows. */
 function goalNetting(p: Pitch, detail: PitchDetail, look: Look): BufferGeometry {
   const t = new Lines();
   const face: number[] = [];
+  const faces = nettingFaces(p).map((f) => f.name);
   for (const goal of p.goals) {
     const hex = mix(look.pitch.netting, look.packs[goal.pack].colour, NETTING_TINT);
     for (const k of goal.pieces) {
@@ -300,11 +310,12 @@ function goalNetting(p: Pitch, detail: PitchDetail, look: Look): BufferGeometry 
       const first = t.vertices;
       for (let i = 0; i <= n1; i++) t.line(along(o, e1, i / n1), along(along(o, e1, i / n1), e2, 1), hex);
       for (let j = 0; j <= n2; j++) t.line(along(o, e2, j / n2), along(along(o, e2, j / n2), e1, 1), hex);
-      for (let v = first; v < t.vertices; v++) face.push(q.nx, q.ny, q.nz, offsetOf(q));
+      const index = faces.indexOf(q.name);
+      for (let v = first; v < t.vertices; v++) face.push(index);
     }
   }
   const g = t.geometry();
-  g.setAttribute('face', new BufferAttribute(new Float32Array(face), 4));
+  g.setAttribute('face', new BufferAttribute(new Float32Array(face), 1));
   return g;
 }
 
@@ -330,8 +341,13 @@ export function drawPitch(p: Pitch, detail: PitchDetail, look: Look): DrawnPitch
   object.name = 'pitch';
   const grass = grassTexture();
   grass.anisotropy = detail.anisotropy;
-  // The line fade's uniforms, shared by the glass's two draws, the goals' frames and their netting.
+  // The line fade's uniforms, shared by the glass's two draws, the goals' frames and their netting; the walls' sides,
+  // which both of the glass's draws read; and how much of each netting face shows.
   const fade = lineFadeUniforms();
+  const planes = wallPlanes(p);
+  const sides = wallSidesUniform(planes);
+  const faces = nettingFaces(p);
+  const shown = facesShownUniform(faces);
 
   const frames = new Triangles();
   for (const goal of p.goals) {
@@ -352,16 +368,15 @@ export function drawPitch(p: Pitch, detail: PitchDetail, look: Look): DrawnPitch
   railPart.name = 'rail';
   // The glass: one geometry, its inner draw first of the transparent things and its outer draw last.
   const glass = glassGeometry(p);
-  const innerGlass = new Mesh(glass, glassMaterial(look, false, fade));
+  const innerGlass = new Mesh(glass, glassMaterial(look, false, fade, sides));
   innerGlass.name = 'glass, inner';
   innerGlass.renderOrder = ORDER.innerGlass;
-  const outerGlass = new Mesh(glass, glassMaterial(look, true, fade));
+  const outerGlass = new Mesh(glass, glassMaterial(look, true, fade, sides));
   outerGlass.name = 'glass, outer';
   outerGlass.renderOrder = ORDER.outerGlass;
   // Until a frame finds the camera outside; prepare()'s compile and upload reach it hidden.
   outerGlass.visible = false;
-  const planes = wallPlanes(p);
-  const nettingPart = new LineSegments(goalNetting(p, detail, look), goalNettingMaterial(p, fade));
+  const nettingPart = new LineSegments(goalNetting(p, detail, look), goalNettingMaterial(fade, shown));
   nettingPart.name = 'goal netting';
   nettingPart.renderOrder = ORDER.goalNetting;
 
@@ -400,10 +415,14 @@ export function drawPitch(p: Pitch, detail: PitchDetail, look: Look): DrawnPitch
     setFade(camera: Readonly<Vector3>) {
       for (const o of occluders) o.part.material = o.bounds.some((b) => crossesFade(b)) ? o.faded.dithered : o.faded.opaque;
       updateLineFade(fade);
-      outerGlass.visible = outerDrawn(planes, camera);
+      outerGlass.visible = outerDrawn(wallSides(planes, camera, sides.value));
+      facesShown(faces, p.goalLineX, camera, shown.value);
     },
-    get outerGlass() {
-      return outerGlass.visible;
+    get glass() {
+      return { outer: outerGlass.visible, outside: planes.filter((_, k) => sides.value[k] === 0).map((q) => q.name) };
+    },
+    get netting() {
+      return faces.flatMap((f, k) => (shown.value[k]! < 1 ? [{ name: f.name, shown: shown.value[k]! }] : []));
     },
     setBulge(_b: Bulge | null) {},
     dispose() {

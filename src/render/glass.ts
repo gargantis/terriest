@@ -6,9 +6,11 @@
 //
 // One geometry of 28 panes, each wall piece split into panes about
 // PANE_METRES long, drawn twice by one program. Each draw keeps only some
-// panes, which its vertex shader chooses by the camera's side of each
-// pane's plane; a pane a draw doesn't keep collapses to a point outside the
-// view and costs no pixels:
+// panes, by the camera's side of each pane's wall's plane, which wallSides
+// decides on the CPU once a frame and the vertex shader reads from a
+// uniform by the wall each vertex carries, so the rule the tests check is
+// the one drawn; a pane a draw doesn't keep collapses to a point outside
+// the view and costs no pixels:
 // - the inner draw: the panes the camera is inside of, the far side of the
 //   arena, first of the transparent things (src/render/pitch.ts's order): a
 //   light tint, a sheen where it's seen at a slant, a post at every pane
@@ -17,8 +19,8 @@
 // - the outer draw: the panes the camera is outside of, the near side seen
 //   from outside, last of them, squashed to the kick band: only the band and
 //   its line, so a camera outside looks at the pitch through nothing. With
-//   the camera inside every pane's plane it has no pane to draw, and is
-//   skipped (outerDrawn).
+//   the camera inside every wall's plane it has no pane to draw, and is
+//   skipped.
 // Both draws are clear near the camera and round the line to its subject
 // (src/render/fade.ts's line fade), so a camera passing through a wall sees
 // nothing snap on or off. They write no depth, test it, and draw both
@@ -27,7 +29,7 @@
 // and the band and the rail each half's pack colour with white (L68).
 // Metres, z up.
 
-import { BufferAttribute, BufferGeometry, Color, DoubleSide, GLSL3, ShaderMaterial, Vector2, type Vector3 } from 'three';
+import { BufferAttribute, BufferGeometry, Color, DoubleSide, GLSL3, type IUniform, ShaderMaterial, Vector2, type Vector3 } from 'three';
 import { type Pack, type Pitch, WALL } from '../core/sim/pitch';
 import { LINE_FADE_GLSL, type LineFade } from './fade';
 import type { Look } from './look';
@@ -61,9 +63,6 @@ const TINT_SKY = 0.5;
 const SHEEN_WHITE = 0.6;
 const POST_WHITE = 0.75;
 const LINE_WHITE = 0.9;
-/** The outer draw draws while the camera is outside a pane's plane or within this of one, as its shader decides
- *  each pane in float32. */
-const OUTER_SLACK_METRES = 0.01;
 /** The rail along the walls' top: from this far below the top to this far above it, this thick, its half's pack
  *  colour with this much white, as the padding's was, its underside shaded. */
 const RAIL_DOWN_METRES = 0.1;
@@ -80,31 +79,53 @@ export interface PanePlane {
   readonly offset: number;
 }
 
-/** How far a point is inside a pane's plane, as the glass's vertex shader reckons it for the camera: the inner draw
- *  keeps a pane the camera is 0 or more inside of, the outer draw one it's outside of. */
+/** A wall piece's plane, by the simulation's name for the piece. */
+export interface WallPlane extends PanePlane {
+  readonly name: string;
+}
+
+/** How far a point is inside a pane's plane: the inner draw keeps a pane the camera is 0 or more inside of, the
+ *  outer draw one it's outside of (wallSides). */
 export function insideOf(q: PanePlane, x: number, y: number, z: number): number {
   return x * q.nx + y * q.ny + z * q.nz - q.offset;
 }
 
-/** The walls' planes, a wall piece's each. */
-export function wallPlanes(p: Pitch): PanePlane[] {
-  return p.pieces.filter((q) => q.surface === WALL).map((q) => ({ nx: q.nx, ny: q.ny, nz: q.nz, offset: offsetOf(q) }));
+/** The walls' planes, a wall piece's each, in the pieces' order: the order of the glass's wallInside uniform, by
+ *  which each vertex finds its pane's wall. */
+export function wallPlanes(p: Pitch): WallPlane[] {
+  return p.pieces.filter((q) => q.surface === WALL).map((q) => ({ name: q.name, nx: q.nx, ny: q.ny, nz: q.nz, offset: offsetOf(q) }));
 }
 
-/** Whether the outer draw has a pane to draw for a camera at c: outside some pane's plane, or within
- *  OUTER_SLACK_METRES of one. */
-export function outerDrawn(planes: readonly PanePlane[], c: Readonly<Vector3>): boolean {
-  return planes.some((q) => insideOf(q, c.x, c.y, c.z) < OUTER_SLACK_METRES);
+/** The glass's draws' choice of panes for a camera at c, into `out`, a wall's each (C-57): 1 for a wall whose plane
+ *  the camera is 0 or more inside of, its panes the inner draw's, and 0 for one it's outside of, its panes the
+ *  outer draw's. Decided here once a frame, for every camera, the overview's included; the vertex shader only reads
+ *  it, from the wallInside uniform. */
+export function wallSides(planes: readonly PanePlane[], c: Readonly<Vector3>, out: number[]): number[] {
+  for (let k = 0; k < planes.length; k++) out[k] = insideOf(planes[k]!, c.x, c.y, c.z) >= 0 ? 1 : 0;
+  return out;
 }
+
+/** The glass's wallInside uniform: wallSides' choice, which both draws read. */
+export type WallSides = IUniform<number[]>;
+
+/** The uniform for `planes`, every wall's panes the inner draw's until a frame decides. */
+export function wallSidesUniform(planes: readonly PanePlane[]): WallSides {
+  return { value: planes.map(() => 1) };
+}
+
+/** Whether the outer draw has a pane to draw, by wallSides' choice: the camera outside some wall's plane. */
+export const outerDrawn = (sides: readonly number[]): boolean => sides.includes(0);
 
 /** The glass: each wall piece as panes about PANE_METRES long, two triangles each. Every vertex carries its pane's
- *  normal and plane offset, which decide the pane, and its place along the pane with the pane's length, for the
- *  posts at its ends. The pitch's object stands untransformed, so a pane's plane is the world's. */
+ *  normal, for the sheen, its wall's index in wallPlanes' order, by which the vertex shader reads the draws' choice
+ *  of its pane, and its place along the pane with the pane's length, for the posts at its ends. The pitch's object
+ *  stands untransformed, so a pane's plane is the world's. */
 export function glassGeometry(p: Pitch): BufferGeometry {
   const position: number[] = [];
   const normal: number[] = [];
   const pane: number[] = [];
-  const plane: number[] = [];
+  const wall: number[] = [];
+  let index = 0;
   for (const q of p.pieces) {
     if (q.surface !== WALL) continue;
     const o = origin(q);
@@ -113,7 +134,6 @@ export function glassGeometry(p: Pitch): BufferGeometry {
     const length = Math.hypot(e1[0], e1[1], e1[2]);
     const count = Math.max(1, Math.round(length / PANE_METRES));
     const wide = length / count;
-    const offset = offsetOf(q);
     for (let i = 0; i < count; i++) {
       const a = along(o, e1, i / count);
       const b = along(o, e1, (i + 1) / count);
@@ -123,7 +143,7 @@ export function glassGeometry(p: Pitch): BufferGeometry {
         position.push(at[0], at[1], at[2]);
         normal.push(q.nx, q.ny, q.nz);
         pane.push(u, wide);
-        plane.push(offset);
+        wall.push(index);
       };
       put(a, 0);
       put(b, wide);
@@ -132,28 +152,31 @@ export function glassGeometry(p: Pitch): BufferGeometry {
       put(c, wide);
       put(d, 0);
     }
+    index++;
   }
   const g = new BufferGeometry();
   g.setAttribute('position', new BufferAttribute(new Float32Array(position), 3));
   g.setAttribute('normal', new BufferAttribute(new Float32Array(normal), 3));
   g.setAttribute('pane', new BufferAttribute(new Float32Array(pane), 2));
-  g.setAttribute('plane', new BufferAttribute(new Float32Array(plane), 1));
+  g.setAttribute('wall', new BufferAttribute(new Float32Array(wall), 1));
   return g;
 }
 
-const GLASS_VERTEX = `
+/** The glass's vertex shader for `walls` walls. */
+const glassVertex = (walls: number): string => `
 in vec2 pane;
-in float plane;
+in float wall;
 uniform float outer;
 uniform float outerTop;
+uniform float wallInside[${walls}];
 out vec3 vWorld;
 out vec3 vNormal;
 out vec2 vPane;
 void main() {
-  // How far the camera is inside this pane's plane, as insideOf reckons it. Every vertex of a pane has its normal
-  // and plane, so all of them decide alike.
-  float inside = dot(cameraPosition, normal) - plane;
-  bool kept = outer > 0.5 ? inside < 0.0 : inside >= 0.0;
+  // Whether the camera is inside this pane's wall's plane, as wallSides decided it this frame. Every vertex of a pane
+  // has its wall, so all of them decide alike.
+  bool inside = wallInside[int(wall)] > 0.5;
+  bool kept = outer > 0.5 ? !inside : inside;
   vec3 p = position;
   if (outer > 0.5) p.z = min(p.z, outerTop);
   vec4 w = modelMatrix * vec4(p, 1.0);
@@ -223,8 +246,9 @@ void main() {
 }
 `;
 
-/** One of the glass's two draws, the inner or the outer: the same program, its draw picked by a uniform. */
-export function glassMaterial(look: Look, outer: boolean, fade: LineFade): ShaderMaterial {
+/** One of the glass's two draws, the inner or the outer: the same program, its draw picked by a uniform, its panes
+ *  by `sides`, wallSides' choice, which both draws share. */
+export function glassMaterial(look: Look, outer: boolean, fade: LineFade, sides: WallSides): ShaderMaterial {
   const panel = look.pitch.wallPanel;
   const band = (pack: Pack): Color => new Color(mix(look.packs[pack].colour, WHITE, KICK_BAND_WHITE));
   return new ShaderMaterial({
@@ -232,6 +256,7 @@ export function glassMaterial(look: Look, outer: boolean, fade: LineFade): Shade
     glslVersion: GLSL3,
     uniforms: {
       ...fade,
+      wallInside: sides,
       outer: { value: outer ? 1 : 0 },
       outerTop: { value: KICK_BAND_METRES + OUTER_OVER_BAND_METRES },
       tint: { value: new Color(mix(panel, look.pitch.sky, TINT_SKY)) },
@@ -251,7 +276,7 @@ export function glassMaterial(look: Look, outer: boolean, fade: LineFade): Shade
       nearFade: { value: new Vector2(NEAR_FADE_METRES[0], NEAR_FADE_METRES[1]) },
       detailFade: { value: new Vector2(DETAIL_FADE_METRES[0], DETAIL_FADE_METRES[1]) },
     },
-    vertexShader: GLASS_VERTEX,
+    vertexShader: glassVertex(sides.value.length),
     fragmentShader: GLASS_FRAGMENT,
     transparent: true,
     depthWrite: false,

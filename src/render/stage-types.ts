@@ -60,8 +60,12 @@ export interface RenderInfo {
   /** The context lost and restored, and the renderer rebuilt (D-30, D-33). */
   lost: boolean; restores: number; rebuilds: number; rebuilding: boolean;
   /** The glass walls (C-57): outer, whether the last frame drew the glass's outer draw, the near panes' kick band
-   *  seen from outside, which draws only while the camera is outside some pane's plane. */
-  glass: { outer: boolean };
+   *  seen from outside, which draws only while the camera is outside some wall's plane; outside, those walls, by
+   *  the simulation's names, whose panes the outer draw kept and the inner draw dropped. */
+  glass: { outer: boolean; outside: readonly string[] };
+  /** The goals' netting (C-57): each face the last frame drew less than whole, by the simulation's name, with how
+   *  much of it showed, 0 for none: a face the camera was outside of, from beyond its goal's line. */
+  netting: readonly { readonly name: string; readonly shown: number }[];
 }
 
 export interface ResourceCounts {

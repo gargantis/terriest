@@ -1,7 +1,9 @@
 // Reads a Playwright screenshot, so a spec can check what the page drew
 // (PLAN §16): 8-bit RGB or RGBA PNGs, not interlaced, as the engines'
 // screenshots are. Node's zlib inflates; the five row filters are undone
-// here.
+// here. And reads its pixels: a square's mean colour, a pixel's, a box's
+// every pixel, and a median, so a spec can say what a part of the picture
+// shows whatever a few pixels in it show.
 
 import { inflateSync } from 'node:zlib';
 
@@ -87,4 +89,31 @@ export function meanColour(image: Image, x: number, y: number, radius: number): 
     }
   }
   return [r / n, g / n, b / n];
+}
+
+/** A colour, [r, g, b], each 0 to 255. */
+export type Rgb = [number, number, number];
+
+/** The colour of the pixel nearest (x, y), clamped to the image. */
+export function colourAt(image: Image, x: number, y: number): Rgb {
+  const i = Math.min(image.width - 1, Math.max(0, Math.round(x)));
+  const j = Math.min(image.height - 1, Math.max(0, Math.round(y)));
+  const at = (j * image.width + i) * 4;
+  return [image.rgba[at]!, image.rgba[at + 1]!, image.rgba[at + 2]!];
+}
+
+/** The colours of every pixel in the box from (x0, y0) to (x1, y1), its edges included and rounded, clipped to the
+ *  image, row by row. */
+export function coloursIn(image: Image, x0: number, y0: number, x1: number, y1: number): Rgb[] {
+  const out: Rgb[] = [];
+  for (let j = Math.max(0, Math.round(y0)); j <= Math.min(image.height - 1, Math.round(y1)); j++) {
+    for (let i = Math.max(0, Math.round(x0)); i <= Math.min(image.width - 1, Math.round(x1)); i++) out.push(colourAt(image, i, j));
+  }
+  return out;
+}
+
+/** The middle of some numbers, the upper of the middle two for an even count; NaN for none. */
+export function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted.length === 0 ? NaN : sorted[sorted.length >> 1]!;
 }

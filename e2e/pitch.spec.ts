@@ -16,8 +16,10 @@
 // warm-up your terrier, backed by S from its kickoff spot toward its own
 // goal, takes the camera behind it out past the end wall, and the glass
 // draws that wall's kick band from outside at every look the camera is
-// outside a pane's plane and at none it's inside them all, W bringing it
-// back, with nothing compiled in play. Three tests, one load each (§9.9).
+// outside a wall's plane, naming the end wall's pieces, and at none it's
+// inside them all, W bringing it back, with nothing compiled in play;
+// e2e/camera.spec.ts reads what the glass draws. Three tests, one load each
+// (§9.9).
 // Nothing here depends on the frame rate: the rate is measured
 // and reported, with the GL path, never judged. What's drawn is read off a
 // capture taken at a steady drawing buffer: WebKit's capture of a WebGL
@@ -33,10 +35,10 @@ import type { Inspection } from '../src/main';
 import { GL_PATH } from './lib/gl';
 import { expect, expectWebGL2, test } from './lib/guards';
 import {
-  expectAxeClean, expectStarted, inspect, installHook, monotonicMs, openPractice, overlayOf, POLL_MS, seedStorage, smallViewport, waitForInspection,
-  waitForScreen,
+  expectAxeClean, expectStarted, inspect, installHook, monotonicMs, openPractice, overlayOf, POLL_MS, seedStorage, smallViewport, steadyCapture,
+  waitForInspection, waitForScreen,
 } from './lib/page';
-import { decodePng, type Image, meanColour } from './lib/png';
+import { type Image, meanColour } from './lib/png';
 
 test.use({ viewport: smallViewport });
 
@@ -99,22 +101,6 @@ function countContexts(): void {
 /** The page's WebGL contexts so far: made, and alive, not lost. */
 function contexts(page: Page): Promise<{ made: number; alive: number }> {
   return page.evaluate(() => (window as unknown as { terriestContexts: () => { made: number; alive: number } }).terriestContexts());
-}
-
-/** The page captured, and the inspection read just before, at a steady drawing buffer: after a frame drawn at
- *  the size first read, and again if the size changed across the capture, since WebKit's capture just after a
- *  reallocation, by a resize or the governor's step (§8.2), reads the canvas black (phase 2b's Wire step, at 4
- *  a side: 14 of 30 captures at once after a resize read black, none of 30 taken this way). */
-async function steadyCapture(page: Page): Promise<{ readonly image: Image; readonly shown: Inspection }> {
-  const size = (i: Inspection): string => `${i.render.width}×${i.render.height}`;
-  for (let k = 1; ; k++) {
-    const before = await inspect(page);
-    const shown = await waitForInspection(page, (i) => i.render.frames > before.render.frames, { what: 'a frame drawn before the capture' });
-    const png = await page.screenshot();
-    const after = await inspect(page);
-    if (size(before) === size(shown) && size(shown) === size(after)) return { image: decodePng(png), shown };
-    if (k === 5) throw new Error(`the drawing buffer changed size across ${k} captures, the last ${size(before)}, ${size(shown)}, ${size(after)}`);
-  }
 }
 
 /** The drawing buffer by §9.1's rule: the CSS size times min(devicePixelRatio, cap) times the governor's scale. */
@@ -324,9 +310,12 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
 test.describe('the walls, glass (C-57)', () => {
   /** Pack A's goal line, along −x, on the end wall's plane. */
   const LINE = config.pitch.lengthMetres / 2;
-  /** The glass's outer draw draws while the camera is outside a pane's plane or within a centimetre of one: inside
-   *  the floor plan by more, the walls' planes all stand round it (src/render/glass.ts). */
-  const SLACK_M = 0.01;
+  /** The glass's outer draw draws while the camera is outside some wall's plane, which off the floor plan it is
+   *  (src/render/glass.ts); a look within this of the plan's edge, where another reckoning could put the camera a
+   *  hair either side, isn't judged: a test's margin. */
+  const EDGE_M = 0.001;
+  /** The −x end wall's pieces, beside and above the mouth: the walls a camera behind pack A's goal is outside of. */
+  const END_WALL = ['end −x, −y of the mouth', 'end −x, +y of the mouth', 'end −x, above the mouth'];
   /** How far past a plane the camera must be for a look to count as outside or inside: a test's margin. */
   const PAST_M = 0.5;
   /** How far the camera drawn may be from its place behind your terrier, as e2e/camera.spec.ts allows: a player's
@@ -345,16 +334,20 @@ test.describe('the walls, glass (C-57)', () => {
     const c = i.render.camera;
     return c.kind === 'player' && m !== null && m !== undefined && Math.abs(Math.hypot(c.x - m.x, c.y - m.y) - config.cameraBehindMetres) < PLACED_M;
   };
-  /** Whether the camera of the last frame drawn was inside every pane's plane, by more than the slack. */
-  const insideAll = (i: Inspection): boolean => insideFloorPlan(config.pitch, i.render.camera.x, i.render.camera.y, SLACK_M);
+  /** Whether the camera of the last frame drawn was over the floor plan, inside every wall's plane, by more than
+   *  `margin`; a negative margin, outside the plan by more than it. */
+  const over = (i: Inspection, margin: number): boolean => insideFloorPlan(config.pitch, i.render.camera.x, i.render.camera.y, margin);
 
-  /** Looks every 50 ms until `cond` holds of one, checking at each that the glass drew its outer draw just when the
-   *  camera of that frame was outside a pane's plane; fails on a timeout with where the camera is. */
+  /** Looks every 50 ms until `cond` holds of one, checking at each that the glass drew its outer draw, and named the
+   *  walls it kept, just when the camera of that frame was outside a wall's plane; fails on a timeout with where the
+   *  camera is. */
   async function until(page: Page, cond: (i: Inspection) => boolean, what: string): Promise<Inspection> {
     const deadline = monotonicMs() + LEG_MS;
     for (;;) {
       const i = await inspect(page);
-      if (i.render.frames > 0) expect(i.render.glass.outer, `the glass's outer draw, ${at(i)}`).toBe(!insideAll(i));
+      const g = i.render.glass;
+      if (i.render.frames > 0 && over(i, EDGE_M)) expect(g, `the glass's outer draw skipped, ${at(i)}`).toEqual({ outer: false, outside: [] });
+      if (i.render.frames > 0 && !over(i, -EDGE_M)) expect([g.outer, g.outside.length > 0], `the glass's outer draw, ${at(i)}`).toEqual([true, true]);
       if (cond(i)) return i;
       if (monotonicMs() > deadline) throw new Error(`${what}: not reached within ${LEG_MS} ms; ${at(i)}`);
       await page.waitForTimeout(POLL_MS);
@@ -369,13 +362,13 @@ test.describe('the walls, glass (C-57)', () => {
     await openPractice(page, { packSize: 1, minutes: 1 });
     // The warm-up: your terrier on its kickoff spot facing the ball, your camera behind it on the pitch.
     const start = await until(page, (i) => i.match?.inRoster === true && placed(i), 'your camera behind your terrier in the warm-up');
-    expect(insideAll(start), `inside every pane's plane; ${at(start)}`).toBe(true);
-    expect(start.render.glass, at(start)).toEqual({ outer: false });
+    expect(over(start, EDGE_M), `inside every wall's plane; ${at(start)}`).toBe(true);
+    expect(start.render.glass, at(start)).toEqual({ outer: false, outside: [] });
     // S, straight back from the ball toward your goal: the camera, behind your terrier, out past the end wall.
     await page.keyboard.down('KeyS');
     try {
       const out = await until(page, (i) => i.render.camera.x < -LINE - PAST_M, 'the camera out past the end wall, S held');
-      expect(out.render.glass, at(out)).toEqual({ outer: true });
+      expect([out.render.glass.outer, [...out.render.glass.outside].sort()], at(out)).toEqual([true, [...END_WALL].sort()]);
     } finally {
       await page.keyboard.up('KeyS');
     }
@@ -383,7 +376,7 @@ test.describe('the walls, glass (C-57)', () => {
     await page.keyboard.down('KeyW');
     try {
       const back = await until(page, (i) => insideFloorPlan(config.pitch, i.render.camera.x, i.render.camera.y, PAST_M), 'the camera back inside the walls, W held');
-      expect(back.render.glass, at(back)).toEqual({ outer: false });
+      expect(back.render.glass, at(back)).toEqual({ outer: false, outside: [] });
     } finally {
       await page.keyboard.up('KeyW');
     }

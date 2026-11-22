@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../config';
 import type { DrawerFrame, TerrierDrawer } from './drawer';
 import { insideOf, wallPlanes } from './glass';
+import { nettingFaces, nettingShown } from './goal-fade';
 import { PLACEHOLDER_LOOK } from './look';
 import { qualityDetail } from './quality';
 import { pitch } from '../core/sim/pitch';
@@ -20,7 +21,8 @@ import { MatchView, type ViewTimeline } from './view';
 // gives its context back, its watch removed first; M1's
 // createPitchView keeps its shape; and from C-57 each frame hands the
 // pitch the placed camera, every camera's, so the glass's outer draw draws
-// only while the camera is outside some pane's plane.
+// only while the camera is outside some wall's plane, and the stage reports
+// those walls and the netting's faces drawn less than whole.
 
 interface Rendered {
   readonly shown: string[];
@@ -139,7 +141,8 @@ describe("M1's createPitchView, over the stage", () => {
     expect(first.culled).toBeGreaterThan(0);
     // The overview, beyond the near side wall and above the net: the glass's outer draw draws that wall's band (C-57).
     expect(first.shown).toContain('glass, outer');
-    expect(view.info().glass).toEqual({ outer: true });
+    expect(view.info().glass).toEqual({ outer: true, outside: ['side wall −y'] });
+    expect(view.info().netting).toEqual([]);
     const info = view.info();
     expect(info).toMatchObject({
       frames: 1, quality: 'high', samples: 4, pixelRatio: 2, calls: 3, triangles: 900, lines: 50, programs: 3, geometries: 11, textures: 2,
@@ -191,12 +194,14 @@ describe('the stage (§1.3)', () => {
     expect([out.cssWidth, out.cssHeight]).toEqual([641, 361]);
     expect(out.ball.inView).toBe(true);
     expect(stage.info().camera).toMatchObject({ kind: 'player', view: 'ball', follow: null, calm: true });
-    // The glass's outer draw from where the player's camera was placed: drawn only outside some pane's plane, or
-    // within a centimetre of one (C-57).
+    // The glass's outer draw from where the player's camera was placed: drawn only outside some wall's plane, those
+    // walls reported by name, and the netting's faces as the camera's place leaves them (C-57).
     const placed = stage.info().camera;
-    const outside = wallPlanes(pitch).some((q) => insideOf(q, placed.x, placed.y, placed.z) < 0.01);
-    expect(renders.at(-1)!.shown.includes('glass, outer'), `the camera at ${placed.x}, ${placed.y}, ${placed.z}`).toBe(outside);
-    expect(stage.info().glass).toEqual({ outer: outside });
+    const outside = wallPlanes(pitch).filter((q) => insideOf(q, placed.x, placed.y, placed.z) < 0).map((q) => q.name);
+    expect(renders.at(-1)!.shown.includes('glass, outer'), `the camera at ${placed.x}, ${placed.y}, ${placed.z}`).toBe(outside.length > 0);
+    expect(stage.info().glass).toEqual({ outer: outside.length > 0, outside });
+    const cut = nettingFaces(pitch).map((f) => ({ name: f.name, shown: nettingShown(f.face, f.side, pitch.goalLineX, placed.x, placed.y, placed.z) }));
+    expect(stage.info().netting).toEqual(cut.filter((f) => f.shown < 1));
     // A spectator's camera, what it drew following: the ball, then a terrier (§9.4); outside the near side wall, so
     // with the glass's outer draw.
     view.mode = { kind: 'spectator', follow: null };

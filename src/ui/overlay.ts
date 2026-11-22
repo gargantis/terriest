@@ -34,9 +34,10 @@ import { addStyle } from './style';
 
 // Drawing constants, which keep the layout valid (M4's design §3.2): how far above a terrier's drawn
 // centre its marks sit; the HUD's top bar's foot, 8 px down and a button's 44 px tall (hud.css), above
-// which a ball drawn counts as off screen (C-57); and the arrow's inset from the canvas's edge, and from
-// its top below that bar by half the arrow and a gap, so the arrow never covers the score or the clock
-// (L103).
+// which a ball drawn counts as off screen (C-57), the one-row bar's, as a phone held sideways and the
+// desktop sizes lay it out, where a bar that wraps on a narrow window or stands under a top safe-area
+// inset ends lower (PLAN D-28's M4 note); and the arrow's inset from the canvas's edge, and from its top
+// below that bar by half the arrow and a gap, so the arrow never covers the score or the clock (L103).
 const MARK_RISE_PX = 34;
 const BARK_RISE_PX = 56;
 export const HUD_BAR_PX = 52;
@@ -75,7 +76,7 @@ export function overlayLayer(host: PitchHost): Layer {
   const written = new Map<HTMLElement, string>();
   const barksCounted = new Set<string>();
   const celebrationsCounted = new Set<number>();
-  let state: OverlayInspection = { mine: null, names: [], barks: [], away: [], arrow: { shown: false, angle: 0 } };
+  let state: OverlayInspection = { mine: null, names: [], barks: [], away: [], arrow: { shown: false, angle: 0 }, ball: null };
 
   const place = (mark: HTMLElement, x: number, y: number, turn: number | null): void => {
     const t = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)${turn === null ? '' : ` rotate(${turn.toFixed(3)}rad)`}`;
@@ -118,7 +119,7 @@ export function overlayLayer(host: PitchHost): Layer {
         setShown(mine, false);
         setShown(arrow, false);
         for (const mark of barkMarks.values()) setShown(mark, false);
-        state = { mine: null, names: [], barks: [], away: [], arrow: { shown: false, angle: 0 } };
+        state = { mine: null, names: [], barks: [], away: [], arrow: { shown: false, angle: 0 }, ball: null };
         return;
       }
       const own = out.terriers.find((t) => t.id === me) ?? null;
@@ -140,11 +141,13 @@ export function overlayLayer(host: PitchHost): Layer {
         shown.push(id);
       }
       for (const [id, mark] of barkMarks) if (!shown.includes(id)) setShown(mark, false);
-      // What the marks show, read back from their own hidden flags, so the hook reports the page's DOM.
+      // What the marks show, read back from their own hidden flags, so the hook reports the page's DOM; and where the
+      // ball was drawn, the arrow's input.
       state = {
         mine: own === null ? null : { shown: !mine.hidden, x: own.x, y: own.y },
         names: [], barks: [...barkMarks].filter(([, mark]) => !mark.hidden).map(([id]) => id), away: [],
         arrow: { shown: !arrow.hidden, angle: out.ball.angle },
+        ball: { x: out.ball.x, y: out.ball.y, inView: out.ball.inView },
       };
     },
     inspect: (): OverlayInspection => state,

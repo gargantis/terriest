@@ -25,6 +25,11 @@
 // material no longer opaque: lit, drawn among the transparent things and
 // writing depth, with a shader hook and a program key of its own
 // (goal-fade.ts), both of which phase 3's dithered clone of it must keep.
+// Its hook discards a fragment its fades have all but cleared, so a post
+// faded out writes no depth. So the frames' undithered variant can discard
+// in any frame, which the rule above keeps from the opaque occluders, but
+// it's drawn after the opaque pass, whose early depth tests it doesn't
+// touch, and covers little of the view.
 
 import { type Box3, type IUniform, type Material, type Sphere, Vector2, Vector3 } from 'three';
 

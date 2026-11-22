@@ -138,7 +138,7 @@ The owner's decision of 2026-11-21 (PLAN C-57): "Let's make the walls transparen
 
 **What decided it,** from the comparison's captured frames at 1280 × 720 on the GPU path, in ball view: A kept both your terrier and the ball in view in 30.6% of the frames at the walls and 63.2% at your own goal, and E in 100% of both, its largest camera move 0.55 m a frame against A's 3.62 m at a corner. In 3-minute Practices replayed in Node, the person's terrier driven by the bots' brain, E's camera was outside the walls in 10.7% of the play ticks at 2 a side and 4.7% at 4 a side, and both stayed in view throughout, as they did with A.
 
-**To confirm or change them:** play Practice in your browsers on `npm run play`'s build, at http://localhost:4340/, at walls, in corners and in and behind your own goal, in ball view and chase view. `e2e/camera.spec.ts` holds the camera's place in the gate, in each engine: behind its own goal and outside a side wall, at its height, your terrier and the ball both in view.
+**To confirm or change them:** play Practice in your browsers on `npm run play`'s build, at http://localhost:4340/, at walls, in corners and in and behind your own goal, in ball view and chase view. `e2e/camera.spec.ts` holds the camera's place in the gate, in each engine: behind its own goal and outside a side wall, at its height, your terrier and the ball both in view, and in chase view swung out past the wall; and it reads what's drawn there: the outfield through the far glass, no netting across the open back, the near band from outside, the ball's colour, and your coat untinted where the line to it crosses a band.
 
 ## Checks outside the gate (PLAN §16)
 

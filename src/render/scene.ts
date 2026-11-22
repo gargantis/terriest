@@ -14,9 +14,9 @@
 // takes the view's StageFrame (src/render/view.ts), as the app's frame
 // loop owns requestAnimationFrame: it places the camera (camera.ts), poses
 // the ball, the shadows and the terriers, sets the fade, hands the pitch
-// the camera's place, which the glass's outer draw reads for every camera,
-// the overview's included, renders, and returns the projections the DOM
-// overlay needs. A null frame draws the empty pitch from M1's overview
+// the camera's place, from which it decides the glass's draws and the
+// netting's faces for every camera, the overview's included, renders, and
+// returns the projections the DOM overlay needs. A null frame draws the empty pitch from M1's overview
 // camera. The canvas fills its box: each draw checks its CSS size and pixel
 // ratio, min(devicePixelRatio, cap) × the governor's scale, and resizes
 // only on a change, the drawing buffer round(CSS size × that ratio), so a
@@ -227,8 +227,8 @@ class Drawing implements Stage {
       this.shadows.clear();
       this.drawer.draw(NO_TERRIERS);
     }
-    // The pitch's variants and line fade from the capsule, and the glass's outer draw from where the camera is,
-    // whichever camera it is, the overview's included (C-57).
+    // The pitch's variants and line fade from the capsule, and the glass's draws and the netting's faces from where
+    // the camera is, whichever camera it is, the overview's included (C-57).
     this.pitchDrawn.setFade(this.placed.position);
     this.effects.draw(shown ?? { match: null, drawer: null, camera: OVERVIEW, nowMs: this.nowMs, dtMs: 0, fadeTo: null });
     // A rebuild under way draws nothing on the old renderer, which never compiled the new parts.
@@ -260,7 +260,7 @@ class Drawing implements Stage {
       model: { url: this.modelUrl, state: this.model.state, ms: this.model.ms, error: this.model.error },
       camera: { ...this.cameraInfo },
       lost: this.lost, restores: this.restores, rebuilds: this.rebuilds, rebuilding: this.rebuilding,
-      glass: { outer: this.pitchDrawn.outerGlass },
+      glass: this.pitchDrawn.glass, netting: this.pitchDrawn.netting,
     };
   }
 

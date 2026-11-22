@@ -131,6 +131,9 @@ export interface OverlayInspection {
   readonly names: readonly { readonly id: string; readonly text: string; readonly shown: boolean }[];
   readonly barks: readonly string[]; readonly away: readonly string[];
   readonly arrow: { readonly shown: boolean; readonly angle: number };
+  /** Where the stage drew the ball's centre, CSS px from the canvas's top left, and whether in view: the arrow's
+   *  input, so a spec reads what's drawn there (C-57); null without a frame. */
+  readonly ball: { readonly x: number; readonly y: number; readonly inView: boolean } | null;
 }
 
 /** The cues src/audio/synth.ts plays, which it imports from here. */

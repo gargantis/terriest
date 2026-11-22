@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { type BufferGeometry, Color, type LineSegments, type Material, type Mesh, type ShaderMaterial, Vector3 } from 'three';
-import { GOAL_NET, insideFloorPlan, pitch, type Point } from '../core/sim/pitch';
+import { GOAL_NET, insideFloorPlan, pitch, type Point, WALL } from '../core/sim/pitch';
 import { setFade } from './fade';
-import { type Face, nettingShown } from './goal-fade';
+import { nettingFaces } from './goal-fade';
 import { type Look, PLACEHOLDER_LOOK } from './look';
 import { drawPitch } from './pitch';
 import { Shadows } from './shadows';
@@ -115,25 +115,46 @@ describe('the drawn pitch', () => {
     for (let i = 0; i < n.count; i++) expect(n.getZ(i)).toBeLessThanOrEqual(pitch.shape.mouthHeightMetres);
   });
 
-  it("draws in eight parts with the camera inside every pane's plane, and a ninth, the glass's outer draw, outside one (C-57)", () => {
+  it("draws in eight parts with the camera inside every wall's plane, and a ninth, the glass's outer draw, outside one (C-57)", () => {
     const inside = ['floor', 'markings', 'ground', 'rail', 'glass, inner', 'goal frames', 'overhead net', 'goal netting'];
     // Before any frame, none: a frame decides.
     const fresh = drawPitch(pitch, detail, PLACEHOLDER_LOOK);
-    expect([fresh.object.children.filter((o) => o.visible).map((o) => o.name), fresh.outerGlass]).toEqual([inside, false]);
+    expect([fresh.object.children.filter((o) => o.visible).map((o) => o.name), fresh.glass, fresh.netting]).toEqual([inside, { outer: false, outside: [] }, []]);
     fresh.dispose();
     // A player's camera on the pitch, and the overview's place, above the net beyond the near side wall.
     expect(shownFor(-5, 3, 2.1)).toEqual(inside);
-    expect(drawn.outerGlass).toBe(false);
+    expect(drawn.glass).toEqual({ outer: false, outside: [] });
     expect(shownFor(0, -28.3, 33.1)).toEqual([...inside, 'glass, outer']);
-    expect(drawn.outerGlass).toBe(true);
-    // Behind a goal, and beside one beyond its line: outside the end wall's plane.
+    expect(drawn.glass).toEqual({ outer: true, outside: ['side wall −y'] });
+    // Behind a goal, and beside one beyond its line: outside the end wall's plane, its three pieces.
     expect(shownFor(-24, 0, 2.1)).toEqual([...inside, 'glass, outer']);
+    expect(drawn.glass.outside).toEqual(['end −x, −y of the mouth', 'end −x, +y of the mouth', 'end −x, above the mouth']);
     expect(shownFor(21, -6, 2.1)).toEqual([...inside, 'glass, outer']);
-    // Within a centimetre of a pane's plane, where the shader's float32 may take the camera as outside, it draws.
-    expect(shownFor(0, -13.995, 2.1)).toEqual([...inside, 'glass, outer']);
-    expect(shownFor(0, -13.98, 2.1)).toEqual(inside);
+    expect(drawn.glass.outside).toEqual(['end +x, +y of the mouth', 'end +x, −y of the mouth', 'end +x, above the mouth']);
+    // On a wall's plane the camera is its inner draw's, and a millimetre outside it, the outer draw's.
+    expect(shownFor(0, -14, 2.1)).toEqual(inside);
+    expect(shownFor(0, -14.001, 2.1)).toEqual([...inside, 'glass, outer']);
     // No padded walls: nothing opaque stands where the walls are.
     expect(drawn.object.getObjectByName('walls')).toBeUndefined();
+  });
+
+  it("hands both of the glass's draws the one choice of panes it decides for the camera, a wall's each", () => {
+    const d = drawPitch(pitch, detail, PLACEHOLDER_LOOK);
+    const [inner, outer] = [materialOf('glass, inner', d), materialOf('glass, outer', d)] as ShaderMaterial[];
+    const sides = inner!.uniforms['wallInside']!;
+    expect(outer!.uniforms['wallInside']).toBe(sides);
+    const names = pitch.pieces.filter((q) => q.surface === WALL).map((q) => q.name);
+    const insideOf = (): string[] => names.filter((_, k) => (sides.value as number[])[k] === 1);
+    // Outside the −y side wall and its corner: their walls the outer draw's, the rest the inner's.
+    d.setFade(new Vector3(-19, -15, 2.1));
+    expect(names.filter((_, k) => (sides.value as number[])[k] === 0).sort()).toEqual(['corner −x−y', 'side wall −y']);
+    expect(insideOf()).toHaveLength(10);
+    expect(d.glass).toEqual({ outer: true, outside: ['side wall −y', 'corner −x−y'] });
+    // Back on the pitch: every wall the inner draw's again.
+    d.setFade(new Vector3(0, 0, 2.1));
+    expect(insideOf()).toEqual(names);
+    expect(d.glass).toEqual({ outer: false, outside: [] });
+    d.dispose();
   });
 
   it("counts: the glass's 28 panes in 56 triangles, the rail's 168 and the ground's 856, on 8 geometries (C-57)", () => {
@@ -175,42 +196,48 @@ describe("the transparent things' order (C-57)", () => {
 });
 
 describe("the goals' netting faces (C-57)", () => {
-  /** Each goal's faces, as the netting's vertices carry them, with how many vertices carry each. */
-  function faces(): Map<string, { face: Face; side: number; vertices: number }> {
+  const faces = nettingFaces(pitch);
+
+  /** Each face's vertices, by its name, as the netting's lines carry their face's index, the faceShown uniform's. */
+  function linesOf(): Map<string, number[][]> {
     const g = part('goal netting');
     const p = g.getAttribute('position');
     const f = g.getAttribute('face');
-    const out = new Map<string, { face: Face; side: number; vertices: number }>();
+    const out = new Map<string, number[][]>();
     for (let i = 0; i < p.count; i++) {
-      const face: Face = [f.getX(i), f.getY(i), f.getZ(i), f.getW(i)];
-      const side = Math.sign(p.getX(i));
-      const key = `${side} ${face.join(' ')}`;
-      out.set(key, { face, side, vertices: (out.get(key)?.vertices ?? 0) + 1 });
+      const name = faces[f.getX(i)]!.name;
+      out.set(name, [...(out.get(name) ?? []), [p.getX(i), p.getY(i), p.getZ(i)]]);
     }
     return out;
   }
 
-  it("carries each netting line's face, the simulation's piece's plane, at both its ends", () => {
-    const all = [...faces().values()];
-    // Each goal's back, two sides and top.
-    expect(all).toHaveLength(2 * 4);
-    const pieces = pitch.pieces.filter((q) => q.surface === GOAL_NET);
-    for (const q of pieces) {
-      const offset = q.ox * q.nx + q.oy * q.ny + q.oz * q.nz;
-      expect(all.some((a) => a.side === Math.sign(q.ox) && a.face.every((v, k) => Math.abs(v - [q.nx, q.ny, q.nz, offset][k]!) < 1e-6)), q.name).toBe(true);
+  it("carries each netting line's face, the index of the simulation's piece it lies on, at both its ends", () => {
+    const all = linesOf();
+    // Each goal's back, two sides and top, every one of them lined.
+    expect([...all.keys()].sort()).toEqual(pitch.pieces.filter((q) => q.surface === GOAL_NET).map((q) => q.name).sort());
+    for (const [name, vertices] of all) {
+      const face = faces.find((x) => x.name === name)!.face;
+      expect(vertices.length % 2, name).toBe(0);
+      for (const v of vertices) expect(Math.abs(v[0]! * face[0] + v[1]! * face[1] + v[2]! * face[2] - face[3]), `${name}: ${v.join(', ')}`).toBeLessThan(1e-5);
     }
-    for (const a of all) expect(a.vertices % 2, a.face.join(' ')).toBe(0);
   });
 
-  it("drops the faces the camera is outside of once it's beyond the goal line, and keeps every face in front of it", () => {
-    const shown = (x: number, y: number, z: number): string[] =>
-      [...faces().values()].filter((a) => nettingShown(a.face, a.side, pitch.goalLineX, x, y, z) > 0.5).map((a) => `${a.side < 0 ? '−x' : '+x'} ${name(a.face)}`).sort();
-    const name = (f: Face): string => (f[0] !== 0 ? 'back' : f[2] !== 0 ? 'top' : f[1] > 0 ? 'side −y' : 'side +y');
+  it("drops the faces the camera is outside of once it's beyond the goal line, and keeps every face in front of it, as the netting's shader reads", () => {
+    const d = drawPitch(pitch, detail, PLACEHOLDER_LOOK);
+    const uniform = (materialOf('goal netting', d) as ShaderMaterial).uniforms['faceShown']!;
+    /** The faces drawn for a camera at (x, y, z), short-named, by the uniform the shader reads; and the report's. */
+    const shown = (x: number, y: number, z: number): string[] => {
+      d.setFade(new Vector3(x, y, z));
+      const values = uniform.value as number[];
+      expect(d.netting, `the report, ${x}, ${y}, ${z}`).toEqual(faces.flatMap((f, k) => (values[k]! < 1 ? [{ name: f.name, shown: values[k] }] : [])));
+      return faces.filter((_, k) => values[k]! > 0.5).map((f) => f.name.replace('goal ', '')).sort();
+    };
     const every = ['−x back', '−x side −y', '−x side +y', '−x top', '+x back', '+x side −y', '+x side +y', '+x top'].sort();
     // In front of both goal lines, wherever the camera is, behind a goal's line or not: every face.
     for (const [x, y, z] of [[0, 0, 2.1], [-19.6, 0, 2.1], [19, -6, 5.6], [-19.9, -12, 0.4]]) expect(shown(x!, y!, z!), `${x}, ${y}, ${z}`).toEqual(every);
     // Behind the −x goal's back: its back goes, the rest stays.
     expect(shown(-24, 0, 2.1)).toEqual(every.filter((f) => f !== '−x back'));
+    expect(d.netting).toEqual([{ name: 'goal −x back', shown: 0 }]);
     // Beside the +x goal beyond its line, outside its −y side: that side goes.
     expect(shown(21, -6, 2.1)).toEqual(every.filter((f) => f !== '+x side −y'));
     // Above the −x goal's top, beyond its line: the top goes; and behind and above it, the back as well.
@@ -219,9 +246,9 @@ describe("the goals' netting faces (C-57)", () => {
     // Inside the goal, outside none of its faces: every face.
     expect(shown(-21, 0, 2)).toEqual(every);
     // It fades over the first half metre past the line and the first half metre outside the face, not at once.
-    const back = [...faces().values()].find((a) => a.side < 0 && a.face[0] !== 0)!;
-    expect(nettingShown(back.face, back.side, pitch.goalLineX, -22.25, 0, 2.1)).toBeCloseTo(0.5, 6);
-    expect(nettingShown(back.face, back.side, pitch.goalLineX, -24, 0, 2.1)).toBe(0);
+    shown(-22.25, 0, 2.1);
+    expect(d.netting).toEqual([{ name: 'goal −x back', shown: expect.closeTo(0.5, 6) as number }]);
+    d.dispose();
   });
 });
 

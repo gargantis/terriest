@@ -3,42 +3,44 @@ import { Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import { insideFloorPlan, pitch, WALL } from '../core/sim/pitch';
 import { lineFadeUniforms } from './fade';
-import { glassGeometry, glassMaterial, insideOf, outerDrawn, type PanePlane, railGeometry, wallPlanes } from './glass';
+import { glassGeometry, glassMaterial, insideOf, outerDrawn, railGeometry, wallPlanes, wallSides, wallSidesUniform } from './glass';
 import { PLACEHOLDER_LOOK } from './look';
 
 // The glass walls (C-57), without a GPU: the 28 panes over the simulation's
-// wall pieces, each vertex carrying its pane's plane, so the vertex shader,
-// which keeps a pane in the inner draw when the camera is inside its plane
-// and in the outer draw when it's outside (insideOf, the shader's own
-// reckoning), decides a pane alike at every vertex; which panes each draw
+// wall pieces, each vertex carrying its pane's wall, by which the vertex
+// shader reads the draws' choice of the pane from the wallInside uniform,
+// wallSides', decided on the CPU once a frame: the inner draw keeps a pane
+// the camera is inside its wall's plane of, and the outer draw one it's
+// outside of. So these check the choice that's drawn: which panes each draw
 // keeps for a camera inside, outside a side wall, outside a corner and
 // behind a goal; the outer draw skipped while the camera is inside every
-// pane's plane; and the rail along the walls' top.
+// wall's plane; the shader reading the choice and deciding nothing itself;
+// and the rail along the walls' top.
 
 const geometry = glassGeometry(pitch);
 const walls = pitch.pieces.filter((q) => q.surface === WALL);
+const planes = wallPlanes(pitch);
 
 interface Pane {
   /** Its wall piece's name. */
   readonly piece: string;
-  readonly plane: PanePlane;
+  /** Its wall's index in wallPlanes' order, the wallInside uniform's. */
+  readonly wall: number;
   /** Its length along the wall, metres. */
   readonly length: number;
 }
 
-/** The geometry's panes, six vertices each, every vertex's plane checked against its pane's first. */
+/** The geometry's panes, six vertices each, every vertex's wall and normal checked against its pane's first, and
+ *  its wall the piece it lies on. */
 function panes(): Pane[] {
   const p = geometry.getAttribute('position');
   const n = geometry.getAttribute('normal');
-  const plane = geometry.getAttribute('plane');
+  const wall = geometry.getAttribute('wall');
   const pane = geometry.getAttribute('pane');
   const out: Pane[] = [];
   for (let first = 0; first < p.count; first += 6) {
-    const at = (i: number): PanePlane => ({ nx: n.getX(i), ny: n.getY(i), nz: n.getZ(i), offset: plane.getX(i) });
-    for (let i = first + 1; i < first + 6; i++) {
-      expect(at(i), `pane ${first / 6}, vertex ${i - first}`).toEqual(at(first));
-      expect(pane.getY(i), `pane ${first / 6}, vertex ${i - first}`).toBe(pane.getY(first));
-    }
+    const at = (i: number): number[] => [wall.getX(i), n.getX(i), n.getY(i), n.getZ(i), pane.getY(i)];
+    for (let i = first + 1; i < first + 6; i++) expect(at(i), `pane ${first / 6}, vertex ${i - first}`).toEqual(at(first));
     // Its centre, and the wall piece it lies on.
     const c = [0, 1, 2].map((k) => [0, 1, 2, 3, 4, 5].reduce((s, i) => s + p.getComponent(first + i, k), 0) / 6) as [number, number, number];
     const on = walls.filter((q) => {
@@ -49,24 +51,25 @@ function panes(): Pane[] {
     });
     expect(on, `pane ${first / 6}'s piece`).toHaveLength(1);
     const q = on[0]!;
-    expect(at(first).nx, q.name).toBeCloseTo(q.nx, 6);
-    expect(at(first).ny, q.name).toBeCloseTo(q.ny, 6);
-    expect(at(first).offset, q.name).toBeCloseTo(q.ox * q.nx + q.oy * q.ny + q.oz * q.nz, 4);
-    out.push({ piece: q.name, plane: at(first), length: pane.getY(first) });
+    const index = wall.getX(first);
+    expect(planes[index]?.name, `pane ${first / 6}'s wall`).toBe(q.name);
+    expect([n.getX(first), n.getY(first), n.getZ(first)].map((v) => Math.round(v * 1e6) / 1e6), q.name).toEqual([q.nx, q.ny, q.nz].map((v) => Math.round(v * 1e6) / 1e6));
+    out.push({ piece: q.name, wall: index, length: pane.getY(first) });
   }
   return out;
 }
 
-/** The panes each draw keeps for a camera at (x, y, z), by their pieces' names, as the vertex shader keeps them. */
+/** The panes each draw keeps for a camera at (x, y, z), by their pieces' names: by the draws' choice, wallSides',
+ *  which the vertex shader reads by each pane's wall. */
 function split(x: number, y: number, z: number, all = panes()): { inner: string[]; outer: string[] } {
+  const sides = wallSides(planes, new Vector3(x, y, z), []);
   return {
-    inner: all.filter((q) => insideOf(q.plane, x, y, z) >= 0).map((q) => q.piece),
-    outer: all.filter((q) => insideOf(q.plane, x, y, z) < 0).map((q) => q.piece),
+    inner: all.filter((q) => sides[q.wall] === 1).map((q) => q.piece),
+    outer: all.filter((q) => sides[q.wall] === 0).map((q) => q.piece),
   };
 }
 
-const planes = wallPlanes(pitch);
-const outerFor = (x: number, y: number, z: number): boolean => outerDrawn(planes, new Vector3(x, y, z));
+const outerFor = (x: number, y: number, z: number): boolean => outerDrawn(wallSides(planes, new Vector3(x, y, z), []));
 const count = (names: readonly string[], piece: string): number => names.filter((n) => n === piece).length;
 
 describe('the glass (C-57)', () => {
@@ -114,36 +117,45 @@ describe('the glass (C-57)', () => {
     expect(split(-20.5, 1, 1.5).outer).toHaveLength(4);
   });
 
-  it("skips the outer draw while the camera is inside every pane's plane, and draws it once it's outside any", () => {
-    // Over the pitch and around it: the outer draw drawn exactly where some pane is the outer draw's, or within a
-    // centimetre of being so, as the shader decides in float32.
+  it("skips the outer draw while the camera is inside every wall's plane, and draws it once it's outside any", () => {
+    // Over the pitch and around it: the outer draw drawn exactly where some pane is the outer draw's, which is
+    // everywhere off the simulation's floor plan, more than a millimetre from its edge.
     const all = panes();
     let inside = 0;
     for (let x = -30; x <= 30; x += 0.75) {
       for (let y = -22; y <= 22; y += 0.75) {
         for (const z of [0.4, 2.1, 5.6]) {
-          const outer = split(x, y, z, all).outer.length;
-          const near = all.some((q) => insideOf(q.plane, x, y, z) < 0.01);
-          expect(outerFor(x, y, z), `${x}, ${y}, ${z}`).toBe(outer > 0 || near);
-          if (!outerFor(x, y, z)) {
-            inside++;
-            expect(insideFloorPlan(pitch.shape, x, y), `${x}, ${y}: skipped off the floor plan`).toBe(true);
-          }
+          const outer = split(x, y, z, all).outer.length > 0;
+          expect(outerFor(x, y, z), `${x}, ${y}, ${z}`).toBe(outer);
+          const [over, near] = [insideFloorPlan(pitch.shape, x, y, 0.001), insideFloorPlan(pitch.shape, x, y, -0.001)];
+          if (over === near) expect(outer, `${x}, ${y}, ${z}: over the floor plan ${over}`).toBe(!over);
+          if (!outer) inside++;
         }
       }
     }
     expect(inside).toBeGreaterThan(1000);
-    expect([outerFor(0, -13.995, 2.1), outerFor(0, -13.98, 2.1)]).toEqual([true, false]);
+    // On a wall's plane, the inner draw's; a millimetre outside it, the outer draw's.
+    expect([outerFor(0, -14.001, 2.1), outerFor(0, -14, 2.1), outerFor(0, -13.999, 2.1)]).toEqual([true, false, false]);
+    expect(planes.map((q) => insideOf(q, 0, -14, 2.1)).filter((d) => d === 0)).toHaveLength(1);
   });
 
-  it('draws its two draws with one shader, the outer squashed to the kick band and its line', () => {
+  it('draws its two draws with one shader, the outer squashed to the kick band and its line, both reading one choice of panes', () => {
     const fade = lineFadeUniforms();
-    const [inner, outer] = [glassMaterial(PLACEHOLDER_LOOK, false, fade), glassMaterial(PLACEHOLDER_LOOK, true, fade)] as ShaderMaterial[];
+    const sides = wallSidesUniform(planes);
+    const [inner, outer] = [glassMaterial(PLACEHOLDER_LOOK, false, fade, sides), glassMaterial(PLACEHOLDER_LOOK, true, fade, sides)] as ShaderMaterial[];
     expect(outer!.vertexShader).toBe(inner!.vertexShader);
     expect(outer!.fragmentShader).toBe(inner!.fragmentShader);
     expect([inner!.uniforms['outer']!.value, outer!.uniforms['outer']!.value]).toEqual([0, 1]);
     expect(outer!.uniforms['outerTop']!.value).toBeCloseTo(0.51, 9);
     expect(outer!.uniforms['bandTop']!.value).toBe(0.45);
+    // One uniform, a wall's each, every wall's panes the inner draw's until a frame decides; the vertex shader reads
+    // it by each vertex's wall, and decides nothing from the camera itself.
+    expect(inner!.uniforms['wallInside']).toBe(sides);
+    expect(outer!.uniforms['wallInside']).toBe(sides);
+    expect(sides.value).toEqual(Array(12).fill(1));
+    expect(inner!.vertexShader).toContain('uniform float wallInside[12];');
+    expect(inner!.vertexShader).toContain('wallInside[int(wall)]');
+    expect(inner!.vertexShader).not.toContain('cameraPosition');
     // See-through, both sides, writing no depth.
     for (const m of [inner!, outer!]) expect([m.transparent, m.depthWrite, m.side]).toEqual([true, false, 2]);
     inner!.dispose();
