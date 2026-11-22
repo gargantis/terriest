@@ -180,7 +180,7 @@ describe('the fit: no part of the drawn terrier inside a touching ball (D-27)', 
         }
       }
       expect(worst.metres, `${(worst.metres * 100).toFixed(2)} cm clear at ${worst.where}`).toBeGreaterThanOrEqual(0);
-    });
+    }, 60_000); // its own timeout: 4–5.5 s a shape in a loaded unit stage, past vitest's 5 s
   }
 
   it('would put its head in the ball without the pushing pose, which is why it holds one', () => {

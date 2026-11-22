@@ -49,12 +49,14 @@ tracked list would conflict on every merge.
   why is not obvious from the diff; end with the attribution trailer the
   session specifies.
 - Before committing, run `npm run check:commit` (lint, public-scan,
-  typecheck, unit tests) and every end-to-end spec the commit adds or
-  changes, by path, and fix any failure first. The full gate, `npm run
-  check`, is the definition of done (CLAUDE.md): it runs before
-  `/merge-to-main`, at each milestone's exit and before a deploy (PLAN Q-18's
-  alternative, the owner's decision of 2026-11-20). Neither is ever weakened
-  to make a build pass.
+  typecheck, and the unit tests but the whole-match replays) and every
+  end-to-end spec the commit adds or changes, by path, and fix any failure
+  first. A commit that changes the simulation, the bots, the timeline, the
+  session, the protocol or `src/net` runs `npm test`, every unit test, too.
+  The full gate, `npm run check`, is the definition of done (CLAUDE.md): it
+  runs before `/merge-to-main`, at each milestone's exit and before a deploy
+  (PLAN Q-18's alternative, the owner's decisions of 2026-11-20 and
+  2026-11-21). Neither is ever weakened to make a build pass.
 - Never commit on `main`. The PreToolUse hook `.claude/hooks/guard-main.sh`
   refuses `git commit`, `git rebase`, `git cherry-pick`, `git revert`, and any
   non-`--ff-only` `git merge` while HEAD is main.

@@ -8,7 +8,7 @@
     "resolveJsonModule": true
   },
   "include": [
-    "src", "e2e", "dev", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "playwright.load.config.ts", "playwright.dev-local.config.ts",
-    "playwright.frames.config.ts"
+    "src", "e2e", "dev", "vite.config.ts", "vitest.config.ts", "vitest.quick.config.ts", "playwright.config.ts", "playwright.load.config.ts",
+    "playwright.dev-local.config.ts", "playwright.frames.config.ts"
   ]
 }
