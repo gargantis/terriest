@@ -57,7 +57,9 @@
 // rows and Terriest, each row's cells level, pack A scored and the score
 // not level at 0:00; one
 // hash at a common final tick; the spectator outside the roster, seeing the
-// same match (L281); WebKit's return; nothing compiled from the start
+// same match (L281); WebKit's return, its first page having closed every
+// connection it had connected by its look as it went, after its pagehide
+// (e2e/lib/browsers.ts' watchUnload); nothing compiled from the start
 // countdown to Results on the pages that neither reloaded nor joined
 // mid-match; the holds and the Ready presses inside the latitudes the
 // replays validated, the holds' starts inside screens-hold-start's; axe on
@@ -84,7 +86,7 @@ import { ENDED, IN_PLAY, KICKOFF_COUNTDOWN, NEVER, START_COUNTDOWN, WARM_UP } fr
 import type { Inspection } from '../src/main';
 import type { ResourceCounts } from '../src/render/stage-types';
 import { startNostrRelay } from '../vendor/hermet/nostr-relay.mjs';
-import { type AppPage, type Engine, launch, openAppPage, SPEC_SEED, waitForStart } from './lib/browsers';
+import { type AppPage, type Engine, expectClosedAtUnload, launch, openAppPage, SPEC_SEED, type UnloadLook, waitForStart, watchUnload } from './lib/browsers';
 import { PAD, press } from './lib/gamepad';
 import { expect, expectEverywhere, test } from './lib/guards';
 import { acceptLeavePrompt, expectAxeClean, hashAt, hudOf, inspect, monotonicMs, POLL_MS } from './lib/page';
@@ -280,6 +282,8 @@ class Look {
   readyAt: { tick: number; ms: number } | null = null;
   /** history.length and the fragment just before its Play again (net-F1). */
   againAt: { length: number; hash: string } | null = null;
+  /** Its connections as each of its documents went, for a page that reloads (watchUnload). */
+  readonly unloads: UnloadLook[] = [];
 
   constructor(who: Who, measure: Measure) {
     this.who = who;
@@ -566,8 +570,15 @@ class ScreensMatch {
     return [this.chromium, this.firefox, this.webkit, this.spectator];
   }
 
-  async open(who: Look, browser: Browser, k: number, name: string, o: { fragment?: string; gamepad?: boolean } = {}): Promise<AppPage> {
-    const app = await openAppPage(browser, this.base, { k, name, relay: this.relay, ...o, beforeLoad: recorders });
+  async open(who: Look, browser: Browser, k: number, name: string, o: { fragment?: string; gamepad?: boolean; reloads?: boolean } = {}): Promise<AppPage> {
+    const { reloads, ...more } = o;
+    const app = await openAppPage(browser, this.base, {
+      k, name, relay: this.relay, ...more,
+      beforeLoad: async (page) => {
+        await recorders(page);
+        if (reloads === true) await watchUnload(page, who.unloads);
+      },
+    });
     acceptLeavePrompt(app.page);
     who.app = app;
     this.mark(`${who.who} started`);
@@ -893,6 +904,8 @@ class ScreensMatch {
     // included; logged against them all (net-netspecs-F3).
     console.log(`WebKit away ${away} ms across its reload, against the absences validated, ${ABSENCES.join(', ')} ms`);
     expect(away, `WebKit's reload away ${away} ms: validated to ${Math.max(...ABSENCES)} ms (§9.2)`).toBeLessThanOrEqual(Math.max(...ABSENCES));
+    // Its first page closed its connections at once on pagehide, so no far side saw the browser's teardown.
+    await expectClosedAtUnload(w.unloads, "WebKit's first page");
     // The rebase reaches the pitch screen's controls, and its first input after it is sampled within a tick
     // (§4.6): a return that loses it starts the counters at 0 against the stored 3, which acts a jump.
     const back = await w.until((x) => x.controls !== null && x.controls.firstAfterBase !== null, {
@@ -1159,7 +1172,7 @@ test('three engines play a match through the screens: proposed, joined by link a
     await Promise.all([
       run.open(run.chromium, browsers[0]!, 0, 'Chromium'),
       run.open(run.firefox, browsers[1]!, 1, 'Firefox'),
-      run.open(run.webkit, browsers[2]!, 2, 'WebKit', { gamepad: true }),
+      run.open(run.webkit, browsers[2]!, 2, 'WebKit', { gamepad: true, reloads: true }),
     ]);
     await Promise.all([
       run.chromiumSetup().then(() => run.chromiumPlays()),

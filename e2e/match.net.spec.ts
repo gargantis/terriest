@@ -12,14 +12,18 @@
 // on the clock (L281), and WebKit's page reloads once it's under 35 s
 // (L282, D-17), each with no celebration under way. The reloading page
 // leaves its room on pagehide (design §6.3), so its peers see it go: none
-// meets its HELLOs with its old connection still there.
+// meets its HELLOs with its old connection still there. In the same
+// listener it closes each of its connections at once, so its peers see an
+// abort, which Trystero ignores, and never the browser's teardown.
 // Checks: the start countdown begins where R-7's replay has it, from every
 // page's Ready at its tick (§7.2); every page, the spectator and the
 // reloaded one included, reaches the confirmed end at one tick, with one
 // score, rows and Terriest, and one hash at a common final tick (P1, P2);
 // pack A scored and the score isn't level; every page's confirmed goals are
 // the keeper's from its arrival, a goal it arrived during the celebration of
-// included, each once (P9, §3.5); the reloaded page returned, and its
+// included, each once (P9, §3.5); WebKit's first page had closed every
+// connection it had connected by its look as it went, after its pagehide
+// (e2e/lib/browsers.ts' watchUnload); the reloaded page returned, and its
 // terrier's last input, in every page's final state, is within 30 ticks of
 // the end's tick, so it was in control again; and no page logged an error or
 // requested anything but the preview and the relay (expectEverywhere). Any
@@ -37,7 +41,7 @@ import { botIds, personId } from '../src/core/bot/bot-id';
 import { IN_PLAY, START_COUNTDOWN, WARM_UP } from '../src/core/sim/state';
 import type { NetReport } from '../src/nettest-params';
 import { startNostrRelay } from '../vendor/hermet/nostr-relay.mjs';
-import { type Engine, freshRoom, hashAt, launch, type NetPage, openNetPage, waitFor } from './lib/browsers';
+import { type Engine, expectClosedAtUnload, freshRoom, hashAt, launch, type NetPage, openNetPage, type UnloadLook, waitFor, watchUnload } from './lib/browsers';
 import { expect, expectEverywhere, test } from './lib/guards';
 import { monotonicMs } from './lib/page';
 
@@ -104,9 +108,11 @@ test('three engines, a spectator and a reload play a scripted match to one confi
     const keeper = await openNetPage(cr, 'chromium', baseURL!, relay, { ...common, k: 0, role: 'keeper', pack: 0, script: 'back', bots: '0' });
     const genesis = monotonicMs();
     const left = (): number => Math.max(1, genesis + MATCH_MS - monotonicMs());
+    // WebKit's connections as each of its documents goes: the first at its reload.
+    const unloads: UnloadLook[] = [];
     const [firefox, webkit] = await Promise.all([
       openNetPage(ff, 'firefox', baseURL!, relay, { ...common, k: 1, role: 'player', pack: 1, script: 'none' }),
-      openNetPage(wk, 'webkit', baseURL!, relay, { ...common, k: 2, role: 'player', pack: 1, script: 'none' }),
+      openNetPage(wk, 'webkit', baseURL!, relay, { ...common, k: 2, role: 'player', pack: 1, script: 'none' }, [], (page) => watchUnload(page, unloads)),
     ]);
     const players = [keeper, firefox, webkit];
     const inRoster = await waitFor(players, (rs) => rs.every((r) => r.roster.length === 4), { timeoutMs: left(), fail: overtime });
@@ -127,6 +133,7 @@ test('three engines, a spectator and a reload play a scripted match to one confi
     console.log(`the spectator in, then the reload at the keeper's final tick ${atReload!.finalTick}, clock ${atReload!.clock}`);
     await webkit.page.reload({ timeout: Math.min(30_000, left()) });
     await webkit.page.waitForFunction(() => window.terriestTest?.net !== undefined, null, { timeout: Math.min(30_000, left()) });
+    await expectClosedAtUnload(unloads, "WebKit's first page");
     const all = [keeper, firefox, spectator, webkit];
     const me = personId(SEED, 2);
     const [back] = await waitFor([webkit], ([r]) => r!.returning && r!.arrivedTick >= 0, { timeoutMs: left(), fail: overtime });

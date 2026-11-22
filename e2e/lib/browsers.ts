@@ -18,6 +18,10 @@
 //   as an overtime (§8.4);
 // - freshRoom from src/core/match-id.ts, and a count of the page's
 //   RTCPeerConnections for Practice's spec (P10);
+// - watchUnload, the states of a page's connections as it went, which the
+//   reload specs check are all closed by then: its pagehide listener closes
+//   each at once (src/net/trystero.ts' pageHidden), so no far side sees the
+//   browser's teardown;
 // - from M4, openAppPage: a normal page of the built app, its screens and
 //   not a #test= page, in a browser a test launched (M4's design §5.12,
 //   §9.1, §9.4, M4-Q3, M4-Q4): its storage seeded as a player's would be,
@@ -33,7 +37,7 @@ import { generateMatchId } from '../../src/core/match-id';
 import type { NetReport } from '../../src/nettest-params';
 import { installGamepad } from './gamepad';
 import { CHROMIUM_GL_ARGS } from './gl';
-import { expectWebGL2, type PageWatch, watchPage } from './guards';
+import { expect, expectWebGL2, type PageWatch, watchPage } from './guards';
 import { installHook, monotonicMs, POLL_MS as LOOK_MS, seedStorage, smallViewport } from './page';
 
 export type Engine = 'chromium' | 'firefox' | 'webkit';
@@ -68,17 +72,19 @@ export interface NetPage {
 }
 
 /** A context and page: WebGL 2 asserted first, the hook installed, the page watched with only the
- *  base URL and the relay allowed (and extra prefixes, such as a dev server's ws:// origin), #test=net&…
- *  opened, with the relay among its parameters when there is one, and window.terriestTest.net awaited. */
+ *  base URL and the relay allowed (and extra prefixes, such as a dev server's ws:// origin), the spec's
+ *  own init scripts (beforeLoad), #test=net&… opened, with the relay among its parameters when there is
+ *  one, and window.terriestTest.net awaited. */
 export async function openNetPage(
   b: Browser, engine: Engine, base: string, relay: string | null, params: Readonly<Record<string, string | number>>,
-  allowed: readonly string[] = [],
+  allowed: readonly string[] = [], beforeLoad?: (page: Page) => Promise<void>,
 ): Promise<NetPage> {
   const context = await b.newContext();
   const page = await context.newPage();
   const watch = await watchPage(page, [base, ...(relay === null ? [] : [relay]), ...allowed]);
   await expectWebGL2(page);
   await installHook(page);
+  await beforeLoad?.(page);
   const query = new URLSearchParams([['test', 'net']]);
   if (relay !== null) query.set('relay', relay);
   for (const [k, v] of Object.entries(params)) query.set(k, String(v));
@@ -219,4 +225,80 @@ export async function countPeerConnections(target: Page | BrowserContext): Promi
       }
     };
   });
+}
+
+/** A page's look at its connections as one of its documents went: the event it looked at, and the
+ *  connectionState then of each RTCPeerConnection the document made that had reached 'connected'. */
+export interface UnloadLook {
+  readonly event: string;
+  readonly states: readonly string[];
+}
+
+/** What a document logs as it goes: this, a space and its UnloadLook's JSON, by console.debug. */
+const UNLOAD_LOG = 'terriest-unload';
+/** How long the check waits for the first document's look: in every run it was in before the check,
+ *  which match.net.spec.ts makes as soon as the reloaded page's hook is up, so only a look that never
+ *  comes waits this long. */
+const UNLOAD_LOOK_MS = 5_000;
+
+/**
+ * An init script that only watches, as countPeerConnections does: each RTCPeerConnection the page
+ * makes, kept with whether it ever reached connectionState 'connected'; then, once the document has
+ * had its pagehide, a look at visibilitychange to hidden and at unload, which both follow every
+ * pagehide listener, the app's included (the script's own pagehide listener, added before the app's,
+ * runs before it and only notes that the page is going). Each look goes out by console.debug, which
+ * reaches page.on('console') from a WebKit page as it unloads, and which the guard never counts as an
+ * error; the looks land in `looks`, in order.
+ */
+export async function watchUnload(page: Page, looks: UnloadLook[]): Promise<void> {
+  page.on('console', (m) => {
+    const text = m.text();
+    if (text.startsWith(`${UNLOAD_LOG} `)) looks.push(JSON.parse(text.slice(UNLOAD_LOG.length + 1)) as UnloadLook);
+  });
+  await page.addInitScript((log) => {
+    const w = window as unknown as { RTCPeerConnection?: typeof RTCPeerConnection };
+    const Native = w.RTCPeerConnection;
+    if (Native === undefined) return;
+    const made: { readonly pc: RTCPeerConnection; connected: boolean }[] = [];
+    w.RTCPeerConnection = class extends Native {
+      constructor(...args: ConstructorParameters<typeof RTCPeerConnection>) {
+        super(...args);
+        const seen = { pc: this as RTCPeerConnection, connected: false };
+        made.push(seen);
+        this.addEventListener('connectionstatechange', () => {
+          if (this.connectionState === 'connected') seen.connected = true;
+        });
+      }
+    };
+    let going = false;
+    addEventListener('pagehide', () => {
+      going = true;
+    });
+    const look = (event: string): void => {
+      if (!going) return;
+      const states = made.filter((m) => m.connected).map((m) => m.pc.connectionState);
+      console.debug(`${log} ${JSON.stringify({ event, states })}`);
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') look('visibilitychange');
+    });
+    addEventListener('unload', () => look('unload'));
+  }, UNLOAD_LOG);
+}
+
+/** Fails unless the first document watchUnload watched go had closed, by its first look, every
+ *  connection it had connected, and had connected one: its pagehide listener closes each at once
+ *  (src/net/trystero.ts' pageHidden), so no far side sees the browser's teardown. */
+export async function expectClosedAtUnload(looks: readonly UnloadLook[], who: string): Promise<void> {
+  const from = monotonicMs();
+  while (looks.length === 0) {
+    if (monotonicMs() - from > UNLOAD_LOOK_MS) throw new Error(`${who}: no look at its connections as it went, within ${UNLOAD_LOOK_MS} ms of the check`);
+    await new Promise((resolve) => setTimeout(resolve, LOOK_MS));
+  }
+  const first = looks[0]!;
+  console.log(`${who}'s connections at its ${first.event}, its look waited for ${Math.round(monotonicMs() - from)} ms: ${first.states.join(', ')}`);
+  const open = first.states.filter((s) => s !== 'closed');
+  expect(first.states.length, `${who}: the connections it had connected, by its ${first.event}`).toBeGreaterThan(0);
+  expect(open, `${who}: ${open.length} of the ${first.states.length} connections it had connected not closed at its ${first.event}, after its pagehide (src/net/trystero.ts' pageHidden)`)
+    .toEqual([]);
 }

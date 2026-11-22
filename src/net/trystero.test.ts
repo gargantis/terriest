@@ -4,10 +4,15 @@
 // the two-round handshake with the time and the peer ID, the refusal each
 // side receives, a place this side accepted released through onJoinError or
 // the timeout, a replaced connection dropped before the new one joins, the
-// guard around the room peer, pings, and leaving. The only file besides
-// src/ui/game.ts that loads src/net/trystero.ts, which the lint allows
-// because no build bundles it (M3 phase 2's integration).
+// guard around the room peer, pings, and leaving: on pagehide, every open
+// room's leave and then, in the same task, every connection the page's rooms
+// joined closed, each once, through the page's one listener, on Node's own
+// EventTarget as the window, and a module loaded afresh for each such test,
+// since the page's rooms and connections are the module's. The only file
+// besides src/ui/game.ts that loads src/net/trystero.ts, which the lint
+// allows because no build bundles it (M3 phase 2's integration).
 
+import { getEventListeners } from 'node:events';
 import type { DataPayload, HandshakePayload, JoinError, JoinRoomCallbacks, JoinRoomConfig } from '@trystero-p2p/nostr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decode, encodeHello, encodeRefuse, PROTOCOL_VERSION, REFUSAL, ROLE, T, TIMELINE_KIND, ZERO_HASH, type Hello } from '../core/protocol/messages';
@@ -16,6 +21,15 @@ import { netSettings } from '../core/session/settings';
 import { roomConfig } from './room-config';
 import { openRoom, TrysteroRoom } from './trystero';
 import type { TransportOptions } from './transport';
+
+/** A peer's connection as getPeers() hands it over, Trystero's shared physical RTCPeerConnection: one for
+ *  each remote peer, whichever rooms joined it. close() writes "close <id>" to the test's log each time it's
+ *  called; on one closed already it throws, as no engine does (the spec makes it a no-op), so a test sees
+ *  each close stand alone. */
+interface FakeConnection {
+  connectionState: string;
+  close(): void;
+}
 
 /** The room the mock made for one joinRoom call. */
 interface FakeRoom {
@@ -29,49 +43,74 @@ interface FakeRoom {
   readonly sent: { data: unknown; target: unknown }[];
   readonly pings: string[];
   pong: (id: string) => Promise<number>;
-  readonly closed: string[];
+  /** getPeers(): the peers joined and not yet left, as Trystero's activePeerMap holds them. */
+  readonly peers: Record<string, FakeConnection>;
   left: boolean;
 }
 
-const fake = vi.hoisted(() => ({ rooms: [] as FakeRoom[] }));
+/** The rooms made, the test's one log of closes and leaves, and each remote peer's connection. */
+const fake = vi.hoisted(() => ({ rooms: [] as FakeRoom[], log: [] as string[], connections: {} as Record<string, FakeConnection> }));
 
-vi.mock('@trystero-p2p/nostr', () => ({
-  getRelaySockets: () => ({ a: { readyState: 1 }, b: { readyState: 3 } }),
-  joinRoom: (config: JoinRoomConfig, roomId: string, callbacks: JoinRoomCallbacks) => {
-    const r: FakeRoom = {
-      config, roomId, callbacks, action: [], onPeerJoin: null, onPeerLeave: null, onMessage: null, sent: [], pings: [],
-      pong: () => Promise.resolve(42), closed: [], left: false,
-    };
-    fake.rooms.push(r);
-    return {
-      makeAction: (name: string, o: { onMessage: (data: unknown, ctx: { peerId: string }) => void }) => {
-        r.action.push(name);
-        r.onMessage = o.onMessage;
-        return {
-          send: (data: unknown, opts?: { target?: unknown }) => {
-            r.sent.push({ data, target: opts?.target });
-            return Promise.resolve();
-          },
-        };
-      },
-      set onPeerJoin(f: (id: string) => void) {
-        r.onPeerJoin = f;
-      },
-      set onPeerLeave(f: (id: string) => void) {
-        r.onPeerLeave = f;
-      },
-      ping: (id: string) => {
-        r.pings.push(id);
-        return r.pong(id);
-      },
-      getPeers: () => new Proxy({}, { get: (_t, id) => ({ close: () => r.closed.push(String(id)) }) }),
-      leave: () => {
-        r.left = true;
-        return Promise.resolve();
+vi.mock('@trystero-p2p/nostr', () => {
+  const connectionOf = (id: string): FakeConnection => {
+    const log = fake.log; // this test's, whenever it's closed
+    const c: FakeConnection = {
+      connectionState: 'connected',
+      close: () => {
+        log.push(`close ${id}`);
+        if (c.connectionState === 'closed') throw new Error(`${id}'s connection closed twice`);
+        c.connectionState = 'closed';
       },
     };
-  },
-}));
+    return c;
+  };
+  return {
+    getRelaySockets: () => ({ a: { readyState: 1 }, b: { readyState: 3 } }),
+    joinRoom: (config: JoinRoomConfig, roomId: string, callbacks: JoinRoomCallbacks) => {
+      const r: FakeRoom = {
+        config, roomId, callbacks, action: [], onPeerJoin: null, onPeerLeave: null, onMessage: null, sent: [], pings: [],
+        pong: () => Promise.resolve(42), peers: {}, left: false,
+      };
+      fake.rooms.push(r);
+      return {
+        makeAction: (name: string, o: { onMessage: (data: unknown, ctx: { peerId: string }) => void }) => {
+          r.action.push(name);
+          r.onMessage = o.onMessage;
+          return {
+            send: (data: unknown, opts?: { target?: unknown }) => {
+              r.sent.push({ data, target: opts?.target });
+              return Promise.resolve();
+            },
+          };
+        },
+        // As Trystero's: a peer is active before onPeerJoin hears of it, and inactive before onPeerLeave does.
+        set onPeerJoin(f: (id: string) => void) {
+          r.onPeerJoin = (id) => {
+            r.peers[id] = fake.connections[id] ??= connectionOf(id);
+            f(id);
+          };
+        },
+        set onPeerLeave(f: (id: string) => void) {
+          r.onPeerLeave = (id) => {
+            delete r.peers[id];
+            f(id);
+          };
+        },
+        ping: (id: string) => {
+          r.pings.push(id);
+          return r.pong(id);
+        },
+        getPeers: () => ({ ...r.peers }),
+        // Trystero's leave is one promise however often it's called (room.mjs).
+        leave: () => {
+          if (!r.left) fake.log.push(`leave ${roomId}`);
+          r.left = true;
+          return Promise.resolve();
+        },
+      };
+    },
+  };
+});
 
 const NET = netSettings();
 const BUILD = '0123456789abcdef';
@@ -189,14 +228,44 @@ async function meet(a: FakeRoom, ida: string, b: FakeRoom, idb: string): Promise
 
 const made: TrysteroRoom[] = [];
 let now = 1000;
-const room = (peer: RoomPeer): TrysteroRoom => {
-  const r = new TrysteroRoom(OPTIONS, peer, () => now);
+const room = (peer: RoomPeer, Room: typeof TrysteroRoom = TrysteroRoom, matchId = OPTIONS.matchId): TrysteroRoom => {
+  const r = new Room({ ...OPTIONS, matchId }, peer, () => now);
   made.push(r);
   return r;
 };
 
+/** src/net/trystero.ts loaded afresh, its page-wide state new: the open rooms, the connections they joined and
+ *  the one pagehide listener, which a module keeps from one test to the next. */
+async function freshModule(): Promise<typeof TrysteroRoom> {
+  vi.resetModules();
+  return (await import('./trystero')).TrysteroRoom;
+}
+
+/** The window for the page's listeners: Node's own EventTarget, whose listeners are kept as the DOM keeps
+ *  them, once for each type and function, never a hand-made fake. */
+function pageWindow(): EventTarget {
+  const w = new EventTarget();
+  vi.stubGlobal('addEventListener', w.addEventListener.bind(w));
+  vi.stubGlobal('removeEventListener', w.removeEventListener.bind(w));
+  return w;
+}
+
+/** The page's pagehide, as the browser fires it when the page goes. */
+const pageHides = (w: EventTarget): boolean => w.dispatchEvent(new Event('pagehide'));
+
+/** Each id's handshake accepted both ways in r, then its join. */
+async function joinAll(r: FakeRoom, ids: readonly string[]): Promise<void> {
+  for (const [k, id] of ids.entries()) {
+    const x = remote([encodeHello(new Peer(player(k + 1)).hello()), encodeRefuse(REFUSAL.ACCEPTED)]);
+    await r.callbacks.onPeerHandshake!(id, x.send, x.receive, true);
+    r.onPeerJoin!(id);
+  }
+}
+
 beforeEach(() => {
   fake.rooms.length = 0;
+  fake.log = [];
+  fake.connections = {};
   now = 1000;
   vi.useFakeTimers();
 });
@@ -278,7 +347,7 @@ describe('TrysteroRoom (design §6.3)', () => {
     expect(p.of('failed')).toEqual(['failed p1', 'failed p2']);
     r.callbacks.onJoinError!({ peerId: 'p2', error: 'late', appId: 'terriest', roomId: 'room-1' });
     r.onPeerJoin!('p2');
-    expect([p.of('failed'), p.of('join'), r.closed, t.peerCount()]).toEqual([['failed p1', 'failed p2'], [], ['p2'], 0]);
+    expect([p.of('failed'), p.of('join'), fake.log, t.peerCount()]).toEqual([['failed p1', 'failed p2'], [], ['close p2'], 0]);
   });
 
   it('releases a place it accepted when a receive rejects after its check, and checks nothing that is no HELLO', async () => {
@@ -307,7 +376,7 @@ describe('TrysteroRoom (design §6.3)', () => {
     expect(p.calls.filter((c) => c.startsWith('leave') || c.startsWith('join')).map((c) => c.split(' ').slice(0, 2).join(' '))).toEqual([
       'join old', 'leave old', 'join new',
     ]);
-    expect([r.closed, t.peerCount()]).toEqual([['old'], 1]);
+    expect([fake.log, t.peerCount()]).toEqual([['close old'], 1]);
     const again = remote([encodeHello(new Peer(player(7)).hello()), encodeRefuse(REFUSAL.ACCEPTED)]);
     await expect(r.callbacks.onPeerHandshake!('old', again.send, again.receive, true)).rejects.toThrow('dropped');
     r.onMessage!(Uint8Array.of(T.PEERS), { peerId: 'old' });
@@ -356,26 +425,71 @@ describe('TrysteroRoom (design §6.3)', () => {
     expect([p.of('leave'), r.sent.length, t.peerCount()]).toEqual([['leave p1'], 2, 0]);
   });
 
-  it('drops a peer: its connection closed, its leave reported once, its ID refused; and leaves on pagehide, its pings stopped', async () => {
-    const listeners = new Map<string, () => void>();
-    vi.stubGlobal('addEventListener', (type: string, f: () => void) => listeners.set(type, f));
-    vi.stubGlobal('removeEventListener', (type: string) => listeners.delete(type));
+  it('drops a peer: its connection closed, its leave reported once, its ID refused', async () => {
     const p = new Peer(player(0));
     const t = room(p);
     const r = fake.rooms[0]!;
-    const x = remote([encodeHello(new Peer(player(1)).hello()), encodeRefuse(REFUSAL.ACCEPTED)]);
-    await r.callbacks.onPeerHandshake!('p1', x.send, x.receive, true);
-    r.onPeerJoin!('p1');
+    await joinAll(r, ['p1']);
     t.drop('p1');
     t.drop('p1');
     r.onPeerLeave!('p1');
-    expect([p.of('leave'), r.closed, t.peerCount()]).toEqual([['leave p1'], ['p1'], 0]);
-    expect([...listeners.keys()]).toEqual(['pagehide']);
-    listeners.get('pagehide')!();
-    await vi.advanceTimersByTimeAsync(0);
-    expect([r.left, [...listeners.keys()]]).toEqual([true, []]);
+    expect([p.of('leave'), fake.log, t.peerCount()]).toEqual([['leave p1'], ['close p1'], 0]);
+  });
+});
+
+describe("the page's pagehide: its rooms left, then their connections closed at once (src/net/trystero.ts' pageHidden)", () => {
+  it('leaves the room, then closes each connection it joined, each once, in the listener itself; its pings stop', async () => {
+    const Room = await freshModule();
+    const w = pageWindow();
+    room(new Peer(player(0)), Room);
+    const r = fake.rooms[0]!;
+    await joinAll(r, ['p1', 'p2']);
+    expect(fake.log).toEqual([]);
+    pageHides(w);
+    // No timer advanced, no microtask run: the leave's synchronous part, then the closes, in one task.
+    expect(fake.log).toEqual(['leave room-1', 'close p1', 'close p2']);
     const pings = r.pings.length;
     await vi.advanceTimersByTimeAsync(5 * NET.transport.pingEveryMs);
-    expect(r.pings).toHaveLength(pings);
+    expect([r.pings.length, fake.log.length]).toEqual([pings, 3]);
+  });
+
+  it("leaves both rooms of Play again's overlap before closing any connection, a connection they share closed once", async () => {
+    const Room = await freshModule();
+    const w = pageWindow();
+    room(new Peer(player(0)), Room);
+    room(new Peer(player(0)), Room, 'room-2'); // the next match's, its old room still open for leaveGraceMs
+    const [old, next] = [fake.rooms[0]!, fake.rooms[1]!];
+    await joinAll(old, ['p1', 'p2']);
+    await joinAll(next, ['p1', 'p3']); // p1's connection is the one both rooms ride, as Trystero shares it
+    pageHides(w);
+    expect(fake.log.slice(0, 2).sort(), 'the leaves, first').toEqual(['leave room-1', 'leave room-2']);
+    expect(fake.log.slice(2).sort(), 'then the closes, each once').toEqual(['close p1', 'close p2', 'close p3']);
+  });
+
+  it("closes a left room's connections too and a dropped peer's again, harmlessly; a second pagehide closes nothing", async () => {
+    const Room = await freshModule();
+    const w = pageWindow();
+    const home = room(new Peer(player(0)), Room); // left, as Results' Home leaves it: Trystero keeps its connections idle
+    const open = room(new Peer(player(0)), Room, 'room-2');
+    const [left, r] = [fake.rooms[0]!, fake.rooms[1]!];
+    await joinAll(left, ['p1']);
+    await home.leave();
+    await joinAll(r, ['p2', 'p3']);
+    open.drop('p2'); // closed by the drop, and still among the room's peers, as Trystero hears nothing of a local close
+    expect(fake.log).toEqual(['leave room-1', 'close p2']);
+    pageHides(w);
+    // p2's second close throws in the fake, and p3's still follows it.
+    expect(fake.log).toEqual(['leave room-1', 'close p2', 'leave room-2', 'close p1', 'close p2', 'close p3']);
+    pageHides(w);
+    expect(fake.log).toHaveLength(6);
+  });
+
+  it('is one listener on the page however many rooms open, which no leave removes', async () => {
+    const Room = await freshModule();
+    const w = pageWindow();
+    const rooms = ['room-1', 'room-2', 'room-3'].map((id) => room(new Peer(player(0)), Room, id));
+    expect(getEventListeners(w, 'pagehide')).toHaveLength(1);
+    for (const t of rooms) await t.leave();
+    expect(getEventListeners(w, 'pagehide')).toHaveLength(1);
   });
 });

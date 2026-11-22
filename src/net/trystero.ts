@@ -23,7 +23,11 @@
 //   error" (actions.mjs), and is rethrown on a microtask instead, the page's
 //   own uncaught error with its stack, which the e2e guard fails;
 // - it leaves the room on pagehide too, beside Trystero's own beforeunload
-//   cleanup, so M4's leave prompt may hold beforeunload back (M3-Q20).
+//   cleanup, so M4's leave prompt may hold beforeunload back (M3-Q20); and
+//   at once after, in the page's one pagehide listener, it closes every
+//   connection the page's rooms joined, a left room's too, by
+//   RTCPeerConnection.close() alone, so a far side sees an abort, which
+//   Trystero ignores, rather than the browser's teardown (pageHidden).
 // Nothing imports it statically: src/ui/game.ts loads it with import() when
 // a networked match opens, so a normal page never loads Trystero (L238,
 // design §1.36).
@@ -67,6 +71,46 @@ function guarded<R>(call: () => R): R | undefined {
   }
 }
 
+/** The page's open rooms, each with its Trystero room, and every connection a room of the page
+ *  joined, left rooms' included: what pageHidden leaves and closes. */
+const openRooms = new Map<TrysteroRoom, Room>();
+const joinedConnections = new Set<RTCPeerConnection>();
+
+/** A connection a room of the page joined, kept for pageHidden; those closed since go. */
+function remember(connection: RTCPeerConnection | undefined): void {
+  for (const c of joinedConnections) if (c.connectionState === 'closed') joinedConnections.delete(c);
+  if (connection !== undefined) joinedConnections.add(connection);
+}
+
+/**
+ * The page's one pagehide listener: every room adds this same function, and none removes it, so it
+ * holds no room and still covers a page whose rooms have all left, Results' Home or Play again's old
+ * room, while Trystero keeps their connections idle for 123 s (strategy.mjs, shared-peer.mjs).
+ * First it leaves every open room, each leave's synchronous part handing Trystero's leave to every
+ * channel (room.mjs, action-wire.mjs). Then, in the same task, it closes every connection the
+ * page's rooms joined, and each open room's, by RTCPeerConnection.close() alone: the channels close
+ * with it, raising no error here, and the far side gets one SCTP abort, "User-Initiated Abort",
+ * which Trystero ignores (peer.mjs). Left to the browser's teardown, WebKit resets each channel's
+ * stream tens of ms before its abort, and a far side that completes the reset with a send of its own
+ * caught between ends the channel with an empty data-channel-failure, which Trystero logs as a peer
+ * error. Closing the channel first, as Trystero's own destroy does, can too, and Trystero's leave
+ * closes nothing for 99 ms, which an unloading page never reaches; so nothing here waits.
+ */
+function pageHidden(): void {
+  const rooms = [...openRooms];
+  const connections = new Set(joinedConnections);
+  for (const [, room] of rooms) for (const c of Object.values(room.getPeers())) connections.add(c);
+  joinedConnections.clear();
+  for (const [t] of rooms) void t.leave();
+  for (const c of connections) {
+    try {
+      c.close();
+    } catch {
+      // already closed
+    }
+  }
+}
+
 export class TrysteroRoom implements Transport {
   /** The last refusal this side received, for the failure message (PLAN §11). */
   refusedBy: number | null = null;
@@ -80,9 +124,6 @@ export class TrysteroRoom implements Transport {
   private readonly blocked = new Set<string>(); // dropped: refused from then on (roslambo §9.4)
   private readonly pinging = new Set<string>(); // a ping out, its pong not yet back
   private readonly pingTimer: ReturnType<typeof setInterval>;
-  private readonly onPageHide = (): void => {
-    void this.leave();
-  };
   private left = false;
 
   constructor(o: TransportOptions, peer: RoomPeer, now: () => number) {
@@ -102,7 +143,9 @@ export class TrysteroRoom implements Transport {
     this.pingTimer = setInterval(() => {
       for (const id of this.peers) this.ping(id);
     }, o.settings.pingEveryMs);
-    if (typeof addEventListener === 'function') addEventListener('pagehide', this.onPageHide);
+    openRooms.set(this, this.room);
+    // The same function every time, so the page has one listener however many rooms it opens.
+    if (typeof addEventListener === 'function') addEventListener('pagehide', pageHidden);
   }
 
   /** The session's link: one action, to one peer or to all. */
@@ -132,8 +175,8 @@ export class TrysteroRoom implements Transport {
   async leave(): Promise<void> {
     if (!this.left) {
       this.left = true;
+      openRooms.delete(this);
       clearInterval(this.pingTimer);
-      if (typeof removeEventListener === 'function') removeEventListener('pagehide', this.onPageHide);
       for (const a of this.admitted.values()) clearTimeout(a.timer);
       this.admitted.clear();
       this.peers.clear();
@@ -213,6 +256,8 @@ export class TrysteroRoom implements Transport {
     // C-12: the silent connection this HELLO replaces goes first.
     if (a.replaces !== undefined && a.replaces !== id) this.drop(a.replaces);
     this.peers.add(id);
+    // Trystero's shared physical connection (room.mjs' getPeers, shared-peer.mjs), for pageHidden.
+    remember(this.room.getPeers()[id]);
     guarded(() => this.peer.onPeerJoin(id, a.hello, a.sent, this.now()));
     this.ping(id);
   }

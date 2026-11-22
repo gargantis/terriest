@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { personId } from '../../src/core/bot/bot-id';
 import type { NetReport } from '../../src/nettest-params';
 import { DEFAULT_SETTINGS, PROFILE_KEY, SETTINGS_KEY } from '../../src/storage/schema';
-import { type AppPageOptions, type Engine, type NetPage, openAppPage, waitFor } from './browsers';
+import { type AppPageOptions, type Engine, expectClosedAtUnload, type NetPage, openAppPage, type UnloadLook, waitFor, watchUnload } from './browsers';
 
 // The networked specs' wait (e2e/lib/browsers.ts's waitFor; M4's design
 // §9.1): a look at each page's report every poll until what's waited for
@@ -14,7 +14,9 @@ import { type AppPageOptions, type Engine, type NetPage, openAppPage, waitFor } 
 // page in a browser a test launched, its init scripts run against a page's
 // globals as a load runs them, so what it stores, the hook it sets and the
 // pad it stubs are read back as the page would read them. By phase 2d's
-// match builder.
+// match builder. And watchUnload, its init script run against a page's
+// globals, Node's own EventTarget for the window, the document and each
+// connection, and expectClosedAtUnload, which judges the first look.
 
 /** A #test=net page whose reports' final tick counts its looks; the machine's clock steps a minute ahead
  *  each time it's read, while the monotonic clock keeps its time. */
@@ -198,5 +200,97 @@ describe('openAppPage: a normal page of the built app in a launched browser (§9
     const { browser, seen } = fakeBrowser({ boots: ['started'], webgl2: false });
     await expect(openAppPage(browser, BASE, { k: 0, relay: RELAY })).rejects.toThrow(/WebGL 2 in this engine/);
     expect(seen.gotos).toEqual([]);
+  });
+});
+
+// ---- watchUnload ----
+
+/** A connection as the page's RTCPeerConnection: its state moved by the test, connectionstatechange
+ *  fired at each move, and close() moving it to 'closed' with no event, as the spec's close() does. */
+class FakePeerConnection extends EventTarget {
+  connectionState = 'new';
+
+  to(state: string): void {
+    this.connectionState = state;
+    this.dispatchEvent(new Event('connectionstatechange'));
+  }
+
+  close(): void {
+    this.connectionState = 'closed';
+  }
+}
+
+/** A page whose init scripts run against fake globals when load() is called: the window's listeners and
+ *  the document's on Node's own EventTargets, the document's visibilityState the test's, and its
+ *  console.debug handed to the page's console listeners as a message, as Playwright hands them over. */
+function unloadingPage(): { readonly page: Page; load(): void; readonly window: EventTarget; visibility(state: string): void } {
+  const win = new EventTarget();
+  const doc = new EventTarget();
+  let visibilityState = 'visible';
+  const listeners: ((m: { text(): string }) => void)[] = [];
+  const scripts: { readonly fn: (arg?: unknown) => void; readonly arg: unknown }[] = [];
+  vi.stubGlobal('window', { RTCPeerConnection: FakePeerConnection });
+  vi.stubGlobal('addEventListener', win.addEventListener.bind(win));
+  vi.stubGlobal('document', { addEventListener: doc.addEventListener.bind(doc), get visibilityState() { return visibilityState; } });
+  vi.spyOn(console, 'debug').mockImplementation((text: string) => {
+    for (const f of listeners) f({ text: () => text });
+  });
+  const page = {
+    on: (event: string, f: (m: { text(): string }) => void) => {
+      if (event === 'console') listeners.push(f);
+      return page;
+    },
+    addInitScript: async (fn: (arg?: unknown) => void, arg?: unknown) => {
+      scripts.push({ fn, arg });
+    },
+  };
+  return {
+    page: page as unknown as Page,
+    load: () => {
+      for (const s of scripts) s.fn(s.arg);
+    },
+    window: win,
+    visibility: (state) => {
+      visibilityState = state;
+      doc.dispatchEvent(new Event('visibilitychange'));
+    },
+  };
+}
+
+describe("watchUnload: a page's connections as it goes, after its pagehide", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('looks at visibilitychange to hidden and at unload once the page has had its pagehide, at each connection that connected', async () => {
+    const p = unloadingPage();
+    const looks: UnloadLook[] = [];
+    await watchUnload(p.page, looks);
+    p.load();
+    const Made = (globalThis as unknown as { window: { RTCPeerConnection: new () => FakePeerConnection } }).window.RTCPeerConnection;
+    const [joined, dropped] = [new Made(), new Made(), new Made()]; // the third an offer no one answered
+    joined.to('connecting');
+    joined.to('connected');
+    dropped.to('connected');
+    dropped.close();
+    // Hidden in the background, with no pagehide: the page stays, and nothing is looked at.
+    p.visibility('hidden');
+    p.visibility('visible');
+    expect(looks).toEqual([]);
+    p.window.dispatchEvent(new Event('pagehide'));
+    p.visibility('hidden');
+    p.window.dispatchEvent(new Event('unload'));
+    expect(looks).toEqual([{ event: 'visibilitychange', states: ['connected', 'closed'] }, { event: 'unload', states: ['connected', 'closed'] }]);
+  });
+
+  it('expectClosedAtUnload: the first look, every connection that connected closed and at least one; a look that never comes fails by its deadline', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    await expect(expectClosedAtUnload([{ event: 'visibilitychange', states: ['connected', 'closed'] }, { event: 'unload', states: ['closed', 'closed'] }], 'the page'))
+      .rejects.toThrow(/the page: 1 of the 2 connections it had connected not closed at its visibilitychange/);
+    await expect(expectClosedAtUnload([{ event: 'unload', states: ['closed', 'closed', 'closed'] }], 'the page')).resolves.toBeUndefined();
+    await expect(expectClosedAtUnload([{ event: 'unload', states: [] }], 'the page')).rejects.toThrow(/the page: the connections it had connected, by its unload/);
+    let mono = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => (mono += 1_000));
+    await expect(expectClosedAtUnload([], 'the page')).rejects.toThrow(/^the page: no look at its connections as it went, within 5000 ms of the check$/);
   });
 });
