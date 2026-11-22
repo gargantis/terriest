@@ -29,6 +29,7 @@ The owner makes these on their desktop, and at M5 on the phone too. The checks o
 | M2 | The tuning page: the feel and M2's values (Q-10). | **Settled provisionally by measurement** on 2026-11-17, as the owner chose ("settle"), and **owner-pending** (§17): the goal netting's bounce 0 and the push assist on at 9 m/s, eight values kept at their starts, and C-18's marks (below). The owner confirms or changes them before M5's deploy. |
 | M3 | Two desktop browsers connect through `npm run dev:local` on the `#test=net` page. | **Settled provisionally** on 2026-11-19, in headless Chromium and Firefox through `npm run dev:local`, and again on 2026-11-20 at M3's final tree (below), and **owner-pending** (§17): two of the owner's desktop browsers connect, by the steps below, before M5's deploy. |
 | M4 | Practice in each desktop browser with the keyboard, and a gamepad if there is one, against bots whose level the owner accepts or changes (Q-9). The cameras: the chase-view swing, and the feel values confirmed in ball and chase view (Q-10). A match between the three desktop browsers through `npm run dev:local`. The frame bench on the owner's GPU. The look book (Q-11). | not yet due |
+| M4 | The plexiglass walls and a player's camera outside them (C-57): the look and the camera at the comparison's defaults (below). | **Settled provisionally** on 2026-11-22 at the defaults of the comparison the owner saw, and **owner-pending** (§17): the owner confirms or changes them before M5's deploy. |
 | M5 | The deployed site, in desktop browsers and on the phone (Q-4). | not yet due |
 
 ### M0's run 6, settled provisionally (owner-pending)
@@ -122,6 +123,22 @@ Its config starts `npm run dev:local`, the dev server on port 4359. The run warm
 | 2026-11-20 | M3's final tree: b43b154's code, with the load run's backlog watch beside it as first built, which the commit that adds this row holds as its review revised it | 39, every one passing | tick 6871, 3–2 | 127 s, the test 2.0 minutes of it |
 
 The first ran at 71bd4a7, before the correction measurement's values reached `src/config.ts`, so at the spread cap of 42, not 14 (below). The second ran at 14, after the load run (below), once the machine's 1-minute load had fallen under 1 and 8 more minutes had passed. Headless Chromium stands in for Chrome and Edge, and headless Firefox for Firefox. Their WebRTC on one machine takes the launch flags of `e2e/lib/browsers.ts`, which turn off the engines' mDNS host names and let Firefox use the loopback; the owner's browsers run with their defaults and the default ICE, which this settle doesn't stand in for. The owner's own run lands before M5's deploy, and replaces these.
+
+### M4's plexiglass walls and camera, settled provisionally (owner-pending)
+
+The owner's decision of 2026-11-21 (PLAN C-57): "Let's make the walls transparent like plexiglass. This way the virtual camera can go outside of the arena." The owner saw the comparison's clips of its prototype, E, beside the camera of the time, A, held inside the walls. What the clips left open is settled at the comparison's defaults, under §17's rule for attended steps, and owner-pending:
+
+- the cage's look as in the clips: clear panes, a post at each joint, a kick band in each half's pack colour from the floor to 0.45 m, and a rail along the tops;
+- a player's camera may sit in or behind a goal, looking through its open back;
+- a goal's posts and crossbar solid from 4.5 m off the camera, and clear within 1.5 m;
+- the gravel apron and the grass fading into the sky round the cage, placeholders until the look book (Q-11);
+- the spectators' camera unchanged;
+- the cost accepted for now: about +0.5 ms a frame at 1280 × 720 and +1 ms at 2560 × 1440 on the Iris Xe's GPU path, against A and its padded walls, and within the drawing budget, 19 to 20 calls a frame; not yet measured on the Pixel 8a, whose run checks it (C-2);
+- the ball's arrow also shown while the ball's centre is on screen but behind the HUD's top bar, just under the bar.
+
+**What decided it,** from the comparison's captured frames at 1280 × 720 on the GPU path, in ball view: A kept both your terrier and the ball in view in 30.6% of the frames at the walls and 63.2% at your own goal, and E in 100% of both, its largest camera move 0.55 m a frame against A's 3.62 m at a corner. In 3-minute Practices replayed in Node, the person's terrier driven by the bots' brain, E's camera was outside the walls in 10.7% of the play ticks at 2 a side and 4.7% at 4 a side, and both stayed in view throughout, as they did with A.
+
+**To confirm or change them:** play Practice in your browsers on `npm run play`'s build, at http://localhost:4340/, at walls, in corners and in and behind your own goal, in ball view and chase view. `e2e/camera.spec.ts` holds the camera's place in the gate, in each engine: behind its own goal and outside a side wall, at its height, your terrier and the ball both in view.
 
 ## Checks outside the gate (PLAN §16)
 

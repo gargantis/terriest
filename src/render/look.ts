@@ -7,8 +7,8 @@
 // only a Look turns them into colours and patterns. Three-free.
 //
 // PLACEHOLDER_LOOK is the M0 spike's (research/spike/src/scene/look.ts, its
-// ball's colours and its terrier pose's SHAPE) and M1's pitch colours,
-// until the owner's pick.
+// ball's colours and its terrier pose's SHAPE), M1's pitch colours and, from
+// C-57, the ground beyond the glass walls, until the owner's pick.
 
 export type Markings = 'none' | 'ears' | 'points' | 'saddle';
 
@@ -64,9 +64,12 @@ export interface Look {
   readonly ball: { readonly colour: number; readonly band: number };
   readonly pitch: {
     readonly sky: number; readonly grass: number; readonly line: number;
-    /** The walls above their padding. */
+    /** The walls' glass panes (C-57): their tint, with the sky, and their sheen, posts and band line, with white. */
     readonly wallPanel: number;
     readonly rope: number; readonly netting: number;
+    /** The ground beyond the walls (C-57): the gravel apron round the arena, and the grass beyond it, which fades
+     *  into the sky. */
+    readonly apron: number; readonly outfield: number;
   };
   readonly terrier: TerrierShape;
   readonly packCue: PackCue;
@@ -90,7 +93,12 @@ export const PLACEHOLDER_LOOK: Look = {
     { name: 'orange', colour: 0xf07a1a, pattern: 'striped' },
   ],
   ball: { colour: 0xe0412f, band: 0xf7f3ea },
-  pitch: { sky: 0xa9d3ef, grass: 0x5c9e46, line: 0xf4f4ee, wallPanel: 0xe6ecef, rope: 0xcdb98c, netting: 0xf6f6f2 },
+  pitch: {
+    sky: 0xa9d3ef, grass: 0x5c9e46, line: 0xf4f4ee, wallPanel: 0xe6ecef, rope: 0xcdb98c, netting: 0xf6f6f2,
+    // The ground beyond the walls as the plexiglass prototype drew it: the rope's colour darkened, and the grass
+    // dulled and darker.
+    apron: 0xbfac82, outfield: 0x597d49,
+  },
   terrier: {
     body: { centre: [-0.03, 0, 0.215], radii: [0.19, 0.115, 0.095] },
     neck: [0.1, 0, 0.31],

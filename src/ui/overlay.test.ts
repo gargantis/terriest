@@ -6,7 +6,7 @@ import type { FrameOut, StageFrame } from '../render/frame';
 import { cssDeclarations, cssLength, fake, installDom, only } from './dom-testing';
 import type { OverlayInspection } from './inspect';
 import type { PitchContext } from './layer';
-import { ARROW_INSET_PX, ARROW_TOP_INSET_PX, edgePoint, overlayLayer } from './overlay';
+import { ARROW_INSET_PX, ARROW_TOP_INSET_PX, ballAway, edgePoint, HUD_BAR_PX, overlayLayer } from './overlay';
 import { type Calls, FakeControls, FakeStage, FakeView, StateMatch, stateWith, testHost } from './pitch-testing';
 
 // The marks over the pitch (M4's design §1.45, §2.5, §3.3, §9.2; D-28; L50,
@@ -18,7 +18,8 @@ import { type Calls, FakeControls, FakeStage, FakeView, StateMatch, stateWith, t
 // counted once into the app's log; what it reports read from the marks'
 // own hidden flags; your mark and the arrow on top of the HUD and Pre-match's
 // panel, so neither hides them, the bark marks under both, and the arrow
-// below the HUD's top bar.
+// below the HUD's top bar; and a ball drawn behind that bar counted off
+// screen, the arrow under the bar pointing up at it (C-57).
 
 const ME = personId(7, 0);
 const BOT = `${'b'.repeat(4)}${'0'.repeat(28)}`;
@@ -49,6 +50,8 @@ describe("the marks' place among the pitch screen's layers (§2.6, §5.8, M4-Q10
     // The bar: 8 px down, as tall as its Menu button, a button's least height; the arrow centred on its point.
     const bar = cssLength(cssDeclarations(css('./hud.css'), '.hud-top')['top'], 360) + cssLength(cssDeclarations(css('./screens.css'), 'button')['min-height'], 360);
     const half = cssLength(cssDeclarations(css('./overlay.css'), '.overlay-arrow-shape')['height'], 360) / 2;
+    // The ball counts as off screen above the bar's foot, as the stylesheets place it (C-57).
+    expect(HUD_BAR_PX).toBe(bar);
     expect(ARROW_TOP_INSET_PX - half).toBeGreaterThan(bar);
     const up = edgePoint(-Math.PI / 2, 640, 360, ARROW_INSET_PX, ARROW_TOP_INSET_PX);
     expect([up.x, up.y]).toEqual([320, ARROW_TOP_INSET_PX]);
@@ -134,6 +137,39 @@ describe('the overlay layer', () => {
     expect(arrow.hidden).toBe(false);
     expect(arrow.style['transform']).toBe(`translate(${at.x.toFixed(1)}px, ${at.y.toFixed(1)}px) rotate(2.500rad)`);
     expect((layer.inspect!() as OverlayInspection).arrow).toEqual({ shown: true, angle });
+  });
+
+  it("counts a ball drawn behind the HUD's top bar as off screen: the arrow just under the bar, pointing up at it (C-57)", () => {
+    const { layer, ctx } = overlay();
+    const arrow = only(layer.el!, '.overlay-arrow');
+    // The ball's centre in view, as the stage's projection reports it, its angle from the canvas's centre.
+    const ball = (x: number, y: number): { x: number; y: number; inView: boolean; angle: number } => ({ x, y, inView: true, angle: Math.atan2(y - 180, x - 320) });
+    for (const [x, y] of [[320, 20], [420, 51], [120, 10], [600, 40]] as const) {
+      const b = ball(x, y);
+      layer.frame!(ctx([], out(b, true, true)));
+      const at = edgePoint(b.angle, 640, 360, ARROW_INSET_PX, ARROW_TOP_INSET_PX);
+      expect(arrow.hidden, `the ball at ${x}, ${y}`).toBe(false);
+      expect(arrow.style['transform']).toBe(`translate(${at.x.toFixed(1)}px, ${at.y.toFixed(1)}px) rotate(${b.angle.toFixed(3)}rad)`);
+      // On the top inset's line, just under the bar, and between the canvas's centre and the ball, so it points at it.
+      expect(at.y, `the ball at ${x}, ${y}`).toBeCloseTo(ARROW_TOP_INSET_PX, 9);
+      expect(Math.hypot(at.x - 320, at.y - 180)).toBeLessThan(Math.hypot(x - 320, y - 180));
+      expect((layer.inspect!() as OverlayInspection).arrow).toEqual({ shown: true, angle: b.angle });
+    }
+    // At the bar's foot or under it, the ball shows and the arrow doesn't.
+    for (const y of [HUD_BAR_PX, HUD_BAR_PX + 1, 180, 340]) {
+      layer.frame!(ctx([], out(ball(320, y), true, true)));
+      expect(arrow.hidden, `the ball at 320, ${y}`).toBe(true);
+      expect((layer.inspect!() as OverlayInspection).arrow.shown).toBe(false);
+    }
+  });
+
+  it('shows the arrow for a ball out of view or drawn behind the bar, and for no other', () => {
+    expect(ballAway({ y: 180, inView: false })).toBe(true);
+    expect(ballAway({ y: 400, inView: false })).toBe(true);
+    expect(ballAway({ y: HUD_BAR_PX - 0.1, inView: true })).toBe(true);
+    expect(ballAway({ y: 0, inView: true })).toBe(true);
+    expect(ballAway({ y: HUD_BAR_PX, inView: true })).toBe(false);
+    expect(ballAway({ y: 300, inView: true })).toBe(false);
   });
 
   it('marks each terrier the drawer shows barking, counting each bark and each celebration once (L50, §2.5)', () => {

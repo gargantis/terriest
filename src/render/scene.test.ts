@@ -2,8 +2,10 @@ import { BoxGeometry, Group, InstancedMesh, MeshBasicMaterial, type Object3D, ty
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../config';
 import type { DrawerFrame, TerrierDrawer } from './drawer';
+import { insideOf, wallPlanes } from './glass';
 import { PLACEHOLDER_LOOK } from './look';
 import { qualityDetail } from './quality';
+import { pitch } from '../core/sim/pitch';
 import { sceneStart, WALL_SCRUM } from '../core/sim/scenes';
 import { defaultParams } from '../core/sim/params';
 import { MatchView, type ViewTimeline } from './view';
@@ -15,8 +17,10 @@ import { MatchView, type ViewTimeline } from './view';
 // hides its placeholders; a null frame draws the empty pitch; a match's
 // frame reaches the ball, the shadows and the drawer; the buffer is
 // round(CSS size × min(devicePixelRatio, cap) × scale); a disposed stage
-// gives its context back, its watch removed first; and M1's
-// createPitchView keeps its shape.
+// gives its context back, its watch removed first; M1's
+// createPitchView keeps its shape; and from C-57 each frame hands the
+// pitch the placed camera, every camera's, so the glass's outer draw draws
+// only while the camera is outside some pane's plane.
 
 interface Rendered {
   readonly shown: string[];
@@ -122,8 +126,8 @@ describe("M1's createPitchView, over the stage", () => {
     expect(compiles).toHaveLength(1);
     expect(renders).toHaveLength(2);
     const [upload, first] = [renders[0]!, renders[1]!];
-    // The upload: the ball, its variant, the pitch's variants and every shadow, nothing culled.
-    for (const name of ['ball', 'ball, dithered', 'walls, dithered', 'goal frames, dithered', 'overhead net, dithered']) {
+    // The upload: the ball, its variant, the pitch's variants, both of the glass's draws and every shadow, nothing culled.
+    for (const name of ['ball', 'ball, dithered', 'goal frames, dithered', 'overhead net, dithered', 'glass, inner', 'glass, outer']) {
       expect(upload.shown, name).toContain(name);
     }
     expect(upload.instanced['blob shadows']).toBe(2 * config.packSizeMax + 1);
@@ -133,11 +137,14 @@ describe("M1's createPitchView, over the stage", () => {
     expect(first.shown.filter((n) => n.endsWith('dithered'))).toEqual([]);
     expect(first.instanced['blob shadows']).toBe(0);
     expect(first.culled).toBeGreaterThan(0);
+    // The overview, beyond the near side wall and above the net: the glass's outer draw draws that wall's band (C-57).
+    expect(first.shown).toContain('glass, outer');
+    expect(view.info().glass).toEqual({ outer: true });
     const info = view.info();
     expect(info).toMatchObject({
       frames: 1, quality: 'high', samples: 4, pixelRatio: 2, calls: 3, triangles: 900, lines: 50, programs: 3, geometries: 11, textures: 2,
       firstFrame: { programs: 3, geometries: 11, textures: 2 }, cap: 2, scale: 1, cssWidth: 640, cssHeight: 360, prepared: true,
-      camera: { kind: 'overview', view: null, follow: null, calm: false, raised: false },
+      camera: { kind: 'overview', view: null, follow: null, calm: false },
     });
     expect(sizes).toEqual([[1280, 720]]);
   });
@@ -184,10 +191,18 @@ describe('the stage (§1.3)', () => {
     expect([out.cssWidth, out.cssHeight]).toEqual([641, 361]);
     expect(out.ball.inView).toBe(true);
     expect(stage.info().camera).toMatchObject({ kind: 'player', view: 'ball', follow: null, calm: true });
-    // A spectator's camera, what it drew following: the ball, then a terrier (§9.4).
+    // The glass's outer draw from where the player's camera was placed: drawn only outside some pane's plane, or
+    // within a centimetre of one (C-57).
+    const placed = stage.info().camera;
+    const outside = wallPlanes(pitch).some((q) => insideOf(q, placed.x, placed.y, placed.z) < 0.01);
+    expect(renders.at(-1)!.shown.includes('glass, outer'), `the camera at ${placed.x}, ${placed.y}, ${placed.z}`).toBe(outside);
+    expect(stage.info().glass).toEqual({ outer: outside });
+    // A spectator's camera, what it drew following: the ball, then a terrier (§9.4); outside the near side wall, so
+    // with the glass's outer draw.
     view.mode = { kind: 'spectator', follow: null };
     stage.draw(view.frame(16, 16));
     expect(stage.info().camera).toMatchObject({ kind: 'spectator', view: null, follow: 'ball' });
+    expect(renders.at(-1)!.shown).toContain('glass, outer');
     view.mode = { kind: 'spectator', follow: s.terriers[3]!.id };
     stage.draw(view.frame(32, 16));
     expect(stage.info().camera).toMatchObject({ kind: 'spectator', follow: s.terriers[3]!.id });
@@ -201,6 +216,7 @@ describe('the stage (§1.3)', () => {
     expect(renders.at(-1)!.shown).not.toContain('ball');
     expect([renders.at(-1)!.instanced['blob shadows'], renders.at(-1)!.instanced.parts, frames.at(-1)!.terriers.length]).toEqual([0, 0, 0]);
     expect(stage.info().camera).toMatchObject({ kind: 'overview', follow: null, turnCap: null });
+    expect(renders.at(-1)!.shown).toContain('glass, outer');
     expect(sizes.at(-1)).toEqual([Math.round(641 * 0.75), Math.round(361 * 0.75)]);
     expect(stage.info()).toMatchObject({ pixelRatio: 0.75, scale: 0.75, cap: qualityDetail('low').pixelRatioMax });
     stage.setScale(0.1);

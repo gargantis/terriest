@@ -14,9 +14,9 @@ export const PACKS = PLACEHOLDER_LOOK.packs;
 export const SKY = PLACEHOLDER_LOOK.pitch.sky;
 export const GRASS = PLACEHOLDER_LOOK.pitch.grass;
 export const LINE = PLACEHOLDER_LOOK.pitch.line;
-/** The walls above their padding. */
+/** M1's walls above their padding; from C-57 the glass panes' colour. */
 export const WALL_PANEL = PLACEHOLDER_LOOK.pitch.wallPanel;
 export const ROPE = PLACEHOLDER_LOOK.pitch.rope;
 export const NETTING = PLACEHOLDER_LOOK.pitch.netting;
-/** White itself, which the pads and the striped frames mix with: no look's choice. */
+/** White itself, which the striped frames and the glass's details, band and rail mix with: no look's choice. */
 export const WHITE = 0xffffff;

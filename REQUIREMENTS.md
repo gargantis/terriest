@@ -86,14 +86,14 @@ Status: settled by the owner on 2026-11-14, and amended by PLAN.md, which the ow
 
 - **Chase view**: from behind and above your terrier, swinging round behind it as it turns, at a comfortable rate that steering doesn't depend on
 - **Ball view**: from behind your terrier, aimed at the ball, so the ball stays in sight. A match starts in ball view unless Settings says otherwise
-- A player's camera stays inside the pitch, and a wall or the ball that comes between it and their terrier turns see-through
+- A player's camera keeps its place behind their terrier even where that's outside the walls, in a goal or behind one, since the walls are clear plexiglass, and a goal or the ball that comes between the camera and their terrier turns see-through (C-57)
 - When the ball is off screen, an arrow at the edge points to it
 - Spectators watch from high above one side of the pitch, following the ball, and can choose to follow any terrier instead
 - The camera is each viewer's own choice and changes nothing in the match
 
 ### Look and sound
 
-- A bright cartoon look: chunky terriers with big heads, short legs and perky ears; a glossy rubber ball; a grass pitch inside padded walls under a rope net. The owner picks the look from samples, for the code-built terriers now and the models later (see *Notes for the plan*)
+- A bright cartoon look: chunky terriers with big heads, short legs and perky ears; a glossy rubber ball; a grass pitch inside clear plexiglass walls under a rope net (C-57). The owner picks the look from samples, for the code-built terriers now and the models later (see *Notes for the plan*)
 - In the MVP, terriers are built in code from rounded shapes and animated by code. Later they'll be modeled and animated in a 3D tool, or bought (the owner, 2026-11-14), and the MVP is built for that swap: how a terrier is drawn is one replaceable part, and replacing it changes nothing in play, in the simulation or on the network
 - Built in code or modeled, every terrier plays the same **animations**, each started and timed by the simulation, except barking (see *Simulation and consensus*): standing, running at any speed, zoomies, turning, pushing the ball or another terrier, being pushed or bounced in any direction, jumping and landing, pouncing, tumbling and getting up, barking, sitting, and celebrating a goal. Barking plays over any other animation, and celebrating over standing and running; the rest blend from one into the next. Every animation plays in place: only the simulation moves or turns a terrier. A model can add detail, such as flapping ears, but never changes how long anything takes in play
 - Either kind fits the terrier's size in *Configuration*, shows every coat and both packs' bandanas, and fits the drawing budget in *Performance*

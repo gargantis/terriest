@@ -139,11 +139,13 @@ export const config = deepFreeze({
   // Where they sit (A.5: Players' cameras, Spectators' camera; D-28), M4:
   // every number the owner tunes with the swing on the feel page. M1's
   // overview fit and the aim's limits stay drawing constants (M4-Q34).
-  cameraBehindMetres: 4.2, // behind the terrier's floor point, along the yaw
+  cameraBehindMetres: 4.2, // behind the terrier's floor point, along the yaw, outside the walls too (C-57)
   cameraAboveMetres: 2.1, // above it
   cameraFovDegrees: 55, // vertical
-  cameraWallMarginMetres: 0.4, // inside the walls and the goals, and under the net
-  cameraNearestMetres: 1.5, // horizontally: nearer the terrier than this, the camera rises
+  // A player's camera keeps this above the ground and under the net, anywhere,
+  // its only limits (C-57); the spectators' this outside the near wall and
+  // above the net.
+  cameraWallMarginMetres: 0.4,
   chaseLookAheadMetres: 2, // chase view aims this far ahead of the terrier
   spectatorViewLengthMetres: 24, // of the pitch's length, framed round what it follows
   spectatorFollowSeconds: 0.5, // the time constant it eases after it with

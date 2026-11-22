@@ -6,7 +6,9 @@
 //   (L52);
 // - the off-screen ball's arrow at the canvas's edge, inset from it, below
 //   the HUD's top bar at the top, and pointing the way to the ball: the one
-//   way to find it when chase view faces away from it (D-28, L90);
+//   way to find it when chase view faces away from it (D-28, L90). A ball
+//   whose centre is drawn behind that bar counts as off screen too, so the
+//   arrow then shows just under the bar, pointing up at it (C-57);
 // - a bark mark over every terrier the frame's drawer input shows barking
 //   (L50, §2.5): yours from the press, the bots' from their recorded inputs,
 //   each bark counted once in the app's log (barksShown), as each goal's
@@ -31,13 +33,20 @@ import css from './overlay.css?inline';
 import { addStyle } from './style';
 
 // Drawing constants, which keep the layout valid (M4's design §3.2): how far above a terrier's drawn
-// centre its marks sit, and the arrow's inset from the canvas's edge, and from its top below the HUD's
-// top bar, 8 px down and a button's 44 px tall, by half the arrow and a gap, so the arrow never covers
-// the score or the clock (hud.css, L103).
+// centre its marks sit; the HUD's top bar's foot, 8 px down and a button's 44 px tall (hud.css), above
+// which a ball drawn counts as off screen (C-57); and the arrow's inset from the canvas's edge, and from
+// its top below that bar by half the arrow and a gap, so the arrow never covers the score or the clock
+// (L103).
 const MARK_RISE_PX = 34;
 const BARK_RISE_PX = 56;
+export const HUD_BAR_PX = 52;
 export const ARROW_INSET_PX = 30;
 export const ARROW_TOP_INSET_PX = 72;
+
+/** Whether the ball's arrow shows (D-28, L90, C-57): while the ball is out of view, and while its centre is
+ *  drawn in view but behind the HUD's top bar, the band across the top that holds the score, the clock and
+ *  the Menu button, so the arrow points up at it from just under the bar. */
+export const ballAway = (ball: { readonly y: number; readonly inView: boolean }): boolean => !ball.inView || ball.y < HUD_BAR_PX;
 
 /** Where the off-screen arrow sits: from the canvas's centre along `angle` to the edge of the rectangle
  *  `inset` inside it, `top` inside it at the top (D-28). */
@@ -115,7 +124,7 @@ export function overlayLayer(host: PitchHost): Layer {
       const own = out.terriers.find((t) => t.id === me) ?? null;
       setShown(mine, own !== null && own.inView);
       if (own !== null && own.inView) place(mine, own.x, own.y - MARK_RISE_PX, null);
-      const away = !out.ball.inView;
+      const away = ballAway(out.ball);
       setShown(arrow, away);
       if (away) {
         const at = edgePoint(out.ball.angle, out.cssWidth, out.cssHeight, ARROW_INSET_PX, ARROW_TOP_INSET_PX);

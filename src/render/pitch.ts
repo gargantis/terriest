@@ -7,29 +7,39 @@
 //   frame one colour; a striped pack's half is mown in bands and its frame
 //   banded;
 // - the halfway line, the centre spot and the goal lines;
-// - padded walls and cut corners, the padding in its half's colour;
 // - the rope net overhead, and each goal's posts, crossbar and netting.
-// Its colours are the look's (src/render/look.ts, M4's design §1.11,
-// §1.18), so the look book draws the pitch of each sample; white, which the
-// pads and a striped frame mix with, is no look's choice. Six draw calls:
-// the floor, its lines, the walls, the goal frames, the overhead net and
-// the goals' netting. The walls, the goal frames and the overhead net are
-// occluders (D-28, L89, §2.6): each material is made in two variants by
-// src/render/fade.ts, with an object holding the other variant for
-// prepare()'s compile, and setFade() puts each part on the variant it
-// needs, the dithered one only in a frame one of its pieces crosses the
-// fade's capsule. Phase 3's effects builder adds the netting's bulge
-// (setBulge) and fills the fade. Metres, z up.
+// From C-57 the walls and cut corners are glass, with a rail along their
+// top (src/render/glass.ts), the arena stands on the ground beyond them
+// (ground.ts), and the goals' frames and netting give way to the camera
+// (goal-fade.ts), so a player's camera can go outside the arena. Its
+// colours are the look's (src/render/look.ts, M4's design §1.11, §1.18), so
+// the look book draws the pitch of each sample; white, which a striped
+// frame and the glass's details mix with, is no look's choice. Eight draw
+// calls: the floor, its lines, the ground, the rail, the glass's inner
+// draw, the goal frames, the overhead net and the goals' netting; and a
+// ninth, the glass's outer draw, only while the camera is outside some
+// pane's plane. The goal frames and the overhead net are occluders (D-28,
+// L89, §2.6): each material is made in two variants by src/render/fade.ts,
+// with an object holding the other variant for prepare()'s compile, and
+// setFade() puts each part on the variant it needs, the dithered one only
+// in a frame one of its pieces crosses the fade's capsule. The glass, the
+// frames and the netting fade round the capsule's line by their alpha too
+// (fade.ts's line fade), which setFade() updates. Phase 3's effects builder
+// adds the netting's bulge (setBulge) and fills the fade. Metres, z up.
 
 import {
-  Box3, BufferAttribute, BufferGeometry, CapsuleGeometry, Color, DataTexture, Group, LineBasicMaterial, LineSegments,
+  Box3, BufferAttribute, type BufferGeometry, CapsuleGeometry, DataTexture, Group, LineBasicMaterial, LineSegments,
   LinearFilter, LinearMipmapLinearFilter, type Material, Mesh, MeshLambertMaterial, type Object3D, Quaternion, RepeatWrapping,
   SRGBColorSpace, Vector3,
 } from 'three';
-import { FRAME, GOAL_NET, NET, WALL, type Pack, type Piece, type Pitch, type Point } from '../core/sim/pitch';
-import { crossesFade, type Faded, fadeVariants } from './fade';
+import { FRAME, GOAL_NET, NET, type Pack, type Piece, type Pitch, type Point } from '../core/sim/pitch';
+import { crossesFade, type Faded, fadeVariants, lineFadeUniforms, updateLineFade } from './fade';
 import type { Bulge } from './frame';
+import { glassGeometry, glassMaterial, outerDrawn, railGeometry, wallPlanes } from './glass';
+import { goalFrameMaterial, goalNettingMaterial } from './goal-fade';
+import { groundGeometry, groundMaterial } from './ground';
 import type { Look } from './look';
+import { along, edge1, edge2, Lines, mix, offsetOf, origin, shade, Triangles, type V, WHITE } from './shapes';
 
 export interface PitchDetail {
   readonly ropeSpacingMetres: number;
@@ -41,88 +51,34 @@ export interface DrawnPitch {
   readonly object: Group;
   /** One object for each occluder's other variant, hidden but for prepare()'s compile (M4's design §2.1). */
   readonly variants: readonly Object3D[];
-  /** Each frame, after fade.ts's setFade: each occluder on the variant it needs. */
-  setFade(): void;
+  /** Each frame, after fade.ts's setFade, with the placed camera's position, whichever camera it is, the
+   *  overview's included: each occluder on the variant it needs, the line fade from the capsule, and the glass's
+   *  outer draw only while the camera is outside some pane's plane. */
+  setFade(camera: Readonly<Vector3>): void;
+  /** Whether the glass's outer draw draws, as the last setFade decided. */
+  readonly outerGlass: boolean;
   /** A goal's netting bulging round the ball (§2.6): phase 3's; nothing until then. */
   setBulge(b: Bulge | null): void;
   dispose(): void;
 }
-
-/** White itself, which the pads and the striped frames mix with: no look's choice. */
-const WHITE = 0xffffff;
 
 /** How much of its pack's colour a half's grass takes. */
 const HALF_TINT = 0.24;
 /** A striped pack's mown bands, across the pitch. */
 const BAND_METRES = 2;
 const BAND_SHADE = 0.86;
-/** The grass texture repeats every this many metres. */
-const GRASS_TILE_METRES = 4;
 const LINE_WIDTH_METRES = 0.12;
 const SPOT_RADIUS_METRES = 0.22;
 /** The markings sit this far above the floor, with a polygon offset too. */
 const MARKING_LIFT_METRES = 0.004;
-/** The walls' padding reaches this high, */
-const PADDING_TOP_METRES = 1.2;
-/** in cushions, and panels above them, about this long. */
-const PANEL_METRES = 2;
 /** A striped pack's goal frame, in bands about this long. */
 const FRAME_BAND_METRES = 0.5;
 /** How much of its pack's colour a goal's netting takes. */
 const NETTING_TINT = 0.35;
-
-type V = readonly [number, number, number];
-
-/** Triangles with their own normals, colours and floor UVs. */
-class Triangles {
-  private readonly position: number[] = [];
-  private readonly normal: number[] = [];
-  private readonly colour: number[] = [];
-  private readonly uv: number[] = [];
-  private readonly c = new Color();
-
-  vertex(p: V, n: V, colour: number): void {
-    this.c.setHex(colour);
-    this.position.push(p[0], p[1], p[2]);
-    this.normal.push(n[0], n[1], n[2]);
-    this.colour.push(this.c.r, this.c.g, this.c.b);
-    this.uv.push(p[0] / GRASS_TILE_METRES, p[1] / GRASS_TILE_METRES);
-  }
-
-  /** A convex polygon on the floor plan, counter-clockwise from above, at height z, facing up. */
-  fan(points: readonly Point[], z: number, colour: number): void {
-    const up: V = [0, 0, 1];
-    for (let i = 1; i + 1 < points.length; i++) {
-      for (const [x, y] of [points[0]!, points[i]!, points[i + 1]!]) this.vertex([x, y, z], up, colour);
-    }
-  }
-
-  /** A flat quad a, b, c, d, wound so that its front faces n. */
-  quad(a: V, b: V, c: V, d: V, n: V, colour: number): void {
-    const u = sub(b, a);
-    const v = sub(d, a);
-    const facing = (u[1] * v[2] - u[2] * v[1]) * n[0] + (u[2] * v[0] - u[0] * v[2]) * n[1] + (u[0] * v[1] - u[1] * v[0]) * n[2];
-    const order = facing >= 0 ? [a, b, c, a, c, d] : [a, d, c, a, c, b];
-    for (const p of order) this.vertex(p, n, colour);
-  }
-
-  geometry(): BufferGeometry {
-    const g = new BufferGeometry();
-    g.setAttribute('position', new BufferAttribute(new Float32Array(this.position), 3));
-    g.setAttribute('normal', new BufferAttribute(new Float32Array(this.normal), 3));
-    g.setAttribute('color', new BufferAttribute(new Float32Array(this.colour), 3));
-    g.setAttribute('uv', new BufferAttribute(new Float32Array(this.uv), 2));
-    return g;
-  }
-}
-
-const sub = (a: V, b: V): V => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-const along = (o: V, e: V, t: number): V => [o[0] + e[0] * t, o[1] + e[1] * t, o[2] + e[2] * t];
-const mix = (a: number, b: number, t: number): number => new Color(a).lerp(new Color(b), t).getHex();
-const shade = (c: number, k: number): number => new Color(c).multiplyScalar(k).getHex();
-const origin = (q: Piece): V => [q.ox, q.oy, q.oz];
-const edge1 = (q: Piece): V => [q.e1x, q.e1y, q.e1z];
-const edge2 = (q: Piece): V => [q.e2x, q.e2y, q.e2z];
+/** The transparent things' order (C-57): the glass's inner draw first, as from inside the walls everything else
+ *  transparent is in front of it; the goals' frames, then their netting; the blob shadows (src/render/shadows.ts's
+ *  1) and phase 3's dust; and the glass's outer draw last, as from outside everything else is behind it. */
+const ORDER = { innerGlass: -3, goalFrames: -2, goalNetting: -1, outerGlass: 2 } as const;
 
 /** The part of a convex polygon with x0 <= x <= x1. A corner on a cut
  *  line is kept once, and a cut is made only where an edge crosses. */
@@ -272,40 +228,6 @@ function markings(p: Pitch, look: Look): BufferGeometry {
   return t.geometry();
 }
 
-/** A wall piece as padded panels: split where it crosses the halfway line,
- *  so each panel's padding takes one half's colour, then into cushions. */
-function wall(q: Piece, look: Look, t: Triangles): void {
-  const panel = look.pitch.wallPanel;
-  const o = origin(q);
-  const e1 = edge1(q);
-  const e2 = edge2(q);
-  const n: V = [q.nx, q.ny, q.nz];
-  const length = Math.hypot(e1[0], e1[1], e1[2]);
-  const splits = [0, 1];
-  const crossing = q.e1x === 0 ? -1 : -q.ox / q.e1x;
-  if (crossing > 0 && crossing < 1) splits.splice(1, 0, crossing);
-  // Where the padding ends, as a fraction of e2 (the walls stand upright).
-  const padTop = q.e2z > 0 ? Math.min(1, Math.max(0, (PADDING_TOP_METRES - q.oz) / q.e2z)) : 0;
-  let cushion = 0;
-  for (let s = 0; s + 1 < splits.length; s++) {
-    const a = splits[s]!;
-    const b = splits[s + 1]!;
-    const count = Math.max(1, Math.round((length * (b - a)) / PANEL_METRES));
-    for (let i = 0; i < count; i++, cushion++) {
-      const f0 = a + ((b - a) * i) / count;
-      const f1 = a + ((b - a) * (i + 1)) / count;
-      const p0 = along(o, e1, f0);
-      const p1 = along(o, e1, f1);
-      const pack: Pack = p0[0] + p1[0] < 0 ? 0 : 1;
-      const even = cushion % 2 === 0;
-      const band = (lo: number, hi: number, colour: number): void =>
-        t.quad(along(p0, e2, lo), along(p1, e2, lo), along(p1, e2, hi), along(p0, e2, hi), n, colour);
-      if (padTop > 0) band(0, padTop, shade(mix(look.packs[pack].colour, WHITE, 0.15), even ? 0.92 : 0.8));
-      if (padTop < 1) band(padTop, 1, even ? panel : shade(panel, 0.94));
-    }
-  }
-}
-
 /** A post or crossbar: a capsule along its piece's segment, in its goal's
  *  pack's colour, banded with white for a striped pack. */
 function frame(q: Piece, pack: Pack, look: Look, t: Triangles): void {
@@ -337,26 +259,6 @@ function frame(q: Piece, pack: Pack, look: Look, t: Triangles): void {
   g.dispose();
 }
 
-/** Line segments with their colours. */
-class Lines {
-  private readonly position: number[] = [];
-  private readonly colour: number[] = [];
-  private readonly c = new Color();
-
-  line(a: V, b: V, hex: number): void {
-    this.c.setHex(hex);
-    this.position.push(...a, ...b);
-    this.colour.push(this.c.r, this.c.g, this.c.b, this.c.r, this.c.g, this.c.b);
-  }
-
-  geometry(): BufferGeometry {
-    const g = new BufferGeometry();
-    g.setAttribute('position', new BufferAttribute(new Float32Array(this.position), 3));
-    g.setAttribute('color', new BufferAttribute(new Float32Array(this.colour), 3));
-    return g;
-  }
-}
-
 /** The rope net over the floor plan, as lines. */
 function overheadNet(p: Pitch, detail: PitchDetail, look: Look): BufferGeometry {
   const t = new Lines();
@@ -380,9 +282,11 @@ function overheadNet(p: Pitch, detail: PitchDetail, look: Look): BufferGeometry 
   return t.geometry();
 }
 
-/** Each goal's back, side and top netting, as lines tinted by its pack. */
+/** Each goal's back, side and top netting, as lines tinted by its pack, each vertex with its face's plane, its
+ *  normal into the goal and its offset, by which goal-fade.ts's shader drops a face from behind its goal line. */
 function goalNetting(p: Pitch, detail: PitchDetail, look: Look): BufferGeometry {
   const t = new Lines();
+  const face: number[] = [];
   for (const goal of p.goals) {
     const hex = mix(look.pitch.netting, look.packs[goal.pack].colour, NETTING_TINT);
     for (const k of goal.pieces) {
@@ -393,11 +297,15 @@ function goalNetting(p: Pitch, detail: PitchDetail, look: Look): BufferGeometry 
       const e2 = edge2(q);
       const n1 = Math.max(1, Math.round(Math.hypot(...e1) / detail.nettingSpacingMetres));
       const n2 = Math.max(1, Math.round(Math.hypot(...e2) / detail.nettingSpacingMetres));
+      const first = t.vertices;
       for (let i = 0; i <= n1; i++) t.line(along(o, e1, i / n1), along(along(o, e1, i / n1), e2, 1), hex);
       for (let j = 0; j <= n2; j++) t.line(along(o, e2, j / n2), along(along(o, e2, j / n2), e1, 1), hex);
+      for (let v = first; v < t.vertices; v++) face.push(q.nx, q.ny, q.nz, offsetOf(q));
     }
   }
-  return t.geometry();
+  const g = t.geometry();
+  g.setAttribute('face', new BufferAttribute(new Float32Array(face), 4));
+  return g;
 }
 
 /** A piece's bound box, for the fade's test; the overhead net's is the floor plan's, at its height. */
@@ -422,9 +330,9 @@ export function drawPitch(p: Pitch, detail: PitchDetail, look: Look): DrawnPitch
   object.name = 'pitch';
   const grass = grassTexture();
   grass.anisotropy = detail.anisotropy;
+  // The line fade's uniforms, shared by the glass's two draws, the goals' frames and their netting.
+  const fade = lineFadeUniforms();
 
-  const walls = new Triangles();
-  for (const q of p.pieces) if (q.surface === WALL) wall(q, look, walls);
   const frames = new Triangles();
   for (const goal of p.goals) {
     for (const k of goal.pieces) if (p.pieces[k]!.surface === FRAME) frame(p.pieces[k]!, goal.pack, look, frames);
@@ -432,13 +340,30 @@ export function drawPitch(p: Pitch, detail: PitchDetail, look: Look): DrawnPitch
 
   const floorMaterial = new MeshLambertMaterial({ map: grass, vertexColors: true });
   const markingsMaterial = new MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
-  const nettingMaterial = new LineBasicMaterial({ vertexColors: true });
+  // The rail's, lit as the markings are, so it shares their program.
+  const railMaterial = new MeshLambertMaterial({ vertexColors: true });
   const floorPart = new Mesh(floor(p, look), floorMaterial);
   floorPart.name = 'floor';
   const markingsPart = new Mesh(markings(p, look), markingsMaterial);
   markingsPart.name = 'markings';
-  const nettingPart = new LineSegments(goalNetting(p, detail, look), nettingMaterial);
+  const groundPart = new Mesh(groundGeometry(p, look), groundMaterial());
+  groundPart.name = 'ground';
+  const railPart = new Mesh(railGeometry(p, look), railMaterial);
+  railPart.name = 'rail';
+  // The glass: one geometry, its inner draw first of the transparent things and its outer draw last.
+  const glass = glassGeometry(p);
+  const innerGlass = new Mesh(glass, glassMaterial(look, false, fade));
+  innerGlass.name = 'glass, inner';
+  innerGlass.renderOrder = ORDER.innerGlass;
+  const outerGlass = new Mesh(glass, glassMaterial(look, true, fade));
+  outerGlass.name = 'glass, outer';
+  outerGlass.renderOrder = ORDER.outerGlass;
+  // Until a frame finds the camera outside; prepare()'s compile and upload reach it hidden.
+  outerGlass.visible = false;
+  const planes = wallPlanes(p);
+  const nettingPart = new LineSegments(goalNetting(p, detail, look), goalNettingMaterial(p, fade));
   nettingPart.name = 'goal netting';
+  nettingPart.renderOrder = ORDER.goalNetting;
 
   const piecesOf = (surface: number): Box3[] => p.pieces.filter((q) => q.surface === surface).map((q) => boundsOf(p, q));
   const occluder = (name: string, make: (m: Material) => Mesh | LineSegments, m: Material, bounds: Box3[]): Occluder => {
@@ -451,24 +376,34 @@ export function drawPitch(p: Pitch, detail: PitchDetail, look: Look): DrawnPitch
     variant.visible = false;
     return { part, faded, variant, bounds };
   };
-  const wallGeometry = walls.geometry();
   const frameGeometry = frames.geometry();
   const netGeometry = overheadNet(p, detail, look);
+  const frameOccluder = occluder('goal frames', (m) => new Mesh(frameGeometry, m), goalFrameMaterial(fade), piecesOf(FRAME));
+  frameOccluder.part.renderOrder = ORDER.goalFrames;
+  frameOccluder.variant.renderOrder = ORDER.goalFrames;
   const occluders: Occluder[] = [
-    occluder('walls', (m) => new Mesh(wallGeometry, m), new MeshLambertMaterial({ vertexColors: true }), piecesOf(WALL)),
-    occluder('goal frames', (m) => new Mesh(frameGeometry, m), new MeshLambertMaterial({ vertexColors: true }), piecesOf(FRAME)),
+    frameOccluder,
     occluder('overhead net', (m) => new LineSegments(netGeometry, m), new LineBasicMaterial({ vertexColors: true }), piecesOf(NET)),
   ];
 
-  object.add(floorPart, markingsPart, ...occluders.map((o) => o.part), nettingPart, ...occluders.map((o) => o.variant));
-  const geometries = [floorPart.geometry, markingsPart.geometry, wallGeometry, frameGeometry, netGeometry, nettingPart.geometry];
-  const materials = new Set<Material>([floorMaterial, markingsMaterial, nettingMaterial]);
+  object.add(
+    floorPart, markingsPart, groundPart, railPart, innerGlass, ...occluders.map((o) => o.part), nettingPart, outerGlass,
+    ...occluders.map((o) => o.variant),
+  );
+  const parts = [floorPart, markingsPart, groundPart, railPart, innerGlass, outerGlass, nettingPart];
+  const geometries = new Set<BufferGeometry>([...parts.map((o) => o.geometry), frameGeometry, netGeometry]);
+  const materials = new Set<Material>(parts.map((o) => o.material));
   for (const o of occluders) materials.add(o.faded.opaque).add(o.faded.dithered);
   return {
     object,
     variants: occluders.map((o) => o.variant),
-    setFade() {
+    setFade(camera: Readonly<Vector3>) {
       for (const o of occluders) o.part.material = o.bounds.some((b) => crossesFade(b)) ? o.faded.dithered : o.faded.opaque;
+      updateLineFade(fade);
+      outerGlass.visible = outerDrawn(planes, camera);
+    },
+    get outerGlass() {
+      return outerGlass.visible;
     },
     setBulge(_b: Bulge | null) {},
     dispose() {

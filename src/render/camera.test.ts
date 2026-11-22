@@ -3,10 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { config } from '../config';
 import { mix } from '../core/sim/math';
 import { defaultParams } from '../core/sim/params';
-import { buildPitch, CAPSULE, insideRegion, pitch, type Pitch, QUAD } from '../core/sim/pitch';
-import {
-  ceilingAt, fitSpectator, framedPoints, insidePitch, newPlaced, type Placed, placeCamera, project, spectatorCamera, subjectCone, viewUp,
-} from './camera';
+import { buildPitch, insideFloorPlan, insideRegion, pitch, type Pitch } from '../core/sim/pitch';
+import { fitSpectator, framedPoints, newPlaced, type Placed, placeCamera, project, spectatorCamera, subjectCone, viewUp } from './camera';
 import { spectatorCentreLimit } from './camera-rig';
 import type { CameraFrame, ViewMode } from './frame';
 
@@ -52,39 +50,42 @@ describe("the spectators' camera", () => {
     expect(Math.max(...xs) + Math.min(...xs)).toBeCloseTo(0, 9);
   });
 
+  it('draws at least as far past the centre spot as the other cameras draw, at any window shape, so the ground outside the walls fades first (C-57)', () => {
+    for (const aspect of [0.3, 0.45, 1, 16 / 9, 4]) {
+      const camera = spectatorCamera();
+      fitSpectator(camera, aspect, pitch);
+      const w = camera.getWorldDirection(new Vector3());
+      expect(camera.far - new Vector3().sub(camera.position).dot(w), `aspect ${aspect}`).toBeGreaterThanOrEqual(newPlaced().far - 1e-9);
+    }
+  });
+
   it("holds the floor plan, the walls' tops and both goals", () => {
     // 8 outline corners at the floor and at the walls' tops, and each goal's 4 floor corners and its top.
     expect(framedPoints(pitch)).toHaveLength(8 * 2 + 2 * 4 * 2);
   });
 });
 
-// --- M4: the players' and spectators' cameras (D-28, L89, L91; M4's design §1.9, §3.2, §3.3, §3.6) ---
+// --- M4: the players' and spectators' cameras (D-28, L89, L91, C-57; M4's design §1.9, §3.2, §3.3, §3.6) ---
 
 const margin = config.cameraWallMarginMetres;
+const behind = config.cameraBehindMetres;
+const above = config.cameraAboveMetres;
 const r = defaultParams.terrierRadius;
 const hx = pitch.goalLineX;
 const hy = pitch.shape.widthMetres / 2;
 const height = pitch.shape.heightMetres;
+const depth = pitch.shape.goalDepthMetres;
+const mouth = pitch.shape.mouthWidthMetres / 2;
 const PHONE = 915 / 355; // the phone held sideways, in CSS px (M4's design §1.60)
 const ASPECTS = [16 / 9, PHONE, 0.75];
+/** A canvas's CSS height for the projections, its width by the aspect: the gate's. */
+const CSS_H = 360;
 
-/** Each plane and quad the point lies across, as insidePitch reads them: its height over the face. */
-function faceHeights(v: Vector3): { name: string; h: number }[] {
-  const out: { name: string; h: number }[] = [];
-  for (const q of pitch.pieces) {
-    if (q.kind === CAPSULE) continue;
-    const dx = v.x - q.ox;
-    const dy = v.y - q.oy;
-    const dz = v.z - q.oz;
-    if (q.kind === QUAD) {
-      const u = (dx * q.e1x + dy * q.e1y + dz * q.e1z) * q.inv1;
-      const w = (dx * q.e2x + dy * q.e2y + dz * q.e2z) * q.inv2;
-      if (u < 0 || u > 1 || w < 0 || w > 1) continue;
-    }
-    out.push({ name: q.name, h: dx * q.nx + dy * q.ny + dz * q.nz });
-  }
-  return out;
-}
+/** Where a point falls: on the pitch, inside the walls and cut corners and in front of both goal lines; in a
+ *  goal, inside its box behind its line; or outside, beyond the walls or behind a goal's back, sides or roof. */
+type Where = 'pitch' | 'goal' | 'outside';
+const whereIs = (v: Vector3): Where =>
+  insideFloorPlan(pitch.shape, v.x, v.y) ? 'pitch' : insideRegion(pitch.shape, v.x, v.y, v.z, 0) ? 'goal' : 'outside';
 
 /** A camera as the stage sets it from a placement. */
 function cameraFor(placed: Placed, aspect: number): PerspectiveCamera {
@@ -96,48 +97,23 @@ function cameraFor(placed: Placed, aspect: number): PerspectiveCamera {
   return c;
 }
 
+/** Whether a point shows in the placement's view at the aspect, as the overlay reads it: in front of the
+ *  camera and inside 95% of the half-width and half-height (project's inView). */
+const shows = (placed: Placed, aspect: number, q: Vector3): boolean => project(cameraFor(placed, aspect), q.x, q.y, q.z, CSS_H * aspect, CSS_H).inView;
+
 const player = (view: ViewMode, s: Vector3, yaw: number, target: Vector3): CameraFrame => ({
   mode: { kind: 'player', view, terrier: 't' }, yaw, target, subject: s,
 });
 
-describe('inside the pitch (L89, §3.2)', () => {
-  it('moves any point inside the region the pieces bound, the goals included, by the margin from every face it lies across', () => {
-    let seed = 1;
-    const next = (): number => (seed = mix(seed, 7)) / 4294967296;
-    for (let k = 0; k < 4000; k++) {
-      const v = new Vector3(-26 + 52 * next(), -18 + 36 * next(), -1 + 9 * next());
-      const from = v.clone();
-      insidePitch(v, pitch, margin);
-      const at = `from ${from.toArray().map((c) => c.toFixed(2)).join(', ')} to ${v.toArray().map((c) => c.toFixed(2)).join(', ')}`;
-      expect(insideRegion(pitch.shape, v.x, v.y, v.z, 1e-9), at).toBe(true);
-      for (const f of faceHeights(v)) expect(f.h, `${at}: ${f.name}`).toBeGreaterThanOrEqual(margin - 1e-9);
-    }
-  });
+/** The camera's place for a terrier at s and the yaw, by E's rules (C-57): cameraBehindMetres behind its
+ *  floor point along the yaw and cameraAboveMetres above it, held only to the margin above the ground and
+ *  under the net. */
+const placeOf = (s: Vector3, yaw: number): Vector3 =>
+  new Vector3(s.x - behind * Math.cos(yaw), s.y - behind * Math.sin(yaw), Math.max(margin, Math.min(height - margin, s.z - r + above)));
 
-  it('leaves a point inside by the margin where it is, and brings one behind a wall, a goal or the net back to the margin', () => {
-    const still = new Vector3(3, -2, 2);
-    expect(insidePitch(still.clone(), pitch, margin)).toEqual(still);
-    expect(insidePitch(new Vector3(0, -16, 2), pitch, margin).y).toBeCloseTo(-hy + margin, 12);
-    expect(insidePitch(new Vector3(-21, 8, 2), pitch, margin).x).toBeCloseTo(-hx + margin, 12);
-    // Behind a goal's back netting: back into the goal, not out onto the pitch (the spike's box clamp did that).
-    const back = insidePitch(new Vector3(-23, 0, 1), pitch, margin);
-    expect(back.x).toBeCloseTo(-hx - pitch.shape.goalDepthMetres + margin, 12);
-    expect(insidePitch(new Vector3(0, 0, 7), pitch, margin).z).toBeCloseTo(height - margin, 12);
-    expect(insidePitch(new Vector3(21, 0, 2.9), pitch, margin).z).toBeCloseTo(pitch.shape.mouthHeightMetres - margin, 12);
-  });
-
-  it('reads the ceiling as the net, or the goal\'s roof inside a goal, less the margin', () => {
-    expect(ceilingAt(pitch, 0, 0, margin)).toBe(height - margin);
-    expect(ceilingAt(pitch, -hx + 0.1, 0, margin)).toBe(height - margin);
-    expect(ceilingAt(pitch, -hx - 1, 0, margin)).toBe(pitch.shape.mouthHeightMetres - margin);
-    expect(ceilingAt(pitch, hx + 1, -3, margin)).toBe(pitch.shape.mouthHeightMetres - margin);
-    expect(ceilingAt(pitch, hx + 1, hy - 1, margin)).toBe(height - margin);
-  });
-});
-
-describe("a player's camera (D-28, §3.2)", () => {
-  // A terrier with its back to each wall, in each cut corner, under the net and inside each goal, facing
-  // away from what's behind it.
+describe("a player's camera (D-28, L89, C-57, §3.2)", () => {
+  // A terrier with its back to each side wall, each end wall beside the mouth, each cut corner, out in front
+  // of each goal and inside each, facing away from what's behind it, on its feet; and where its camera falls.
   const corner = (k: number): { s: Vector3; yaw: number } => {
     const sx = k === 0 || k === 3 ? -1 : 1;
     const sy = k < 2 ? -1 : 1;
@@ -146,21 +122,22 @@ describe("a player's camera (D-28, §3.2)", () => {
     const inward = new Vector3(-sx, -sy, 0).normalize();
     return { s: mid.addScaledVector(inward, r), yaw: Math.atan2(inward.y, inward.x) };
   };
-  const cases: { name: string; s: Vector3; yaw: number }[] = [
-    { name: 'its back to the −y side wall', s: new Vector3(5, -hy + r, r), yaw: Math.PI / 2 },
-    { name: 'its back to the +y side wall', s: new Vector3(-5, hy - r, r), yaw: -Math.PI / 2 },
-    { name: 'its back to the −x end wall', s: new Vector3(-hx + r, 7, r), yaw: 0 },
-    { name: 'its back to the +x end wall', s: new Vector3(hx - r, -7, r), yaw: Math.PI },
-    ...[0, 1, 2, 3].map((k) => ({ name: `in cut corner ${k}`, ...corner(k) })),
-    { name: 'high under the net', s: new Vector3(2, 1, 4), yaw: 0.3 },
-    { name: 'deep in pack A\'s goal, facing out', s: new Vector3(-hx - 2 + r + 0.05, 0, r), yaw: 0 },
-    { name: 'deep in pack B\'s goal, facing out', s: new Vector3(hx + 2 - r - 0.05, 1, r), yaw: Math.PI },
-    { name: 'in pack A\'s goal, its back to the side netting', s: new Vector3(-hx - 1, 4 - r, r), yaw: -Math.PI / 2 },
-    { name: 'on the pitch, nothing behind it', s: new Vector3(0, 0, r), yaw: 0.5 },
+  const cases: { name: string; s: Vector3; yaw: number; camera: Where }[] = [
+    { name: 'its back to the −y side wall', s: new Vector3(5, -hy + r, r), yaw: Math.PI / 2, camera: 'outside' },
+    { name: 'its back to the +y side wall', s: new Vector3(-5, hy - r, r), yaw: -Math.PI / 2, camera: 'outside' },
+    { name: 'its back to the −x end wall, beside the mouth', s: new Vector3(-hx + r, 7, r), yaw: 0, camera: 'outside' },
+    { name: 'its back to the +x end wall, beside the mouth', s: new Vector3(hx - r, -7, r), yaw: Math.PI, camera: 'outside' },
+    ...[0, 1, 2, 3].map((k) => ({ name: `its back to cut corner ${k}`, ...corner(k), camera: 'outside' as const })),
+    { name: "3 m out from pack A's goal line, facing out", s: new Vector3(-hx + 3, 1, r), yaw: 0, camera: 'goal' },
+    { name: "3 m out from pack B's goal line, facing out", s: new Vector3(hx - 3, -1, r), yaw: Math.PI, camera: 'goal' },
+    { name: "deep in pack A's goal, facing out", s: new Vector3(-hx - depth + r + 0.05, 0, r), yaw: 0, camera: 'outside' },
+    { name: "deep in pack B's goal, facing out", s: new Vector3(hx + depth - r - 0.05, 1, r), yaw: Math.PI, camera: 'outside' },
+    { name: "in pack A's goal, its back to the side netting", s: new Vector3(-hx - 1, mouth - r, r), yaw: -Math.PI / 2, camera: 'outside' },
+    { name: "in pack B's goal, its back to the side netting", s: new Vector3(hx + 1, r - mouth, r), yaw: Math.PI / 2, camera: 'outside' },
+    { name: 'on the pitch, nothing behind it', s: new Vector3(0, 0, r), yaw: 0.5, camera: 'pitch' },
   ];
 
-  it('stays inside the pitch, under its ceiling, rising when nearer than cameraNearestMetres, with the terrier in view', () => {
-    let raised = 0;
+  it('keeps its place behind the terrier, outside the walls and in or behind a goal where that falls, never risen, the terrier and the ball in view', () => {
     for (const c of cases) {
       for (const view of ['ball', 'chase'] as const) {
         for (const aspect of ASPECTS) {
@@ -169,20 +146,131 @@ describe("a player's camera (D-28, §3.2)", () => {
           ball.z = defaultParams.ballRadius;
           const placed = placeCamera(player(view, c.s, c.yaw, ball), pitch, aspect, newPlaced());
           const p = placed.position;
-          expect(insideRegion(pitch.shape, p.x, p.y, p.z, 1e-9), at).toBe(true);
-          for (const f of faceHeights(p)) expect(f.h, `${at}: ${f.name}`).toBeGreaterThanOrEqual(margin - 1e-9);
-          expect(p.z, at).toBeLessThanOrEqual(ceilingAt(pitch, p.x, p.y, margin) + 1e-9);
-          const near = Math.hypot(p.x - c.s.x, p.y - c.s.y);
-          expect(placed.raised, `${at}: ${near.toFixed(2)} m away`).toBe(near < config.cameraNearestMetres);
-          if (placed.raised) raised++;
-          const ndc = c.s.clone().project(cameraFor(placed, aspect));
-          const front = c.s.clone().applyMatrix4(cameraFor(placed, aspect).matrixWorldInverse).z < 0;
-          expect(front && Math.abs(ndc.x) <= 1 && Math.abs(ndc.y) <= 1, `${at}: the terrier at ${ndc.x.toFixed(2)}, ${ndc.y.toFixed(2)}`).toBe(true);
+          // Its place exactly, cameraAboveMetres over the floor point: no clamp has moved it in or up.
+          expect(p.distanceTo(placeOf(c.s, c.yaw)), `${at}: at ${p.toArray().map((x) => x.toFixed(2)).join(', ')}`).toBeLessThan(1e-12);
+          expect(p.z, at).toBe(c.s.z - r + above);
+          expect(whereIs(p), at).toBe(c.camera);
+          expect(shows(placed, aspect, c.s), `${at}: the terrier in view`).toBe(true);
+          expect(shows(placed, aspect, ball), `${at}: the ball in view`).toBe(true);
+          if (view === 'ball') {
+            // Aimed at the ball: the terrier is inside its cone, so the aim never turned.
+            const b = project(cameraFor(placed, aspect), ball.x, ball.y, ball.z, CSS_H * aspect, CSS_H);
+            expect(Math.hypot(b.x - (CSS_H * aspect) / 2, b.y - CSS_H / 2), at).toBeLessThan(1e-6);
+          }
           expect(placed.fovDegrees).toBe(config.cameraFovDegrees);
         }
       }
     }
-    expect(raised, 'some cases rose').toBeGreaterThan(20);
+  });
+
+  it('sits anywhere a terrier stands at its place, by the yaw alone, its terrier in view', () => {
+    // Terriers anywhere in the pitch's region, the goals included, on the floor or off it, at any yaw.
+    let seed = 1;
+    const next = (): number => (seed = mix(seed, 7)) / 4294967296;
+    let outside = 0;
+    for (let k = 0; k < 4000; k++) {
+      const s = new Vector3(-hx - depth + (2 * (hx + depth)) * next(), -hy + 2 * hy * next(), r + 3 * next());
+      if (!insideRegion(pitch.shape, s.x, s.y, s.z, -r)) continue;
+      const yaw = 2 * Math.PI * next();
+      const view = next() < 0.5 ? 'ball' : 'chase';
+      const placed = placeCamera(player(view, s, yaw, new Vector3(0, 0, defaultParams.ballRadius)), pitch, 16 / 9, newPlaced());
+      const at = `${view} view, the terrier at ${s.toArray().map((x) => x.toFixed(2)).join(', ')}, yaw ${yaw.toFixed(3)}`;
+      expect(placed.position.distanceTo(placeOf(s, yaw)), at).toBeLessThan(1e-12);
+      expect(shows(placed, 16 / 9, s), `${at}: the terrier in view`).toBe(true);
+      if (whereIs(placed.position) === 'outside') outside++;
+    }
+    expect(outside, 'some cameras fell outside the walls').toBeGreaterThan(100);
+  });
+
+  it('holds itself at least the margin above the ground and under the net, anywhere, which moves it only for a terrier far off the floor', () => {
+    // On the pitch, with its back to a wall, so the camera is outside it, and deep in a goal, so the camera is
+    // behind it: the floor point from 3 m below the floor to 5 m above it.
+    const spots: [string, Vector3, number][] = [
+      ['on the pitch', new Vector3(1, 2, 0), 0.7],
+      ['its back to the −y side wall', new Vector3(5, -hy + r, 0), Math.PI / 2],
+      ["deep in pack A's goal", new Vector3(-hx - depth + r + 0.05, 0, 0), 0],
+    ];
+    const room = { below: above - margin, over: height - margin - above };
+    for (const [name, at, yaw] of spots) {
+      for (let k = -60; k <= 100; k++) {
+        const floor = k / 20;
+        const s = at.clone().setZ(floor + r);
+        const placed = placeCamera(player('ball', s, yaw, new Vector3(0, 0, defaultParams.ballRadius)), pitch, 16 / 9, newPlaced());
+        const p = placed.position;
+        const what = `${name}, its floor point at ${floor} m`;
+        expect([p.x, p.y], what).toEqual([s.x - behind * Math.cos(yaw), s.y - behind * Math.sin(yaw)]);
+        if (floor < -room.below) expect(p.z, `${what}: at the margin above the ground`).toBe(margin);
+        else if (floor > room.over) expect(p.z, `${what}: at the margin under the net`).toBe(height - margin);
+        else expect(p.z, `${what}: at its height over the floor point`).toBeCloseTo(floor + above, 12);
+        expect(shows(placed, 16 / 9, s), `${what}: the terrier in view`).toBe(true);
+      }
+    }
+    // The limits act only off the floor by more than their room: a terrier more than 1.7 m below the floor or
+    // 3.5 m above it, never one in play, and a goal's roof, 3 m up, bounds nothing.
+    expect(room.below).toBeCloseTo(1.7, 12);
+    expect(room.over).toBeCloseTo(3.5, 12);
+    const high = new Vector3(-hx - 1, 0, 3 + r);
+    expect(placeCamera(player('ball', high, 0, new Vector3()), pitch, 16 / 9, newPlaced()).position.z).toBeCloseTo(3 + above, 12);
+  });
+
+  it('moves no further than its terrier and its yaw do, along every wall, round each cut corner and past each goal: never in a jump', () => {
+    // The floor plan's outline, its walls and cut corners, counter-clockwise, moved in by the terrier's radius;
+    // a terrier walked round it 2 cm at a time, in ball view on a ball at the centre spot, and in chase view, its
+    // yaw following its way round at most 0.01 rad a step, about a turn a second at run speed, as the rig's cap
+    // lets it. Each step the camera moves at most as far as the terrier did and the yaw swung it: |Δs| + 4.2 m
+    // × |Δyaw|. The old clamp inside the walls jumped up to 3.6 m a frame at the corners (C-57).
+    const outline = pitch.outline;
+    const n = outline.length;
+    const inward = (k: number): [number, number] => {
+      const [ax, ay] = outline[k]!;
+      const [bx, by] = outline[(k + 1) % n]!;
+      const len = Math.hypot(bx - ax, by - ay);
+      return [-(by - ay) / len, (bx - ax) / len];
+    };
+    // Each corner of the path: where the two edges' lines, moved in by r, meet.
+    const path = outline.map(([x, y], k) => {
+      const [px, py] = inward((k + n - 1) % n);
+      const [qx, qy] = inward(k);
+      const bisect = new Vector3(px + qx, py + qy, 0);
+      return new Vector3(x, y, r).addScaledVector(bisect, r / bisect.dot(new Vector3(qx, qy, 0)));
+    });
+    const STEP = 0.02;
+    const TURN = 0.01;
+    const wrap = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));
+    for (const view of ['ball', 'chase'] as const) {
+      let last: { s: Vector3; yaw: number; at: Vector3 } | null = null;
+      let worst = 0;
+      for (let k = 0; k <= n; k++) {
+        const a = path[k % n]!;
+        const b = path[(k + 1) % n]!;
+        const steps = Math.ceil(a.distanceTo(b) / STEP);
+        const way = Math.atan2(b.y - a.y, b.x - a.x);
+        for (let j = 0; j < steps; j++) {
+          const s = a.clone().lerp(b, j / steps);
+          const target = view === 'ball' ? Math.atan2(-s.y, -s.x) : way;
+          const yaw: number = last === null ? target : last.yaw + Math.max(-TURN, Math.min(TURN, wrap(target - last.yaw)));
+          const placed = placeCamera(player(view, s, yaw, new Vector3(0, 0, defaultParams.ballRadius)), pitch, 16 / 9, newPlaced());
+          const p = placed.position.clone();
+          const at = `${view} view, the terrier at ${s.x.toFixed(2)}, ${s.y.toFixed(2)}`;
+          expect(p.z, at).toBe(above);
+          if (last !== null) {
+            const moved = p.distanceTo(last.at);
+            const allowed = s.distanceTo(last.s) + behind * Math.abs(wrap(yaw - last.yaw));
+            expect(moved, at).toBeLessThanOrEqual(allowed + 1e-9);
+            worst = Math.max(worst, moved);
+          }
+          // In ball view on the centre spot's ball, the camera's behind the terrier from the ball: outside the
+          // walls or behind a goal all the way round, the terrier and the ball in view.
+          if (view === 'ball') {
+            expect(whereIs(p), at).toBe('outside');
+            expect(shows(placed, 16 / 9, new Vector3(0, 0, defaultParams.ballRadius)), `${at}: the ball in view`).toBe(true);
+          }
+          expect(shows(placed, 16 / 9, s), `${at}: the terrier in view`).toBe(true);
+          last = { s, yaw, at: p };
+        }
+      }
+      expect(worst, `${view} view's largest step`).toBeLessThan(0.1);
+    }
   });
 
   it('sits cameraBehindMetres behind the floor point along the yaw and cameraAboveMetres above it, on open grass', () => {
@@ -191,7 +279,6 @@ describe("a player's camera (D-28, §3.2)", () => {
     const placed = placeCamera(player('chase', s, yaw, s), pitch, 16 / 9, newPlaced());
     const want = new Vector3(s.x - config.cameraBehindMetres * Math.cos(yaw), s.y - config.cameraBehindMetres * Math.sin(yaw), config.cameraAboveMetres);
     expect(placed.position.distanceTo(want)).toBeLessThan(1e-12);
-    expect(placed.raised).toBe(false);
     // Chase view: the terrier low in the view, the look ahead of it along the yaw.
     const ndc = s.clone().project(cameraFor(placed, 16 / 9));
     expect(Math.abs(ndc.x)).toBeLessThan(1e-9);
@@ -208,37 +295,33 @@ describe("a player's camera (D-28, §3.2)", () => {
     expect(Math.abs(t.y)).toBeLessThan(1);
   });
 
-  it('keeps the aim within 60° of the horizontal unless the terrier needs more to stay in view, and then no more', () => {
-    // Every case: past 60°, the terrier sits right on the edge of the cone it's kept in, so the aim
-    // turned no further than it had to.
-    let steep = 0;
+  it('keeps the aim within 60° of the horizontal and its terrier in view, turning it from the ball no further than it must', () => {
+    // A ball 5 m over each terrier is far outside the cone round the terrier, wherever the camera is: the aim
+    // turns from it toward the terrier until the terrier sits right on the cone's edge, and no further.
     for (const c of cases) {
       for (const aspect of ASPECTS) {
-        // The ball just in front of the camera's foot, far below it when raised.
-        const ball = c.s.clone().add(new Vector3(Math.cos(c.yaw), Math.sin(c.yaw), 0).multiplyScalar(1.2));
-        ball.z = defaultParams.ballRadius;
-        const placed = placeCamera(player('ball', c.s, c.yaw, ball), pitch, aspect, newPlaced());
+        const placed = placeCamera(player('ball', c.s, c.yaw, c.s.clone().setZ(c.s.z + 5)), pitch, aspect, newPlaced());
         const look = placed.lookAt.clone().sub(placed.position).normalize();
-        if (Math.abs(Math.asin(look.z)) <= (60 * Math.PI) / 180 + 1e-9) continue;
-        steep++;
+        expect(Math.abs(Math.asin(look.z)), `${c.name} at ${aspect.toFixed(2)}`).toBeLessThanOrEqual((60 * Math.PI) / 180 + 1e-9);
         const toTerrier = c.s.clone().sub(placed.position).normalize();
         expect(look.angleTo(toTerrier), `${c.name} at ${aspect.toFixed(2)}`).toBeCloseTo(subjectCone(aspect), 9);
       }
     }
-    expect(steep, 'some looked down past 60°').toBeGreaterThan(5);
     const s = new Vector3(0, 0, r);
     // The ball high over the camera itself: the aim would be nearly straight up.
     const ball = new Vector3(-3.9, 0, 5.5);
     const placed = placeCamera(player('ball', s, 0, ball), pitch, 16 / 9, newPlaced());
     const look = placed.lookAt.clone().sub(placed.position).normalize();
     expect(Math.asin(look.z)).toBeLessThanOrEqual((60 * Math.PI) / 180 + 1e-9);
-    // Raised over a terrier with its back to the wall, it looks down past 60° to keep it in view.
+    // With its back to the wall, it stays outside the wall at its height, aimed at the ball over its terrier,
+    // which needs no turn, the view's up the yaw's way, so the pitch ahead is up the screen.
     const wall = new Vector3(5, -hy + r, r);
-    const down = placeCamera(player('ball', wall, Math.PI / 2, new Vector3(5, 0, 0.8)), pitch, 16 / 9, newPlaced());
-    expect(down.raised).toBe(true);
-    expect(Math.asin(down.lookAt.clone().sub(down.position).normalize().z)).toBeLessThan((-60 * Math.PI) / 180);
-    // And the view's up stays the yaw's way, so the pitch ahead is up the screen.
-    expect(down.up.y).toBeGreaterThan(0);
+    const out = placeCamera(player('ball', wall, Math.PI / 2, new Vector3(5, 0, 0.8)), pitch, 16 / 9, newPlaced());
+    expect([out.position.y, out.position.z]).toEqual([wall.y - behind, above]);
+    expect(whereIs(out.position)).toBe('outside');
+    const at = project(cameraFor(out, 16 / 9), 5, 0, 0.8, CSS_H * (16 / 9), CSS_H);
+    expect([at.x, at.y].map((v) => Math.round(v * 1e6) / 1e6)).toEqual([(CSS_H * (16 / 9)) / 2, CSS_H / 2]);
+    expect(out.up.y).toBeGreaterThan(0);
   });
 });
 

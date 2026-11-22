@@ -12,8 +12,13 @@
 // context back as Practice opens (§2.8, phase 2b), and a Practice then
 // drawn on the stage swapped back in. Each read checks the buffer by the
 // governor's scale it reads (§9.1), and Leave keeps its place as Ready
-// relabels (phase 2b's review). Two tests, one load
-// each (§9.9). Nothing here depends on the frame rate: the rate is measured
+// relabels (phase 2b's review). From C-57 the walls are glass: in Practice's
+// warm-up your terrier, backed by S from its kickoff spot toward its own
+// goal, takes the camera behind it out past the end wall, and the glass
+// draws that wall's kick band from outside at every look the camera is
+// outside a pane's plane and at none it's inside them all, W bringing it
+// back, with nothing compiled in play. Three tests, one load each (§9.9).
+// Nothing here depends on the frame rate: the rate is measured
 // and reported, with the GL path, never judged. What's drawn is read off a
 // capture taken at a steady drawing buffer: WebKit's capture of a WebGL
 // canvas reads black just after the buffer is reallocated, as a resize or a
@@ -21,12 +26,15 @@
 // step saw once in the gate and measured off it.
 
 import type { Page } from '@playwright/test';
+import { config } from '../src/config';
 import { personId } from '../src/core/bot/bot-id';
+import { insideFloorPlan } from '../src/core/sim/pitch';
 import type { Inspection } from '../src/main';
 import { GL_PATH } from './lib/gl';
 import { expect, expectWebGL2, test } from './lib/guards';
 import {
-  expectAxeClean, expectStarted, inspect, installHook, openPractice, overlayOf, seedStorage, smallViewport, waitForInspection, waitForScreen,
+  expectAxeClean, expectStarted, inspect, installHook, monotonicMs, openPractice, overlayOf, POLL_MS, seedStorage, smallViewport, waitForInspection,
+  waitForScreen,
 } from './lib/page';
 import { decodePng, type Image, meanColour } from './lib/png';
 
@@ -310,5 +318,77 @@ test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', 
     expect([again.quality, again.cap]).toEqual(['high', 2]);
     await held(4, 1, 'after it: the low stage given back');
     expect(tooMany, 'contexts kept past the browser\'s cap').toEqual([]);
+  });
+});
+
+test.describe('the walls, glass (C-57)', () => {
+  /** Pack A's goal line, along −x, on the end wall's plane. */
+  const LINE = config.pitch.lengthMetres / 2;
+  /** The glass's outer draw draws while the camera is outside a pane's plane or within a centimetre of one: inside
+   *  the floor plan by more, the walls' planes all stand round it (src/render/glass.ts). */
+  const SLACK_M = 0.01;
+  /** How far past a plane the camera must be for a look to count as outside or inside: a test's margin. */
+  const PAST_M = 0.5;
+  /** How far the camera drawn may be from its place behind your terrier, as e2e/camera.spec.ts allows: a player's
+   *  frame drawn before the terrier's arrival watches as a spectator would, 14 m off or more. */
+  const PLACED_M = 2;
+  /** A leg's run: about 7 m back from the kickoff spot, or forward again, 1.2 s at run speed, by the page's clock,
+   *  which load slows only between timer runs; 3 × 1.2 + 2 s, as e2e/lib/practice.ts' margins go, made 6 s. */
+  const LEG_MS = 6_000;
+  const at = (i: Inspection): string => {
+    const c = i.render.camera;
+    return `the camera ${c.kind} at ${[c.x, c.y, c.z].map((v) => v.toFixed(2)).join(', ')}, frame ${i.render.frames}`;
+  };
+  /** Whether the camera of the last frame drawn was a player's, placed behind your terrier. */
+  const placed = (i: Inspection): boolean => {
+    const m = i.match?.mine;
+    const c = i.render.camera;
+    return c.kind === 'player' && m !== null && m !== undefined && Math.abs(Math.hypot(c.x - m.x, c.y - m.y) - config.cameraBehindMetres) < PLACED_M;
+  };
+  /** Whether the camera of the last frame drawn was inside every pane's plane, by more than the slack. */
+  const insideAll = (i: Inspection): boolean => insideFloorPlan(config.pitch, i.render.camera.x, i.render.camera.y, SLACK_M);
+
+  /** Looks every 50 ms until `cond` holds of one, checking at each that the glass drew its outer draw just when the
+   *  camera of that frame was outside a pane's plane; fails on a timeout with where the camera is. */
+  async function until(page: Page, cond: (i: Inspection) => boolean, what: string): Promise<Inspection> {
+    const deadline = monotonicMs() + LEG_MS;
+    for (;;) {
+      const i = await inspect(page);
+      if (i.render.frames > 0) expect(i.render.glass.outer, `the glass's outer draw, ${at(i)}`).toBe(!insideAll(i));
+      if (cond(i)) return i;
+      if (monotonicMs() > deadline) throw new Error(`${what}: not reached within ${LEG_MS} ms; ${at(i)}`);
+      await page.waitForTimeout(POLL_MS);
+    }
+  }
+
+  test("draw their kick band from outside only while the camera is outside them, compiling nothing in play", async ({ page }) => {
+    test.setTimeout(60_000);
+    await seedStorage(page, { profile: { playerId: personId(7, 0) }, settings: { quality: 'low' } });
+    await page.goto('./');
+    await expectStarted(page);
+    await openPractice(page, { packSize: 1, minutes: 1 });
+    // The warm-up: your terrier on its kickoff spot facing the ball, your camera behind it on the pitch.
+    const start = await until(page, (i) => i.match?.inRoster === true && placed(i), 'your camera behind your terrier in the warm-up');
+    expect(insideAll(start), `inside every pane's plane; ${at(start)}`).toBe(true);
+    expect(start.render.glass, at(start)).toEqual({ outer: false });
+    // S, straight back from the ball toward your goal: the camera, behind your terrier, out past the end wall.
+    await page.keyboard.down('KeyS');
+    try {
+      const out = await until(page, (i) => i.render.camera.x < -LINE - PAST_M, 'the camera out past the end wall, S held');
+      expect(out.render.glass, at(out)).toEqual({ outer: true });
+    } finally {
+      await page.keyboard.up('KeyS');
+    }
+    // W, toward the ball again: the camera back inside them all.
+    await page.keyboard.down('KeyW');
+    try {
+      const back = await until(page, (i) => insideFloorPlan(config.pitch, i.render.camera.x, i.render.camera.y, PAST_M), 'the camera back inside the walls, W held');
+      expect(back.render.glass, at(back)).toEqual({ outer: false });
+    } finally {
+      await page.keyboard.up('KeyW');
+    }
+    // Nothing compiled or uploaded in play: the counts as prepare() left them.
+    const last = (await inspect(page)).render;
+    expect({ programs: last.programs, geometries: last.geometries, textures: last.textures }).toEqual(last.firstFrame);
   });
 });

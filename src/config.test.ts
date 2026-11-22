@@ -360,26 +360,21 @@ function wireCounts(c: Config, botSlots: number = BOT_SLOTS): string[] {
   return problems;
 }
 
-// --- The cameras (M4; M4's design §3.2, §10) ---
+// --- The cameras (M4; M4's design §3.2, §10; C-57) ---
 
-/** A player's camera fits the pitch: at its height, with its margin, it's
- *  under the walls' and the net's height and under the goal's mouth, so a
- *  camera at its height fits inside a goal too; its distance behind fits
- *  in half the pitch's width inside the margin; and the distance it rises
- *  nearer than is under that distance and under the goal's depth less the
- *  margin, so insidePitch and the rise always have room. */
+/** A player's camera fits its limits (C-57): at its height over a standing
+ *  terrier's floor point it's more than its margin above the ground and
+ *  more than its margin under the net, so the limits move it only for a
+ *  terrier off the floor by more than that room, never in play. It keeps
+ *  its place behind the terrier wherever that falls, outside the walls and
+ *  in or behind a goal, so nothing else of the pitch bounds it: not the
+ *  pitch's width, nor a goal's mouth or depth. */
 function cameras(c: Config): string[] {
   const problems: string[] = [];
-  const { cameraAboveMetres: above, cameraBehindMetres: behind, cameraNearestMetres: nearest, cameraWallMarginMetres: margin } = c;
-  const { heightMetres: height, mouthHeightMetres: mouth, widthMetres: width, goalDepthMetres: depth } = c.pitch;
-  const up = `a player's camera ${above} m up, with its ${margin} m margin,`;
-  if (!(above + margin < height)) problems.push(`${up} doesn't fit under the walls' and the net's ${height} m`);
-  if (!(above + margin < mouth)) problems.push(`${up} doesn't fit under the goal's ${mouth} m mouth`);
-  if (!(behind < width / 2 - margin)) problems.push(`a player's camera ${behind} m behind doesn't fit in half the pitch's ${width} m width less its ${margin} m margin`);
-  if (!(nearest < behind)) problems.push(`a player's camera rises nearer than ${nearest} m, not under its ${behind} m behind`);
-  if (!(nearest < depth - margin)) {
-    problems.push(`a player's camera rises nearer than ${nearest} m, not under the goal's ${depth} m depth less its ${margin} m margin`);
-  }
+  const { cameraAboveMetres: above, cameraWallMarginMetres: margin } = c;
+  const height = c.pitch.heightMetres;
+  if (!(above > margin)) problems.push(`a player's camera ${above} m up isn't over its ${margin} m margin above the ground`);
+  if (!(above + margin < height)) problems.push(`a player's camera ${above} m up, with its ${margin} m margin, doesn't fit under the net's ${height} m`);
   return problems;
 }
 
@@ -569,9 +564,7 @@ const A5: Readonly<Record<string, Row>> = {
   // M2's row (design §4.4, §10): the settled cap, then "a cap of 0 turns it off".
   'Ball-frame push assist (C-18)': { keys: ['pushAssistCapMetresPerSecond'], numbers: (c) => [c.pushAssistCapMetresPerSecond, 0] },
   // M4's rows (M4's design §10, M4-Q34).
-  "Players' cameras": {
-    keys: ['cameraBehindMetres', 'cameraAboveMetres', 'cameraFovDegrees', 'cameraWallMarginMetres', 'cameraNearestMetres', 'chaseLookAheadMetres'],
-  },
+  "Players' cameras": { keys: ['cameraBehindMetres', 'cameraAboveMetres', 'cameraFovDegrees', 'cameraWallMarginMetres', 'chaseLookAheadMetres'] },
   "Spectators' camera": { keys: ['spectatorViewLengthMetres', 'spectatorFollowSeconds'] },
 };
 
@@ -1135,28 +1128,22 @@ describe('the configuration checks (PLAN §7.4)', () => {
     expect(wireCounts(config, 255)).toEqual([]);
   });
 
-  it("fits a player's camera inside the pitch, a goal included, with room to rise (M4)", () => {
+  it("fits a player's camera between the ground and the net with its margin, and nothing else bounds it (M4, C-57)", () => {
     expect(cameras(config)).toEqual([]);
-    // 2.1 m up and 0.4 m in fit under the goal's 3 m mouth: 2.5 m up still does, and 2.7 m doesn't.
-    expect(cameras(planted({ cameraAboveMetres: 2.5 }))).toEqual([]);
-    expect(cameras(planted({ cameraAboveMetres: 2.7 }))).toEqual(["a player's camera 2.7 m up, with its 0.4 m margin, doesn't fit under the goal's 3 m mouth"]);
-    expect(cameras(plantedPitch({ heightMetres: 2.5 }))).toEqual([
-      "a player's camera 2.1 m up, with its 0.4 m margin, doesn't fit under the walls' and the net's 2.5 m",
-    ]);
-    // Half the 28 m width less the margin is 13.6 m.
-    expect(cameras(planted({ cameraBehindMetres: 13.5 }))).toEqual([]);
-    expect(cameras(planted({ cameraBehindMetres: 14 }))).toEqual([
-      "a player's camera 14 m behind doesn't fit in half the pitch's 28 m width less its 0.4 m margin",
-    ]);
-    // The goal's 2 m depth less the margin is 1.6 m.
-    expect(cameras(planted({ cameraNearestMetres: 1.55 }))).toEqual([]);
-    expect(cameras(planted({ cameraNearestMetres: 1.7 }))).toEqual([
-      "a player's camera rises nearer than 1.7 m, not under the goal's 2 m depth less its 0.4 m margin",
-    ]);
-    expect(cameras(plantedPitch({ goalDepthMetres: 1.8 })).join('\n')).toMatch(/nearer than 1.5 m, not under the goal's 1.8 m depth/);
-    expect(cameras(planted({ cameraNearestMetres: 5 })).join('\n')).toMatch(/nearer than 5 m, not under its 4.2 m behind\n.*goal's 2 m depth/);
-    // A wider margin takes room from the height and the depth at once.
-    expect(cameras(planted({ cameraWallMarginMetres: 1 }))).toHaveLength(2);
+    // 2.1 m up and 0.4 m under the 6 m net: 5.5 m up still fits, and 5.7 m doesn't.
+    expect(cameras(planted({ cameraAboveMetres: 5.5 }))).toEqual([]);
+    expect(cameras(planted({ cameraAboveMetres: 5.7 }))).toEqual(["a player's camera 5.7 m up, with its 0.4 m margin, doesn't fit under the net's 6 m"]);
+    expect(cameras(plantedPitch({ heightMetres: 2.5 }))).toEqual(["a player's camera 2.1 m up, with its 0.4 m margin, doesn't fit under the net's 2.5 m"]);
+    // And over the 0.4 m margin above the ground.
+    expect(cameras(planted({ cameraAboveMetres: 0.5 }))).toEqual([]);
+    expect(cameras(planted({ cameraAboveMetres: 0.3 }))).toEqual(["a player's camera 0.3 m up isn't over its 0.4 m margin above the ground"]);
+    // A wider margin takes room from both at once.
+    expect(cameras(planted({ cameraWallMarginMetres: 4 }))).toHaveLength(2);
+    // The camera keeps its place outside the walls and in or behind a goal (C-57): above the goal's 3 m mouth,
+    // and further behind than half the 28 m width, it still fits, as it didn't while the walls held it in.
+    expect(cameras(planted({ cameraAboveMetres: 2.7 }))).toEqual([]);
+    expect(cameras(planted({ cameraBehindMetres: 14 }))).toEqual([]);
+    expect(cameras(plantedPitch({ goalDepthMetres: 1 }))).toEqual([]);
   });
 
   it('has every setting of the Configuration table, A.4 and A.5, with their values', () => {

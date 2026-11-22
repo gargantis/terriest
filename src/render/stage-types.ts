@@ -50,13 +50,18 @@ export interface RenderInfo {
   /** calm: the calmer camera's setting as the view read it; turnCap: the cap, turns a second, the rig's last step
    *  turned a player's view by, the swing's or the calmer camera's (D-28), null before one and for the spectators
    *  and the overview, so a spec reads what the rig used (M4's design §9.3); follow: what a spectator's camera
-   *  drew following, 'ball' or a terrier's ID, null for the others (§9.4, from phase 2d). */
+   *  drew following, 'ball' or a terrier's ID, null for the others (§9.4, from phase 2d); yaw, the rig's, and x, y
+   *  and z, where the camera drawn sat, metres, so a spec reads a player's camera outside the walls at its
+   *  height (C-57). */
   camera: {
-    kind: CameraMode['kind']; view: ViewMode | null; follow: string | null; calm: boolean; turnCap: number | null; raised: boolean;
+    kind: CameraMode['kind']; view: ViewMode | null; follow: string | null; calm: boolean; turnCap: number | null;
     yaw: number; x: number; y: number; z: number;
   };
   /** The context lost and restored, and the renderer rebuilt (D-30, D-33). */
   lost: boolean; restores: number; rebuilds: number; rebuilding: boolean;
+  /** The glass walls (C-57): outer, whether the last frame drew the glass's outer draw, the near panes' kick band
+   *  seen from outside, which draws only while the camera is outside some pane's plane. */
+  glass: { outer: boolean };
 }
 
 export interface ResourceCounts {

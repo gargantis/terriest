@@ -2,23 +2,25 @@
 // M4's design, research/m4/DESIGN.md, §1.3, §2.1, §2.8). It makes the
 // page's one WebGL 2 context on a canvas of its own, at the render
 // quality's MSAA and pixel-ratio cap, and the scene: M1's lights and pitch
-// (src/render/pitch.ts) in the look's colours, the ball (ball.ts), the blob
-// shadows (shadows.ts), the terrier drawer the app passes in, so the stage
-// imports no drawer's chunk itself, the effects (effects.ts, phase 3) and
-// the camera. Before play, behind Home, prepare() compiles every program a
-// match can use on a scene holding one of each, the drawer at full
-// capacity with both packs' bandanas, the ball, the shadows, the pitch and
-// each occluder's other variant, then uploads every buffer and texture by
-// one render with frustum culling off, and records firstFrame: nothing
-// compiles in play (PLAN §12, D-27's M0 note). draw() takes the view's
-// StageFrame (src/render/view.ts), as the app's frame loop owns
-// requestAnimationFrame: it places the camera (camera.ts), poses the ball,
-// the shadows and the terriers, sets the fade, renders, and returns the
-// projections the DOM overlay needs. A null frame draws the empty pitch
-// from M1's overview camera. The canvas fills its box: each draw checks its
-// CSS size and pixel ratio, min(devicePixelRatio, cap) × the governor's
-// scale, and resizes only on a change, the drawing buffer round(CSS size ×
-// that ratio), so a spec checks the buffer by the scale it reads (§9.1).
+// (src/render/pitch.ts) in the look's colours, its walls glass from C-57,
+// the ball (ball.ts), the blob shadows (shadows.ts), the terrier drawer the
+// app passes in, so the stage imports no drawer's chunk itself, the effects
+// (effects.ts, phase 3) and the camera. Before play, behind Home, prepare()
+// compiles every program a match can use on a scene holding one of each,
+// the drawer at full capacity with both packs' bandanas, the ball, the
+// shadows, the pitch and each occluder's other variant, then uploads every
+// buffer and texture by one render with frustum culling off, and records
+// firstFrame: nothing compiles in play (PLAN §12, D-27's M0 note). draw()
+// takes the view's StageFrame (src/render/view.ts), as the app's frame
+// loop owns requestAnimationFrame: it places the camera (camera.ts), poses
+// the ball, the shadows and the terriers, sets the fade, hands the pitch
+// the camera's place, which the glass's outer draw reads for every camera,
+// the overview's included, renders, and returns the projections the DOM
+// overlay needs. A null frame draws the empty pitch from M1's overview
+// camera. The canvas fills its box: each draw checks its CSS size and pixel
+// ratio, min(devicePixelRatio, cap) × the governor's scale, and resizes
+// only on a change, the drawing buffer round(CSS size × that ratio), so a
+// spec checks the buffer by the scale it reads (§9.1).
 //
 // From M1's scene.ts: the context, the lights, the fit, the counts and the
 // compile-then-cull-off first frame. M1's createPitchView stays below as a
@@ -131,7 +133,7 @@ class Drawing implements Stage {
   private readonly readyPromise: Promise<void>;
   private resolveReady!: () => void;
   private rejectReady!: (e: unknown) => void;
-  private cameraInfo: RenderInfo['camera'] = { kind: 'overview', view: null, follow: null, calm: false, turnCap: null, raised: false, yaw: 0, x: 0, y: 0, z: 0 };
+  private cameraInfo: RenderInfo['camera'] = { kind: 'overview', view: null, follow: null, calm: false, turnCap: null, yaw: 0, x: 0, y: 0, z: 0 };
   private nowMs = 0;
   private lost = false;
   private restores = 0;
@@ -225,7 +227,9 @@ class Drawing implements Stage {
       this.shadows.clear();
       this.drawer.draw(NO_TERRIERS);
     }
-    this.pitchDrawn.setFade();
+    // The pitch's variants and line fade from the capsule, and the glass's outer draw from where the camera is,
+    // whichever camera it is, the overview's included (C-57).
+    this.pitchDrawn.setFade(this.placed.position);
     this.effects.draw(shown ?? { match: null, drawer: null, camera: OVERVIEW, nowMs: this.nowMs, dtMs: 0, fadeTo: null });
     // A rebuild under way draws nothing on the old renderer, which never compiled the new parts.
     if (!this.rebuilding) this.renderer.render(this.scene, this.camera);
@@ -236,7 +240,7 @@ class Drawing implements Stage {
     this.cameraInfo = {
       kind: mode.kind, view: mode.kind === 'player' ? mode.view : null, follow: mode.kind === 'spectator' ? (mode.follow ?? 'ball') : null,
       calm: viewCamera.calm === true, turnCap: viewCamera.turnCap ?? null,
-      raised: this.placed.raised, yaw: camera.yaw, x: this.placed.position.x, y: this.placed.position.y, z: this.placed.position.z,
+      yaw: camera.yaw, x: this.placed.position.x, y: this.placed.position.y, z: this.placed.position.z,
     };
     return this.projections(match, camera.yaw);
   }
@@ -256,6 +260,7 @@ class Drawing implements Stage {
       model: { url: this.modelUrl, state: this.model.state, ms: this.model.ms, error: this.model.error },
       camera: { ...this.cameraInfo },
       lost: this.lost, restores: this.restores, rebuilds: this.rebuilds, rebuilding: this.rebuilding,
+      glass: { outer: this.pitchDrawn.outerGlass },
     };
   }
 

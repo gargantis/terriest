@@ -202,7 +202,6 @@ export const NOT_TUNED: readonly { readonly key: string; readonly why: string }[
   { key: 'cameraAboveMetres', why: "a camera's (D-28), tuned at M4 on the feel page" },
   { key: 'cameraFovDegrees', why: "a camera's (D-28), tuned at M4 on the feel page" },
   { key: 'cameraWallMarginMetres', why: "a camera's (D-28), tuned at M4 on the feel page" },
-  { key: 'cameraNearestMetres', why: "a camera's (D-28), tuned at M4 on the feel page" },
   { key: 'chaseLookAheadMetres', why: "a camera's (D-28), tuned at M4 on the feel page" },
   { key: 'spectatorViewLengthMetres', why: "the spectators' camera (D-28), M4" },
   { key: 'spectatorFollowSeconds', why: "the spectators' camera (D-28), M4" },
