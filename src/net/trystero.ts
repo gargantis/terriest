@@ -24,10 +24,10 @@
 //   own uncaught error with its stack, which the e2e guard fails;
 // - it leaves the room on pagehide too, beside Trystero's own beforeunload
 //   cleanup, so M4's leave prompt may hold beforeunload back (M3-Q20); and
-//   at once after, in the page's one pagehide listener, it closes every
-//   connection the page's rooms joined, a left room's too, by
+//   in WebKit, at once after, in the page's one pagehide listener, it
+//   closes every connection the page's rooms joined, a left room's too, by
 //   RTCPeerConnection.close() alone, so a far side sees an abort, which
-//   Trystero ignores, rather than the browser's teardown (pageHidden).
+//   Trystero ignores, rather than WebKit's teardown (pageHidden).
 // Nothing imports it statically: src/ui/game.ts loads it with import() when
 // a networked match opens, so a normal page never loads Trystero (L238,
 // design §1.36).
@@ -72,14 +72,21 @@ function guarded<R>(call: () => R): R | undefined {
 }
 
 /** The page's open rooms, each with its Trystero room, and every connection a room of the page
- *  joined, left rooms' included: what pageHidden leaves and closes. */
+ *  joined, left rooms' included: what pageHidden leaves and, in WebKit, closes. */
 const openRooms = new Map<TrysteroRoom, Room>();
 const joinedConnections = new Set<RTCPeerConnection>();
 
-/** A connection a room of the page joined, kept for pageHidden; those closed since go. */
+/** A connection a room of the page joined, kept for pageHidden; those closed since go, the list's one bound. */
 function remember(connection: RTCPeerConnection | undefined): void {
   for (const c of joinedConnections) if (c.connectionState === 'closed') joinedConnections.delete(c);
   if (connection !== undefined) joinedConnections.add(connection);
+}
+
+/** Whether the page runs in WebKit: every WebKit browser, Safari and each one on iOS, names Apple as its
+ *  vendor, and no other engine does (Chromium names Google, Firefox nobody). */
+function inWebKit(): boolean {
+  const vendor: unknown = typeof navigator === 'undefined' ? undefined : navigator.vendor;
+  return typeof vendor === 'string' && vendor.startsWith('Apple');
 }
 
 /**
@@ -87,14 +94,18 @@ function remember(connection: RTCPeerConnection | undefined): void {
  * holds no room and still covers a page whose rooms have all left, Results' Home or Play again's old
  * room, while Trystero keeps their connections idle for 123 s (strategy.mjs, shared-peer.mjs).
  * First it leaves every open room, each leave's synchronous part handing Trystero's leave to every
- * channel (room.mjs, action-wire.mjs). Then, in the same task, it closes every connection the
- * page's rooms joined, and each open room's, by RTCPeerConnection.close() alone: the channels close
- * with it, raising no error here, and the far side gets one SCTP abort, "User-Initiated Abort",
- * which Trystero ignores (peer.mjs). Left to the browser's teardown, WebKit resets each channel's
+ * channel (room.mjs, action-wire.mjs). Then, in WebKit and in the same task, it closes every
+ * connection the page's rooms joined, and each open room's, by RTCPeerConnection.close() alone: the
+ * channels close with it, raising no error here, and the far side gets one SCTP abort, "User-Initiated
+ * Abort", which Trystero ignores (peer.mjs). Left to its own teardown, WebKit resets each channel's
  * stream tens of ms before its abort, and a far side that completes the reset with a send of its own
  * caught between ends the channel with an empty data-channel-failure, which Trystero logs as a peer
  * error. Closing the channel first, as Trystero's own destroy does, can too, and Trystero's leave
- * closes nothing for 99 ms, which an unloading page never reaches; so nothing here waits.
+ * closes nothing for 99 ms, which an unloading page never reaches; so nothing here waits. The other
+ * engines' teardowns reset nothing, and closing there would only let the abort overtake the leave,
+ * which a WebKit far side that sends between the two logs as a failed send (PLAN D-18). A connection
+ * whose handshake is in flight, or failed, which Trystero then keeps idle for 123 s, is in neither and
+ * still the teardown's (PLAN D-18's residual).
  */
 function pageHidden(): void {
   const rooms = [...openRooms];
@@ -102,6 +113,7 @@ function pageHidden(): void {
   for (const [, room] of rooms) for (const c of Object.values(room.getPeers())) connections.add(c);
   joinedConnections.clear();
   for (const [t] of rooms) void t.leave();
+  if (!inWebKit()) return;
   for (const c of connections) {
     try {
       c.close();

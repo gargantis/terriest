@@ -18,10 +18,11 @@
 //   as an overtime (§8.4);
 // - freshRoom from src/core/match-id.ts, and a count of the page's
 //   RTCPeerConnections for Practice's spec (P10);
-// - watchUnload, the states of a page's connections as it went, which the
-//   reload specs check are all closed by then: its pagehide listener closes
-//   each at once (src/net/trystero.ts' pageHidden), so no far side sees the
-//   browser's teardown;
+// - watchUnload, the states as it went of the connections a page had
+//   connected, which the reload specs check are all closed by its first look
+//   after pagehide on WebKit's page: a WebKit page's pagehide listener closes
+//   at once every connection its rooms joined (src/net/trystero.ts'
+//   pageHidden), so no far side sees WebKit's teardown;
 // - from M4, openAppPage: a normal page of the built app, its screens and
 //   not a #test= page, in a browser a test launched (M4's design §5.12,
 //   §9.1, §9.4, M4-Q3, M4-Q4): its storage seeded as a player's would be,
@@ -287,8 +288,9 @@ export async function watchUnload(page: Page, looks: UnloadLook[]): Promise<void
 }
 
 /** Fails unless the first document watchUnload watched go had closed, by its first look, every
- *  connection it had connected, and had connected one: its pagehide listener closes each at once
- *  (src/net/trystero.ts' pageHidden), so no far side sees the browser's teardown. */
+ *  connection it had connected, and had connected one: a WebKit page's pagehide listener closes each at
+ *  once (src/net/trystero.ts' pageHidden), so no far side sees WebKit's teardown. For a WebKit page
+ *  only: the other engines' listeners close nothing, their teardowns resetting no stream. */
 export async function expectClosedAtUnload(looks: readonly UnloadLook[], who: string): Promise<void> {
   const from = monotonicMs();
   while (looks.length === 0) {

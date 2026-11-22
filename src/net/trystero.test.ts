@@ -5,10 +5,12 @@
 // side receives, a place this side accepted released through onJoinError or
 // the timeout, a replaced connection dropped before the new one joins, the
 // guard around the room peer, pings, and leaving: on pagehide, every open
-// room's leave and then, in the same task, every connection the page's rooms
-// joined closed, each once, through the page's one listener, on Node's own
-// EventTarget as the window, and a module loaded afresh for each such test,
-// since the page's rooms and connections are the module's. The only file
+// room's leave and then, in WebKit and in the same task, every connection the
+// page's rooms joined closed, each once, but those closed since, which the
+// next join drops from the page's list, and in Chromium and Firefox none,
+// through the page's one listener, on Node's own EventTarget as the window,
+// its engine by navigator.vendor, and a module loaded afresh for each such
+// test, since the page's rooms and connections are the module's. The only file
 // besides src/ui/game.ts that loads src/net/trystero.ts, which the lint
 // allows because no build bundles it (M3 phase 2's integration).
 
@@ -241,12 +243,17 @@ async function freshModule(): Promise<typeof TrysteroRoom> {
   return (await import('./trystero')).TrysteroRoom;
 }
 
+/** Each engine's navigator.vendor, as the gate's engines report it. */
+const VENDOR = { webkit: 'Apple Computer, Inc.', chromium: 'Google Inc.', firefox: '' } as const;
+
 /** The window for the page's listeners: Node's own EventTarget, whose listeners are kept as the DOM keeps
- *  them, once for each type and function, never a hand-made fake. */
-function pageWindow(): EventTarget {
+ *  them, once for each type and function, never a hand-made fake; and the page's engine, by its vendor,
+ *  WebKit's unless another is named. */
+function pageWindow(vendor: string = VENDOR.webkit): EventTarget {
   const w = new EventTarget();
   vi.stubGlobal('addEventListener', w.addEventListener.bind(w));
   vi.stubGlobal('removeEventListener', w.removeEventListener.bind(w));
+  vi.stubGlobal('navigator', { vendor });
   return w;
 }
 
@@ -483,6 +490,37 @@ describe("the page's pagehide: its rooms left, then their connections closed at 
     pageHides(w);
     expect(fake.log).toHaveLength(6);
   });
+
+  it("drops a connection Trystero closed from the page's list at the next join, the list's one bound: pagehide never closes it", async () => {
+    const Room = await freshModule();
+    const w = pageWindow();
+    room(new Peer(player(0)), Room);
+    const r = fake.rooms[0]!;
+    await joinAll(r, ['p1']);
+    // Trystero ends p1, as when its far side goes: its own destroy closes the connection, set here so the
+    // log holds only the page's closes, and then the room reports p1 gone.
+    fake.connections.p1!.connectionState = 'closed';
+    r.onPeerLeave!('p1');
+    await joinAll(r, ['p2']);
+    pageHides(w);
+    expect(fake.log).toEqual(['leave room-1', 'close p2']);
+  });
+
+  it.each([['Chromium', VENDOR.chromium], ['Firefox', VENDOR.firefox]])(
+    'in %s leaves every room and closes nothing: its own teardown resets no stream, and a far side takes the leave first',
+    async (_, vendor) => {
+      const Room = await freshModule();
+      const w = pageWindow(vendor);
+      const home = room(new Peer(player(0)), Room);
+      room(new Peer(player(0)), Room, 'room-2');
+      await joinAll(fake.rooms[0]!, ['p1']);
+      await home.leave();
+      await joinAll(fake.rooms[1]!, ['p2', 'p3']);
+      pageHides(w);
+      expect(fake.log).toEqual(['leave room-1', 'leave room-2']);
+      expect(Object.values(fake.connections).map((c) => c.connectionState)).toEqual(['connected', 'connected', 'connected']);
+    },
+  );
 
   it('is one listener on the page however many rooms open, which no leave removes', async () => {
     const Room = await freshModule();

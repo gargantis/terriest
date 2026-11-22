@@ -13,8 +13,9 @@
 // (L282, D-17), each with no celebration under way. The reloading page
 // leaves its room on pagehide (design §6.3), so its peers see it go: none
 // meets its HELLOs with its old connection still there. In the same
-// listener it closes each of its connections at once, so its peers see an
-// abort, which Trystero ignores, and never the browser's teardown.
+// listener, a WebKit page's, it closes each of its connections at once, so
+// its peers see an abort, which Trystero ignores, and never WebKit's
+// teardown.
 // Checks: the start countdown begins where R-7's replay has it, from every
 // page's Ready at its tick (§7.2); every page, the spectator and the
 // reloaded one included, reaches the confirmed end at one tick, with one
