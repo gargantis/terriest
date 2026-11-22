@@ -27,10 +27,10 @@ const P = defaultParams;
 const SECOND = P.config.ticksPerSecond;
 
 describe("the screens' runs (M4's design §9.1, §9.2)", () => {
-  it('are Ready at 600, 630 and 660 with e at 0, at 60 and drawn, and the proposer paced at 50 and 100 ms at 600 and 660, e drawn, one a file', () => {
+  it('are Ready at 600, 630 and 660 with e at 0, at 120 and drawn, and the proposer paced at 50 and 100 ms at 600 and 660, e drawn, one a file', () => {
     const unpaced = SCREENS_RUNS.filter((o) => o.paceMs === null);
     const paced = SCREENS_RUNS.filter((o) => o.paceMs !== null);
-    expect(unpaced.map((o) => `${o.ready} ${o.e}`)).toEqual(SCREENS_READY.flatMap((ready) => ['0', '60', 'drawn'].map((e) => `${ready} ${e}`)));
+    expect(unpaced.map((o) => `${o.ready} ${o.e}`)).toEqual(SCREENS_READY.flatMap((ready) => ['0', '120', 'drawn'].map((e) => `${ready} ${e}`)));
     expect(paced.map((o) => `${o.paceMs} ${o.ready} ${o.e}`)).toEqual(PACES.flatMap((pace) => PACED_READY.map((ready) => `${pace} ${ready} drawn`)));
     // The reload's absence by turns: each Ready tick, and each e, meets every one.
     const absences = (k: (o: (typeof unpaced)[number]) => string): Record<string, number[]> =>
@@ -48,7 +48,7 @@ describe("the screens' runs (M4's design §9.1, §9.2)", () => {
     expect(() => screensRun(SCREENS_RUNS.length + 1)).toThrow(/no screens run/);
   });
 
-  it("are swept off the gate at every Ready tick of §9.1's band, 600 to 660, with e at 0, at 60 and drawn, a file for each e (setups-F1)", () => {
+  it("are swept off the gate at every Ready tick of §9.1's band, 600 to 660, with e at 0, at 120 and drawn, a file for each e (setups-F1)", () => {
     expect(SCREENS_BAND).toEqual(Array.from({ length: 61 }, (_, k) => 600 + k));
     for (const e of RELEASES) {
       const band = screensBandRuns(e);

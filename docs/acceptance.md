@@ -245,6 +245,8 @@ The screens match's setup (M4's design §9.1, §9.2, §9.4, M4-Q36), every page 
 
 Every run ended at 0:00 with pack A ahead and no overtime: 11–0 at 37 of the 61 ticks, 10–0 at 10, 9–0 at 7, 8–0 at 5 and 12–0 at 2, the ends at ticks 7585 to 9130. At each tick, e, the reload's absence and WebKit's presses moved neither the score nor the end. Every start countdown began 3 ticks after Ready, d + 1, and the keeper skipped nothing. The slowest was Ready at 632, 12–0, the end at tick 9130, 152.2 s from genesis, every page's end confirmed 142.0 s after the last Ready press; then Ready at 631, 12–0, 139.1 s. §9.2's three ticks had found 135.7 s at most.
 
+**Again, with the keeper's release widened (phase 2d's review).** The spec's loaded runs let S go up to 53 ticks late, past half of e's 60, so by §9.1's rule the screens match's latitude was widened to 120, `SCREENS_RELEASE_LATITUDE` in `src/net/setups-testing.ts`, which the spec reads, and validated again before the spec took it: the gate's `screens-setup-1` to `-13` and `screens-hold-start`, and the sweep, its e at 0, at 120 and drawn to 120 (`src/net/screens-band-120.sweep.ts` in place of the 60's), at the commit that applies the review, in 9.7 minutes. All 183 runs passed every check: 11–0 in 111, 10–0 in 30, 9–0 in 21, 8–0 in 15 and 12–0 in 6, one score at each Ready tick whatever e, the reload's absence and WebKit's presses, the ends at ticks 7585 to 9130; every start countdown 3 ticks after the last Ready press, and the keeper skipped nothing. The slowest is unchanged: Ready at 632, every page's end confirmed 142.0 s after the last Ready press, at each e.
+
 ## Log
 
 ### The gate's wall time (PLAN §16)

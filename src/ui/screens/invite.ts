@@ -3,7 +3,8 @@
 // behind Pre-match's Invite, so anyone in a match can bring more players:
 // the link, this page's address with the match ID in its fragment, which
 // never reaches a server, with Copy link and, where navigator.share exists,
-// Share…; the code in groups of four (C-15), with Copy code. A refused
+// Share…; the code in groups of four (C-15), a line breaking only between
+// them, with Copy code. A refused
 // clipboard write, which a browser may give any page, is caught and said,
 // and what it was to copy selected for copying by hand; a share the player
 // cancels is quiet: neither is ever a page error (§0's guard). The outcome
@@ -14,6 +15,7 @@ import { formatMatchId, joinLink } from '../../core/match-id';
 import { h, setText } from '../dom';
 import { addStyle } from '../style';
 import css from './invite.css?inline';
+import { codeGroups } from './screen';
 
 export interface InviteOptions {
   /** The page's address, whose fragment the link replaces: location.href by default. */
@@ -63,7 +65,8 @@ export function invitePanel(matchId: string, o: InviteOptions = {}): HTMLElement
     type: 'text', readonly: true, value: link, spellcheck: 'false', 'data-test': 'invite-link',
     onfocus: () => selectText(field),
   });
-  const codeText = h('p', { class: 'invite-code', 'data-test': 'invite-code' }, code);
+  // Its groups kept whole, a line breaking only after a dash (C-15, phase 2d's review).
+  const codeText = h('p', { class: 'invite-code', 'data-test': 'invite-code' }, ...codeGroups(code));
   const said = h('p', { class: 'invite-said muted small', role: 'status', 'data-test': 'invite-said' });
   const panel = h('div', { class: 'invite', 'data-test': 'invite' });
 

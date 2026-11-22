@@ -60,6 +60,9 @@ export interface MatchInspection {
   readonly started: boolean; readonly paused: boolean; readonly inRoster: boolean; readonly returning: boolean;
   /** The room's connections, status().peers; 0 in Practice (M4's design §9.3, from phase 2d). */
   readonly peers: number;
+  /** status().refusal: with no peer connected, the last REFUSE reason received, or SPECTATORS_FULL once out
+   *  of a full room; else null (PLAN §9, from phase 2d's review). */
+  readonly refusal: number | null;
   readonly localTick: number; readonly finalTick: number; readonly headTick: number;
   readonly phase: number; readonly phaseStart: number; readonly overtime: boolean; readonly clock: number;
   /** The scoreboard's. */

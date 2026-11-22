@@ -61,12 +61,13 @@ export type Late = (kickoff: number) => number;
 export const ON_TIME: Late = () => 0;
 export const LATEST: Late = () => RELEASE_LATITUDE;
 
-/** e drawn for each kickoff, 0 to RELEASE_LATITUDE, by a generator seeded from `seed` (M4's design §9.2). */
-export function drawn(seed: number): Late {
+/** e drawn for each kickoff, 0 to `latitude`, RELEASE_LATITUDE unless the screens' match's wider one is
+ *  given, by a generator seeded from `seed` (M4's design §9.2). */
+export function drawn(seed: number, latitude = RELEASE_LATITUDE): Late {
   const r = mulberry32(seed);
   const e: number[] = [];
   return (k) => {
-    while (e.length <= k) e.push(Math.floor(r() * (RELEASE_LATITUDE + 1)));
+    while (e.length <= k) e.push(Math.floor(r() * (latitude + 1)));
     return e[k]!;
   };
 }

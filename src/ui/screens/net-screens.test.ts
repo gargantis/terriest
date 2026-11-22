@@ -1,11 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../../config';
 import { personId } from '../../core/bot/bot-id';
 import { formatMatchId } from '../../core/match-id';
-import { IN_PLAY, type MatchSettings, type MatchState, type Pack, START_COUNTDOWN } from '../../core/sim/index';
+import { ENDED, IN_PLAY, type MatchSettings, type MatchState, type Pack, START_COUNTDOWN } from '../../core/sim/index';
 import type { UiCommand } from '../../input/source';
 import { PLACEHOLDER_LOOK } from '../../render/look';
-import { fake, FakeEvent, type FakeDocument, type FakeElement, installDom, only, shownText } from '../dom-testing';
+import { cssDeclarations, fake, FakeEvent, type FakeDocument, type FakeElement, installDom, only, shownText } from '../dom-testing';
 import { MemoryProfile, stateWith, StateMatch } from '../pitch-testing';
 import { homeScreen, NOT_A_CODE } from './home';
 import { COPIED, invitePanel, NOT_COPIED } from './invite';
@@ -251,6 +252,26 @@ describe('Join (§5.6, M4-Q2)', () => {
     expect(button(el, 'watch').hidden).toBe(false);
   });
 
+  it("says of a match that has ended, its players on Results, that its results are there to see, every Play and Watch saying what they do there (C-50, phase 2d's review)", () => {
+    const tie = stateWith(2, 100, [{ id: B(0), pack: 0 }, { id: B(1), pack: 1 }]);
+    const ended = { ...tie, phase: ENDED } as MatchState;
+    expect([suggestedPack(ended), joinStatus(ended)]).toEqual([null, 'This match has ended: you can see its results.']);
+    expect(playState(ended, LOOK, 1)).toEqual({ enabled: false, text: 'Play in the Orange pack: the match has ended' });
+    const { s, el, chose } = join();
+    s.update(new StateMatch(ME, ended));
+    expect(only(el, '[data-test="join-status"]').textContent).toBe('This match has ended: you can see its results.');
+    for (const p of [0, 1] as Pack[]) {
+      expect([button(el, `play-${p}`).getAttribute('aria-disabled'), button(el, `play-${p}`).textContent]).toEqual(['true', `${playText(LOOK, p)}: the match has ended`]);
+    }
+    // Watch, the only choice, beside the status, named for what it does: the results.
+    expect([button(el, 'watch').textContent, only(el, '[data-test="watch-alone"]').hidden]).toEqual(['See the results', false]);
+    button(el, 'watch').click();
+    expect(chose).toEqual(['watch']);
+    // A match in play is watched.
+    s.update(new StateMatch(ME, { ...tie, phase: IN_PLAY } as MatchState));
+    expect([only(el, '[data-test="join-status"]').textContent, button(el, 'watch').textContent]).toEqual(['This match has started: you can watch it.', 'Watch']);
+  });
+
   it("says so when both packs are full, and puts Watch, the only choice, right under the status, first in the pad's nav (phase 2b's review, P8)", () => {
     const { s, el, chose } = join();
     const full = stateWith(1, 100, [{ id: B(0), pack: 0 }, { id: B(1), pack: 1 }]);
@@ -336,5 +357,17 @@ describe('the invite (§5.5, §5.7, C-15)', () => {
     button(el, 'share').click();
     await settle();
     expect(shared).toEqual([{ title: 'terriest', text: 'Join my terriest match', url: `https://terriest.test/#join=${ID}` }]);
+  });
+
+  it("keeps each group of four whole, on the invite and on Join, a line breaking only after a dash, the code's text unchanged (C-15, phase 2d's review)", () => {
+    const groups = (el: FakeElement): string[] => el.children.map((c) => `${c.tagName.toLowerCase()}${c.classList.contains('code-group') ? '.code-group' : ''} ${c.textContent}`);
+    const want = ['span.code-group TERR-', 'wbr ', 'span.code-group 1EST-', 'wbr ', 'span.code-group J01N-', 'wbr ', 'span.code-group BYC0-', 'wbr ', 'span.code-group DE00-', 'wbr ', 'span.code-group 6'];
+    const invite = only(fake(invitePanel(ID, { href: 'https://terriest.test/', clipboard: null, share: null })), '[data-test="invite-code"]');
+    const joined = only(fake(joinScreen({ matchId: ID, look: LOOK, play: () => {}, watch: () => {}, home: () => {} }).el), '[data-test="join-code"]');
+    for (const el of [invite, joined]) expect([groups(el), el.textContent]).toEqual([want, formatMatchId(ID)]);
+    // Each group on one line, and no rule left that breaks inside one.
+    const read = (file: string): string => readFileSync(new URL(file, import.meta.url), 'utf8');
+    expect(cssDeclarations(read('../screens.css'), '.code-group')['white-space']).toBe('nowrap');
+    expect([cssDeclarations(read('./invite.css'), '.invite-code')['word-break'], cssDeclarations(read('./join.css'), '.join-code')['word-break']]).toEqual([undefined, undefined]);
   });
 });

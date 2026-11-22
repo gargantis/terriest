@@ -201,7 +201,7 @@ export class Locks implements TabLocks {
 export const FAKE_MESSAGES: MessageScreens<string> = {
   MESSAGES: {
     canary: 'canary', build: 'build', connect: 'connect', left: 'left', spectators: 'spectators', duplicate: 'duplicate',
-    'other-tab': 'other-tab', graphics: 'graphics',
+    'other-tab': 'other-tab', graphics: 'graphics', open: 'open',
   },
   PRACTICE_GRAPHICS: 'practice-graphics',
   messageScreen: (code, act, detail) => ({

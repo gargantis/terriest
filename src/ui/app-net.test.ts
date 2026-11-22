@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../config';
 import { personId } from '../core/bot/bot-id';
 import { formatMatchId } from '../core/match-id';
-import { ROLE } from '../core/session/index';
+import { REFUSAL, ROLE } from '../core/session/index';
 import { findTerrier, LEAVE, WARM_UP } from '../core/sim/index';
 import type { RoomPeer } from '../core/session/room-peer';
 import { CURATED_RELAYS } from '../net/room-config';
@@ -64,11 +64,19 @@ interface Page {
 /** Each room's node, by a count of the file's own: a page that comes back is another node. */
 let nodes = 0;
 
-function page(world: World, k: number, o: Omit<AppRigOptions, 'doc' | 'clock' | 'transport'> = {}): Page {
+/** A room's transport that never meets anyone: what Trystero hands a page that opens a room under an ID its
+ *  last room there still holds, whose messages go to the match that opened it. */
+const DEAD: Transport = { send: () => {}, broadcast: () => {}, peerCount: () => 0, refusedBy: null, leave: () => Promise.resolve() };
+
+function page(world: World, k: number, o: Omit<AppRigOptions, 'doc' | 'clock' | 'transport'> & { readonly trysteroRooms?: boolean } = {}): Page {
   const clock = new FakeClock(world.now);
   const tab = { k, me: o.me ?? personId(7, k), clock, page: null, rooms: new Map(), frozen: false } as unknown as Tab;
+  // With trysteroRooms, the page's rooms by their match ID as Trystero keeps them: joinRoom hands back a room
+  // still open under an ID (strategy.mjs's occupiedRooms) until its leave.
+  const open = new Set<string>();
   const transport = (rooms: TransportOptions[]): TransportFactory => (peer: RoomPeer, _now, t) => {
     rooms.push(t);
+    if (o.trysteroRooms === true && open.has(t.matchId)) return Promise.resolve(DEAD);
     const net = world.net(t.matchId);
     let link: Transport | null = null;
     const node = net.add(`app${k}.${nodes++}@${t.matchId}`, (l) => {
@@ -77,7 +85,19 @@ function page(world: World, k: number, o: Omit<AppRigOptions, 'doc' | 'clock' | 
     });
     net.join(node, world.now);
     tab.rooms.set(t.matchId, { net, node });
-    return Promise.resolve(link!);
+    if (o.trysteroRooms !== true) return Promise.resolve(link!);
+    open.add(t.matchId);
+    const l: Transport = link!;
+    return Promise.resolve({
+      send: (to, bytes) => l.send(to, bytes), broadcast: (bytes) => l.broadcast(bytes), drop: (to) => l.drop?.(to), peerCount: () => l.peerCount(),
+      get refusedBy() {
+        return l.refusedBy;
+      },
+      leave: () => {
+        open.delete(t.matchId);
+        return l.leave();
+      },
+    });
   };
   const r = appRig({ doc: dom.document, clock, me: tab.me, transport, ...o });
   world.tabs.push(tab);
@@ -109,6 +129,17 @@ async function until(world: World, cond: () => boolean, ms: number): Promise<voi
     await settle();
   }
   if (!cond()) throw new Error(`not reached within ${ms} ms of virtual time`);
+}
+
+/** Trystero's announcement again after a refused handshake, which the loopback never makes: page p's node in
+ *  match id's room meets each of `others` again, where both are online and not connected. */
+function meetAgain(p: Page, others: readonly Page[], id: string): void {
+  const mine = p.tab.rooms.get(id);
+  if (mine === undefined) return;
+  for (const o of others) {
+    const theirs = o.tab.rooms.get(id);
+    if (theirs !== undefined) mine.net.unblock(mine.node.id, theirs.node.id);
+  }
 }
 
 /** Proposes from Home: Propose a match, 1 a side and 1 minute, Create; on to Created. */
@@ -452,5 +483,115 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     only(screenOf(b2), 'input[data-test="code"]').value = 'not a code';
     only(screenOf(b2), 'form').dispatchEvent(new FakeEvent('submit', { bubbles: true, cancelable: true }));
     expect([b2.look().screen, b2.r.rooms.length]).toEqual(['home', 1]);
+  });
+});
+
+describe("a duplicate ID and a room opened again under its ID (§5.10, C-12, D-21; phase 2d's review)", () => {
+  /** A duplicate's refusal stands once it has outlasted a lingering connection's silence and a handshake. */
+  const DUPLICATE_HOLD_MS = (config.duplicateIdSilentSeconds + config.handshakeTimeoutSeconds) * 1000;
+  /** Warm-up's removal of a silent player's terrier (roslambo Q-15). */
+  const REMOVAL_MS = (config.removalSilentTicks / config.ticksPerSecond) * 1000;
+
+  /** Runs the world 20 ms at a time until cond holds, at most ms, p meeting `others` again every 240 ms as
+   *  Trystero's announcements bring a refused pair together, and each look of p's at its end to `each`. */
+  async function retrying(world: World, p: Page, others: readonly Page[], id: string, cond: () => boolean, ms: number, each: (i: Inspection) => void): Promise<void> {
+    for (let t = 0; t < ms && !cond(); t += 20) {
+      if (t % 240 === 0) meetAgain(p, others, id);
+      world.run(20);
+      await settle();
+      each(p.look());
+    }
+    if (!cond()) throw new Error(`not reached within ${ms} ms of virtual time: ${JSON.stringify(p.look().match)}`);
+  }
+
+  it("lets a killed tab's page, reopened, come back to its terrier by itself once its old connection has gone silent, never saying it's open in another tab (C-12)", async () => {
+    const world = new World(59);
+    const a = page(world, 0);
+    await started(a);
+    const id = await propose(world, a);
+    button(a, 'play-0').click();
+    const storage = new MemoryStorage();
+    const b = page(world, 1, { hash: `#join=${id}`, storage });
+    await started(b);
+    await until(world, () => only(screenOf(b), '.join-packs').hidden === false, 5000);
+    button(b, 'play-1').click();
+    await until(world, () => inRosterOf(a, b.tab.me) && inRosterOf(b, b.tab.me), 5000);
+    // The OS kills b's tab: its page runs nothing more, and its connection lingers at the keeper, silent.
+    world.freeze(b.tab);
+    const killed = world.now;
+    world.run(300);
+    // The same browser opens the link again: refused as a duplicate while the old connection was heard
+    // within 2 s, then let in once it hadn't been, replacing it, and back in its terrier.
+    const again = page(world, 1, { hash: `#join=${id}`, storage });
+    await started(again);
+    const seen = { refused: false, messages: [] as string[] };
+    await retrying(world, again, [a], id, () => again.look().screen === 'prematch', REMOVAL_MS, (i) => {
+      if (i.match?.refusal === REFUSAL.DUPLICATE) seen.refused = true;
+      if (i.message !== null) seen.messages.push(i.message);
+    });
+    expect(seen, 'refused as a duplicate, and no message for it').toEqual({ refused: true, messages: [] });
+    expect(again.look().match).toMatchObject({ returning: true, inRoster: true, peers: 1 });
+    expect(world.now - killed, "back before warm-up's removal took its terrier").toBeLessThan(REMOVAL_MS);
+    // The keeper kept the terrier, its old connection replaced by the new one (C-12).
+    world.run(500);
+    expect([inRosterOf(a, again.tab.me), held(a).status().peers]).toEqual([true, 1]);
+  });
+
+  it("says this match is open in another tab or window of a live duplicate once its refusal has stood a lingering connection's silence and a handshake, and lets it in by Try again once the other has gone", async () => {
+    const world = new World(61);
+    const a = page(world, 0);
+    await started(a);
+    const id = await propose(world, a);
+    button(a, 'play-0').click();
+    const b = page(world, 1, { hash: `#join=${id}` });
+    await started(b);
+    await until(world, () => only(screenOf(b), '.join-packs').hidden === false, 5000);
+    button(b, 'watch').click();
+    await until(world, () => held(a).status().peers === 1, 3000);
+    // The same player in another browser window, as without Web Locks: refused while b's connection is heard.
+    const c = page(world, 1, { hash: `#join=${id}` });
+    await started(c);
+    let refusedAt: number | null = null;
+    await retrying(world, c, [a, b], id, () => c.look().screen === 'message', DUPLICATE_HOLD_MS + 5000, (i) => {
+      if (refusedAt === null && i.match?.refusal === REFUSAL.DUPLICATE) refusedAt = world.now;
+      if (i.screen === 'message') return;
+      expect(i.screen, 'connecting while refused').toBe('join');
+    });
+    expect(c.look()).toMatchObject({ screen: 'message', message: 'duplicate', match: null });
+    const stood = world.now - refusedAt!;
+    expect(stood, 'the refusal held for a silence and a handshake').toBeGreaterThanOrEqual(DUPLICATE_HOLD_MS - 40);
+    expect(stood).toBeLessThan(DUPLICATE_HOLD_MS + 200);
+    // b leaves, then Try again: c is let in, its choices offered.
+    button(b, 'prematch-leave').click();
+    await until(world, () => held(a).status().peers === 0, 3000);
+    button(c, 'message-tryAgain').click();
+    await settle();
+    await until(world, () => c.look().screen === 'join' && only(screenOf(c), '.join-packs').hidden === false, 5000);
+    expect([c.look().message, c.look().match?.peers]).toEqual([null, 1]);
+  });
+
+  it("opens a match's room again only once the room it left there in its grace has closed, as Trystero hands back a room still open under its ID: a Leave, then Join by code at once (players-1, screens-msg-F2)", async () => {
+    const world = new World(67);
+    const a = page(world, 0);
+    await started(a);
+    const id = await propose(world, a);
+    button(a, 'play-0').click();
+    const b = page(world, 1, { hash: `#join=${id}`, trysteroRooms: true });
+    await started(b);
+    await until(world, () => only(screenOf(b), '.join-packs').hidden === false, 5000);
+    button(b, 'watch').click();
+    await until(world, () => held(a).status().peers === 1, 3000);
+    const left = held(b);
+    button(b, 'prematch-leave').click();
+    expect([b.look().screen, left.status().closed]).toEqual(['home', false]); // its LEAVE going out in its grace
+    // Join by its code at once: the room opens once the left one has closed, and meets the keeper.
+    only(screenOf(b), 'input[data-test="code"]').value = formatMatchId(id);
+    only(screenOf(b), 'form').dispatchEvent(new FakeEvent('submit', { bubbles: true, cancelable: true }));
+    await settle();
+    expect([b.look().screen, b.r.rooms.length]).toEqual(['join', 1]);
+    await until(world, () => b.r.rooms.length === 2, 1000);
+    expect(left.status().closed, 'the left room closed before the next opened').toBe(true);
+    await until(world, () => only(screenOf(b), '.join-packs').hidden === false, 3000);
+    expect(b.look().match).toMatchObject({ matchId: id, peers: 1 });
   });
 });

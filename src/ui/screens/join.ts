@@ -20,7 +20,7 @@
 
 import { formatMatchId } from '../../core/match-id';
 import { shownName } from '../../core/names';
-import { type MatchState, type Pack, packCount, WARM_UP } from '../../core/sim/index';
+import { ENDED, type MatchState, type Pack, packCount, WARM_UP } from '../../core/sim/index';
 import type { Look } from '../../render/look';
 import { h, isEnabled, setShown, setText } from '../dom';
 import type { Match } from '../match-types';
@@ -28,7 +28,7 @@ import { ButtonNav, padOnly } from '../nav';
 import { addStyle } from '../style';
 import css from './join.css?inline';
 import { playButton, playText } from './propose';
-import { coatName, coatSwatch, packName, packSwatch, type Screen, screenStyles } from './screen';
+import { coatName, coatSwatch, codeGroups, packName, packSwatch, type Screen, screenStyles } from './screen';
 
 export interface JoinHost {
   readonly matchId: string;
@@ -54,19 +54,26 @@ export function suggestedPack(F: Readonly<MatchState>): Pack | null {
   return free.length === 2 && packCount(F, 1) < packCount(F, 0) ? 1 : free[0]!;
 }
 
-/** A pack's Play: free in warm-up while the pack has a place, else saying why. */
+/** A pack's Play: free in warm-up while the pack has a place, else saying why: full, started, or ended
+ *  (C-50's late link, phase 2d's review). */
 export function playState(F: Readonly<MatchState>, look: Look, pack: Pack): { readonly enabled: boolean; readonly text: string } {
+  if (F.phase === ENDED) return { enabled: false, text: `${playText(look, pack)}: the match has ended` };
   if (F.phase !== WARM_UP) return { enabled: false, text: `${playText(look, pack)}: the match has started` };
   if (packCount(F, pack) >= F.packSize) return { enabled: false, text: `${playText(look, pack)}: full` };
   return { enabled: true, text: playText(look, pack) };
 }
 
 /** What Join says once the state is held: playing or watching in warm-up while a pack has a place, else
- *  watching alone, saying why (P8). */
+ *  watching alone, saying why (P8); and of a match that has ended, its players on Results (C-50), that
+ *  its results are there to see. */
 export function joinStatus(F: Readonly<MatchState>): string {
+  if (F.phase === ENDED) return 'This match has ended: you can see its results.';
   if (F.phase !== WARM_UP) return 'This match has started: you can watch it.';
   return suggestedPack(F) === null ? 'Both packs are full: you can watch.' : 'Play in a pack, or watch.';
 }
+
+/** Watch's label: what it does, which for a match that has ended is to show its results (C-50). */
+export const watchText = (F: Readonly<MatchState>): string => (F.phase === ENDED ? 'See the results' : 'Watch');
 
 /** A Play button that acts, or one marked aria-disabled, never disabled, saying why, beside its swatch (§1.42). */
 function setPlay(b: HTMLButtonElement, on: boolean, text: string): void {
@@ -102,7 +109,7 @@ export function joinScreen(host: JoinHost): JoinScreen {
   const nav = new ButtonNav(() => (alone ? [watch, ...plays, home] : [...plays, watch, home]));
   const el = h('section', { class: 'screen join' },
     h('h1', {}, 'Join a match'),
-    h('p', { class: 'join-code-row' }, h('span', { class: 'muted small' }, 'Code'), h('span', { class: 'join-code', 'data-test': 'join-code' }, formatMatchId(host.matchId))),
+    h('p', { class: 'join-code-row' }, h('span', { class: 'muted small' }, 'Code'), h('span', { class: 'join-code', 'data-test': 'join-code' }, ...codeGroups(formatMatchId(host.matchId)))),
     status,
     watchAlone,
     offer,
@@ -127,6 +134,7 @@ export function joinScreen(host: JoinHost): JoinScreen {
     if (t === null || !t.started) return;
     const F = t.final;
     setText(status, joinStatus(F));
+    setText(watch, watchText(F));
     setShown(offer, true);
     setShown(watch, true);
     const suggested = suggestedPack(F);

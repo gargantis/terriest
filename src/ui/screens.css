@@ -11,6 +11,7 @@
   --button: #314a37;
   --button-hover: #3d5a44;
   --primary: #ffd166;
+  --primary-hover: #ffe399;
   --primary-fg: #1d2b1f;
   --error: #ffb3a1;
   --focus: #ffd166;
@@ -42,6 +43,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 /* aria-disabled, never disabled, so the button keeps the focus (Q-17, §1.42). */
 button[aria-disabled="true"] { opacity: 0.6; cursor: default; }
 button.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+/* Under the mouse a primary button keeps its dark text on a lighter yellow: the hover above would put that
+   text on the dark green, 1.9:1 (phase 2d's review). */
+button.primary:hover:not([aria-disabled="true"]) { background: var(--primary-hover); border-color: var(--primary-hover); }
 button.secondary { background: transparent; }
 
 .field { display: grid; gap: 4px; }
@@ -68,6 +72,8 @@ legend { padding: 0 4px; }
 .swatch.pack.striped { background: repeating-linear-gradient(45deg, var(--c) 0 4px, var(--fg) 4px 7px); }
 /* A coat's name beside its swatch: no colour alone (§5.14). */
 .coat-name { font-size: 12px; color: var(--muted); }
+/* A match's code: each group of four kept on one line, the line breaking only after a dash (codeGroups). */
+.code-group { white-space: nowrap; }
 .tag { font-size: 12px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; white-space: nowrap; }
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

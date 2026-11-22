@@ -34,12 +34,18 @@
 // - the tab lock lost to another tab's Use here: the match closed, its
 //   terrier kept for the tab that takes over, and the same message here;
 // - each networked match's status after a timer run routed to §5.10's
-//   message, the match left (statusMessage): a build or protocol refusal,
-//   a duplicate ID and no timeline 20 s after opening while none is held,
-//   a full room's spectator whenever NetGame took it out, and the players
-//   gone (Q-16), with the score so far; Try again opens the link again and
-//   Home leaves; a room that can't open says it couldn't connect; a JOIN
+//   message, the match left (statusMessage): a build or protocol refusal
+//   and no timeline 20 s after opening while none is held; a duplicate ID
+//   once its refusal has outlasted a lingering connection's silence and a
+//   handshake, so a killed tab reopened comes back by itself (C-12); a full
+//   room's spectator whenever NetGame took it out, and the players gone
+//   (Q-16), with the score so far; Try again opens the link again and Home
+//   leaves; a room that can't open says so, with a reload's advice; a JOIN
 //   given up stays the pitch's notice (M4-Q39);
+// - a match left with no timeline held closed at once, with no LEAVE to
+//   send, and one left in its grace waited for before its match's room
+//   opens again, since Trystero hands back a room still open under an ID
+//   (phase 2d's review);
 // - Settings from Home, whose render quality applies at once behind Home
 //   (§2.8, D-33): the first change makes a stage at the new quality, its
 //   prepare() run behind the screen, and keeps the old one, so a change back
@@ -135,8 +141,9 @@ export const browserLocation: AppLocation = {
   },
 };
 
-/** §5.10's messages, by their code: 'watching' is no screen but the pitch's notice (src/ui/layers/net.ts). */
-export type AppMessageCode = 'canary' | 'build' | 'connect' | 'left' | 'spectators' | 'duplicate' | 'other-tab' | 'graphics';
+/** §5.10's messages, by their code: 'watching' is no screen but the pitch's notice (src/ui/layers/net.ts);
+ *  'open', a room that couldn't open at all, phase 2d's review's. */
+export type AppMessageCode = 'canary' | 'build' | 'connect' | 'left' | 'spectators' | 'duplicate' | 'other-tab' | 'graphics' | 'open';
 /** A message's moves, each a button where its table row has it (§5.10). */
 export type MessageMove = 'practice' | 'home' | 'tryAgain' | 'useHere' | 'leave';
 
@@ -163,17 +170,20 @@ export const STATUS_MOVES: Readonly<Record<StatusCode, readonly ('tryAgain' | 'h
  * §5.10's message for a networked match's status after a timer run, or null while the match goes on.
  * A refusal, and the connection failure, only while no timeline is held, as roslambo's arena reads them:
  * a keeper holds its timeline from genesis, so a joiner it refuses, or that refuses it, never ends its
- * match (D-21). A build or protocol refusal says "A different version", a duplicate ID its message (C-12),
- * and no timeline 20 s after the room opened "Couldn't connect" (PLAN §8). A page NetGame took out of a
- * full room, by its own count or a peer's REFUSE 4, is told so whenever it happens (C-11, M3's §4.5); and
- * an abandoned match, every browser that controls a terrier gone from the start countdown on, says the
+ * match (D-21). A build or protocol refusal says "A different version", and no timeline 20 s after the
+ * room opened "Couldn't connect" (PLAN §8). A duplicate ID's refusal says its message only once it has
+ * stood (duplicateStood: longer than duplicateSilentMs and a handshake), or the attempt has failed: before
+ * then the room's next handshake replaces a connection that has gone silent, a killed tab's, so its
+ * reopened page comes back by itself (C-12, D-21; phase 2d's review). A page NetGame took out of a full
+ * room, by its own count or a peer's REFUSE 4, is told so whenever it happens (C-11, M3's §4.5); and an
+ * abandoned match, every browser that controls a terrier gone from the start countdown on, says the
  * players have left (Q-16). A JOIN given up is the pitch's notice, never a message (M4-Q39).
  */
-export function statusMessage(s: MatchStatus, held: boolean): StatusCode | null {
+export function statusMessage(s: MatchStatus, held: boolean, duplicateStood: boolean): StatusCode | null {
   if (s.spectatorsFull) return 'spectators';
   if (!held) {
     if (s.refusal === REFUSAL.BUILD || s.refusal === REFUSAL.PROTOCOL) return 'build';
-    if (s.refusal === REFUSAL.DUPLICATE) return 'duplicate';
+    if (s.refusal === REFUSAL.DUPLICATE && (duplicateStood || s.failed)) return 'duplicate';
     if (s.failed) return 'connect';
   }
   return s.abandoned ? 'left' : null;
@@ -327,6 +337,16 @@ export class App {
   /** A timer gap past d + w ticks is a freeze, past the stall's 2 s a stall (D-15, D-31). */
   private readonly freezeMs: number;
   private readonly stallGapMs: number;
+  /** A duplicate ID's refusal stands once it has lasted a lingering connection's silence and a handshake
+   *  (C-12, D-21), statusMessage's duplicateStood; and a left room's grace (§5.11). */
+  private readonly duplicateHoldMs: number;
+  private readonly leaveGraceMs: number;
+  /** When the held match's duplicate refusal began, while it lasts. */
+  private duplicateSince: number | null = null;
+  /** Each networked match left in its grace, by its match ID, and when: opening that match again waits for
+   *  its room to close first, since Trystero hands back a room still open under the same ID, whose
+   *  messages then go to the match that left (phase 2d's review). */
+  private readonly leaving = new Map<string, { readonly m: Match; readonly at: number }>();
   private stage: Stage;
   private quality: RenderQuality;
   /** The other quality's stage, kept while no pitch screen shows, so a change back swaps to it rather than
@@ -380,6 +400,8 @@ export class App {
     const net = netSettings();
     this.freezeMs = (net.timeline.delay + net.timeline.window) * net.timeline.clock.tickMs;
     this.stallGapMs = net.stallMs;
+    this.duplicateHoldMs = net.room.duplicateSilentMs + net.room.handshakeTimeoutMs;
+    this.leaveGraceMs = net.room.leaveGraceMs;
     this.stage = d.stage;
     this.quality = d.settings.get().quality;
     this.mount(d.stage);
@@ -574,8 +596,8 @@ export class App {
   }
 
   /** Create (§5.5): the match ID generated, the room opened, genesis proposed, the fragment set, and
-   *  Created. A room that opens once Propose has gone is closed; one that can't open says it couldn't
-   *  connect, its Try again back to Propose, rather than leave Create reading "Creating…". */
+   *  Created. A room that opens once Propose has gone is closed; one that can't open says so, its Try
+   *  again back to Propose, rather than leave Create reading "Creating…". */
   private async create(s: MatchSettings): Promise<void> {
     if (this.opening) return;
     this.opening = true;
@@ -585,11 +607,11 @@ export class App {
     try {
       m = await this.openRoom(id);
     } catch (e) {
-      console.error('The match could not be opened:', e);
+      notOpened(e);
     }
     this.opening = false;
     if (m === null) {
-      if (this.shows === at && this.lockHeld) this.showMessage('connect', { tryAgain: () => this.propose(), home: () => this.home() });
+      if (this.shows === at && this.lockHeld) this.showMessage('open', { tryAgain: () => this.propose(), home: () => this.home() });
       return;
     }
     if (this.shows !== at || !this.lockHeld) {
@@ -614,8 +636,8 @@ export class App {
   }
 
   /** Join (§5.6): after the canary, the room opened at once, undecided (C-32), the screen reading
-   *  "Connecting to the match…" until a timeline is held; a room that can't open says it couldn't
-   *  connect, rather than leave Join connecting. */
+   *  "Connecting to the match…" until a timeline is held; a room that can't open says so, rather than
+   *  leave Join connecting. */
   private joinMatch(id: string): void {
     if (!this.canaryPasses()) {
       this.canaryMessage();
@@ -637,8 +659,8 @@ export class App {
         this.joinRan(m);
       },
       (e: unknown) => {
-        console.error('The match could not be opened:', e);
-        if (this.shows === at && this.lockHeld) this.statusShown('connect', id, null);
+        notOpened(e);
+        if (this.shows === at && this.lockHeld) this.showMessage('open', { tryAgain: () => this.joinMatch(id), home: () => this.home() });
       },
     );
   }
@@ -650,8 +672,10 @@ export class App {
     return roomChoice(this.d.settings.get(), this.d.test, import.meta.env.DEV, devRelay);
   }
 
-  /** A match's room, by roomChoice's relays and ICE (§5.12, M4-Q3), as this page's player. */
+  /** A match's room, by roomChoice's relays and ICE (§5.12, M4-Q3), as this page's player, once a room this
+   *  page left for the same match has closed. */
   private async openRoom(id: string): Promise<NetMatch> {
+    if (this.leaving.has(id)) await this.leftClosed(id);
     const room = await this.room();
     const p = this.d.profile.get();
     return openNetMatch({
@@ -702,6 +726,7 @@ export class App {
     this.log = new Log(m.matchId);
     this.timer = newTimer();
     this.lunges = { count: 0, last: null };
+    this.duplicateSince = null;
     this.stopListening = m.subscribe({ run: () => this.ran(m) });
     this.arrival(m);
   }
@@ -797,12 +822,36 @@ export class App {
     this.home();
   }
 
-  /** Networked, LEAVE and the room closed after its grace; Practice closed (D-22). */
+  /** Networked, LEAVE and the room closed after its grace, the match remembered meanwhile; or, holding no
+   *  timeline, with no LEAVE to send, the room closed at once; Practice closed (D-22). */
   private leaveMatch(): void {
     const m = this.match;
     if (m === null) return;
     this.dropMatch();
+    if (m.kind !== 'net' || m.matchId === null) {
+      m.leave();
+      return;
+    }
+    if (!m.session.timeline.started) {
+      m.close();
+      return;
+    }
     m.leave();
+    for (const [id, x] of this.leaving) if (x.m.status().closed) this.leaving.delete(id);
+    this.leaving.set(m.matchId, { m, at: this.d.clock.now() });
+  }
+
+  /** A match of this ID left in its grace (leaveMatch): the rest of its grace waited out and the room
+   *  closed, so it has left before another room opens under the ID; Trystero would otherwise hand back
+   *  the room still open, its messages the left match's, and the new one would hear no one
+   *  (players-1, screens-msg-F2). */
+  private async leftClosed(id: string): Promise<void> {
+    const left = this.leaving.get(id);
+    if (left === undefined) return;
+    this.leaving.delete(id);
+    const rest = this.leaveGraceMs - (this.d.clock.now() - left.at);
+    if (rest > 0 && !left.m.status().closed) await new Promise<void>((resolve) => this.d.clock.after(rest, resolve));
+    left.m.close();
   }
 
   /** The match no longer held; its log stays until another opens (§1.40). */
@@ -853,12 +902,19 @@ export class App {
   }
 
   /** A networked match's status after a timer run (§5.10): when it ends in a message, the match is left,
-   *  its LEAVE out if it has one to send, and the message shows; the fragment stays the match's, so a
-   *  reload, as "A different version" asks, opens the link again. */
+   *  its LEAVE out if it has one to send, closed at once if it holds no timeline, and the message shows;
+   *  the fragment stays the match's, so a reload, as "A different version" asks, opens the link again. A
+   *  duplicate ID's refusal is timed from the first run that saw it, while no timeline is held. */
   private routeStatus(m: Match): boolean {
     const id = m.matchId;
     if (m.kind !== 'net' || id === null) return false;
-    const code = statusMessage(m.status(), m.session.timeline.started);
+    const s = m.status();
+    const held = m.session.timeline.started;
+    const now = this.d.clock.now();
+    if (!held && s.refusal === REFUSAL.DUPLICATE) this.duplicateSince ??= now;
+    else this.duplicateSince = null;
+    const stood = this.duplicateSince !== null && now - this.duplicateSince >= this.duplicateHoldMs;
+    const code = statusMessage(s, held, stood);
     if (code === null) return false;
     const score = m.scoreboard.score;
     this.leaveMatch();
@@ -1079,7 +1135,7 @@ export class App {
     const status = m.status();
     return {
       kind: m.kind, me: m.me, matchId: m.matchId,
-      started, paused: m.paused, inRoster: m.session.inRoster(), returning: status.returning, peers: status.peers,
+      started, paused: m.paused, inRoster: m.session.inRoster(), returning: status.returning, peers: status.peers, refusal: status.refusal,
       localTick: t.localTick, finalTick: t.finalTick, headTick: t.headTick,
       // The drawn head's, as the validated scripts time their holds (§9.1): the final state's lag w ticks.
       phase: H.phase, phaseStart: H.phaseStart, overtime: H.overtime, clock: H.clock,
@@ -1106,6 +1162,13 @@ export class App {
       },
     };
   }
+}
+
+/** A room that couldn't open, §5.10's 'open' (phase 2d's review): Trystero's chunk not loaded, the page
+ *  offline or outlived by a deploy, or a hook's relay this build refuses. The page says so on screen, so
+ *  it's reported, never the page's own error, which the gate's guard fails (§0). */
+function notOpened(e: unknown): void {
+  console.warn('The match could not be opened:', e);
 }
 
 /** The element under root whose id is `id`: appRoot() makes both boxes. */

@@ -108,10 +108,12 @@ export function resultsScreen(host: ResultsHost): Screen {
   const { end, look } = host;
   const rows = resultLines(end, look, host.me).map((r) =>
     h('tr', { class: r.you ? 'you' : '' },
-      h('th', { scope: 'row', class: 'name' },
+      // The cell a table cell, its rule and the "you" band the row's whole height; its swatch, name and tags
+      // laid out in a box inside it (phase 2d's review).
+      h('th', { scope: 'row', class: 'name' }, h('span', { class: 'name-row' },
         coatSwatch(look, r.coat), h('span', {}, r.name), coatName(look, r.coat),
         r.you ? h('span', { class: 'tag' }, 'you') : null,
-        r.terriest ? h('span', { class: 'tag' }, 'Terriest') : null),
+        r.terriest ? h('span', { class: 'tag' }, 'Terriest') : null)),
       h('td', {}, h('span', { class: 'pack-cell' }, packSwatch(look.packs[r.pack]), r.packName)),
       h('td', { class: 'num' }, String(r.goals)),
       h('td', { class: 'num' }, String(r.touches))));

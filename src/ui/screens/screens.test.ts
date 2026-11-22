@@ -59,6 +59,34 @@ describe("the screens' shared parts", () => {
     );
   });
 
+  it("keeps a primary button's text readable under the mouse, on a hover of its own, at WCAG's 4.5:1 or more (§5.14, phase 2d's review)", () => {
+    const css = readFileSync(new URL('../screens.css', import.meta.url), 'utf8');
+    const colour = (v: string | undefined): string => {
+      const name = /^var\((--[\w-]+)\)$/.exec(v ?? '')?.[1];
+      return name === undefined ? v ?? '' : cssDeclarations(css, ':root')[name] ?? '';
+    };
+    // WCAG 2's contrast of two #rrggbb colours.
+    const luminance = (hex: string): number => {
+      const [r, g, b] = [1, 3, 5].map((k) => {
+        const c = Number.parseInt(hex.slice(k, k + 2), 16) / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    const contrast = (a: string, b: string): number => {
+      const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p);
+      return (x! + 0.05) / (y! + 0.05);
+    };
+    const primary = cssDeclarations(css, 'button.primary');
+    const hovered = cssDeclarations(css, 'button.primary:hover:not([aria-disabled="true"])');
+    const anyHover = cssDeclarations(css, 'button:hover:not([aria-disabled="true"])');
+    const fg = colour(primary['color']);
+    expect([colour(hovered['background']), colour(anyHover['background'])].map((bg) => contrast(fg, bg) >= 4.5)).toEqual([true, false]);
+    expect(contrast(fg, colour(primary['background']))).toBeGreaterThanOrEqual(4.5);
+    // A change the eye sees: not the colour it had before the mouse came.
+    expect(colour(hovered['background'])).not.toBe(colour(primary['background']));
+  });
+
   it('focuses the element a screen marks data-focus, else its heading, which joins no tab order (§1.42)', () => {
     const marked = { el: dom.document.createElement('section') as unknown as HTMLElement };
     const h1 = dom.document.createElement('h1');

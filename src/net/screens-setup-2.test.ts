@@ -4,7 +4,7 @@ import { expectScreens, playScreens, printScreens, type ScreensRun, screensName,
 // §9.4's setup over the loopback network, as e2e/match.screens.net.spec.ts
 // plays it through the screens, continued from screens-setup-1.test.ts
 // (M4's design, research/m4/DESIGN.md, §9.1, §9.2, §9.4, M4-Q36): seed 7,
-// Ready at 600, e at 60, the reload away 2 s. One match a file, so no file
+// Ready at 600, e at 120, the reload away 2 s. One match a file, so no file
 // runs much over 8 s alone (CLAUDE.md).
 
 vi.setConfig({ testTimeout: 120_000 });

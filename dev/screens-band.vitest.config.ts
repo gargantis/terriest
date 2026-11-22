@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 // The screens match's setup at every Ready tick of M4's design §9.1's band,
-// with e at 0, at 60 and drawn, never part of the gate, which plays §9.2's
+// with e at 0, at 120 and drawn, never part of the gate, which plays §9.2's
 // 13 runs (setups-F1):
 //   npx vitest run --config dev/screens-band.vitest.config.ts
 // src/net/screens-band-*.sweep.ts say what each plays: a file for each e,

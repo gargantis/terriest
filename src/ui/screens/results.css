@@ -7,8 +7,10 @@
 .results th, .results td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
 .results thead th { font-size: 14px; color: var(--muted); font-weight: 600; }
 .results .num { text-align: right; font-variant-numeric: tabular-nums; }
-.results th.name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* A row's name cell stays a table cell, so its rule and the "you" band line up with the row's other cells;
+   its swatch, name and tags sit in a flex box inside it (phase 2d's review). */
+.results th.name .name-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 /* A long name, C-17's 20 wide letters, wraps inside its column (phase 2b's review, P3). */
-.results th.name > span { min-width: 0; overflow-wrap: anywhere; }
+.results th.name .name-row > span { min-width: 0; overflow-wrap: anywhere; }
 .results .pack-cell { display: inline-flex; align-items: center; gap: 6px; }
 .results tr.you th, .results tr.you td { background: var(--surface); }

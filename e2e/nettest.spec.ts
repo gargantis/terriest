@@ -66,15 +66,14 @@ test('a normal page loads no test page and no Trystero, and has no net hook', as
   const own = [new URL('boot.js', baseURL).href, ...statics.map((s) => new URL(s, baseURL).href)].sort();
   const scripts = [...new Set(guard.requests.filter((u) => new URL(u).pathname.endsWith('.js')))].sort();
   expect(scripts, "the normal page's scripts").toEqual(own);
-  for (const s of statics) expect(s, "a chunk the normal page imports statically").not.toMatch(/\/(nettest|determinism|trystero|golden|frames|witness|setups)-[\w-]+\.js$/);
-  // The build has the chunks the normal page leaves alone, so none of those names is a check of nothing:
-  // the test pages' (M4's bench and its witness's worker among them, §1.53), and its module holds no
-  // Trystero code, which the Trystero chunk shows the marker finds.
-  expect(chunks('nettest'), 'the net page chunk').toHaveLength(1);
-  expect(chunks('frames'), "the bench's chunk").toHaveLength(1);
-  expect(chunks('witness'), "the bench witness's worker").toHaveLength(1);
+  const LEFT_ALONE = ['nettest', 'determinism', 'trystero', 'frames', 'witness', 'setups'] as const;
+  for (const s of statics) expect(s, "a chunk the normal page imports statically").not.toMatch(new RegExp(`/(${LEFT_ALONE.join('|')})-[\\w-]+\\.js$`));
+  // The build has each chunk the normal page leaves alone, so none of those names is a check of nothing
+  // (phase 2d's review): the test pages', M4's bench and its witness's worker among them (§1.53), the chunk
+  // the net page and the bench share, and Trystero's; and its module holds no Trystero code, which the
+  // Trystero chunk shows the marker finds.
+  for (const name of LEFT_ALONE) expect(chunks(name), `the build's ${name} chunk`).toHaveLength(1);
   const trystero = chunks('trystero');
-  expect(trystero, 'the Trystero chunk').toHaveLength(1);
   expect(readFileSync(join(DIST, 'assets', trystero[0]!), 'utf8')).toContain(TRYSTERO_CODE);
   for (const s of [module, ...statics]) expect(readFileSync(join(DIST, s), 'utf8').includes(TRYSTERO_CODE), `Trystero's code in ${s}`).toBe(false);
 });

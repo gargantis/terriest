@@ -1,10 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../../config';
 import { personId } from '../../core/bot/bot-id';
 import type { ConfirmedEnd, MatchNetSummary, ResultRow } from '../../core/session/index';
 import { PLACEHOLDER_LOOK } from '../../render/look';
 import { FakeClock } from '../clock-testing';
-import { fake, FakeEvent, type FakeDocument, installDom, only, shownText } from '../dom-testing';
+import { cssDeclarations, fake, FakeEvent, type FakeDocument, installDom, only, shownText } from '../dom-testing';
 import type { Announcement } from '../inspect';
 import { COPIED } from './readout';
 import { FakeCopy, quantiles, summaryOf } from './readout-testing';
@@ -108,6 +109,12 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     expect(only(table, 'tbody').children.map((tr) => shownText(tr))).toEqual([
       `Ada${LOOK.coats[0]!.name}youTerriestBlue30`, `Bot 1A2B${LOOK.coats[4]!.name}Orange00`,
     ]);
+    // Each row's header a table cell like the others, so the row's rule and the "you" band run level across
+    // it: the flex layout on a box inside the cell, never on the cell (phase 2d's review).
+    const css = readFileSync(new URL('./results.css', import.meta.url), 'utf8');
+    expect(only(table, 'tbody').children.map((tr) => tr.children[0]!.children.map((c) => c.className))).toEqual([['name-row'], ['name-row']]);
+    expect(cssDeclarations(css, '.results th.name .name-row')['display']).toBe('flex');
+    expect(() => cssDeclarations(css, '.results th.name'), 'no rule of its own for the cell').toThrow(/no rule lists/);
     // Play again and Home right under the end, before the Terriest and the table, so the button focused
     // first shows on a short window however many rows there are (Q-17, §5.9).
     const order = el.children.map((c) => c.getAttribute('data-test') ?? (c.querySelector('[data-test="again"]') !== null ? 'buttons' : c.tagName.toLowerCase()));

@@ -3,9 +3,11 @@
 // §11, D-23, D-24, D-30, L169), at the gate's 640 × 360 and stored low
 // quality, each a seeded profile, every read the hook's, polled every 50 ms,
 // never on animation frames (C-6):
-// - Home's name and coat stored as typed and kept after a reload; Settings'
-//   checks, a bad relay and a bad TURN server each saying why beside its
-//   field and storing nothing; axe on Home and Settings;
+// - Home's name and coat stored as typed and kept after a reload; its
+//   primary button readable under the mouse, 4.5:1 or more on a hover of
+//   its own (phase 2d's review); Settings' checks, a bad relay and a bad
+//   TURN server each saying why beside its field and storing nothing; axe
+//   on Home and Settings;
 // - start in ball view off, sound off and the calmer camera on, from Home's
 //   Settings, then a short Practice: chase view from its start
 //   (render.camera.view), the calmer rig (render.camera.calm, and its turn
@@ -28,15 +30,20 @@
 //   Join's Home, the fragment set and cleared by location.replace, and Back
 //   leaving the page (§5.2, D-38, net-F1); Created's wake lock as the hook
 //   reports it, refused in Chromium headless and held in Firefox and WebKit
-//   (§5.13); axe on Propose;
+//   (§5.13); Created's code at a phone's width held upright, each group of
+//   four on one line (C-15); axe on Propose;
 // - Chromium alone: the sound prompt before any key and gone after one, the
 //   context running, with an AudioContext made suspended and refusing
 //   resume() until a trusted key, as a browser's autoplay policy would,
 //   since headless engines and Playwright's page reads otherwise let it run
 //   (§7, D-32); and the connection failure, over a local relay started for
 //   it with ice 'none', for a match nobody proposed: Join connecting, its
-//   message once 20 s have passed, axe, Try again opening the link again
-//   and Home leaving it (PLAN §8, §5.10).
+//   message once 20 s have passed and within 21 s of Join's room, axe, Try
+//   again opening the link again and Home leaving it (PLAN §8, §5.10); and
+//   a room that can't open, Trystero's chunk refused as a dropped network
+//   or a deploy would refuse it: from Create and from Join by code, "Couldn't
+//   open the match", its reload's advice, Try again and Home, axe, and no
+//   relay, peer connection or room contacted (phase 2d's review).
 // Play again's fragment and history are the screens' match's to check
 // (e2e/match.screens.net.spec.ts), which alone reaches a networked Results.
 // Every page is watched by the guard, a second page by watchPage, and no
@@ -48,7 +55,7 @@
 // ticks' time and the most a run took past them, + 2 s.
 
 import { readFileSync } from 'node:fs';
-import type { Page, TestInfo } from '@playwright/test';
+import type { Locator, Page, TestInfo } from '@playwright/test';
 import { config, derived } from '../src/config';
 import { personId } from '../src/core/bot/bot-id';
 import { formatMatchId, generateMatchId } from '../src/core/match-id';
@@ -84,6 +91,10 @@ const TO_PLAY_MS = 10_000;
 const CONNECT_MS = 33_000;
 /** The earliest the connection failure may show, from the navigation, which the room's opening follows. */
 const CONNECT_EARLIEST_MS = config.connectionFailureSeconds * 1000;
+/** The latest, from the hook showing Join's room, which comes after the room opened: PLAN §8's 20 s, a timer
+ *  run's lateness under load, at most 391 ms in the gate's match, and a look's 50 ms; the runs saw 19.9 to
+ *  20.0 s (phase 2d's review, screens-msg-F4). */
+const CONNECT_LATEST_MS = config.connectionFailureSeconds * 1000 + 1000;
 /** Each test's own, as pad-menus' and the touch tests' are: its slowest run, with a hang in its longest wait,
  *  the start's 30 s, × 2. Over six runs in each engine, at loads of 3 to 25, the short tests took 1.1 to
  *  14.9 s, the slowest Firefox's Home and Settings at load 21, its axe runs the longer, (14.9 + 30) × 2 =
@@ -169,6 +180,26 @@ const sockets = (w: PageWatch): string[] => w.requests.filter((u) => /^wss?:/.te
 /** Trystero's chunk, which only a room's opening loads (L238). */
 const trystero = (w: PageWatch): string[] => w.requests.filter((u) => /\/trystero-[\w-]+\.js$/.test(u));
 const peerConnections = (page: Page): Promise<number> => page.evaluate(() => (window as unknown as { __rtcCount: number }).__rtcCount);
+/** A control's text and background colours as drawn, and their contrast, WCAG 2's. */
+function coloursOf(l: Locator): Promise<{ fg: string; bg: string; ratio: number }> {
+  return l.evaluate((el) => {
+    const s = getComputedStyle(el);
+    const lum = (c: string): number => {
+      const [r, g, b] = (c.match(/[\d.]+/g) ?? []).slice(0, 3).map((v) => {
+        const x = Number(v) / 255;
+        return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    const [a, b] = [lum(s.color), lum(s.backgroundColor)].sort((x, y) => y - x);
+    return { fg: s.color, bg: s.backgroundColor, ratio: (a! + 0.05) / (b! + 0.05) };
+  });
+}
+
+/** The lines each group of a shown code takes: 1 for each, unless a line splits a group (C-15). */
+const groupLines = (page: Page, test: string): Promise<number[]> =>
+  page.evaluate((t) => Array.from(document.querySelectorAll(`[data-test="${t}"] .code-group`), (g) => g.getClientRects().length), test);
+
 /** A page that isn't the app's, its encoding declared, so no engine says it guessed one. */
 const BEFORE = 'data:text/html;charset=utf-8,<!doctype html><title>Before terriest</title><p>Before terriest.</p>';
 
@@ -218,6 +249,14 @@ test("Home keeps the name and coat typed after a reload, and Settings says why a
     await load(page);
     await w.until('Home, prepared', (i) => i.screen === 'home' && i.startMs.prepared !== null, PREPARED_MS);
     await expectAxeClean(page);
+    // Home's primary button under the mouse: a hover of its own, its dark text still readable (§5.14).
+    const propose = page.locator('[data-test="propose"]');
+    const still = await coloursOf(propose);
+    await propose.hover();
+    const hovered = await coloursOf(propose);
+    expect([hovered.bg !== still.bg, hovered.ratio >= 4.5], `Propose under the mouse, ${JSON.stringify(hovered)}, from ${JSON.stringify(still)}: a hover of its own, 4.5:1 or more`)
+      .toEqual([true, true]);
+    await page.mouse.move(0, 0);
     // The name and the coat, each stored as it changes (§5.3): the name when the field is left.
     await page.locator('[data-test="name"]').fill('Rosie the Rapid');
     await page.keyboard.press('Tab');
@@ -520,6 +559,10 @@ test('over a local relay: a bad code contacts nothing; Create, Leave and Join by
       expect(wake).toMatchObject(browserName === 'chromium'
         ? { wanted: true, state: 'refused', refusals: 1, lastRefusal: 'NotAllowedError' }
         : { wanted: true, state: 'held', refusals: 0 });
+      // Its code at a phone's width held upright: each group of four on one line, read out whole (C-15).
+      await page.setViewportSize({ width: 412, height: 915 });
+      expect(await groupLines(page, 'invite-code'), "Created's code at 412 px wide, each group's lines").toEqual(Array(6).fill(1));
+      await page.setViewportSize(smallViewport);
       // Leave: Home, the fragment cleared by replace, the wake lock let go.
       await page.locator('[data-test="created-leave"]').click();
       const left = await w.until('Home from Created', (i) => i.screen === 'home' && i.match === null, SHOWN_MS);
@@ -607,8 +650,10 @@ test("Chromium: a match nobody proposed says it couldn't connect once 20 s have 
       await expect(page.locator('[data-test="join-status"]')).toHaveText('Connecting to the match…');
       const failed = await w.until('the connection failure', (i) => i.screen === 'message', CONNECT_MS);
       const after = monotonicMs() - navigated;
-      console.log(`the connection failure ${Math.round(after)} ms after the navigation, ${Math.round(monotonicMs() - joined)} ms after Join showed its room`);
+      const afterJoin = monotonicMs() - joined;
+      console.log(`the connection failure ${Math.round(after)} ms after the navigation, ${Math.round(afterJoin)} ms after Join showed its room`);
       expect(after, 'no sooner than 20 s after the room opened').toBeGreaterThanOrEqual(CONNECT_EARLIEST_MS);
+      expect(afterJoin, `and within ${CONNECT_LATEST_MS} ms of Join showing its room`).toBeLessThanOrEqual(CONNECT_LATEST_MS);
       expect([failed.message, failed.match], 'the match left').toEqual(['connect', null]);
       expect(sockets(guard).every((u) => u.startsWith(relay)) && sockets(guard).length > 0, `the local relay alone: ${sockets(guard).join(', ')}`).toBe(true);
       const message = page.locator('section[data-test="message"][data-message="connect"]');
@@ -623,6 +668,61 @@ test("Chromium: a match nobody proposed says it couldn't connect once 20 s have 
       await expect(page.locator('[data-test="join-status"]')).toHaveText('Connecting to the match…');
       await page.locator('[data-test="join-home"]').click();
       await w.until('Home', (i) => i.screen === 'home' && i.match === null, SHOWN_MS);
+      expect(await page.evaluate(() => location.hash)).toBe('');
+    });
+  } finally {
+    await relayServer.close();
+  }
+});
+
+test("Chromium: a room that can't open, its chunk refused as a dropped network or a deploy would refuse it, says so from Create and from Join by code, contacting no one (§5.10, phase 2d's review)", async ({ page, guard, browserName }, testInfo) => {
+  test.skip(browserName !== 'chromium', "the browser's own words for a refused request are Chromium's");
+  test.setTimeout(SHORT_TEST_MS);
+  const relayServer = await startNostrRelay();
+  const relay = `ws://127.0.0.1:${relayServer.port}`;
+  guard.allowed.push(relay);
+  // The browser's own error for the one request this test refuses, never the page's (§16).
+  guard.allowedErrors.push(/Failed to load resource: net::ERR_FAILED/);
+  try {
+    await measured(page, testInfo, async (w) => {
+      // Trystero's chunk, which only a room's opening loads (L238), refused.
+      const refused: string[] = [];
+      await page.route((u) => /\/trystero-[\w-]+\.js$/.test(u.pathname), async (route) => {
+        refused.push(new URL(route.request().url()).pathname);
+        await route.abort();
+      });
+      await countPeerConnections(page);
+      await load(page, { hook: { relay, ice: 'none' } });
+      await w.until('Home, prepared', (i) => i.screen === 'home' && i.startMs.prepared !== null, PREPARED_MS);
+      // Create: "Couldn't open the match", a reload's advice and no other players' or TURN's words.
+      await page.locator('[data-test="propose"]').click();
+      await w.until('Propose', (i) => i.screen === 'propose', SHOWN_MS);
+      await page.locator('[data-test="create"]').click();
+      const fromCreate = await w.until("the room that can't open, from Create", (i) => i.screen === 'message', SHOWN_MS);
+      expect([fromCreate.message, fromCreate.match, refused.length > 0]).toEqual(['open', null, true]);
+      const message = page.locator('section[data-test="message"][data-message="open"]');
+      await expect(message.getByRole('heading', { level: 1 })).toHaveText('Couldn’t open the match');
+      await expect(message.getByRole('heading', { level: 1 })).toBeFocused();
+      await expect(message).toContainText('reload the page');
+      await expect(message, "no other players' words: there were none to reach").not.toContainText(/other players|TURN/);
+      await expect(message.locator('button')).toHaveText(['Try again', 'Home']);
+      await expectAxeClean(page);
+      expect(await page.evaluate(() => location.hash), 'no fragment: nothing proposed').toBe('');
+      // Try again: back to Propose; then Back, and Join by a code: the same message, the link's fragment kept.
+      await message.locator('[data-test="message-try-again"]').click();
+      await w.until('Propose again', (i) => i.screen === 'propose', SHOWN_MS);
+      await page.locator('[data-test="back"]').click();
+      await w.until('Home', (i) => i.screen === 'home', SHOWN_MS);
+      const id = generateMatchId();
+      await page.locator('[data-test="code"]').fill(formatMatchId(id));
+      await page.locator('[data-test="code"]').press('Enter');
+      const fromJoin = await w.until("the room that can't open, from Join", (i) => i.screen === 'message', SHOWN_MS);
+      expect([fromJoin.message, fromJoin.match, await page.evaluate(() => location.hash)]).toEqual(['open', null, `#join=${id}`]);
+      await expect(page.locator('section[data-test="message"][data-message="open"] button')).toHaveText(['Try again', 'Home']);
+      // No room was ever opened: no relay, no peer connection.
+      expect([sockets(guard), await peerConnections(page)], 'nothing contacted').toEqual([[], 0]);
+      await page.locator('[data-test="message-home"]').click();
+      await w.until('Home, the fragment cleared', (i) => i.screen === 'home', SHOWN_MS);
       expect(await page.evaluate(() => location.hash)).toBe('');
     });
   } finally {

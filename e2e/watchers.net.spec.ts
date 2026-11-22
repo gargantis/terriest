@@ -12,15 +12,21 @@
 //   Add a bot puts a bot in pack A, by its name, Remove shown and Add
 //   marked full; Remove a bot takes it out, the button gone and the roster
 //   back to the proposer alone, Add able again; Add again brings it back.
-//   Invite shows the link and the code Created showed. axe on that
-//   Pre-match, Remove and the invite showing (§9.6).
+//   Invite shows the link and the code Created showed, each group of the
+//   code on one line at 640 × 360 (C-15). axe on that Pre-match, Remove and
+//   the invite showing (§9.6).
 // - Four watchers, the cap (config.spectatorsMax), open the link and press
 //   Watch: each a spectator on Pre-match, and every page counting the
 //   other four.
 // - A fifth opens the link and presses Watch: it's one spectator too many
 //   by its own count (D-21, C-11), so it leaves the room and is shown
 //   "This match has the most spectators it can take" with Try again and
-//   Home, its heading focused; axe; and the others count four again.
+//   Home, its heading focused; axe; and the others count four again. Its
+//   Try again opens the link again, Join's choices once the state is held;
+//   Watch, the same message; and Try again pressed at once, inside the
+//   room's 0.4 s grace, Join's choices again, its room opened once the one
+//   it left has closed (phase 2d's review, players-1); its Home, and the
+//   others count four again.
 // - One watcher's Leave goes Home with the fragment cleared (§5.2, §5.11),
 //   and every page still in the room counts one fewer.
 // - P8: the proposer fills pack B with two bots, and the watcher who left
@@ -55,20 +61,25 @@ const BOTS = botIds(PROPOSER);
 const BOT = BOTS[0]!;
 
 /**
- * Timeouts, from this spec's eleven measured runs (phase 2d, software GL, the machine's load 7 to 25),
- * each wait the machine's load lengthens its worst × 3 + 2 s, rounded up to a second, as e2e/lib/
+ * Timeouts, from this spec's measured runs (phase 2d and its review, software GL, the machine's load 7 to
+ * 33), each wait the machine's load lengthens its worst × 3 + 2 s, rounded up to a second, as e2e/lib/
  * practice.ts' are. ANSWER_MS: a screen's answer to a click, a bot in or out of the final roster, every
  * page's peers counted after a join or a leave: at worst 498 ms (the peers falling after a Leave, its
- * 0.4 s grace in it), so 3 × 0.50 + 2 = 3.5 s. JOIN_MS: from a page's start on the link to Join's
- * choices, the room met and its state held: at worst 2.44 s (four pages at once), so 3 × 2.44 + 2 = 9.3 s.
+ * 0.4 s grace in it), so 3 × 0.50 + 2 = 3.5 s. JOIN_MS: from a page's start on the link, or a Try again,
+ * to Join's choices, the room met and its state held: at worst 3.05 s (the fifth's join in the Wire
+ * step's run), so 3 × 3.05 + 2 = 11.2 s.
  */
 const ANSWER_MS = 4_000;
-const JOIN_MS = 10_000;
-/** The whole test: at most 18.1 s in its runs, made as long as a hang in its longest wait, a page's start
- *  in openAppPage (30 s), would make it, × 2, as the device specs' are: (18.1 + 30) × 2 = 96.2 s. */
-const WATCHERS_TEST_MS = 100_000;
+const JOIN_MS = 12_000;
+/** The whole test: at most 20.3 s in its runs (the Wire step's), and the fifth's two Try agains since, at
+ *  most 1.4 s, made as long as a hang in its longest wait, a page's start in openAppPage (30 s), would
+ *  make it, × 2, as the device specs' are: (20.3 + 1.4 + 30) × 2 = 103.4 s. */
+const WATCHERS_TEST_MS = 105_000;
 
 const at = (page: Page, id: string): Locator => page.locator(`[data-test="${id}"]`);
+/** The lines each group of a shown code takes: 1 for each, unless a line splits a group (C-15). */
+const groupLines = (page: Page, test: string): Promise<number[]> =>
+  page.evaluate((t) => Array.from(document.querySelectorAll(`[data-test="${t}"] .code-group`), (g) => g.getClientRects().length), test);
 /** A pack's terriers in Pre-match's list, its free places left out. */
 const listed = (page: Page, pack: number): Locator => page.locator(`[data-test="pack-${pack}"] li:not(.free)`);
 
@@ -165,6 +176,7 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     await expect(at(pp, 'invite'), "Pre-match's invite").toBeVisible();
     await expect(at(pp, 'invite-link'), "the invite's link").toHaveValue(link);
     await expect(at(pp, 'invite-code'), "the invite's code").toHaveText(code);
+    expect(await groupLines(pp, 'invite-code'), "the invite's code, each group of four on one line at 640 × 360 (C-15)").toEqual(Array(6).fill(1));
     await expectAxeClean(pp);
 
     // Four watchers, the cap, open the link and Watch: each a spectator on Pre-match, every page meshed.
@@ -196,6 +208,19 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     await expect(at(fifth.page, 'message-home'), 'Home').toBeVisible();
     await expectAxeClean(fifth.page);
     took['fifth gone'] = Math.round(await expectPeers(room, WATCHERS, 'the room once the fifth had gone'));
+    // Try again: the link again, Join's choices; Watch, refused again; and Try again at once, inside the grace
+    // its room takes to close: that room's ID opens again only once it has, and Join offers its choices.
+    await at(fifth.page, 'message-try-again').click();
+    await timed('fifth again', () => joinScreen(fifth, 'Play in a pack, or watch.'));
+    expect(await fifth.page.evaluate(() => location.hash), "the fifth's fragment, the link's").toBe(fragment);
+    await at(fifth.page, 'watch').click();
+    await waitForInspection(fifth.page, (i) => i.message === 'spectators', { what: 'the spectators message again', timeoutMs: ANSWER_MS });
+    await at(fifth.page, 'message-try-again').click();
+    await timed('fifth again at once', () => joinScreen(fifth, 'Play in a pack, or watch.'));
+    took['fifth in again'] = Math.round(await expectPeers(room, WATCHERS + 1, 'the room with the fifth in it again'));
+    await at(fifth.page, 'join-home').click();
+    await waitForScreen(fifth.page, 'home', ANSWER_MS);
+    took['fifth home'] = Math.round(await expectPeers(room, WATCHERS, 'the room once the fifth had gone Home'));
 
     // One watcher's Leave: Home, the fragment cleared, and every page still in the room counting one fewer.
     const [leaver, ...stay] = watchers as [AppPage, ...AppPage[]];

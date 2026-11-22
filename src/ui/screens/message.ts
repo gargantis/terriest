@@ -26,7 +26,7 @@ import { addStyle } from '../style';
 import css from './message.css?inline';
 import { packName, type Screen, screenStyles } from './screen';
 
-export type MessageCode = 'canary' | 'build' | 'connect' | 'left' | 'spectators' | 'duplicate' | 'other-tab' | 'graphics';
+export type MessageCode = 'canary' | 'build' | 'connect' | 'left' | 'spectators' | 'duplicate' | 'other-tab' | 'graphics' | 'open';
 export type MessageAction = 'practice' | 'home' | 'tryAgain' | 'useHere' | 'leave';
 
 export interface MessageSpec {
@@ -55,6 +55,17 @@ export const MESSAGES: Readonly<Record<MessageCode, MessageSpec>> = {
     heading: 'A different version',
     text: ['The other players are running another version of terriest. Everyone should reload the page, then join again.'],
     actions: ['home'],
+  },
+  // A room that couldn't open at all, from Create or Join: Trystero's chunk not loaded, the page offline
+  // or outlived by a deploy; no peer was ever tried, so not connect's words (phase 2d's review).
+  open: {
+    code: 'open',
+    heading: 'Couldn’t open the match',
+    text: [
+      'This page couldn’t start its connection to the match. Check that you’re online, then try again.',
+      'If it still won’t open, reload the page: terriest may have been updated since this page loaded.',
+    ],
+    actions: ['tryAgain', 'home'],
   },
   // No timeline 20 s after opening (PLAN §8): roslambo's words.
   connect: {

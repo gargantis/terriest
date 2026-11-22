@@ -23,7 +23,11 @@
 //   listener on the window, which would have left the room.
 // - The leave prompt accepted: after a key press there, the watcher's page
 //   is closed the same way, its prompt accepted. It closes, leaving its
-//   room on pagehide, and every page left in the room counts one fewer.
+//   room on pagehide, and every page left in the room counts one fewer:
+//   at once when its leave reaches them, as it does in most runs, or by
+//   Trystero's own disconnect path, 10 to 12 s, when the closing page goes
+//   before its leave does (phase 2d's review, net-netspecs-F1). Which path
+//   it took is logged.
 // - Every page logged no error and requested nothing but the preview and
 //   the relay (expectEverywhere).
 // The lost contexts are phase 3's (§9.3), with Ready and play. The peer
@@ -63,19 +67,27 @@ const IN_CONTROL_TICKS = 30; // not a setting: the spec's check
  * page's clock sets by e2e/lib/practice.ts' rule. ANSWER_MS: a screen's answer to a click, a terrier in
  * every final roster, the leave prompt after the close, every page's peers after a join or a leave: at
  * worst 345 ms (the prompt), so 3 × 0.35 + 2 = 3.1 s. JOIN_MS: from three engines' starts on the link to
- * Join's choices: at worst 1.42 s, so 3 × 1.42 + 2 = 6.3 s. REFUSED_MS: from the stale page's start to
+ * Join's choices: at worst 1.68 s (the Wire step's runs), so 3 × 1.68 + 2 = 7.0 s, rounded up to 8 s. REFUSED_MS: from the stale page's start to
  * its message, every handshake refused: at worst 2.40 s, so 3 × 2.40 + 2 = 9.2 s. KEPT_MS: KEPT_TICKS of
  * every page's final ticks from just before the prompt, 5 s at the clock's rate, which took at most
  * 4.89 s and which Chromium's slow clock in software GL could stretch to 5.77 s (2c's 52 ticks a second):
  * 1.5 × 5.77 + 2 = 10.7 s.
  */
 const ANSWER_MS = 4_000;
-const JOIN_MS = 7_000;
+const JOIN_MS = 8_000;
 const REFUSED_MS = 10_000;
 const KEPT_MS = 11_000;
-/** The whole test: at most 21.3 s in its runs, made as long as a hang in its longest wait, a page's start
- *  in openAppPage (30 s), would make it, × 2, as the device specs' are: (21.3 + 30) × 2 = 102.6 s. */
-const ROOM_TEST_MS = 105_000;
+/** A closed page's departure, seen by the pages left: at once by its leave, which a closing page sends on
+ *  pagehide (24 to 179 ms in 29 runs); or, when the page goes before its leave does, by Trystero's own
+ *  disconnect path, ICE's disconnected then peer.mjs's 5 s, 10.0 to 12.2 s in the review's runs with no
+ *  leave sent: 1.5 × 12.2 + 2 = 20.3 s. */
+const DEPARTED_MS = 21_000;
+/** Seen within this, the leave reached the pages; past it, the disconnect path took it. */
+const LEAVE_SEEN_MS = 2_000;
+/** The whole test: at most 30.4 s in its runs (the Wire step's full gate run, its departure by the
+ *  disconnect path), made as long as a hang in its longest wait, a page's start in openAppPage (30 s),
+ *  would make it, × 2, as the device specs' are: (30.4 + 30) × 2 = 120.8 s. */
+const ROOM_TEST_MS = 125_000;
 
 const at = (page: Page, id: string): Locator => page.locator(`[data-test="${id}"]`);
 
@@ -108,14 +120,15 @@ async function roomKept(
   }
 }
 
-/** Each page's look, every 50 ms, until every page counts `peers` connections. Returns how long it took. */
-async function expectPeers(pages: readonly AppPage[], peers: number, why: string): Promise<number> {
+/** Each page's look, every 50 ms, until every page counts `peers` connections, at most timeoutMs. Returns how
+ *  long it took. */
+async function expectPeers(pages: readonly AppPage[], peers: number, why: string, timeoutMs = ANSWER_MS): Promise<number> {
   const from = monotonicMs();
   for (;;) {
     const counts = await Promise.all(pages.map(async (p) => peersOf(await inspect(p.page))));
     if (counts.every((n) => n === peers)) return monotonicMs() - from;
-    if (monotonicMs() - from > ANSWER_MS) {
-      throw new Error(`${why}: every page counting ${peers} peers, not within ${ANSWER_MS} ms: ${pages.map((p, k) => `${p.engine} ${counts[k]}`).join(', ')}`);
+    if (monotonicMs() - from > timeoutMs) {
+      throw new Error(`${why}: every page counting ${peers} peers, not within ${timeoutMs} ms: ${pages.map((p, k) => `${p.engine} ${counts[k]}`).join(', ')}`);
     }
     await new Promise((resolve) => setTimeout(resolve, POLL_MS));
   }
@@ -259,7 +272,9 @@ test('a stale build is refused with its message, a dismissed leave prompt keeps 
     const closed = wp.waitForEvent('close', { timeout: ANSWER_MS });
     expect(await closeAsked(watcher, 'accept', "the watcher's page"), "the watcher's prompt").toBe('beforeunload');
     await closed;
-    took['seen leaving'] = Math.round(await expectPeers([keeper, firefox, webkit], room.length - 2, 'the room once the watcher had gone'));
+    const seen = await expectPeers([keeper, firefox, webkit], room.length - 2, 'the room once the watcher had gone', DEPARTED_MS);
+    took['seen leaving'] = Math.round(seen);
+    console.log(`room: the watcher's departure seen in ${Math.round(seen)} ms, ${seen <= LEAVE_SEEN_MS ? 'by its leave' : "by Trystero's disconnect path, its leave lost"}`);
 
     console.log(`room: ${JSON.stringify(took)}`);
     for (const p of pages) expectEverywhere(p.watch);

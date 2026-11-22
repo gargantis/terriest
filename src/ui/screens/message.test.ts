@@ -66,6 +66,16 @@ describe("§5.10's messages", () => {
         text: ['The match goes on for the others.', 'If the graphics come back, the pitch returns here.'],
         actions: ['leave'],
       },
+      // A room that couldn't open, from Create or Join: nothing about other players or TURN, and a reload's
+      // advice (phase 2d's review).
+      open: {
+        code: 'open', heading: 'Couldn’t open the match',
+        text: [
+          'This page couldn’t start its connection to the match. Check that you’re online, then try again.',
+          'If it still won’t open, reload the page: terriest may have been updated since this page loaded.',
+        ],
+        actions: ['tryAgain', 'home'],
+      },
     });
     expect(ACTION_TEXT).toEqual({ practice: 'Practice', home: 'Home', tryAgain: 'Try again', useHere: 'Use here', leave: 'Leave' });
   });

@@ -411,6 +411,8 @@ describe('the canary before Propose and Join (§5.6, D-23, M4-Q31)', () => {
 
 describe("each status to its message (§5.10, §9.2's app row, M4-Q39)", () => {
   const LINK = 'TERR1ESTDESKT0PM30004';
+  /** A duplicate's refusal stands once it has outlasted a lingering connection's silence and a handshake (C-12). */
+  const DUPLICATE_HOLD_MS = (config.duplicateIdSilentSeconds + config.handshakeTimeoutSeconds) * 1000;
   /** A status as NetGame's adapter reports it, nothing amiss but `s`. */
   const status = (s: Partial<MatchStatus> = {}): MatchStatus => ({
     refusal: null, failed: false, abandoned: false, refused: null, switchRefused: false, returning: false,
@@ -432,21 +434,24 @@ describe("each status to its message (§5.10, §9.2's app row, M4-Q39)", () => {
     return r;
   }
 
-  it("routes each status by §5.10's table, a refusal and the failure only while no timeline is held", () => {
-    const cases: [Partial<MatchStatus>, boolean, string | null][] = [
-      [{}, false, null], [{}, true, null],
-      [{ refusal: REFUSAL.BUILD }, false, 'build'], [{ refusal: REFUSAL.PROTOCOL }, false, 'build'],
-      [{ refusal: REFUSAL.DUPLICATE }, false, 'duplicate'], [{ failed: true }, false, 'connect'],
+  it("routes each status by §5.10's table, a refusal and the failure only while no timeline is held, a duplicate only once it has stood", () => {
+    const cases: [Partial<MatchStatus>, boolean, boolean, string | null][] = [
+      [{}, false, false, null], [{}, true, false, null],
+      [{ refusal: REFUSAL.BUILD }, false, false, 'build'], [{ refusal: REFUSAL.PROTOCOL }, false, false, 'build'],
+      // A duplicate's refusal waits out a lingering connection's silence and a handshake, unless the
+      // attempt has failed by then (C-12).
+      [{ refusal: REFUSAL.DUPLICATE }, false, false, null], [{ refusal: REFUSAL.DUPLICATE }, false, true, 'duplicate'],
+      [{ refusal: REFUSAL.DUPLICATE, failed: true }, false, false, 'duplicate'], [{ failed: true }, false, false, 'connect'],
       // A keeper's own timeline, held from genesis: a joiner of another version it refused, or that
       // refused it, never ends its match (D-21).
-      [{ refusal: REFUSAL.BUILD }, true, null], [{ refusal: REFUSAL.DUPLICATE }, true, null],
+      [{ refusal: REFUSAL.BUILD }, true, false, null], [{ refusal: REFUSAL.DUPLICATE }, true, true, null],
       // NetGame took this page out of a full room, whenever (C-11).
-      [{ spectatorsFull: true, refusal: REFUSAL.SPECTATORS_FULL }, false, 'spectators'], [{ spectatorsFull: true }, true, 'spectators'],
-      [{ abandoned: true }, true, 'left'],
+      [{ spectatorsFull: true, refusal: REFUSAL.SPECTATORS_FULL }, false, false, 'spectators'], [{ spectatorsFull: true }, true, false, 'spectators'],
+      [{ abandoned: true }, true, false, 'left'],
       // A JOIN given up is the pitch's notice, never a message (M4-Q39).
-      [{ refused: 'full' }, true, null], [{ refused: 'started' }, true, null],
+      [{ refused: 'full' }, true, false, null], [{ refused: 'started' }, true, false, null],
     ];
-    for (const [s, held, code] of cases) expect([s, held, statusMessage(status(s), held)]).toEqual([s, held, code]);
+    for (const [s, held, stood, code] of cases) expect([s, held, stood, statusMessage(status(s), held, stood)]).toEqual([s, held, stood, code]);
     expect(STATUS_MOVES).toEqual({
       build: ['home'], connect: ['tryAgain', 'home'], left: ['home'], spectators: ['tryAgain', 'home'], duplicate: ['tryAgain', 'home'],
     });
@@ -483,15 +488,20 @@ describe("each status to its message (§5.10, §9.2's app row, M4-Q39)", () => {
     }
   });
 
-  it("says this match is open in another tab or window for a duplicate ID's refusal, with Try again and Home (C-12)", async () => {
+  it("says this match is open in another tab or window once a duplicate ID's refusal has stood a lingering connection's silence and a handshake, with Try again and Home (C-12)", async () => {
     const r = await joined((rooms) => refusing(rooms, REFUSAL.DUPLICATE));
+    // Refused from the first timer run, and still connecting just short of the hold, its refusal the hook's.
+    expect([look(r).screen, look(r).match?.refusal]).toEqual(['join', REFUSAL.DUPLICATE]);
+    play(r, DUPLICATE_HOLD_MS - 200);
+    expect([look(r).screen, look(r).message]).toEqual(['join', null]);
+    play(r, 300);
     expect(look(r)).toMatchObject({ screen: 'message', message: 'duplicate', match: null });
     expect(shown(r)).toEqual({ code: 'duplicate', moves: ['message-tryAgain', 'message-home'] });
     button(r, 'message-tryAgain').click();
     await settle();
     expect([look(r).screen, r.rooms.length]).toEqual(['join', 2]);
-    play(r, 100);
-    expect(look(r).message).toBe('duplicate'); // refused again
+    play(r, DUPLICATE_HOLD_MS + 100);
+    expect(look(r).message).toBe('duplicate'); // refused again, held again
   });
 
   it('says the match has the most spectators it can take once a peer refused this page for the cap, with Try again and Home (C-11)', async () => {
@@ -516,32 +526,60 @@ describe("each status to its message (§5.10, §9.2's app row, M4-Q39)", () => {
     expect([look(r).screen, look(r).message]).toEqual(['prematch', null]);
   });
 
-  it("says it couldn't connect when a room can't open, from Join and from Create, rather than leave either waiting", async () => {
+  it("says it couldn't open the match when a room can't open, from Join and from Create, rather than leave either waiting or say connect's words (phase 2d's review)", async () => {
     const fails = (rooms: TransportOptions[]): TransportFactory => (_peer, _now, o) => {
       rooms.push(o);
       return Promise.reject(new Error('no transport here'));
     };
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       const r = await joined(fails);
-      expect(look(r)).toMatchObject({ screen: 'message', message: 'connect', match: null });
+      expect(look(r)).toMatchObject({ screen: 'message', message: 'open', match: null });
       expect(shown(r).moves).toEqual(['message-tryAgain', 'message-home']);
+      expect(r.location.hash()).toBe(`#join=${LINK}`); // so a reload opens it again
       button(r, 'message-tryAgain').click();
       await settle();
-      expect([look(r).message, r.rooms.length]).toEqual(['connect', 2]);
+      expect([look(r).message, r.rooms.length]).toEqual(['open', 2]);
       // Create's: Try again back to Propose.
       button(r, 'message-home').click();
+      expect(r.location.hash()).toBe('');
       button(r, 'propose').click();
       button(r, 'create').click();
       await settle();
-      expect(look(r)).toMatchObject({ screen: 'message', message: 'connect', match: null });
+      expect(look(r)).toMatchObject({ screen: 'message', message: 'open', match: null });
       button(r, 'message-tryAgain').click();
       expect(look(r).screen).toBe('propose');
-      // Each failure the page's own error, which the gate's guard fails: never a refusal it expects.
-      expect(errors.mock.calls.map((c) => c[0])).toEqual(Array(3).fill('The match could not be opened:'));
+      // Each failure reported, as the page says so on screen: never the page's own error, which the gate's
+      // guard would fail for a load a player's network dropped (§0).
+      expect([errors.mock.calls.length, warnings.mock.calls.map((c) => c[0])]).toEqual([0, Array(3).fill('The match could not be opened:')]);
     } finally {
       errors.mockRestore();
+      warnings.mockRestore();
     }
+  });
+
+  it('closes at once a match it leaves holding no timeline, with no LEAVE to send, so Try again opens a room of its own (phase 2d\'s review)', async () => {
+    const events: string[] = [];
+    const recording = (rooms: TransportOptions[]): TransportFactory => (_peer, _now, o) => {
+      rooms.push(o);
+      const n = rooms.length;
+      events.push(`open ${n}`);
+      return Promise.resolve({ send: () => {}, broadcast: () => {}, peerCount: () => 0, refusedBy: null, leave: () => {
+        events.push(`leave ${n}`);
+        return Promise.resolve();
+      } });
+    };
+    const r = await joined(recording, config.connectionFailureSeconds * 1000 + 100);
+    expect(look(r).message).toBe('connect');
+    // The room left with the message, not a grace later.
+    expect(events).toEqual(['open 1', 'leave 1']);
+    button(r, 'message-tryAgain').click();
+    await settle();
+    expect(events).toEqual(['open 1', 'leave 1', 'open 2']);
+    // Join's Home while connecting: the same, at once.
+    button(r, 'join-home').click();
+    expect(events).toEqual(['open 1', 'leave 1', 'open 2', 'leave 2']);
   });
 });
 

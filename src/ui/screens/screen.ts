@@ -71,3 +71,11 @@ export function packSwatch(p: PackLook): HTMLElement {
 export function packName(p: PackLook): string {
   return p.name.length === 0 ? p.name : `${p.name[0]!.toUpperCase()}${p.name.slice(1)}`;
 }
+
+/** A match's code as its groups of four (C-15) that a line breaks only between: each group whole, its
+ *  dash with it, and a break allowed after each dash, so a narrow box never splits a group someone reads
+ *  out (phase 2d's review). Its text is the code's, unchanged, for a copy or a selection. */
+export function codeGroups(code: string): Node[] {
+  const groups = code.split('-');
+  return groups.flatMap((g, k) => (k < groups.length - 1 ? [h('span', { class: 'code-group' }, `${g}-`), h('wbr')] : [h('span', { class: 'code-group' }, g)]));
+}

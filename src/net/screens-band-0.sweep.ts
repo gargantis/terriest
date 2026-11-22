@@ -6,7 +6,7 @@ import { expectScreens, playScreens, printScreens, printSlowestScreens, type Scr
 // research/m4/DESIGN.md, §9.1, §9.2, §9.4, M4-Q36; setups-F1), each run
 // taking every check screens-setup-1 to -13 take in the gate. Never part of
 // the gate: 58 of these matches in it took check:commit from about 6
-// minutes to 10.5. Run it, and its siblings, e at 60 and drawn, side by side:
+// minutes to 10.5. Run it, and its siblings, e at 120 and drawn, side by side:
 //   npx vitest run --config dev/screens-band.vitest.config.ts
 // before a networked spec relies on the setup, and again whenever the
 // simulation, the bots, the timeline, the session or the specs' scripts

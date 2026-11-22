@@ -27,20 +27,25 @@
 //   look that shows at most 240 ticks of it, which D-10 drops; from each
 //   countdown Chromium holds S, back in ball view, released at its first
 //   look at a second of play, through a goal that comes sooner, as the
-//   replays hold it; nobody else holds anything.
+//   replays hold it, e validated to the screens' own latitude, 120 ticks;
+//   nobody else holds anything.
 // - From the keeper's looks, never a sleep: a fourth page, Chromium's,
 //   opens the link once play shows under 50 s on the clock, sees the match
 //   has started with Watch in view, and watches: the ball, then the next by
 //   C, by the pad's right shoulder and back by its left, a terrier by a tap
 //   on its name in the HUD's list, and the last by C, its button inside the
 //   list's box (P5), the HUD's choice and the camera following each; WebKit
-//   reloads once play shows under 35 s, the leave prompt accepted, skips
-//   Join and takes its terrier back, its first input after the rebase
-//   holding the base's counters, jump 3 and pounce 0, and its terrier never
-//   taking off (§4.6, page-F4).
+//   reloads once play shows under 35 s, its first page having held W alone
+//   and pressed three times, the leave prompt accepted, away no longer than
+//   the replays' longest absence, skips Join and takes its terrier back, its
+//   first input after the rebase holding the base's counters, jump 3 and
+//   pounce 0, and its terrier never taking off (§4.6, page-F4).
 // - The end: Chromium holds Space from its first look at the head's end and
-//   mashes it as Results appear, every press inside the 0.5 s guard
-//   dropped and announced, Results unpressed; then Play again by Enter on
+//   mashes it as Results appear, from its first look there, every press
+//   inside the 0.5 s guard dropped and announced, Results unpressed; a
+//   fifth page opens the link then, Join saying the match has ended, with
+//   "See the results" in view, and shows the same Results (C-50); then
+//   Play again by Enter on
 //   Chromium and by the pad's Start on WebKit, both to the next match's
 //   Pre-match, at the ID every press derives (D-12, C-42), its fragment set
 //   by replace: history.length as it was on Results (§5.2, net-F1).
@@ -49,7 +54,8 @@
 // rules it, each countdown since and each goal latched since, a goal under
 // way at the arrival required unless the arrival came in the last 141 of
 // its celebration's 204 ticks; the same Results everywhere, the score,
-// rows and Terriest, pack A scored and the score not level at 0:00; one
+// rows and Terriest, each row's cells level, pack A scored and the score
+// not level at 0:00; one
 // hash at a common final tick; the spectator outside the roster, seeing the
 // same match (L281); WebKit's return; nothing compiled from the start
 // countdown to Results on the pages that neither reloaded nor joined
@@ -61,9 +67,11 @@
 // 0:00 fails), a stall or a message screen, by its code (§5.10). Chromium
 // in software GL takes its messages late (phase 2c's measurement), so every
 // page's late inputs, disagreements, resyncs, rollbacks, clock jumps and
-// tick rate are logged, never judged, with its countdowns. The run logs one line,
-// `screens-match-measure {…}`, attached to the test too, which its timeouts
-// were set from. New at M4, by phase 2d's match builder.
+// tick rate are logged, never judged, with its countdowns, each release's e
+// and the governor's actions, from a page's last look where it never
+// reached Results. The run logs one line, `screens-match-measure {…}`,
+// attached to the test too, which its timeouts were set from. New at M4,
+// by phase 2d's match builder; its review's checks by its integrator.
 
 import { readFileSync } from 'node:fs';
 import type { Browser, Page } from '@playwright/test';
@@ -80,7 +88,7 @@ import { type AppPage, type Engine, launch, openAppPage, SPEC_SEED, waitForStart
 import { PAD, press } from './lib/gamepad';
 import { expect, expectEverywhere, test } from './lib/guards';
 import { acceptLeavePrompt, expectAxeClean, hashAt, hudOf, inspect, monotonicMs, POLL_MS } from './lib/page';
-import { focused, LATEST_START_TICKS, READY_LATITUDE, RELEASE_LATITUDE, SHOWN_MS, where } from './lib/practice';
+import { focused, LATEST_START_TICKS, READY_LATITUDE, SHOWN_MS, where } from './lib/practice';
 
 // --- What the replays validated (src/net/setups-testing.ts) ---
 
@@ -106,6 +114,11 @@ const SPECTATOR_UNDER_SECONDS = validated('SPECTATOR_UNDER_SECONDS')[0]!;
 const RELOAD_UNDER_SECONDS = validated('RELOAD_UNDER_SECONDS')[0]!;
 /** Each player's W in warm-up, held this many ticks. */
 const WARM_UP_TICKS = validated('WARM_UP_TICKS')[0]!;
+/** e, the keeper's release after a second of play, validated up to this many ticks late: the screens'
+ *  own, twice Practice's, since loaded runs let go up to 53 late (§9.1's rule, phase 2d's review). */
+const RELEASE_LATITUDE = validated('SCREENS_RELEASE_LATITUDE')[0]!;
+/** WebKit's reload, validated away this long, ms: 0.5, 2 and 5 s by turns. */
+const ABSENCES = validated('ABSENCES');
 
 const TPS = config.ticksPerSecond;
 const D = config.inputDelayTicks;
@@ -122,8 +135,9 @@ const MOVED_M = 0.5;
 const BALL_MOVED_M = 1;
 /** Results takes a press that begins this long after it shows (Q-17, M4-Q26). */
 const GUARD_MS = config.resultsPressGuardSeconds * 1000;
-/** The closing mash: Space pressed while Results has shown for less than this, at most MASH_PRESSES times, so
- *  each press is well inside the guard however long it takes to reach the page. */
+/** The closing mash: Space pressed at the first look on Results, then again while Results has shown for less
+ *  than this, at most MASH_PRESSES times in all, so each press is well inside the guard however long it takes
+ *  to reach the page. */
 const MASH_UNTIL_MS = 250;
 const MASH_PRESSES = 5;
 /** Play again only once Results has shown this long, past the guard. */
@@ -163,15 +177,17 @@ const TO_PLAY_MS = 10_000;
  *  (phase 2c), 163.8 s. */
 const TO_RESULTS_MS = 220_000;
 /** The whole test: its worst run, made as long as the slowest match the replays validated, × 2, which leaves
- *  each wait inside it to fail first, with its own message: 151.5 s to the next match's Pre-match, its match
- *  128.9 s from the last Ready press to the end, 13.1 s short of 142.0; (151.5 + 13.1) × 2 = 329 s. */
-const TEST_MS = 330_000;
+ *  each wait inside it to fail first, with its own message: 169.1 s to the next match's Pre-match in the
+ *  Wire step's runs, its match 136.7 s from the last Ready press to the end, 5.3 s short of 142.0; and the
+ *  late page on Results since, 1.5 s, × 3 + 2 s as a wait the load lengthens, 6.5 s:
+ *  (169.1 + 5.3 + 6.5) × 2 = 361.8 s (phase 2d's review, net-netspecs-F5). */
+const TEST_MS = 365_000;
 
 // --- One page ---
 
 type Match = NonNullable<Inspection['match']>;
 type Hold = NonNullable<Inspection['controls']>['holds'][number];
-type Who = 'chromium' | 'firefox' | 'webkit' | 'spectator';
+type Who = 'chromium' | 'firefox' | 'webkit' | 'spectator' | 'late';
 
 const countsOf = (r: Inspection['render']): ResourceCounts => ({ programs: r.programs, geometries: r.geometries, textures: r.textures });
 const sameCounts = (a: ResourceCounts, b: ResourceCounts): boolean => a.programs === b.programs && a.geometries === b.geometries && a.textures === b.textures;
@@ -186,7 +202,13 @@ interface Period {
   pressedAt: number | null;
   /** The head's tick at the look that let S go in its play; null: the play ended first. */
   releasedAt: number | null;
+  /** How far past a second of play that look was, head ticks: the poll's lag, the most of e's lateness. */
+  lookLate: number | null;
 }
+
+/** A period's release as its input showed it: e, its span's last input past a second of play and d ticks,
+ *  against the validated latitude, and its look's lag (§9.1: past half the latitude, it's widened first). */
+interface Release { readonly period: number; readonly e: number | null; readonly lookLate: number | null }
 
 /** What the run logs: the line its timeouts are set from. */
 interface Measure {
@@ -203,17 +225,44 @@ interface Measure {
   readonly warmUp: Partial<Record<Who, { from: number; to: number | null; moved: number }>>;
   holds: Hold[];
   periods: Period[];
+  releases: Release[];
   webkit: {
     pressesInto: number[]; jumpsAtPlay: number | null; takeOffBefore: number | null; base: number | null; first: number | null;
     takeOffBack: number | null; takeOffEnd: number | null; awayMs: number | null; joinStatuses: string[] | null;
+    /** Its first page's controls at the reload's trigger: what it held and pressed before it went. */
+    beforeReload: { holds: Hold[]; jumps: number } | null;
   };
+  /** A page that opens the link once every player is on Results (C-50): Join's words, and its Results. */
+  late: { status: string | null; watch: string | null; results: boolean } | null;
   spectator: { follows: string[]; p5: unknown };
   results: Partial<Record<Who, { arrival: number | null; countdowns: readonly number[]; goals: readonly number[]; finalTick: number }>>;
   end: unknown;
   mash: { presses: number; log: unknown };
-  /** Each page's figures at its Results: the timeline's stats, the timer, the tick rate since Ready. */
-  readonly figures: Partial<Record<Who, { stats: Match['stats']; timer: Match['timer']; ticksPerSecond: number | null; own: Match['own'] }>>;
+  /** Each page's figures at its Results, or at its last look if it never got there: the timeline's stats, the
+   *  timer, the tick rate since Ready, and the governor's actions (§9.1's frames.log). */
+  readonly figures: Partial<Record<Who, Figures>>;
   next: string | null;
+}
+
+/** A page's figures, logged, never judged (phase 2c). */
+interface Figures {
+  readonly at: string;
+  readonly stats: Match['stats'] | null;
+  readonly timer: Match['timer'] | null;
+  readonly ticksPerSecond: number | null;
+  readonly own: Match['own'] | null;
+  readonly frames: Pick<Inspection['frames'], 'frames' | 'scale' | 'skipping' | 'actions' | 'log'>;
+}
+
+/** A page's figures from a look of it: its match's, and the governor's. */
+function figuresOf(i: Inspection, readyAt: { tick: number; ms: number } | null): Figures {
+  const m = i.match;
+  const rate = readyAt === null || m === null ? null : ((m.localTick - readyAt.tick) * 1000) / (monotonicMs() - readyAt.ms);
+  const f = i.frames;
+  return {
+    at: i.screen, stats: m?.stats ?? null, timer: m?.timer ?? null, ticksPerSecond: rate === null ? null : Math.round(rate * 10) / 10, own: m?.own ?? null,
+    frames: { frames: f.frames, scale: f.scale, skipping: f.skipping, actions: f.actions, log: f.log },
+  };
 }
 
 /** One page's looks at the hook, every 50 ms, each failing at once on an overtime, a stall, or, once asked,
@@ -393,6 +442,16 @@ function resultsSeen(page: Page): Promise<{ heading: string; score: string; terr
   }));
 }
 
+/** Each Results row's cells, how far apart their tops and their bottoms lie, px: 0 when the row's rule and
+ *  its "you" band run level across it. */
+function rowEdges(page: Page): Promise<{ row: number; tops: number; bottoms: number }[]> {
+  return page.evaluate(() => Array.from(document.querySelectorAll('[data-test="results"] tbody tr'), (tr, row) => {
+    const cells = Array.from(tr.children, (c) => c.getBoundingClientRect());
+    const spread = (xs: number[]): number => Math.max(...xs) - Math.min(...xs);
+    return { row, tops: spread(cells.map((r) => r.top)), bottoms: spread(cells.map((r) => r.bottom)) };
+  }));
+}
+
 /**
  * S's spans as the keeper's controls sampled them from the start countdown on, against the periods it played,
  * by the replays' rules (src/net/setups-testing.ts' expectHolds, screens-hold-start's range, practice.ts'
@@ -434,6 +493,22 @@ function holdProblems(holds: readonly Hold[], periods: readonly Period[], end: n
   return out;
 }
 
+/** Each period's release as the keeper's spans show it, holdProblems' pairing of spans and periods: e, the
+ *  span's last input past a second of play and d, and the lag of the look that let go. */
+function releasesOf(holds: readonly Hold[], periods: readonly Period[]): Release[] {
+  const out: Release[] = [];
+  let k = 0;
+  let open: Hold | null = null;
+  for (const [n, p] of periods.entries()) {
+    open ??= holds[k++] ?? null;
+    if (open === null) break;
+    if (p.releasedAt === null) continue;
+    out.push({ period: n, e: open.to === null || p.play === null ? null : open.to - (p.play + SECOND + D), lookLate: p.lookLate });
+    open = null;
+  }
+  return out;
+}
+
 // --- The match ---
 
 class ScreensMatch {
@@ -445,6 +520,8 @@ class ScreensMatch {
   readonly firefox: Look;
   readonly webkit: Look;
   readonly spectator: Look;
+  /** A page that opens the link once everyone is on Results (C-50). */
+  readonly late: Look;
   /** Chromium's browser, where the spectator's page opens at its trigger. */
   cr: Browser | null = null;
   /** The match: its ID, the link Created shows and the code. */
@@ -466,15 +543,19 @@ class ScreensMatch {
     this.base = base;
     this.relay = relay;
     this.measure = {
-      ok: false, error: null, wallMs: {}, waits: {}, ready: {}, countdownSeen: {}, warmUp: {}, holds: [], periods: this.periods,
-      webkit: { pressesInto: [], jumpsAtPlay: null, takeOffBefore: null, base: null, first: null, takeOffBack: null, takeOffEnd: null, awayMs: null, joinStatuses: null },
-      spectator: { follows: [], p5: null }, results: {}, end: null, mash: { presses: 0, log: null }, figures: {}, next: null,
+      ok: false, error: null, wallMs: {}, waits: {}, ready: {}, countdownSeen: {}, warmUp: {}, holds: [], periods: this.periods, releases: [],
+      webkit: {
+        pressesInto: [], jumpsAtPlay: null, takeOffBefore: null, base: null, first: null, takeOffBack: null, takeOffEnd: null, awayMs: null, joinStatuses: null,
+        beforeReload: null,
+      },
+      spectator: { follows: [], p5: null }, late: null, results: {}, end: null, mash: { presses: 0, log: null }, figures: {}, next: null,
     };
     this.chromium = new Look('chromium', this.measure);
     this.firefox = new Look('firefox', this.measure);
     this.webkit = new Look('webkit', this.measure);
     this.spectator = new Look('spectator', this.measure);
-    this.atResults = { chromium: new Signal(), firefox: new Signal(), webkit: new Signal(), spectator: new Signal() };
+    this.late = new Look('late', this.measure);
+    this.atResults = { chromium: new Signal(), firefox: new Signal(), webkit: new Signal(), spectator: new Signal(), late: new Signal() };
   }
 
   mark(step: string): void {
@@ -671,7 +752,7 @@ class ScreensMatch {
       if (last !== undefined && last.countdown === m.phaseStart) return;
       const p: Period = {
         kind: start ? 'start' : 'kickoff', countdown: m.phaseStart, countdownTicks: start ? derived.startCountdownTicks : derived.kickoffCountdownTicks,
-        play: null, pressedAt: null, releasedAt: null,
+        play: null, pressedAt: null, releasedAt: null, lookLate: null,
       };
       this.periods.push(p);
       if (!this.sDown) {
@@ -697,6 +778,7 @@ class ScreensMatch {
       await page.keyboard.up(HOLD_KEY);
       this.sDown = false;
       last.releasedAt = m.headTick;
+      last.lookLate = m.headTick - m.phaseStart - SECOND;
     }
     if (!this.spectatorGo.done && m.clock < SPECTATOR_UNDER_SECONDS * TPS) {
       this.mark('spectator trigger');
@@ -719,10 +801,14 @@ class ScreensMatch {
     const results = await k.until((i) => i.screen === 'results', { what: 'Results', timeoutMs: TO_RESULTS_MS, each: (i) => this.keeperLook(i) });
     this.mark('chromium results');
     expect(this.spaceDown, 'Space held from the first look at the head’s end, through the final whistle (§9.4’s step 7)').toBe(true);
+    // The mash as Results appear: Space let go and pressed again at once, at the first look on Results,
+    // however late that look came, then again while Results has shown under MASH_UNTIL_MS; each press's own
+    // time, as the log takes it, is held inside the guard below (net-netspecs-F4).
+    await page.keyboard.up('Space');
+    await page.keyboard.press('Space');
+    let mashed = 1;
     if (this.sDown) await page.keyboard.up(HOLD_KEY);
     this.sDown = false;
-    await page.keyboard.up('Space');
-    let mashed = 0;
     const since = async (): Promise<number> => {
       const ms = await sinceResults(page);
       if (ms === null) throw new Error(`Results' buttons pressed inside the ${GUARD_MS} ms guard (Q-17, M4-Q26): the page left Results after ${mashed} mashed presses`);
@@ -733,7 +819,6 @@ class ScreensMatch {
       mashed++;
     }
     this.measure.mash.presses = mashed;
-    expect(mashed, `Space mashed as Results appeared, inside ${MASH_UNTIL_MS} ms of it`).toBeGreaterThan(0);
     while ((await since()) < AFTER_GUARD_MS) await page.waitForTimeout(POLL_MS);
     const after = await k.look();
     const log = after.announcements!.results!;
@@ -784,6 +869,15 @@ class ScreensMatch {
       .toEqual([3, NEVER, 3]);
     const before = await w.until(() => this.reloadGo.done, { what: "the keeper's reload trigger", timeoutMs: TO_RESULTS_MS });
     this.measure.webkit.takeOffBefore = before.match!.mine!.takeOffTick;
+    // Its first page held to its validated script before it goes (net-netspecs-F3): W alone in warm-up,
+    // ended before the start countdown's first input; nothing held from it on; its three presses counted,
+    // and its terrier never off the ground.
+    const firstPage = before.controls!;
+    this.measure.webkit.beforeReload = { holds: [...firstPage.holds], jumps: firstPage.presses.jump };
+    const firstInput = this.countdown + 1 + D;
+    const spans = firstPage.holds.map((h) => [h.step, h.frame, h.to !== null && h.to < firstInput]);
+    expect([spans, firstPage.presses.jump, before.match!.mine!.takeOffTick], `WebKit's first page before its reload: W in warm-up alone, nothing held from the start countdown at ${this.countdown} on, three presses, no take-off: ${JSON.stringify(firstPage.holds)}`)
+      .toEqual([[[WARM.step, WARM.frame, true]], 3, NEVER]);
     const left = monotonicMs();
     await page.reload();
     await waitForStart(page);
@@ -792,8 +886,13 @@ class ScreensMatch {
     await w.until((x) => x.screen === 'match' && x.match?.returning === true && x.match.inRoster && x.controls !== null, {
       what: 'its terrier taken back, Join skipped', timeoutMs: CONNECT_MS, detail: returned,
     });
-    this.measure.webkit.awayMs = Math.round(monotonicMs() - left);
+    const away = Math.round(monotonicMs() - left);
+    this.measure.webkit.awayMs = away;
     this.mark('webkit back');
+    // Away no longer than the longest absence the replays validated, 5 s, its load, handshake and STATE
+    // included; logged against them all (net-netspecs-F3).
+    console.log(`WebKit away ${away} ms across its reload, against the absences validated, ${ABSENCES.join(', ')} ms`);
+    expect(away, `WebKit's reload away ${away} ms: validated to ${Math.max(...ABSENCES)} ms (§9.2)`).toBeLessThanOrEqual(Math.max(...ABSENCES));
     // The rebase reaches the pitch screen's controls, and its first input after it is sampled within a tick
     // (§4.6): a return that loses it starts the counters at 0 against the stored 3, which acts a jump.
     const back = await w.until((x) => x.controls !== null && x.controls.firstAfterBase !== null, {
@@ -901,9 +1000,7 @@ class ScreensMatch {
       const i = now[k]!;
       const m = i.match!;
       this.measure.results[p.who] = { arrival: i.announcements!.arrivalTick, countdowns: i.announcements!.countdowns, goals: i.announcements!.goals.map((g) => g.tick), finalTick: m.finalTick };
-      const ready = p.readyAt;
-      const rate = ready === null ? null : ((m.localTick - ready.tick) * 1000) / (monotonicMs() - ready.ms);
-      this.measure.figures[p.who] = { stats: m.stats, timer: m.timer, ticksPerSecond: rate === null ? null : Math.round(rate * 10) / 10, own: m.own };
+      this.measure.figures[p.who] = figuresOf(i, p.readyAt);
     }
     // Logged, never judged (phase 2c): Chromium's late inputs, disagreements, resyncs, clock jumps and tick
     // rate, and every page's countdowns, against its arrival.
@@ -913,11 +1010,12 @@ class ScreensMatch {
     for (const p of this.pages) {
       const f = this.measure.figures[p.who]!;
       const r = this.measure.results[p.who]!;
-      const s = f.stats;
+      const s = f.stats!;
       console.log(`  ${p.who}: arrival ${r.arrival}, countdowns ${r.countdowns.join(' ')}, goals ${r.goals.join(' ')}; late ${s.late} (absent ${s.lateAbsent}), ` +
         `disagreements ${s.disagree}, resyncs ${s.resyncs}, rollbacks ${s.rollbacks}, corrections ${s.corrections}, clock samples ${s.clockSamples} ` +
         `(dropped ${s.clockSamplesDropped}), clock jumps ${s.jumps}, ${f.ticksPerSecond ?? '-'} ticks a second since Ready, ` +
-        `timer ${JSON.stringify(f.timer)}, own ${JSON.stringify(f.own)}`);
+        `timer ${JSON.stringify(f.timer)}, own ${JSON.stringify(f.own)}; the governor acted ${f.frames.actions} times, scale ${f.frames.scale}, ` +
+        `skipping ${f.frames.skipping}`);
     }
     for (const [k, e] of ends.entries()) expect(e, `${this.pages[k]!.who}'s confirmed end: its tick, score, winner and rows`).toEqual(end);
     expect(hashes.every((h) => h !== ''), `every page holds final tick ${tick}: ${JSON.stringify(hashes)}`).toBe(true);
@@ -950,9 +1048,41 @@ class ScreensMatch {
     }));
     for (const [k, r] of seen.entries()) expect(r, `${this.pages[k]!.who}'s Results as drawn`).toEqual(seen[0]);
     expect([seen[0]!.heading, seen[0]!.rows.length, seen[0]!.score.includes(`${end.score[0]}–${end.score[1]}`)]).toEqual(['Results', 4, true]);
+    // Each row's cells level, its name cell's rule and the "you" band with the others' (phase 2d's review).
+    for (const p of this.pages) {
+      const rows = await rowEdges(p.page);
+      expect(rows.filter((r) => r.tops > 0.5 || r.bottoms > 0.5), `${p.who}'s Results rows, each cell's top and bottom the row's: ${JSON.stringify(rows)}`).toEqual([]);
+    }
     for (const p of this.pages) await expectAxeClean(p.page);
     this.mark('results checked');
+    await this.lateOnResults(seen[0]!);
     this.againGo.resolve();
+  }
+
+  /** A page that opens the link once every player is on Results (C-50): Join says the match has ended, with
+   *  its results to see, the Play buttons saying so; "See the results" in view at 640 × 360 shows the same
+   *  Results as every page's (§5.9, phase 2d's review). */
+  private async lateOnResults(seen: Awaited<ReturnType<typeof resultsSeen>>): Promise<void> {
+    const { link } = await this.created.promise;
+    const late = this.late;
+    await this.open(late, this.cr!, 4, 'Latecomer', { fragment: link.slice(this.base.length) });
+    const page = late.page;
+    await late.until((i) => i.screen === 'join', { what: 'Join by the link, after the end', timeoutMs: ANSWER_MS });
+    const status = page.locator('[data-test="join-status"]');
+    await expect(status, "Join on a match that has ended (C-50)").toHaveText('This match has ended: you can see its results.', { timeout: CONNECT_MS });
+    const watch = page.locator('[data-test="watch"]');
+    await expect(watch).toHaveText('See the results');
+    for (const p of [0, 1]) await expect(page.locator(`[data-test="play-${p}"]`), `Play in pack ${p}, the match ended`).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.locator('[data-test="play-0"]')).toContainText('the match has ended');
+    const w = await boxes(page, '[data-test="watch"]');
+    expect(w !== null && inside(w.box, w.window), `See the results in view at 640 × 360: ${JSON.stringify(w)}`).toBe(true);
+    this.measure.late = { status: await status.textContent(), watch: await watch.textContent(), results: false };
+    await watch.click();
+    await late.until((i) => i.screen === 'results', { what: 'Results, after the end', timeoutMs: ANSWER_MS });
+    await expect(page.locator('[data-test="final-score"]')).toHaveText(/\d+–\d+/, { timeout: ANSWER_MS });
+    expect(await resultsSeen(page), "the late page's Results, every page's (C-50)").toEqual(seen);
+    this.measure.late.results = true;
+    this.mark('late results');
   }
 
   /** page-F3 for one page, as M3's spec rules it: each countdown since its arrival shown, and the one under way
@@ -988,6 +1118,13 @@ class ScreensMatch {
     const before = holds.filter((h) => h.from < firstInput);
     expect(holdProblems(played, this.periods, end), `S's spans as sampled, ${JSON.stringify(played)}, against the periods ${JSON.stringify(this.periods)}, the end at ${end}`)
       .toEqual([]);
+    // Each release's e and its look's lag, logged: one past half the latitude is §9.1's sign to widen it,
+    // validated first.
+    const releases = releasesOf(played, this.periods);
+    this.measure.releases = releases;
+    const es = releases.map((r) => r.e ?? -1);
+    console.log(`the keeper's releases: e ${es.join(' ')} of ${RELEASE_LATITUDE} validated (half ${RELEASE_LATITUDE / 2}), the looks that let go ` +
+      `${releases.map((r) => r.lookLate).join(' ')} ticks past a second of play${Math.max(...es) > RELEASE_LATITUDE / 2 ? '; past half the latitude (§9.1)' : ''}`);
     // The warm-up's W alone before the countdown, ended by it, on each player's page that played it through.
     const warmUpOnly = (h: readonly Hold[]): (number | boolean)[][] => h.map((x) => [x.step, x.frame, x.to !== null && x.to < firstInput]);
     expect(warmUpOnly(before), `the keeper's spans before the countdown: ${JSON.stringify(before)}`).toEqual([[WARM.step, WARM.frame, true]]);
@@ -1044,12 +1181,15 @@ test('three engines play a match through the screens: proposed, joined by link a
       expect(await historyOf(p.page), `${p.who}'s fragment, the next match's, and its history as it was on Results`).toEqual({ length: was.length, hash: `#join=${next}` });
     }
     run.mark('next prematch');
-    for (const p of run.pages) expectEverywhere(p.app!.watch);
+    for (const p of [...run.pages, run.late]) expectEverywhere(p.app!.watch);
     run.measure.ok = true;
   } catch (e) {
     run.measure.error = e instanceof Error ? e.message.split('\n')[0]! : String(e);
     throw e;
   } finally {
+    // Every page's figures, from its last look where it never reached Results' checks, so a failing run logs
+    // them too (net-netspecs-F6).
+    for (const p of [...run.pages, run.late]) if (run.measure.figures[p.who] === undefined && p.last !== null) run.measure.figures[p.who] = figuresOf(p.last, p.readyAt);
     const line = JSON.stringify(run.measure);
     console.log(`screens-match-measure ${line}`);
     await testInfo.attach('screens-match-measure', { body: line, contentType: 'application/json' });

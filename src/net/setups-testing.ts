@@ -45,7 +45,7 @@ import {
 } from '../core/sim/index';
 import { expectAgreement, NetPump, TEST_BUILD } from '../core/timeline/testing';
 import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32 } from './loopback';
-import { band, drawn, HOLD_STARTS, LATEST, type Late, ON_TIME, type Period } from './practice-spec-testing';
+import { band, drawn, HOLD_STARTS, type Late, ON_TIME, type Period } from './practice-spec-testing';
 
 const NET = netSettings();
 const P = defaultParams;
@@ -315,7 +315,13 @@ export function printSlowest(file: string, runs: readonly Outcome[]): void {
 
 /** The spec's seed: each page's profile holds personId(7, k) (M4's design §9.4). */
 export const SCREENS_SEED = 7; // not a setting: the specs' seed
-/** The Ready ticks played with e at 0, at 60 and drawn (M4's design §9.2): every page presses at its first
+/** The keeper's release's latitude in the screens' match: e, after a second of play, up to this many ticks,
+ *  twice Practice's RELEASE_LATITUDE. The spec's loaded runs let go up to 53 ticks late, past half of 60,
+ *  and §9.1 widens a latitude a latency passes half of, validated again first (phase 2d's review,
+ *  net-netspecs-F2): screens-setup-1 to -13, screens-hold-start and the band's sweep, with e at 0, at 120
+ *  and drawn to 120. e2e/match.screens.net.spec.ts reads it from here. */
+export const SCREENS_RELEASE_LATITUDE = 120; // not a setting: M4's design §9.1's latitude, widened
+/** The Ready ticks played with e at 0, at 120 and drawn (M4's design §9.2): every page presses at its first
  *  timer run at or past one, as the spec's press at their first poll at or past 600. */
 export const SCREENS_READY = [600, 630, 660] as const; // not a setting: M4's design §9.2's ticks
 /** §9.1's band: every tick from 600 to 60 later is validated, each a start of its own, since the latest
@@ -344,8 +350,8 @@ const COUNTERS = encodeInput({ jump: 3, pounce: 3, bark: 3 }); // not a setting:
 /** How far a paced keeper's skipped share may stray from its pace's arithmetic (M4's design §8.1). */
 const SKIPPED_SLACK = 0.05; // not a setting: a check's tolerance
 
-/** e's names: at 0, at 60, and drawn for each kickoff (M4's design §9.2). */
-export type ReleaseName = '0' | '60' | 'drawn';
+/** e's names: at 0, at SCREENS_RELEASE_LATITUDE, and drawn for each kickoff (M4's design §9.2). */
+export type ReleaseName = '0' | '120' | 'drawn';
 /** Where in each countdown the keeper's hold begins (M4's design §9.1, §9.2): Practice's spec's three. */
 export type HoldStart = keyof typeof HOLD_STARTS;
 
@@ -364,21 +370,22 @@ export interface ScreensOptions {
   readonly from?: HoldStart;
 }
 
-/** The screens' e drawn for each kickoff: its own stream for each Ready tick, apart from Practice's
- *  (4 × ready + 1 and + 2, practice-spec-testing.ts' drawnFor), the paced runs sharing the unpaced
- *  run's at that tick. */
-export const screensDrawn = (ready: number): Late => drawn(4 * ready + 3);
+/** The screens' e drawn for each kickoff, 0 to SCREENS_RELEASE_LATITUDE: its own stream for each Ready tick,
+ *  apart from Practice's (4 × ready + 1 and + 2, practice-spec-testing.ts' drawnFor), the paced runs
+ *  sharing the unpaced run's at that tick. */
+export const screensDrawn = (ready: number): Late => drawn(4 * ready + 3, SCREENS_RELEASE_LATITUDE);
 
-const lateOf = (o: ScreensOptions): Late => (o.e === '0' ? ON_TIME : o.e === '60' ? LATEST : screensDrawn(o.ready));
+const LATEST_SCREENS: Late = () => SCREENS_RELEASE_LATITUDE;
+const lateOf = (o: ScreensOptions): Late => (o.e === '0' ? ON_TIME : o.e === '120' ? LATEST_SCREENS : screensDrawn(o.ready));
 
-/** §9.2's 13 runs (M4's design): Ready at 600, 630 and 660, each with e at 0, at 60 and drawn, the
+/** §9.2's 13 runs (M4's design): Ready at 600, 630 and 660, each with e at 0, at 120 and drawn, the
  *  reload's absence by turns so that each Ready tick and each e meets every absence; then the keeper
  *  paced at 50 and at 100 ms, Ready at 600 and 660, e drawn, the absences by turns. WebKit's presses
  *  by turns too. screens-setup-k plays the k-th, one a file, so that none runs much over 8 s alone
  *  (CLAUDE.md). */
 export const SCREENS_RUNS: readonly ScreensOptions[] = [
   ...SCREENS_READY.flatMap((ready, r) =>
-    (['0', '60', 'drawn'] as const).map((e, j): ScreensOptions => ({ ready, e, absence: ABSENCES[(r + j) % 3]!, jumps: JUMPS[j]!, paceMs: null })),
+    (['0', '120', 'drawn'] as const).map((e, j): ScreensOptions => ({ ready, e, absence: ABSENCES[(r + j) % 3]!, jumps: JUMPS[j]!, paceMs: null })),
   ),
   ...PACES.flatMap((paceMs, q) =>
     PACED_READY.map((ready, r): ScreensOptions => ({ ready, e: 'drawn', absence: ABSENCES[(2 * q + r) % 3]!, jumps: JUMPS[(2 * q + r) % 3]!, paceMs })),
@@ -386,7 +393,7 @@ export const SCREENS_RUNS: readonly ScreensOptions[] = [
 ];
 
 /** The releases the band is swept with, one sweep file each (M4's design §9.2). */
-export const RELEASES: readonly ReleaseName[] = ['0', '60', 'drawn'];
+export const RELEASES: readonly ReleaseName[] = ['0', '120', 'drawn'];
 
 /** The band's sweep for one e (setups-F1): every tick of SCREENS_BAND, the reload's absence and WebKit's
  *  presses by turns, so that over the band each absence meets every press, and each e's turns start
