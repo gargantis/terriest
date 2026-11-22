@@ -448,17 +448,24 @@ describe("the counts' overlays: drawing now, and shown since the drawer was made
     d.dispose();
   });
 
-  it("counts a bark and a celebration again at a start it counted before after a frame has handed that terrier none, as the stage's next match, its ticks from 0 again, can start one; and a showing the pose hides a while once", () => {
+  it("counts a bark and a celebration once by their starts though a frame a tick back shows them again, and again at those starts in the stage's next match, its ticks from 0 again; and a showing the pose hides a while once", () => {
     const d = createCodeDrawer(PLACEHOLDER_LOOK, CAPACITY);
     const bark = { start: 18, weight: 1 };
     const cheer = { start: 900, weight: 1 };
-    // One match: the bark over three frames, the celebration over two; then frames of neither.
+    // One match: the bark over three frames, the celebration over two. Each is over in a frame that hands it
+    // none and shown again in one a tick back, as a stall or a clock jump draws it: the same showing.
     for (const time of [18.4, 19, 20]) d.draw(drawerFrame([frame({ bark })], time));
+    d.draw(drawerFrame([frame()], 42));
+    d.draw(drawerFrame([frame({ bark })], 41));
     for (const time of [900.5, 901]) d.draw(drawerFrame([frame({ celebrate: cheer })], time));
-    d.draw(drawerFrame([frame()], 1000));
+    d.draw(drawerFrame([frame()], 1020));
+    d.draw(drawerFrame([frame({ celebrate: cheer })], 1019));
+    d.draw(drawerFrame([frame()], 1100));
     expect(d.counts().overlaysShown).toMatchObject({ barking: 1, celebrating: 1 });
-    // The next match on the stage, from its own tick 0: the same terrier's bark and celebration at the same starts.
-    for (const time of [0, 10]) d.draw(drawerFrame([frame()], time));
+    // The next match on the stage, from its own tick 0, the stage drawing no terriers first: the same terrier's
+    // bark and celebration at the same starts.
+    d.draw(drawerFrame([], 0));
+    for (const time of [0.5, 10]) d.draw(drawerFrame([frame()], time));
     for (const time of [18.6, 19.5]) d.draw(drawerFrame([frame({ bark })], time));
     d.draw(drawerFrame([frame({ celebrate: cheer })], 900.2));
     expect(d.counts().overlaysShown).toMatchObject({ barking: 2, celebrating: 2 });

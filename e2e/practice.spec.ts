@@ -304,8 +304,9 @@ async function dpad(run: PracticeRun, button: number, stops: readonly string[], 
   }
 }
 
-/** Your bark sent and shown: the press acted, so a bot's bark never passes for a lost one, its mark counted and
- *  the drawer's bark begun (§9.1's latched). */
+/** Your bark's press acted, so a bot's bark never passes for a lost one, and a bark shown, its mark counted and the
+ *  drawer's bark begun (§9.1's latched): any terrier's, as neither count says whose (src/ui/app-bark.test.ts pins
+ *  your own). */
 const barked = (i: Inspection, b: Inspection): boolean =>
   i.controls!.presses.bark > b.controls!.presses.bark
   && i.announcements!.barksShown > b.announcements!.barksShown && i.render.drawer!.overlaysShown.barking > b.render.drawer!.overlaysShown.barking;

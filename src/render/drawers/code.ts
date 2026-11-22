@@ -23,10 +23,12 @@
 // coats and packs painted in the frame drawn last, as the spike's were, so
 // prepare()'s frame of placeholders leaves nothing behind it; the overlays
 // drawing now; and the overlays shown since it was made, each bark and
-// celebration counted once as it starts showing, its start forgotten when
-// a frame hands its terrier none, since the drawer outlives each match on
-// its stage and the next one's ticks count from 0 again; each push once as
-// it begins.
+// celebration counted once by its terrier and start, each push once as it
+// begins. The drawer outlives each match on its stage, whose ticks count
+// from 0 again, so a frame whose drawn time runs back more than a tick
+// forgets the starts counted: within a timeline it runs back a tick at
+// most, at a stall or a clock jump, and an overlay shown again then is the
+// one counted.
 //
 // A port of the M0 spike's research/spike/src/scene/code-drawer.ts
 // (terrierGeometries, triangleCount, the parts, their painting and counts),
@@ -178,8 +180,7 @@ function coatIndex(look: Look, index: number): number {
 
 type Shown = { barking: number; celebrating: number; pushing: number };
 
-/** Each terrier's bark and celebration counted as it shows, by its start, null when a frame hands it none; and
- *  whether it was pushing in the last frame. */
+/** Each terrier's latest bark and celebration counted, by its start, and whether it was pushing in the last frame. */
 interface Seen {
   bark: number | null;
   celebrate: number | null;
@@ -208,6 +209,8 @@ class CodeDrawer implements TerrierDrawer {
   private now: Shown = { barking: 0, celebrating: 0, pushing: 0 };
   private readonly shown: Shown = { barking: 0, celebrating: 0, pushing: 0 };
   private readonly seen = new Map<string, Seen>();
+  /** The drawn time of the frame drawn last. */
+  private lastTime = 0;
 
   constructor(look: Look, capacity: number) {
     this.look = look;
@@ -261,6 +264,11 @@ class CodeDrawer implements TerrierDrawer {
   }
 
   draw(frame: DrawerFrame): void {
+    // The drawn time, the head's tick less one plus the tick's fraction (src/render/interpolate.ts), runs back a
+    // tick at most within a timeline, whose head never moves back: further back, the frame is another match's or
+    // timeline's, the next Practice's from tick 0 again, whose overlays may start where the last one's did.
+    if (frame.time < this.lastTime - 1) this.seen.clear();
+    this.lastTime = frame.time;
     const ts = frame.terriers;
     const n = Math.min(ts.length, this.capacity);
     const M = this.meshes;
@@ -327,10 +335,6 @@ class CodeDrawer implements TerrierDrawer {
       seen = { bark: null, celebrate: null, pushing: false };
       this.seen.set(id, seen);
     }
-    // A frame that hands the terrier none has ended its last: the drawer outlives each match on its stage,
-    // whose ticks count from 0 again, so the same terrier's next one may start at the same tick.
-    if (barkStart === null) seen.bark = null;
-    if (celebrateStart === null) seen.celebrate = null;
     if (w.bark > 0) {
       now.barking++;
       if (barkStart !== seen.bark) this.shown.barking++;

@@ -72,9 +72,10 @@ export interface DrawerCounts {
   readonly coatsPainted: readonly number[]; readonly packsPainted: readonly number[];
   /** Drawing now. */
   readonly overlays: { readonly barking: number; readonly celebrating: number; readonly pushing: number };
-  /** Since the drawer was made, each counted once as it starts showing: a bark or a celebration again at a start
-   *  counted before after a frame has handed its terrier none, as the stage's next match, its ticks from 0 again,
-   *  can start one. */
+  /** Since the drawer was made, each counted once as it starts: a bark or a celebration by its terrier and its
+   *  start, a push as it begins. A frame whose drawn time runs back more than a tick, as it never does within a
+   *  timeline, is another match's or timeline's, and the starts counted before it are forgotten: a bark in the
+   *  stage's next match, its ticks from 0 again, is counted though the last match counted one at its start. */
   readonly overlaysShown: { readonly barking: number; readonly celebrating: number; readonly pushing: number };
 }
 

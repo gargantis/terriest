@@ -221,8 +221,9 @@ test.describe('the control layer', () => {
         await f.lift(slide);
         await run.until((i) => touchOf(i)?.held.length === 0, { what: 'jump let go as the slid thumb lifts', timeoutMs: SHOWN_MS });
 
-        // Bark and view by taps: the bark acted, so a bot's bark never passes for a lost one, its mark and the
-        // drawer's bark; chase view, the sixth control, the panel gone; then ball view again.
+        // Bark and view by taps: the bark's press acted, so a bot's bark never passes for a lost one, and a bark's
+        // mark and the drawer's bark, any terrier's, as neither count says whose (src/ui/app-bark.test.ts pins your
+        // own); chase view, the sixth control, the panel gone; then ball view again.
         await taps(run, f, 'touch-bark', (i, b) => i.controls!.presses.bark > b.controls!.presses.bark
           && i.announcements!.barksShown > b.announcements!.barksShown
           && i.render.drawer!.overlaysShown.barking > b.render.drawer!.overlaysShown.barking, "the bark button: its mark and the drawer's bark");
