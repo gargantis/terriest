@@ -137,7 +137,7 @@ describe("M1's createPitchView, over the stage", () => {
     expect(info).toMatchObject({
       frames: 1, quality: 'high', samples: 4, pixelRatio: 2, calls: 3, triangles: 900, lines: 50, programs: 3, geometries: 11, textures: 2,
       firstFrame: { programs: 3, geometries: 11, textures: 2 }, cap: 2, scale: 1, cssWidth: 640, cssHeight: 360, prepared: true,
-      camera: { kind: 'overview', view: null, calm: false, raised: false },
+      camera: { kind: 'overview', view: null, follow: null, calm: false, raised: false },
     });
     expect(sizes).toEqual([[1280, 720]]);
   });
@@ -183,7 +183,14 @@ describe('the stage (§1.3)', () => {
     expect(out.terriers.map((p) => p.id)).toEqual(s.terriers.map((T) => T.id));
     expect([out.cssWidth, out.cssHeight]).toEqual([641, 361]);
     expect(out.ball.inView).toBe(true);
-    expect(stage.info().camera).toMatchObject({ kind: 'player', view: 'ball', calm: true });
+    expect(stage.info().camera).toMatchObject({ kind: 'player', view: 'ball', follow: null, calm: true });
+    // A spectator's camera, what it drew following: the ball, then a terrier (§9.4).
+    view.mode = { kind: 'spectator', follow: null };
+    stage.draw(view.frame(16, 16));
+    expect(stage.info().camera).toMatchObject({ kind: 'spectator', view: null, follow: 'ball' });
+    view.mode = { kind: 'spectator', follow: s.terriers[3]!.id };
+    stage.draw(view.frame(32, 16));
+    expect(stage.info().camera).toMatchObject({ kind: 'spectator', follow: s.terriers[3]!.id });
     // The low quality's cap of 1, at 641 × 361 CSS px.
     expect(sizes.at(-1)).toEqual([641, 361]);
     // The governor's scale: the buffer round(CSS size × min(devicePixelRatio, cap) × scale), clamped to 0.5.
@@ -193,7 +200,7 @@ describe('the stage (§1.3)', () => {
     // no shadows, no terriers.
     expect(renders.at(-1)!.shown).not.toContain('ball');
     expect([renders.at(-1)!.instanced['blob shadows'], renders.at(-1)!.instanced.parts, frames.at(-1)!.terriers.length]).toEqual([0, 0, 0]);
-    expect(stage.info().camera).toMatchObject({ kind: 'overview', turnCap: null });
+    expect(stage.info().camera).toMatchObject({ kind: 'overview', follow: null, turnCap: null });
     expect(sizes.at(-1)).toEqual([Math.round(641 * 0.75), Math.round(361 * 0.75)]);
     expect(stage.info()).toMatchObject({ pixelRatio: 0.75, scale: 0.75, cap: qualityDetail('low').pixelRatioMax });
     stage.setScale(0.1);

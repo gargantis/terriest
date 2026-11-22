@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../config';
 import { personId } from '../core/bot/bot-id';
 import type { ConfirmedGoal } from '../core/session/index';
 import { CELEBRATION, defaultParams, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
 import type { UiCommand } from '../input/source';
 import type { CameraMode } from '../render/frame';
-import { cssDeclarations, cssLength, fake, type FakeDocument, installDom, only, shownText } from './dom-testing';
+import { cssDeclarations, cssLength, fake, type FakeDocument, FakeElement, installDom, only, shownText } from './dom-testing';
 import {
   bannerText, clockText, countdownText, followed, followOrder, goalText, GRAPHICS_NOTE, hudLayer, nameList, nextFollow, OWN_GOAL, percent,
   takenBackText,
@@ -352,6 +352,27 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
     only(r.el, `[data-follow="${BOT}"]`).click();
     r.layer.frame!(r.ctx());
     expect(intoView()).toEqual(['ball nearest', `${ME} nearest`, `${BEA} nearest`, `${BOT} nearest`]);
+  });
+
+  it('scrolls a newly followed choice into view once every check mark is as it will be drawn, cycling either way, so the box it brings in is its last (P5, phase 2d)', () => {
+    const r = rig({ spectator: true });
+    r.layer.frame!(r.ctx());
+    const list = only(r.el, '.hud-follow-list');
+    // At each scroll, the choices whose check mark shows: a mark widens its button, so a box measured before
+    // the new one shows, or the old one goes, isn't the one drawn (at 640 × 360 the last ended 18 px out).
+    const marked: string[] = [];
+    const scroll = vi.spyOn(FakeElement.prototype, 'scrollIntoView').mockImplementation(function (this: FakeElement) {
+      const on = list.querySelectorAll('button').filter((b) => !only(b, '.hud-follow-check').hidden).map((b) => b.getAttribute('data-follow'));
+      marked.push(`${this.getAttribute('data-follow')}: ${on.join(' ')}`);
+    });
+    try {
+      const cmd = (kind: UiCommand['kind']): UiCommand => ({ kind, pressedAt: 0, source: 'keyboard', repeat: false });
+      for (const kind of ['next', 'next', 'prev', 'prev', 'prev'] as const) r.layer.ui(cmd(kind));
+      only(r.el, `[data-follow="${BEA}"]`).click();
+      expect(marked).toEqual([`${ME}: ${ME}`, `${BEA}: ${BEA}`, `${ME}: ${ME}`, 'ball: ball', `${BOT}: ${BOT}`, `${BEA}: ${BEA}`]);
+    } finally {
+      scroll.mockRestore();
+    }
   });
 
   it("cycles what a spectator follows on next and prev, the view key's and the shoulders', a repeat doing nothing; a player's HUD has no choice and takes neither", () => {

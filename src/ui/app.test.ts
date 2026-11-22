@@ -1,16 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../config';
 import { findTerrier, IN_PLAY, LUNGING, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
 import type { UiCommand } from '../input/source';
-import type { Timeline } from '../core/session/index';
+import { REFUSAL, type Timeline } from '../core/session/index';
+import type { TransportOptions } from '../net/transport';
 import { MemoryStorage } from '../storage/kv';
-import { browserLocation } from './app';
-import { type AppRig, appRig, type AppRigOptions, Locks, ME, nowhere, type RecordingStage } from './app-testing';
+import { browserLocation, STATUS_MOVES, statusMessage } from './app';
+import { type AppRig, appRig, type AppRigOptions, Locks, ME, nowhere, type RecordingStage, refusing } from './app-testing';
 import { FakeClock } from './clock-testing';
 import { pageDevices } from './devices';
 import { fake, FakeEvent, type FakeDocument, FakeNode, installDom, only } from './dom-testing';
+import type { TransportFactory } from './game';
 import type { Inspection } from './inspect';
 import type { HudInspection } from './inspect';
+import type { MatchStatus } from './match-types';
 import { PITCH_LAYERS, pitchLayers } from './layers/index';
 import { NOT_SAVED, SAVED } from './screens/settings';
 import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-testing';
@@ -28,7 +31,13 @@ import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-te
 // #join= to Join and everything else Home, a hashchange leaving a match,
 // the app's own replace ignored; the canary before Propose and Join, on
 // demand, a failing one saying why and opening no room, Practice never
-// asking; the leave guard on the pitch screens alone, Practice's too; Home,
+// asking; each networked status to §5.10's message with its moves, the
+// match left (statusMessage): a build or protocol refusal, a duplicate ID
+// and no timeline 20 s after opening while none is held, never a keeper's,
+// a peer's refusal for the spectators' cap, and a room that can't open;
+// the players gone is app-net.test.ts's, and a JOIN given up the pitch's
+// notice there, M4-Q39's three tested here and in src/net alone; the
+// leave guard on the pitch screens alone, Practice's too; Home,
 // Practice's setup, Pre-match, Match, Results, Play again and Leave, the
 // stage and the frame loop on the pitch screen alone, each screen focused,
 // the keyboard told which screen it's on, the page at its top; one
@@ -400,6 +409,142 @@ describe('the canary before Propose and Join (§5.6, D-23, M4-Q31)', () => {
   });
 });
 
+describe("each status to its message (§5.10, §9.2's app row, M4-Q39)", () => {
+  const LINK = 'TERR1ESTDESKT0PM30004';
+  /** A status as NetGame's adapter reports it, nothing amiss but `s`. */
+  const status = (s: Partial<MatchStatus> = {}): MatchStatus => ({
+    refusal: null, failed: false, abandoned: false, refused: null, switchRefused: false, returning: false,
+    spectatorsFull: false, leaving: false, closed: false, peers: 0, againSeen: false, ...s,
+  });
+  /** The message showing: its code, and its buttons in order, as the fake makes one per move handed it. */
+  const shown = (r: Rig): { code: string | null; moves: string[] } => {
+    const section = only(screenEl(r), 'section[data-test="message"]');
+    return { code: section.getAttribute('data-message'), moves: section.querySelectorAll('button').map((b) => b.getAttribute('data-test')!) };
+  };
+  /** Join by the link, its room on `transport`, then `ms` of timer runs. */
+  async function joined(transport: (rooms: TransportOptions[]) => TransportFactory, ms = 100): Promise<Rig> {
+    const r = rig({ hash: `#join=${LINK}`, transport });
+    await r.app.start();
+    expect(look(r).screen).toBe('join');
+    await settle();
+    play(r, ms);
+    await settle();
+    return r;
+  }
+
+  it("routes each status by §5.10's table, a refusal and the failure only while no timeline is held", () => {
+    const cases: [Partial<MatchStatus>, boolean, string | null][] = [
+      [{}, false, null], [{}, true, null],
+      [{ refusal: REFUSAL.BUILD }, false, 'build'], [{ refusal: REFUSAL.PROTOCOL }, false, 'build'],
+      [{ refusal: REFUSAL.DUPLICATE }, false, 'duplicate'], [{ failed: true }, false, 'connect'],
+      // A keeper's own timeline, held from genesis: a joiner of another version it refused, or that
+      // refused it, never ends its match (D-21).
+      [{ refusal: REFUSAL.BUILD }, true, null], [{ refusal: REFUSAL.DUPLICATE }, true, null],
+      // NetGame took this page out of a full room, whenever (C-11).
+      [{ spectatorsFull: true, refusal: REFUSAL.SPECTATORS_FULL }, false, 'spectators'], [{ spectatorsFull: true }, true, 'spectators'],
+      [{ abandoned: true }, true, 'left'],
+      // A JOIN given up is the pitch's notice, never a message (M4-Q39).
+      [{ refused: 'full' }, true, null], [{ refused: 'started' }, true, null],
+    ];
+    for (const [s, held, code] of cases) expect([s, held, statusMessage(status(s), held)]).toEqual([s, held, code]);
+    expect(STATUS_MOVES).toEqual({
+      build: ['home'], connect: ['tryAgain', 'home'], left: ['home'], spectators: ['tryAgain', 'home'], duplicate: ['tryAgain', 'home'],
+    });
+  });
+
+  it('says "Couldn\'t connect" with no timeline 20 s after the room opened, Try again opening the link again and Home leaving it (PLAN §8)', async () => {
+    const r = await joined(nowhere, config.connectionFailureSeconds * 1000 - 200);
+    expect(look(r).screen).toBe('join'); // still connecting, just short of 20 s
+    play(r, 300);
+    expect(look(r)).toMatchObject({ screen: 'message', message: 'connect', match: null });
+    expect(shown(r)).toEqual({ code: 'connect', moves: ['message-tryAgain', 'message-home'] });
+    expect(dom.document.activeElement.textContent).toBe('connect'); // its heading (§5.10)
+    // The match left, its timer stopped with its room; the fragment still the link's, so a reload opens it again.
+    play(r, 1000);
+    expect([r.clock.pending, r.location.hash(), r.location.replaced, r.guard.active]).toEqual([0, `#join=${LINK}`, [], false]);
+    // Try again: Join, its room opened again.
+    button(r, 'message-tryAgain').click();
+    await settle();
+    expect([look(r).screen, look(r).match?.matchId, r.rooms.map((x) => x.matchId)]).toEqual(['join', LINK, [LINK, LINK]]);
+    play(r, config.connectionFailureSeconds * 1000 + 100);
+    expect(look(r).message).toBe('connect');
+    // Home: the fragment cleared.
+    button(r, 'message-home').click();
+    expect([look(r).screen, r.location.hash(), r.location.replaced]).toEqual(['home', '', ['#']]);
+  });
+
+  it('says "A different version" for a build or protocol refusal while no timeline is held, with Home alone (D-21)', async () => {
+    for (const reason of [REFUSAL.BUILD, REFUSAL.PROTOCOL]) {
+      const r = await joined((rooms) => refusing(rooms, reason));
+      expect(look(r)).toMatchObject({ screen: 'message', message: 'build', match: null });
+      expect(shown(r)).toEqual({ code: 'build', moves: ['message-home'] });
+      button(r, 'message-home').click();
+      expect([look(r).screen, r.location.hash()]).toEqual(['home', '']);
+    }
+  });
+
+  it("says this match is open in another tab or window for a duplicate ID's refusal, with Try again and Home (C-12)", async () => {
+    const r = await joined((rooms) => refusing(rooms, REFUSAL.DUPLICATE));
+    expect(look(r)).toMatchObject({ screen: 'message', message: 'duplicate', match: null });
+    expect(shown(r)).toEqual({ code: 'duplicate', moves: ['message-tryAgain', 'message-home'] });
+    button(r, 'message-tryAgain').click();
+    await settle();
+    expect([look(r).screen, r.rooms.length]).toEqual(['join', 2]);
+    play(r, 100);
+    expect(look(r).message).toBe('duplicate'); // refused again
+  });
+
+  it('says the match has the most spectators it can take once a peer refused this page for the cap, with Try again and Home (C-11)', async () => {
+    const r = await joined((rooms) => refusing(rooms, REFUSAL.SPECTATORS_FULL));
+    expect(look(r)).toMatchObject({ screen: 'message', message: 'spectators', match: null });
+    expect(shown(r)).toEqual({ code: 'spectators', moves: ['message-tryAgain', 'message-home'] });
+    button(r, 'message-tryAgain').click();
+    await settle();
+    expect([look(r).screen, r.rooms.length]).toEqual(['join', 2]);
+  });
+
+  it("keeps a keeper's match whatever refused it: Created and its Pre-match stay, its timeline held from genesis (D-21)", async () => {
+    const r = rig({ transport: (rooms) => refusing(rooms, REFUSAL.BUILD) });
+    await r.app.start();
+    button(r, 'propose').click();
+    button(r, 'create').click();
+    await settle();
+    play(r, 500);
+    expect([look(r).screen, look(r).message, look(r).match?.started]).toEqual(['created', null, true]);
+    button(r, 'play-0').click();
+    play(r, 500);
+    expect([look(r).screen, look(r).message]).toEqual(['prematch', null]);
+  });
+
+  it("says it couldn't connect when a room can't open, from Join and from Create, rather than leave either waiting", async () => {
+    const fails = (rooms: TransportOptions[]): TransportFactory => (_peer, _now, o) => {
+      rooms.push(o);
+      return Promise.reject(new Error('no transport here'));
+    };
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const r = await joined(fails);
+      expect(look(r)).toMatchObject({ screen: 'message', message: 'connect', match: null });
+      expect(shown(r).moves).toEqual(['message-tryAgain', 'message-home']);
+      button(r, 'message-tryAgain').click();
+      await settle();
+      expect([look(r).message, r.rooms.length]).toEqual(['connect', 2]);
+      // Create's: Try again back to Propose.
+      button(r, 'message-home').click();
+      button(r, 'propose').click();
+      button(r, 'create').click();
+      await settle();
+      expect(look(r)).toMatchObject({ screen: 'message', message: 'connect', match: null });
+      button(r, 'message-tryAgain').click();
+      expect(look(r).screen).toBe('propose');
+      // Each failure the page's own error, which the gate's guard fails: never a refusal it expects.
+      expect(errors.mock.calls.map((c) => c[0])).toEqual(Array(3).fill('The match could not be opened:'));
+    } finally {
+      errors.mockRestore();
+    }
+  });
+});
+
 describe('Practice through the screens (§5.3, §5.4, §5.7–§5.9, Q-15, Q-17)', () => {
   it('plays Home to Results and Play again, the stage and the frame loop on the pitch screen alone, one log for each match', async () => {
     const r = rig();
@@ -427,7 +572,7 @@ describe('Practice through the screens (§5.3, §5.4, §5.7–§5.9, Q-15, Q-17)
     expect(r.host().uiActive()).toBe('pitch');
     await settle();
     let i = look(r);
-    expect(i.match).toMatchObject({ kind: 'practice', me: ME, matchId: null, started: true, paused: false });
+    expect(i.match).toMatchObject({ kind: 'practice', me: ME, matchId: null, started: true, paused: false, peers: 0 });
     expect(i.announcements).toMatchObject({ matchId: null, arrivalTick: 0, countdowns: [], goals: [], results: null });
     // Each layer's figures under its name: the HUD, the overlay, the menu and the networked notes among them.
     expect(Object.keys(i.layers)).toEqual(expect.arrayContaining(['hud', 'menu', 'overlay', 'net']));

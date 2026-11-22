@@ -17,14 +17,24 @@
 //   sleeping, and fails at once when the spec's fail() names a reason, such
 //   as an overtime (§8.4);
 // - freshRoom from src/core/match-id.ts, and a count of the page's
-//   RTCPeerConnections for Practice's spec (P10).
+//   RTCPeerConnections for Practice's spec (P10);
+// - from M4, openAppPage: a normal page of the built app, its screens and
+//   not a #test= page, in a browser a test launched (M4's design §5.12,
+//   §9.1, §9.4, M4-Q3, M4-Q4): its storage seeded as a player's would be,
+//   the hook's relay the local one and its ICE local, the gate's 640 × 360
+//   unless given, the gamepad's stub if asked, watched as openNetPage's
+//   pages are, and loaded until boot.js says it started. New at M4, by
+//   phase 2d's match builder.
 
 import { chromium, firefox, webkit, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { config } from '../../src/config';
+import { personId } from '../../src/core/bot/bot-id';
 import { generateMatchId } from '../../src/core/match-id';
 import type { NetReport } from '../../src/nettest-params';
+import { installGamepad } from './gamepad';
 import { CHROMIUM_GL_ARGS } from './gl';
 import { expectWebGL2, type PageWatch, watchPage } from './guards';
-import { installHook, monotonicMs } from './page';
+import { installHook, monotonicMs, POLL_MS as LOOK_MS, seedStorage, smallViewport } from './page';
 
 export type Engine = 'chromium' | 'firefox' | 'webkit';
 
@@ -32,6 +42,12 @@ export type Engine = 'chromium' | 'firefox' | 'webkit';
 const OPEN_TIMEOUT_MS = 30_000;
 /** Between two looks at the pages' reports. */
 const POLL_MS = 250;
+/** The specs' seed: an app page's profile holds personId(SPEC_SEED, k), so it plays the setup the Node
+ *  replays validated (M4's design §9.1, src/net/setups-testing.ts' SCREENS_SEED). */
+export const SPEC_SEED = 7; // not a setting: the specs' seed
+/** From the load to boot.js's verdict: its own load timeout, L, shows at 20 s (D-30), so a page that never
+ *  starts says so inside this, as e2e/lib/page.ts' expectStarted waits. */
+const START_TIMEOUT_MS = 30_000;
 
 /** WebRTC between pages on one machine: Chromium without mDNS host candidates, Firefox with host
  *  addresses and loopback; Chromium also takes CHROMIUM_GL_ARGS (e2e/lib/gl.ts). */
@@ -69,6 +85,74 @@ export async function openNetPage(
   await page.goto(`${base}#${query.toString()}`);
   await page.waitForFunction(() => window.terriestTest?.net !== undefined, null, { timeout: OPEN_TIMEOUT_MS });
   return { page, watch, engine };
+}
+
+/** A normal page of the built app that openAppPage opened, with what watchPage records of it for the spec's
+ *  expectEverywhere (CLAUDE.md's "Everywhere"). */
+export interface AppPage {
+  readonly page: Page;
+  readonly context: BrowserContext;
+  readonly engine: Engine;
+  readonly watch: PageWatch;
+}
+
+export interface AppPageOptions {
+  /** The profile's player ID is personId(SPEC_SEED, k). */
+  readonly k: number;
+  /** The profile's display name; none by default, as a first visit has. */
+  readonly name?: string;
+  /** The profile's coat; k's own by default, k mod the coat count, as the #test=net page's and the Node
+   *  replays' pages take (src/nettest-params.ts, src/net/setups-testing.ts). */
+  readonly coat?: number;
+  /** The local relay, a ws: URL on the loopback: the hook's relay, and every room's only one (M4-Q3). */
+  readonly relay: string;
+  /** '#join=…' or none: loaded at base + fragment. */
+  readonly fragment?: string;
+  /** The gate's 640 × 360 by default (§9.1). */
+  readonly viewport?: { readonly width: number; readonly height: number };
+  /** e2e/lib/gamepad.ts' stub, before load. */
+  readonly gamepad?: boolean;
+  /** The spec's own init scripts or routes, after the others and before the load. */
+  readonly beforeLoad?: (page: Page) => Promise<void>;
+}
+
+/** A normal page of the built app (never a #test= page) in a browser a test launched: storage seeded (personId(7, k),
+ *  the name, low quality), the hook installed with the local relay and ice 'local' (§5.12, M4-Q3), a 640 × 360 viewport
+ *  unless given, e2e/lib/gamepad.ts's stub if asked, watched by watchPage with the base URL and the relay allowed,
+ *  loaded at base + fragment and started (data-boot=started). WebGL 2 is asserted first, in a page of the new context,
+ *  so a run without a display fails at once (C-6). The storage is seeded each key only while it's absent, so a reload
+ *  reads what the page stored (M4-Q4). A page whose boot.js shows a failure's code instead fails here, naming it. */
+export async function openAppPage(browser: Browser, base: string, o: AppPageOptions): Promise<AppPage> {
+  const engine = browser.browserType().name() as Engine;
+  const context = await browser.newContext({ viewport: o.viewport ?? smallViewport });
+  const page = await context.newPage();
+  const watch = await watchPage(page, [base, o.relay]);
+  await expectWebGL2(page);
+  await seedStorage(page, {
+    profile: { playerId: personId(SPEC_SEED, o.k), name: o.name ?? '', coat: o.coat ?? o.k % config.coatCount },
+    settings: { quality: 'low' },
+  });
+  await installHook(page, { relay: o.relay, ice: 'local' });
+  if (o.gamepad === true) await installGamepad(page);
+  await o.beforeLoad?.(page);
+  await page.goto(`${base}${o.fragment ?? ''}`);
+  await waitForStart(page);
+  return { page, context, engine, watch };
+}
+
+/** html[data-boot] as boot.js leaves it: absent before it runs, 'loading', then 'started' or a failure's code. */
+const bootOf = (page: Page): Promise<string | null> => page.evaluate(() => document.documentElement.getAttribute('data-boot'));
+
+/** Looks at html[data-boot] every 50 ms, on the monotonic clock, until boot.js has a verdict: started, or a
+ *  failure's code (D-30), which fails at once, by its code. */
+export async function waitForStart(page: Page, timeoutMs = START_TIMEOUT_MS): Promise<void> {
+  const deadline = monotonicMs() + timeoutMs;
+  for (let boot = await bootOf(page); ; boot = await bootOf(page)) {
+    if (boot === 'started') return;
+    if (boot !== null && boot !== 'loading') throw new Error(`the page didn't start: boot.js shows its failure ${boot} (D-30)`);
+    if (monotonicMs() > deadline) throw new Error(`the page didn't start within ${timeoutMs} ms: data-boot is ${boot ?? 'absent'}`);
+    await page.waitForTimeout(LOOK_MS);
+  }
 }
 
 export function report(p: Page): Promise<NetReport> {

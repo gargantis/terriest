@@ -5,11 +5,13 @@
 // runs, a keyboard-like device, the fragment as a page's (its hashchange a
 // task after the change), the leave guard, or the App's own on a window the
 // test gives, one browser's Web Locks for its tabs, the canary,
-// results-hud's message screens by their shape, the real screen wake lock
-// over a browser that refuses it, and a room's transport: one that reaches
-// no one, or the test's, M3's network simulator's
-// (src/ui/world-testing.ts). Only tests import it, so no build bundles it.
-// New at M4, by phase 2's net-screens.
+// results-hud's message screens by their shape, every code of §5.10's
+// table among them, the real screen wake lock over a browser that refuses
+// it, and a room's transport: one that reaches no one, one whose every
+// peer refused the page (refusing), or the test's, M3's network
+// simulator's (src/ui/world-testing.ts). Only tests import it, so no build
+// bundles it. New at M4, by phase 2's net-screens; the refusals by 2d's
+// net-int.
 
 import { personId } from '../core/bot/bot-id';
 import { TEST_BUILD } from '../core/timeline/testing';
@@ -194,23 +196,36 @@ export class Locks implements TabLocks {
 }
 
 /** results-hud's message screens (src/ui/screens/message.ts), faked by their shape: each a section with
- *  its code in data-message, its code as its heading, and a button for each action handed to it. */
+ *  its code in data-message, its code as its heading, a button for each action handed to it, in order,
+ *  and its detail under them; the score so far as "a–b". */
 export const FAKE_MESSAGES: MessageScreens<string> = {
-  MESSAGES: { canary: 'canary', 'other-tab': 'other-tab', graphics: 'graphics' },
+  MESSAGES: {
+    canary: 'canary', build: 'build', connect: 'connect', left: 'left', spectators: 'spectators', duplicate: 'duplicate',
+    'other-tab': 'other-tab', graphics: 'graphics',
+  },
   PRACTICE_GRAPHICS: 'practice-graphics',
-  messageScreen: (code, act) => ({
+  messageScreen: (code, act, detail) => ({
     el: h('section', { role: 'alert', 'data-message': code, 'data-test': 'message' },
       h('h1', {}, code),
-      ...Object.entries(act).map(([k, fn]) => h('button', { type: 'button', 'data-test': `message-${k}`, onclick: fn }, k))),
+      ...Object.entries(act).map(([k, fn]) => h('button', { type: 'button', 'data-test': `message-${k}`, onclick: fn }, k)),
+      detail === undefined ? null : h('p', { 'data-test': 'message-detail' }, detail)),
     name: 'message',
   }),
+  scoreSoFar: (score) => `${score[0]}–${score[1]}`,
 };
 
 /** A room's transport that reaches no one, each room's options noted. */
 export function nowhere(rooms: TransportOptions[]): TransportFactory {
+  return refusing(rooms, null);
+}
+
+/** A room's transport whose every peer refused this page with `reason`, a REFUSE reason (PLAN §9), so none
+ *  is connected and its last refusal is that; null refuses nothing: no one is reached. Each room's options
+ *  noted. */
+export function refusing(rooms: TransportOptions[], reason: number | null): TransportFactory {
   return (_peer, _now, o) => {
     rooms.push(o);
-    return Promise.resolve({ send: () => {}, broadcast: () => {}, peerCount: () => 0, refusedBy: null, leave: () => Promise.resolve() });
+    return Promise.resolve({ send: () => {}, broadcast: () => {}, peerCount: () => 0, refusedBy: reason, leave: () => Promise.resolve() });
   };
 }
 

@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { config } from '../config';
 import { personId } from '../core/bot/bot-id';
 import { formatMatchId } from '../core/match-id';
 import { ROLE } from '../core/session/index';
-import { findTerrier, LEAVE } from '../core/sim/index';
+import { findTerrier, LEAVE, WARM_UP } from '../core/sim/index';
 import type { RoomPeer } from '../core/session/room-peer';
 import { CURATED_RELAYS } from '../net/room-config';
 import type { Transport, TransportOptions } from '../net/transport';
@@ -30,7 +31,10 @@ import { type Tab, World } from './world-testing';
 // a page that comes back by the same link skipping Join, its terrier taken
 // back, and one whose bot alone is in the roster coming back to watch it;
 // a JOIN given up watching, the other pack's Play making the page a player
-// again; Leave, its LEAVE out and the fragment cleared; the tab lock lost
+// again; Leave, its LEAVE out and the fragment cleared; a spectator told
+// the players have left, with the score so far, once every browser that
+// controls a terrier has gone silent for 30 s from the countdown on (Q-16,
+// §5.10, M4-Q39: no gate page can wait that out); the tab lock lost
 // mid-match, the match closed without a LEAVE, and the tab that took it
 // over playing the same terrier; and on a page with no hook, Create's and
 // Join's rooms on the curated relays with Settings' extra ones and TURN.
@@ -212,14 +216,16 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     expect(text(b, 'invite-code')).toBe(formatMatchId(id));
     expect(button(b, 'add-bot-0')).toMatchObject({ textContent: 'Add a Blue bot: full', hidden: false });
     expect(button(b, 'remove-bot-1').hidden).toBe(true);
-    // The hook's networked figures (§1.40).
-    expect(b.look().match).toMatchObject({ kind: 'net', matchId: id, started: true, inRoster: true, returning: false });
+    // The hook's networked figures (§1.40), the room's connections among them (§9.3's peer counts).
+    expect(b.look().match).toMatchObject({ kind: 'net', matchId: id, started: true, inRoster: true, returning: false, peers: 1 });
+    expect([a.look().match!.peers, held(a).status().peers]).toEqual([1, 1]);
     expect(b.look().announcements).toMatchObject({ matchId: id, arrivalTick: arrived });
     expect(b.look().match!.own.senders).toBe(1);
-    // The clock's samples, taken and dropped by its freeze rule: the held timeline's (§1.40, §8.4's run 4).
+    // The clock's samples, taken and dropped by its freeze rule, and its jumps: the held timeline's (§1.40,
+    // §8.4's run 4, phase 2c's late messages).
     const st = held(b).session.timeline.stats;
     expect(st.clockSamples).toBeGreaterThan(0);
-    expect(b.look().match!.stats).toMatchObject({ clockSamples: st.clockSamples, clockSamplesDropped: st.clockSamplesDropped });
+    expect(b.look().match!.stats).toMatchObject({ clockSamples: st.clockSamples, clockSamplesDropped: st.clockSamplesDropped, jumps: st.jumps });
     // Ready on both: the start countdown, Pre-match still (M4-Q8).
     button(a, 'ready').click();
     button(b, 'ready').click();
@@ -363,6 +369,8 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     expect([b.look().screen, b.look().controls === null]).toEqual(['prematch', false]);
     await until(world, () => held(b).status().refused === 'full', 3000);
     await until(world, () => b.look().controls === null, 100); // a spectator's pitch screen now
+    // The notice, never a message screen: the page still on Pre-match (§5.10's watching, M4-Q39).
+    expect([b.look().screen, b.look().message]).toEqual(['prematch', null]);
     expect(b.look().layers['net']).toEqual({ watching: true, offer: 1 });
     const notes = only(screenOf(b), '[data-test="watching"]');
     expect([notes.hidden, notes.getAttribute('role')]).toEqual([false, 'status']);
@@ -376,6 +384,36 @@ describe("Propose, Created and Join by link (§5.5, §5.6)", () => {
     await until(world, () => inRosterOf(b, b.tab.me), 5000);
     expect(b.look().layers['net']).toEqual({ watching: false, offer: null });
     expect(held(b).session.timeline.final.terriers.find((T) => T.id === b.tab.me)!.pack).toBe(1);
+  });
+
+  it('tells a spectator the players have left, with the score so far, once every browser that controls a terrier has gone silent for 30 s from the countdown on (Q-16, §5.10)', async () => {
+    const world = new World(53);
+    const a = page(world, 0);
+    await started(a);
+    const id = await propose(world, a);
+    // The proposer plays in A and hosts B's bot, so the match starts on its Ready alone.
+    button(a, 'play-0').click();
+    button(a, 'add-bot-1').click();
+    const b = page(world, 1, { hash: `#join=${id}` });
+    await started(b);
+    await until(world, () => only(screenOf(b), '.join-packs').hidden === false, 5000);
+    button(b, 'watch').click();
+    expect(b.look().screen).toBe('prematch');
+    await until(world, () => a.look().match!.roster.length === 2 && button(a, 'ready').getAttribute('aria-disabled') === null, 5000);
+    button(a, 'ready').click();
+    await until(world, () => held(b).session.timeline.final.phase !== WARM_UP, 5000);
+    // The proposer's tab goes silent, its terrier and its bot with it: nothing tells the watcher.
+    world.freeze(a.tab);
+    const silent = world.now;
+    await until(world, () => b.look().screen === 'message', config.abandonedSeconds * 1000 + 2000);
+    expect(world.now - silent).toBeGreaterThanOrEqual(config.abandonedSeconds * 1000 - 500);
+    expect(b.look()).toMatchObject({ message: 'left', match: null });
+    const message = only(screenOf(b), 'section[data-test="message"]');
+    expect(message.getAttribute('data-message')).toBe('left');
+    expect(message.querySelectorAll('button').map((x) => x.getAttribute('data-test'))).toEqual(['message-home']);
+    expect(text(b, 'message-detail')).toBe('0–0'); // the scoreboard's, as the fake words it
+    button(b, 'message-home').click();
+    expect([b.look().screen, b.r.location.hash()]).toEqual(['home', '']);
   });
 
   it("moves the game to the tab that takes the lock: the old tab's match closed with no LEAVE, its terrier played on there (D-24)", async () => {

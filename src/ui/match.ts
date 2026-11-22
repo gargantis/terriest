@@ -26,7 +26,10 @@
 //   hook's arrival (§1.40);
 // - it never pauses: a menu or lost graphics only release the controls;
 // - the sampler on the timeline the session holds at each sent tick, as
-//   M3's #test=net page samples, and its rebase at onControl (D-10);
+//   M3's #test=net page samples, and its rebase at onControl (D-10); a
+//   base handed before the screens make the Controls, as a return's on
+//   Join is, kept for them, the input keeping its counters until then
+//   (§4.6, page-F4, from phase 2d);
 // - own() as Practice's, over a catch-up that sends only its newest
 //   stallSendTicks, so its skipped counts the rest for every sender it
 //   sends for, its terrier and each bot it hosts (§8.1);
@@ -40,7 +43,7 @@
 
 import { config } from '../config';
 import { type Correction, type MatchNetSummary, REFUSAL, type Scoreboard, type Session, type TimelineStats } from '../core/session/index';
-import { defaultParams, type MatchSettings, type MatchState, type Pack } from '../core/sim/index';
+import { defaultParams, encodeInput, jumpCount, type MatchSettings, type MatchState, type Pack, pounceCount } from '../core/sim/index';
 import type { IceMode } from '../net/transport';
 import { acceptedRelay } from '../nettest-params';
 import type { Settings } from '../storage/schema';
@@ -308,6 +311,9 @@ class NetMatchImpl implements NetMatch {
   private readonly tally = new OwnTally();
   /** The options its room opened with, for Play again's on new relays; null for a game opened elsewhere. */
   private readonly opened: RoomOptions | null;
+  /** The session's onControl base no Controls has taken yet, and the rebase of the Controls sampling. */
+  private pendingBase: number | null = null;
+  private rebaseTo: ((base: number) => void) | null = null;
 
   constructor(game: NetGame, settings: MatchSettings, clock: Clock, opened: RoomOptions | null = null) {
     this.game = game;
@@ -319,6 +325,17 @@ class NetMatchImpl implements NetMatch {
     game.onRun = () => this.ran();
     game.onCorrection = (c: Correction) => {
       for (const l of [...this.listeners]) l.correction?.(c);
+    };
+    // A return through the screens adopts the STATE, and takes control, on Join, before the screens make a
+    // pitch screen's Controls: its base waits for them, and until they sample, the input keeps the base's
+    // counters with nothing held, so the returning terrier presses nothing (§4.6, page-F4).
+    game.onControl = (base) => {
+      if (this.rebaseTo !== null) this.rebaseTo(base);
+      else this.pendingBase = base;
+    };
+    game.controls = () => {
+      const base = this.pendingBase;
+      return base === null ? 0 : encodeInput({ jump: jumpCount(base), pounce: pounceCount(base) });
     };
     this.tally.ran(game.session.timeline);
   }
@@ -354,7 +371,8 @@ class NetMatchImpl implements NetMatch {
     };
   }
 
-  /** On the timeline the session holds as it stands at each sent tick, as M3's #test=net page samples. */
+  /** On the timeline the session holds as it stands at each sent tick, as M3's #test=net page samples; a
+   *  base onControl handed before these Controls is theirs at once (§4.6). */
   setControls(sample: (head: Readonly<MatchState>, headTick: number, tick: number) => number, rebase: (base: number) => void): void {
     const s = this.game.session;
     const d = s.cfg.net.timeline.delay;
@@ -362,7 +380,10 @@ class NetMatchImpl implements NetMatch {
       const t = s.timeline;
       return sample(t.head, t.headTick, t.localTick + d);
     };
-    this.game.onControl = rebase;
+    this.rebaseTo = rebase;
+    const pending = this.pendingBase;
+    this.pendingBase = null;
+    if (pending !== null) rebase(pending);
   }
 
   propose(settings: MatchSettings): void {
@@ -468,7 +489,7 @@ export async function openNetMatch(o: NetGameOptions): Promise<NetMatch> {
 }
 
 /** A game already open, its timer running on `clock`, NetGame's own: Play again's, or the bench's
- *  (§1.53). It takes the game's onRun and onCorrection. */
+ *  (§1.53). It takes the game's onRun and onCorrection, and its controls and onControl (§4.6). */
 export function asMatch(game: NetGame, settings: MatchSettings, clock: Clock = browserClock): NetMatch {
   return new NetMatchImpl(game, settings, clock);
 }

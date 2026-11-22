@@ -1,11 +1,12 @@
 // The #test=net page's edges, in each engine (M3's design §1.35, §6.7,
 // §8.4, R-15; PLAN §16):
-// - a normal page loads neither test page's chunk, nor a chunk the two
-//   share, nor Trystero's: its scripts are boot.js, its module and the
-//   chunks that imports statically, none of them a test page's (M4's design
-//   §9.3); it has no window.terriestTest without a spec's hook, and with it
-//   inspect() and hashAt() but no net; and its module holds no Trystero
-//   code;
+// - a normal page loads no test page's chunk, nor a chunk they share, nor
+//   Trystero's: its scripts are boot.js, its module and the chunks that
+//   imports statically, none of them a test page's, the bench's and its
+//   witness's worker among them, each of which the build has (M4's design
+//   §1.53, §9.3); it has no window.terriestTest without a spec's hook, and
+//   with it inspect() and hashAt() but no net; and its module holds no
+//   Trystero code;
 // - #test=net without a relay, with a malformed room, or with a wss: relay
 //   third-party.json doesn't list shows its message and starts, and
 //   contacts nothing: the guard allows only the preview's own origin, and
@@ -65,10 +66,13 @@ test('a normal page loads no test page and no Trystero, and has no net hook', as
   const own = [new URL('boot.js', baseURL).href, ...statics.map((s) => new URL(s, baseURL).href)].sort();
   const scripts = [...new Set(guard.requests.filter((u) => new URL(u).pathname.endsWith('.js')))].sort();
   expect(scripts, "the normal page's scripts").toEqual(own);
-  for (const s of statics) expect(s, "a chunk the normal page imports statically").not.toMatch(/\/(nettest|determinism|trystero|golden|frames|witness)-[\w-]+\.js$/);
-  // The build has the chunks the normal page leaves alone, and its module holds no Trystero code,
-  // which the Trystero chunk shows the marker finds.
+  for (const s of statics) expect(s, "a chunk the normal page imports statically").not.toMatch(/\/(nettest|determinism|trystero|golden|frames|witness|setups)-[\w-]+\.js$/);
+  // The build has the chunks the normal page leaves alone, so none of those names is a check of nothing:
+  // the test pages' (M4's bench and its witness's worker among them, §1.53), and its module holds no
+  // Trystero code, which the Trystero chunk shows the marker finds.
   expect(chunks('nettest'), 'the net page chunk').toHaveLength(1);
+  expect(chunks('frames'), "the bench's chunk").toHaveLength(1);
+  expect(chunks('witness'), "the bench witness's worker").toHaveLength(1);
   const trystero = chunks('trystero');
   expect(trystero, 'the Trystero chunk').toHaveLength(1);
   expect(readFileSync(join(DIST, 'assets', trystero[0]!), 'utf8')).toContain(TRYSTERO_CODE);

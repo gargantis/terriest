@@ -33,6 +33,13 @@
 //   other pack's Play makes it a player again (§5.6);
 // - the tab lock lost to another tab's Use here: the match closed, its
 //   terrier kept for the tab that takes over, and the same message here;
+// - each networked match's status after a timer run routed to §5.10's
+//   message, the match left (statusMessage): a build or protocol refusal,
+//   a duplicate ID and no timeline 20 s after opening while none is held,
+//   a full room's spectator whenever NetGame took it out, and the players
+//   gone (Q-16), with the score so far; Try again opens the link again and
+//   Home leaves; a room that can't open says it couldn't connect; a JOIN
+//   given up stays the pitch's notice (M4-Q39);
 // - Settings from Home, whose render quality applies at once behind Home
 //   (§2.8, D-33): the first change makes a stage at the new quality, its
 //   prepare() run behind the screen, and keeps the old one, so a change back
@@ -54,14 +61,13 @@
 // devices (src/ui/devices.ts), each match's log. Every room's relays and
 // ICE are roomChoice's (src/ui/match.ts, §5.12, M4-Q3). The other phase-2
 // builders' parts reach it through AppDeps: the message screens, the wake
-// lock and the sound. The messages' routing for a match's refusals and
-// failures is net-int's (2d). New at M4, by the slice (1c); phase 2's
-// net-screens adds the networked routes, the tab lock, the canary and the
-// leave guard.
+// lock and the sound. New at M4, by the slice (1c); phase 2's net-screens
+// adds the networked routes, the tab lock, the canary and the leave guard,
+// and 2d's net-int the statuses' messages.
 
 import type { RenderQuality } from '../config';
 import { generateMatchId, matchIdFromHash } from '../core/match-id';
-import { BarkTracker, type ConfirmedEnd, netSettings, ROLE } from '../core/session/index';
+import { BarkTracker, type ConfirmedEnd, netSettings, REFUSAL, ROLE } from '../core/session/index';
 import { defaultParams, findTerrier, LUNGING, type MatchSettings, type Pack } from '../core/sim/index';
 import { Controls } from '../input/controls';
 import type { KeyboardScreen } from '../input/keyboard';
@@ -85,7 +91,7 @@ import type { Announcement, AnnouncementLog, AudioInspection, Inspection, MatchI
 import { PITCH_LAYERS } from './layers/index';
 import { installLeaveGuard, type LeaveGuard } from './leave-guard';
 import { arrivalOf, type NetMatch, openNetMatch, practiceMatch, type RoomChoice, roomChoice } from './match';
-import type { Match } from './match-types';
+import type { Match, MatchStatus } from './match-types';
 import type { WakeLockInspection } from './phone';
 import { homeScreen } from './screens/home';
 import type { InviteOptions } from './screens/invite';
@@ -129,13 +135,48 @@ export const browserLocation: AppLocation = {
   },
 };
 
+/** §5.10's messages, by their code: 'watching' is no screen but the pitch's notice (src/ui/layers/net.ts). */
+export type AppMessageCode = 'canary' | 'build' | 'connect' | 'left' | 'spectators' | 'duplicate' | 'other-tab' | 'graphics';
+/** A message's moves, each a button where its table row has it (§5.10). */
+export type MessageMove = 'practice' | 'home' | 'tryAgain' | 'useHere' | 'leave';
+
 /** What the app needs of the message screens, results-hud's src/ui/screens/message.ts (§5.10), declared
  *  here (§0): that module satisfies it, so src/main.ts passes it whole. */
 export interface MessageScreens<S = unknown> {
-  readonly MESSAGES: { readonly canary: S; readonly 'other-tab': S; readonly graphics: S };
+  readonly MESSAGES: Readonly<Record<AppMessageCode, S>>;
   /** The graphics message in Practice, which pauses until they're back (D-30, Q-15). */
   readonly PRACTICE_GRAPHICS?: S;
-  messageScreen(m: S, act: Readonly<Partial<Record<'practice' | 'home' | 'useHere' | 'leave', () => void>>>, detail?: string): Screen;
+  messageScreen(m: S, act: Readonly<Partial<Record<MessageMove, () => void>>>, detail?: string): Screen;
+  /** The left message's detail (Q-16): the score so far, pack A's first. */
+  scoreSoFar(score: readonly [number, number], look: Look): string;
+}
+
+/** The messages a networked match's status ends in (§5.10). */
+export type StatusCode = 'build' | 'connect' | 'left' | 'spectators' | 'duplicate';
+
+/** Each status message's moves, as §5.10's table gives them. */
+export const STATUS_MOVES: Readonly<Record<StatusCode, readonly ('tryAgain' | 'home')[]>> = {
+  build: ['home'], connect: ['tryAgain', 'home'], left: ['home'], spectators: ['tryAgain', 'home'], duplicate: ['tryAgain', 'home'],
+};
+
+/**
+ * §5.10's message for a networked match's status after a timer run, or null while the match goes on.
+ * A refusal, and the connection failure, only while no timeline is held, as roslambo's arena reads them:
+ * a keeper holds its timeline from genesis, so a joiner it refuses, or that refuses it, never ends its
+ * match (D-21). A build or protocol refusal says "A different version", a duplicate ID its message (C-12),
+ * and no timeline 20 s after the room opened "Couldn't connect" (PLAN §8). A page NetGame took out of a
+ * full room, by its own count or a peer's REFUSE 4, is told so whenever it happens (C-11, M3's §4.5); and
+ * an abandoned match, every browser that controls a terrier gone from the start countdown on, says the
+ * players have left (Q-16). A JOIN given up is the pitch's notice, never a message (M4-Q39).
+ */
+export function statusMessage(s: MatchStatus, held: boolean): StatusCode | null {
+  if (s.spectatorsFull) return 'spectators';
+  if (!held) {
+    if (s.refusal === REFUSAL.BUILD || s.refusal === REFUSAL.PROTOCOL) return 'build';
+    if (s.refusal === REFUSAL.DUPLICATE) return 'duplicate';
+    if (s.failed) return 'connect';
+  }
+  return s.abandoned ? 'left' : null;
 }
 
 export interface AppDeps {
@@ -533,7 +574,8 @@ export class App {
   }
 
   /** Create (§5.5): the match ID generated, the room opened, genesis proposed, the fragment set, and
-   *  Created. A room that opens once Propose has gone is closed. */
+   *  Created. A room that opens once Propose has gone is closed; one that can't open says it couldn't
+   *  connect, its Try again back to Propose, rather than leave Create reading "Creating…". */
   private async create(s: MatchSettings): Promise<void> {
     if (this.opening) return;
     this.opening = true;
@@ -546,7 +588,10 @@ export class App {
       console.error('The match could not be opened:', e);
     }
     this.opening = false;
-    if (m === null) return;
+    if (m === null) {
+      if (this.shows === at && this.lockHeld) this.showMessage('connect', { tryAgain: () => this.propose(), home: () => this.home() });
+      return;
+    }
     if (this.shows !== at || !this.lockHeld) {
       m.close();
       return;
@@ -569,7 +614,8 @@ export class App {
   }
 
   /** Join (§5.6): after the canary, the room opened at once, undecided (C-32), the screen reading
-   *  "Connecting to the match…" until a timeline is held. */
+   *  "Connecting to the match…" until a timeline is held; a room that can't open says it couldn't
+   *  connect, rather than leave Join connecting. */
   private joinMatch(id: string): void {
     if (!this.canaryPasses()) {
       this.canaryMessage();
@@ -590,7 +636,10 @@ export class App {
         this.hold(m);
         this.joinRan(m);
       },
-      (e: unknown) => console.error('The match could not be opened:', e),
+      (e: unknown) => {
+        console.error('The match could not be opened:', e);
+        if (this.shows === at && this.lockHeld) this.statusShown('connect', id, null);
+      },
     );
   }
 
@@ -796,11 +845,35 @@ export class App {
     this.otherTab();
   }
 
-  /** A message screen of results-hud's (§5.10). */
-  private showMessage(code: 'canary' | 'other-tab', act: Readonly<Partial<Record<'practice' | 'home' | 'useHere', () => void>>>): void {
+  /** A message screen of results-hud's (§5.10), its code the hook's message. */
+  private showMessage(code: Exclude<AppMessageCode, 'graphics'>, act: Readonly<Partial<Record<MessageMove, () => void>>>, detail?: string): void {
     const messages = this.d.messages;
     if (messages === undefined) throw new Error(`no message screens to say ${code} with: src/main.ts passes src/ui/screens/message.ts`);
-    this.show(messages.messageScreen(messages.MESSAGES[code], act), { message: code });
+    this.show(messages.messageScreen(messages.MESSAGES[code], act, detail), { message: code });
+  }
+
+  /** A networked match's status after a timer run (§5.10): when it ends in a message, the match is left,
+   *  its LEAVE out if it has one to send, and the message shows; the fragment stays the match's, so a
+   *  reload, as "A different version" asks, opens the link again. */
+  private routeStatus(m: Match): boolean {
+    const id = m.matchId;
+    if (m.kind !== 'net' || id === null) return false;
+    const code = statusMessage(m.status(), m.session.timeline.started);
+    if (code === null) return false;
+    const score = m.scoreboard.score;
+    this.leaveMatch();
+    this.statusShown(code, id, score);
+    return true;
+  }
+
+  /** A status's message, with §5.10's moves: Try again opens the match's link again, by Join (§5.6), and
+   *  Home leaves it, the fragment cleared; the players-left one says the score so far (Q-16). */
+  private statusShown(code: StatusCode, id: string, score: readonly [number, number] | null): void {
+    const moves = { tryAgain: () => this.joinMatch(id), home: () => this.home() };
+    const act: Partial<Record<MessageMove, () => void>> = {};
+    for (const k of STATUS_MOVES[code]) act[k] = moves[k];
+    const detail = code === 'left' && score !== null ? this.d.messages?.scoreSoFar(score, this.look) : undefined;
+    this.showMessage(code, act, detail);
   }
 
   // --- After each timer run ---
@@ -819,7 +892,7 @@ export class App {
     this.loop.timerRan(now, m.own());
     this.arrival(m);
     this.latchLunge(m);
-    if (m !== this.match) return;
+    if (m !== this.match || this.routeStatus(m)) return;
     if (this.joining !== null) this.joinRan(m);
     else if (this.created !== null) {
       this.created.update();
@@ -1003,9 +1076,10 @@ export class App {
     const e = board.end;
     const st = t.stats;
     const f = this.timer;
+    const status = m.status();
     return {
       kind: m.kind, me: m.me, matchId: m.matchId,
-      started, paused: m.paused, inRoster: m.session.inRoster(), returning: m.status().returning,
+      started, paused: m.paused, inRoster: m.session.inRoster(), returning: status.returning, peers: status.peers,
       localTick: t.localTick, finalTick: t.finalTick, headTick: t.headTick,
       // The drawn head's, as the validated scripts time their holds (§9.1): the final state's lag w ticks.
       phase: H.phase, phaseStart: H.phaseStart, overtime: H.overtime, clock: H.clock,
@@ -1028,7 +1102,7 @@ export class App {
       own: { ...m.own() },
       stats: {
         late: st.late, lateAbsent: st.lateAbsent, disagree: st.disagree, resyncs: st.resyncs, rollbacks: st.rollbacks,
-        corrections: st.corrections, clockSamples: st.clockSamples, clockSamplesDropped: st.clockSamplesDropped,
+        corrections: st.corrections, clockSamples: st.clockSamples, clockSamplesDropped: st.clockSamplesDropped, jumps: st.jumps,
       },
     };
   }

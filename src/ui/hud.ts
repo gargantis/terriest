@@ -265,16 +265,19 @@ export function hudLayer(host: PitchHost): HudLayer {
 
   /** The button for `value` pressed, its check mark shown, and only it: never by colour alone (§5.14). A
    *  newly pressed one is brought into the list's view, which scrolls sideways, so cycling past its edge
-   *  never leaves what's followed out of sight (phase 2b's review, P5). */
+   *  never leaves what's followed out of sight (phase 2b's review, P5): once every check mark is as it will
+   *  be drawn, since the mark widens its button, and the old one's narrows the list (phase 2d). */
   const press = (value: Follow): void => {
+    let fresh: HTMLElement | null = null;
     for (const c of choices) {
       const on = c.value === value;
       if (c.el.getAttribute('aria-pressed') !== String(on)) {
         c.el.setAttribute('aria-pressed', String(on));
-        if (on) c.el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        if (on) fresh = c.el;
       }
       setShown(c.check, on);
     }
+    fresh?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   };
 
   /** A choice made: shown at once, and so read back, and handed to the view (§3.4). */

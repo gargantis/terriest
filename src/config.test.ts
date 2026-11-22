@@ -1261,7 +1261,9 @@ describe('the configuration checks (PLAN §7.4)', () => {
       'export function f(): number { const steps = 12; return steps * ticks; }',
     ].join('\n');
     expect(copies([{ path: 'src/core/sim/d.ts', text: fine }], config)).toEqual([]);
-  });
+    // A timeout of its own, as the repo's long tests have: the scan of src and dev took 0.9 s alone but 5.9
+    // to 6.7 s in a loaded unit stage, past vitest's 5 s (M4's phase 2c).
+  }, 60_000);
 
   it("finds M3's settings copied by name outside the simulation, as the timeline and the session would port them (M3)", () => {
     // Outside src/core/sim and src/core/bot only names are scanned, under

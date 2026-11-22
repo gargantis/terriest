@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../config';
 import { REFUSAL, ROLE } from '../core/session/index';
 import { netSettings } from '../core/session/settings';
-import { defaultParams, findTerrier, IN_PLAY, LEAVE, type MatchState, type Pack, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
+import {
+  defaultParams, encodeInput, findTerrier, IN_PLAY, jumpCount, LEAVE, type MatchState, NEVER, type Pack, pounceCount, START_COUNTDOWN, WARM_UP,
+} from '../core/sim/index';
 import { TEST_BUILD } from '../core/timeline/testing';
 import type { RoomPeer } from '../core/session/room-peer';
 import { CURATED_RELAYS } from '../net/room-config';
@@ -213,6 +215,36 @@ describe("the networked Match (M4's design §1.37)", () => {
     expect(again.match.status().returning).toBe(true);
     expect(bases).toEqual([terrier(again)]);
     expect(again.match.session.role()).toBe(ROLE.PLAYER);
+    a.match.close();
+    again.match.close();
+  });
+
+  it("keeps a return's base for the Controls the screens make after it, its input until then keeping the stored counters, so the returning terrier presses nothing (§4.6, page-F4)", async () => {
+    const world = new World(17);
+    const [a, b] = await pair(world);
+    // b's terrier jumps once in warm-up, its input's jump counter at 3 from then on.
+    const JUMPED = encodeInput({ jump: 3 });
+    b.match.setControls(() => JUMPED, () => {});
+    const mine = (p: Page) => final(p).terriers[findTerrier(final(p), b.tab.me)]!;
+    world.until(() => mine(a).prevInput === JUMPED && mine(a).takeOffTick !== NEVER, 3000);
+    const took = mine(a).takeOffTick;
+    // The page goes and comes back by its link, as a reload through the screens does: the session takes the
+    // terrier back on Join, before any pitch screen, so the Controls come a timer run or more later.
+    b.match.close();
+    world.run(300);
+    const again = await openOn(world, 1, ROOM, 'p1-again');
+    world.until(() => again.match.session.timeline.started && again.match.session.inRoster(), 5000);
+    world.run(500);
+    expect(again.match.status().returning).toBe(true);
+    // Meanwhile its input kept the stored counters, nothing held: no press acted on either page.
+    for (const p of [a, again]) expect([jumpCount(mine(p).prevInput), mine(p).takeOffTick], `page ${p.tab.k}`).toEqual([3, took]);
+    // The Controls made now take the base at once.
+    const bases: number[] = [];
+    again.match.setControls(() => JUMPED, (base) => bases.push(base));
+    expect(bases.map((x) => [jumpCount(x), pounceCount(x)])).toEqual([[3, 0]]);
+    world.run(500);
+    expect(bases.length, 'handed once').toBe(1);
+    expect([jumpCount(mine(a).prevInput), mine(a).takeOffTick]).toEqual([3, took]);
     a.match.close();
     again.match.close();
   });
