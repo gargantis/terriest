@@ -94,16 +94,20 @@ function inWebKit(): boolean {
  * holds no room and still covers a page whose rooms have all left, Results' Home or Play again's old
  * room, while Trystero keeps their connections idle for 123 s (strategy.mjs, shared-peer.mjs).
  * First it leaves every open room, each leave's synchronous part handing Trystero's leave to every
- * channel (room.mjs, action-wire.mjs). Then, in WebKit and in the same task, it closes every
+ * open channel with no more than 64 KiB queued (room.mjs, action-wire.mjs); a far side of one backed up
+ * past that goes by the abort instead. Then, in WebKit and in the same task, it closes every
  * connection the page's rooms joined, and each open room's, by RTCPeerConnection.close() alone: the
  * channels close with it, raising no error here, and the far side gets one SCTP abort, "User-Initiated
  * Abort", which Trystero ignores (peer.mjs). Left to its own teardown, WebKit resets each channel's
  * stream tens of ms before its abort, and a far side that completes the reset with a send of its own
  * caught between ends the channel with an empty data-channel-failure, which Trystero logs as a peer
- * error. Closing the channel first, as Trystero's own destroy does, can too, and Trystero's leave
- * closes nothing for 99 ms, which an unloading page never reaches; so nothing here waits. The other
- * engines' teardowns reset nothing, and closing there would only let the abort overtake the leave,
- * which a WebKit far side that sends between the two logs as a failed send (PLAN D-18). A connection
+ * error. Closing the channel first, as Trystero's own destroy does, can too. Trystero's leave closes
+ * no joined connection: after 99 ms, which an unloading page never reaches, it only detaches the
+ * room, and the connection idles 123 s before Trystero's destroy closes it, channel first; so nothing
+ * here waits. The other engines' teardowns reset no stream. Chromium's page close sends nothing for
+ * seconds, so its far sides go by its leave, and closing there would let the abort overtake the leave,
+ * which a WebKit far side that sends between the two logs as a failed send; Firefox's teardown aborts
+ * at once after its leave anyway, so closing there would change nothing (PLAN D-18). A connection
  * whose handshake is in flight, or failed, which Trystero then keeps idle for 123 s, is in neither and
  * still the teardown's (PLAN D-18's residual).
  */

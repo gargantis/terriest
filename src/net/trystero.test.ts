@@ -479,16 +479,17 @@ describe("the page's pagehide: its rooms left, then their connections closed at 
     const home = room(new Peer(player(0)), Room); // left, as Results' Home leaves it: Trystero keeps its connections idle
     const open = room(new Peer(player(0)), Room, 'room-2');
     const [left, r] = [fake.rooms[0]!, fake.rooms[1]!];
-    await joinAll(left, ['p1']);
+    // Two in the left room, which only the page's list still holds, so a walk of the list that stops early fails.
+    await joinAll(left, ['p1', 'p4']);
     await home.leave();
     await joinAll(r, ['p2', 'p3']);
     open.drop('p2'); // closed by the drop, and still among the room's peers, as Trystero hears nothing of a local close
     expect(fake.log).toEqual(['leave room-1', 'close p2']);
     pageHides(w);
     // p2's second close throws in the fake, and p3's still follows it.
-    expect(fake.log).toEqual(['leave room-1', 'close p2', 'leave room-2', 'close p1', 'close p2', 'close p3']);
+    expect(fake.log).toEqual(['leave room-1', 'close p2', 'leave room-2', 'close p1', 'close p4', 'close p2', 'close p3']);
     pageHides(w);
-    expect(fake.log).toHaveLength(6);
+    expect(fake.log).toHaveLength(7);
   });
 
   it("drops a connection Trystero closed from the page's list at the next join, the list's one bound: pagehide never closes it", async () => {
@@ -507,7 +508,7 @@ describe("the page's pagehide: its rooms left, then their connections closed at 
   });
 
   it.each([['Chromium', VENDOR.chromium], ['Firefox', VENDOR.firefox]])(
-    'in %s leaves every room and closes nothing: its own teardown resets no stream, and a far side takes the leave first',
+    'in %s leaves every room and closes nothing: its own teardown resets no stream',
     async (_, vendor) => {
       const Room = await freshModule();
       const w = pageWindow(vendor);
