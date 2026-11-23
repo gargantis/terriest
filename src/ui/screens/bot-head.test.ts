@@ -10,7 +10,8 @@ import { coatSwatch, packSwatch } from './screen';
 // robot's head, one SVG in the swatch's own box, its parts all inside it,
 // the outline's ears at the box's sides and its antenna's ball at the top,
 // none reaching into the outline's hole, the fill inside the hole with a
-// gap all round; filled from the swatch's own colours, a coat's fur and
+// gap all round, every edge but the markings' diagonal on a whole or half
+// pixel; filled from the swatch's own colours, a coat's fur and
 // markings, a pack's colour or its stripes; its outline the text's colour;
 // a person's swatch as it was; and " bot" after a bot's name, heard and
 // not seen. The places that use it test it there (Pre-match, Join, Results
@@ -145,6 +146,13 @@ describe("a bot's head (the owner, 2026-11-23)", () => {
     // The markings across the bottom right corner, from 58% of the way along the fill's diagonal, as the swatch's
     // gradient starts them.
     expect(round(marking)).toEqual([5.6, 9.12, 14, 15]);
+    // Every edge of the outline, its ears and antenna, and of the fill on a whole or half pixel, each number in
+    // their paths, the arcs' radii among them, so at a device scale of 2 each is sharp, and at 1 the gap and the
+    // antenna's stalk, 2 px about the middle, are clean lines (the antenna's review).
+    const numbers = (k: string): number[] => [...paths[k]!.getAttribute('d')!.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
+    expect(['bot-line', 'bot-face'].flatMap(numbers).filter((v) => Math.round(v * 2) !== v * 2), 'numbers off the half-pixel grid').toEqual([]);
+    const stalk = line.map((s) => round(bounds(s))).filter((b) => b[1] === 2);
+    expect(stalk, "the antenna's stalk, from its ball's middle to the hole's top").toEqual([[8, 2, 10, 7]]);
   });
 
   it("fills a pack's head with its colour, a striped pack's with its stripes, each pattern an ID of its own", () => {

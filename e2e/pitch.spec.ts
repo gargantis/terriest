@@ -40,8 +40,8 @@ import type { Inspection } from '../src/main';
 import { GL_PATH } from './lib/gl';
 import { expect, expectWebGL2, test } from './lib/guards';
 import {
-  expectAxeClean, expectStarted, inspect, installHook, markText, monotonicMs, namesInRow, openPractice, overlayOf, POLL_MS, rowMarks, seedStorage,
-  smallViewport, steadyCapture, waitForInspection, waitForScreen,
+  expectAxeClean, expectStarted, inspect, installHook, markOf, markText, monotonicMs, namesInRow, openPractice, overlayOf, POLL_MS, rowMarks,
+  seedStorage, smallViewport, steadyCapture, waitForInspection, waitForScreen,
 } from './lib/page';
 import { type Image, meanColour } from './lib/png';
 
@@ -168,9 +168,7 @@ test("Practice's Pre-match draws the pitch from the player's ball view, fills th
   // Each bot's row marked as a bot's, its swatch a robot's head drawn in the swatch's own box and " bot" heard
   // after its name, the person's row neither (the owner, 2026-11-23).
   const marked = (await rowMarks(page, '.prematch-pack li:not(.free)', '.name')).map(markText).sort();
-  expect(marked, "the rows' marks").toEqual(
-    [...botsNamed.map((name) => markText({ name, head: true, heardAsBot: true })), markText({ name: longName, head: false, heardAsBot: false })].sort(),
-  );
+  expect(marked, "the rows' marks").toEqual([...botsNamed.map((name) => markOf(name, true)), markOf(longName, false)].sort());
 
   // The one landmark, the app's, with the pitch a named image in it (M4-Q1), and axe (§5.14).
   await expect(page.getByRole('main')).toHaveCount(1);

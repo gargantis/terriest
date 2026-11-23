@@ -326,6 +326,14 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
     expect(buttons.slice(1).map((b) => only(b, '.swatch').querySelectorAll('svg').length)).toEqual([0, 0, 1]);
     expect(only(buttons[3]!, '.swatch').style.getPropertyValue('--c')).toBe('#f07a1a');
     expect(buttons.map((b) => heardText(b))).toEqual(['Ball', 'Ada', 'Bea', `${BOT_NAME} bot`]);
+    // The bot's word, which .visually-hidden takes out of the flow, placed against its own button, positioned, so
+    // it scrolls with the list and the list clips it: placed against .hud-follow, past the list's scroller, it
+    // widened the pitch screen, which a find then shifted sideways (the antenna's review; e2e/watchers.net.spec.ts
+    // scrolls the list on the real page).
+    const hudCss = readFileSync(new URL('./hud.css', import.meta.url), 'utf8');
+    const screensCss = readFileSync(new URL('./screens.css', import.meta.url), 'utf8');
+    expect(only(buttons[3]!, '.visually-hidden').parentNode).toBe(buttons[3]);
+    expect([cssDeclarations(screensCss, '.visually-hidden').position, cssDeclarations(hudCss, '.hud-follow-choice').position]).toEqual(['absolute', 'relative']);
     expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false']);
     expect([r.seen().following, r.seen().meter]).toEqual(['ball', null]);
     buttons[2]!.click();
@@ -344,7 +352,7 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
     expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false', 'true']);
     expect([shownText(buttons[3]!), heardText(buttons[3]!), only(buttons[3]!, '.swatch').className]).toEqual([`✓${BOT_NAME}`, `${BOT_NAME} bot`, 'swatch pack striped bot']);
     expect(only(only(buttons[3]!, '.swatch'), 'path.bot-line').style.getPropertyValue('fill')).toBe('currentColor');
-    const pressed = cssDeclarations(readFileSync(new URL('./hud.css', import.meta.url), 'utf8'), '.hud .hud-follow-choice[aria-pressed="true"]');
+    const pressed = cssDeclarations(hudCss, '.hud .hud-follow-choice[aria-pressed="true"]');
     expect(pressed['color']).toBe('var(--primary-fg)');
     buttons[0]!.click();
     r.layer.frame!(r.ctx());

@@ -232,12 +232,15 @@ export function namesInRow(
 }
 
 /** How a row names its terrier, as a player sees and hears it (the owner, 2026-11-23): the name it shows;
- *  whether its swatch is a bot's head, an SVG drawn in the swatch's own 18 × 18 box and filling it; and
- *  whether a screen reader, by Playwright's ARIA snapshot of the row, hears "bot" right after the name. */
+ *  whether its swatch is a bot's head, an SVG drawn in the swatch's own 18 × 18 box and filling it, the
+ *  swatch painting no ring or colour of its own, which would cover the gap round the head's fill; and what
+ *  a screen reader hears, by Playwright's ARIA snapshot of the row: 'as a bot', the word "bot" once in the
+ *  row, right after the name; 'by name', no "bot" in it; or else "as" and the snapshot itself, quoted, its
+ *  word doubled or out of place. */
 export interface RowMark {
   readonly name: string;
   readonly head: boolean;
-  readonly heardAsBot: boolean;
+  readonly heard: string;
 }
 
 /** Each row `row` matches, in order, its name read from its `name` element (rowMarks). */
@@ -254,17 +257,25 @@ export async function rowMarks(page: Page, row: string, name: string): Promise<R
       const a = swatch.getBoundingClientRect();
       const b = svg.getBoundingClientRect();
       const near = (x: number, y: number): boolean => Math.abs(x - y) < 0.5;
+      const own = getComputedStyle(swatch);
+      const paintsNothing = own.backgroundImage === 'none' && own.backgroundColor === 'rgba(0, 0, 0, 0)' &&
+        ['top', 'right', 'bottom', 'left'].every((side) => own.getPropertyValue(`border-${side}-width`) === '0px');
       return near(a.width, 18) && near(a.height, 18) && near(a.left, b.left) && near(a.top, b.top) && near(a.width, b.width) && near(a.height, b.height) &&
-        getComputedStyle(svg).visibility === 'visible';
+        getComputedStyle(svg).visibility === 'visible' && paintsNothing;
     });
-    const heard = (await r.ariaSnapshot()).replace(/\s+/g, ' ');
-    out.push({ name: shown, head, heardAsBot: heard.includes(`${shown} bot`) });
+    const snapshot = (await r.ariaSnapshot()).replace(/\s+/g, ' ');
+    const bots = snapshot.match(/\bbot\b/g)?.length ?? 0;
+    const heard = bots === 0 ? 'by name' : bots === 1 && snapshot.includes(`${shown} bot`) ? 'as a bot' : `as ${JSON.stringify(snapshot)}`;
+    out.push({ name: shown, head, heard });
   }
   return out;
 }
 
-/** A row's mark in words, for a spec's comparison: "Sensor: a head, heard as a bot", "Ada: round, heard by name". */
-export const markText = (m: RowMark): string => `${m.name}: ${m.head ? 'a head' : 'round'}, ${m.heardAsBot ? 'heard as a bot' : 'heard by name'}`;
+/** A row's mark in words, for a spec's comparison: "Sensor: a head, heard as a bot", "Ada: no head, heard by name". */
+export const markText = (m: RowMark): string => `${m.name}: ${m.head ? 'a head' : 'no head'}, heard ${m.heard}`;
+
+/** The mark a bot's row, or a person's, should have, in markText's words. */
+export const markOf = (name: string, bot: boolean): string => markText({ name, head: bot, heard: bot ? 'as a bot' : 'by name' });
 
 /** Every dialog accepted, the leave prompt among them (§5.11): a spec that reloads or leaves a match. */
 export function acceptLeavePrompt(page: Page): void {

@@ -65,7 +65,7 @@ import type { Control } from '../src/input/source';
 import type { Inspection } from '../src/main';
 import { PAD, setButton, setStick } from './lib/gamepad';
 import { expect, expectWebGL2, test } from './lib/guards';
-import { acceptLeavePrompt, expectStarted, hintsOf, hudOf, markText, namesInRow, overlayOf, POLL_MS, rowMarks, smallViewport } from './lib/page';
+import { acceptLeavePrompt, expectStarted, hintsOf, hudOf, markOf, markText, namesInRow, overlayOf, POLL_MS, rowMarks, smallViewport } from './lib/page';
 import {
   AFTER_WARM_UP_TICKS, anchorAfter, barksSeen, BOT, clearReadyStates, copiedFrom, emulateHidden, expectBotFirst, expectFocusOnce, expectGaugeShort,
   expectNothingContacted, FIRST_GOAL_MS, focused, gaugeSeen, kickoffWhistles, lastInputBy, PracticeRun, readoutSeen, RESULTS_MS, SHOWN_MS, topAt,
@@ -216,7 +216,7 @@ test.describe('the whole match', () => {
       // The bot's row marked as a bot's, its swatch a robot's head and " bot" heard in its row's header after its
       // name, the person's row neither (the owner, 2026-11-23).
       expect((await rowMarks(page, '[data-test="results"] tbody th', '.name-row > span:nth-child(2)')).map(markText), "Results' rows' marks").toEqual([
-        markText({ name: LONG_NAME, head: false, heardAsBot: false }), markText({ name: BOT_NAME, head: true, heardAsBot: true }),
+        markOf(LONG_NAME, false), markOf(BOT_NAME, true),
       ]);
       const unfitted = async (): Promise<object[]> =>
         (await namesInRow(page, { row: botRow, name: 'th .name-row > span:nth-child(2)', inside: '.screen.results', within: 'th, td' }, BOT_NAMES))

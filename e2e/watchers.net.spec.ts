@@ -40,7 +40,10 @@
 //   name on the list, at 640 × 360 and at a phone's size: held sideways for
 //   the follow choice, as a phone watches, and upright for Join. Each bot's
 //   follow button and Join row shows a robot's head for its swatch and is
-//   heard as "… bot", the proposer's neither (the owner, 2026-11-23).
+//   heard as "… bot", the proposer's neither (the owner, 2026-11-23); axe on
+//   both; and each bot's hidden word scrolls with its follow button, inside
+//   it with the list scrolled to its end, the pitch screen no wider than the
+//   window (the antenna's review).
 // - Every page logged no error and requested nothing but the preview and
 //   the relay (expectEverywhere).
 // The peer counts are the hook's match.peers, the match's status().peers.
@@ -54,7 +57,7 @@ import type { Inspection } from '../src/main';
 import { startNostrRelay } from '../vendor/hermet/nostr-relay.mjs';
 import { type AppPage, launch, openAppPage, SPEC_SEED } from './lib/browsers';
 import { expect, expectEverywhere, test } from './lib/guards';
-import { expectAxeClean, inspect, markText, monotonicMs, namesInRow, POLL_MS, rowMarks, waitForInspection, waitForScreen } from './lib/page';
+import { expectAxeClean, inspect, markOf, markText, monotonicMs, namesInRow, POLL_MS, rowMarks, waitForInspection, waitForScreen } from './lib/page';
 
 const PACK_SIZE = 2; // not a setting: the room's (§9.3)
 const MINUTES = 1; // not a setting: the room's
@@ -281,9 +284,28 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     expect((await namesInRow(viewer, followRow, ['W'.repeat(config.displayNameMaxChars)]))[0]!.clipped, 'a follow button cutting 20 W short').toBe(true);
     // Each bot's button marked as a bot's, its swatch a robot's head drawn in the swatch's own box and its name
     // heard as "… bot", the proposer's neither (the owner, 2026-11-23); Join's rows the same, below.
-    const marks = [nameOf(0), ...names].map((name) => markText({ name, head: name !== nameOf(0), heardAsBot: name !== nameOf(0) })).sort();
+    const marks = [nameOf(0), ...names].map((name) => markOf(name, name !== nameOf(0))).sort();
     const followMarks = await rowMarks(viewer, '[data-test="hud-follow"] button:not([data-follow="ball"])', '.hud-follow-name');
     expect(followMarks.map(markText).sort(), "the follow choice's marks").toEqual(marks);
+    // Each bot's hidden word scrolls with its button: with the list scrolled to its end, every word still inside
+    // its own button, and the pitch screen, which hides its overflow, as wide as the window and unmoved, so a
+    // find or a scrollIntoView has nothing to shift it sideways by (the antenna's review).
+    const scrolled = await at(viewer, 'hud-follow').locator('.hud-follow-list').evaluate((list) => {
+      list.scrollLeft = list.scrollWidth;
+      const outside = [...list.querySelectorAll('.visually-hidden')].filter((word) => {
+        const w = word.getBoundingClientRect();
+        const b = word.closest('button')!.getBoundingClientRect();
+        return w.left < b.left || w.right > b.right || w.top < b.top || w.bottom > b.bottom;
+      }).map((word) => word.closest('button')!.querySelector('.hud-follow-name')!.textContent);
+      const pitch = list.closest('.pitch-screen');
+      const seen = {
+        listScrolled: list.scrollLeft > 0, outside, pitchScreen: pitch === null ? null : [pitch.scrollLeft, pitch.scrollWidth - pitch.clientWidth],
+      };
+      list.scrollLeft = 0;
+      return seen;
+    });
+    expect(scrolled, "the follow choice's hidden words, its list scrolled to its end").toEqual({ listScrolled: true, outside: [], pitchScreen: [0, 0] });
+    await expectAxeClean(viewer);
     await viewer.setViewportSize(PHONE_SIDEWAYS);
     expect([await cut(), await unfitted()], `the same at ${PHONE_SIDEWAYS.width}×${PHONE_SIDEWAYS.height}`).toEqual([[], []]);
     await viewer.setViewportSize({ width: 640, height: 360 });
@@ -299,6 +321,7 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
       await expect(leaver.page.locator('.join-pack li').getByText(name, { exact: true }), `${name} in Join's lists`).toHaveCount(1);
     }
     expect((await rowMarks(leaver.page, '.join-pack li:not(.free)', '.name')).map(markText).sort(), "Join's rows' marks").toEqual(marks);
+    await expectAxeClean(leaver.page);
     // Pack B's rows are the proposer's bots alone.
     const joinUnfitted = async (): Promise<unknown[]> =>
       (await namesInRow(leaver.page, { row: '[data-test="join-pack-1"] li:not(.free)', name: '.name', inside: '.join-pack', within: '.coat-name' }, BOT_NAMES))

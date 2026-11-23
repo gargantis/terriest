@@ -48,10 +48,17 @@
 .pitch-screen:has(> .touch:not([hidden])) .hud-gauge { grid-template-columns: 7rem; gap: 2px; }
 .hud-gauge.waiting .hud-gauge-fill { background: var(--muted); }
 /* A spectator's follow choice: one row of buttons that scrolls sideways, padded so a focused button's
-   outline shows; the one followed pressed, by its colours and a check mark, never by colour alone. */
+   outline shows; the one followed pressed, by its colours and a check mark, never by colour alone. Each
+   button is positioned, so a bot's hidden " bot" (screens/bot-head.ts), which .visually-hidden takes out of
+   the flow, is placed against it, scrolls with it and is clipped by the list. Placed against .hud-follow,
+   past the list's scroller, the word stayed where the unscrolled list had put it, out past 900 px at 640
+   wide, and widened the pitch screen, which a find or a scrollIntoView then shifted sideways with no way
+   back (the antenna's review). */
 .hud-follow { position: absolute; left: 8px; bottom: 8px; max-width: 55%; display: flex; align-items: center; gap: 6px; pointer-events: auto; }
 .hud-follow-label { flex: none; padding: 2px 8px; font-size: 14px; font-weight: 600; }
 .hud-follow-list { display: flex; gap: 6px; min-width: 0; overflow-x: auto; padding: 5px; }
-.hud-follow-choice { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 14px; white-space: nowrap; }
+.hud-follow-choice {
+  position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 14px; white-space: nowrap;
+}
 .hud-follow-name { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; }
 .hud .hud-follow-choice[aria-pressed="true"] { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }

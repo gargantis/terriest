@@ -3,7 +3,8 @@
 // table and a spectator's follow choice, a bot's swatch is a robot's head,
 // one inline SVG in the swatch's own 18 × 18 box (screens.css' .swatch),
 // with a ball-topped antenna and an ear on each side, so no row grows and
-// nothing reaches past the swatch; a person's stays round. The head is
+// nothing reaches past the swatch; a person's is as it was, a coat's round
+// swatch or, in the follow choice, its pack's rounded square. The head is
 // filled from the swatch's own colours, as the swatch shows them: a coat's
 // fur with its markings' colour across the bottom right corner (L44), or,
 // in the follow choice, its pack's colour, striped for a striped pack
@@ -22,8 +23,9 @@ import { h } from '../dom';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
-// The head in the swatch's box, in its CSS px, which the viewBox's units are. The outline's edges and the
-// fill's lie on whole and half pixels, so at a device scale of 1 or 2 the gap between them is a clean line.
+// The head in the swatch's box, in its CSS px, which the viewBox's units are. The edges of the outline, its
+// ears and antenna, and of the fill lie on whole and half pixels, so at a device scale of 2 every one is
+// sharp, and at 1 the gap between the outline and the fill is a clean line, as is the antenna's stalk.
 /** The swatch's box (screens.css' .swatch). */
 const BOX = 18;
 /** The outline's outer edge: a rounded rectangle across the box between the ears, under the antenna. */
@@ -37,9 +39,10 @@ const LINE = 1.5;
 const GAP = 1;
 /** Each ear: from the box's side into the outline, centred on the head. */
 const EAR_HEIGHT = 5;
-/** The antenna: its ball's radius, its top at the box's top, and its stalk's width. */
+/** The antenna: its ball's radius, its top at the box's top, and its stalk's width, an even number of px
+ *  about the box's middle, so its edges lie on whole pixels (the antenna's review). */
 const BALL = 2;
-const STALK = 1.5;
+const STALK = 2;
 /** Where a coat's markings begin, as screens.css' linear-gradient(135deg, fur 58%, marking 58%) puts them:
  *  beyond the line u + v = 2 × 0.58 across the fill's box, u and v its width's and height's fractions. */
 const SPLIT = 2 * 0.58 - 1;
