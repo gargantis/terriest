@@ -25,6 +25,11 @@
 - *The owner, 2026-11-22:* "If it does not disrupt development too much, I would like to deploy a version ASAP"; terriest.com has no DNS entries; skip the relay check; an early version is OK. So main at a6b66c7, M4 through its phase 2 with the plexiglass walls (C-57), went to terriest.com that day by `npm run deploy`, the full gate and then wrangler, and replaced no records (Q-5).
   - It went before the relay check (Q-14) and before M0–M4's attended steps have landed, which M5's release still waits for (§17). C-55's choice and the phone's runs are yours still, and with no TURN a pair whose networks block a direct connection can't meet.
   - What it serves, and the hosted runner's first run of M4's specs, are in `docs/acceptance.md`.
+- *The owner, 2026-11-22:* "go with the recommended set", of the logo and icon candidates Claude drew from the game's own code-built terrier: one dog, coat 6 in pack A's bandana, its face at the small sizes and the whole terrier where there's room. The logo isn't on Home, which you didn't ask for.
+  - **The tab icon:** the head-on face, as `public/favicon.ico`, at 16, 32 and 48 px, the 16 tuned by hand, and `public/favicon.svg`, which shows a light outline on a dark tab. An SVG shown as an image sees no screen resolution, so an engine that takes the SVG shrinks its 32 px on a 1x screen rather than taking the hand-tuned 16.
+  - **The phone's home-screen icon:** that face on a full-bleed square of the pitch's green, `public/apple-touch-icon.png`. `index.html` links all three relatively.
+  - **The logo:** the same dog trotting, `docs/brand/logo.png`, and its lock-up beside the name in DejaVu Sans Bold, `docs/brand/lockup-light.png` and `lockup-dark.png`, which open the README. None of the three ships.
+  - **A new look draws them again:** the look is provisional until you pick one (Q-11), so `dev/logo.html` draws them from the drawer in the page's look, and `e2e/logo.run.ts` writes the files (README, Draw the logo).
 
 **Date:** 2026-11-14; approved 2026-11-15.
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
