@@ -30,7 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, it } from 'vitest';
 import { config, type Config } from '../src/config';
 import { type BotParams, botParams, newBrain, think } from '../src/core/bot/brain';
-import { botCoat, botIds, botName } from '../src/core/bot/bot-id';
+import { botCoat, botIds, botNames } from '../src/core/bot/bot-id';
 import { e2eMatch, emptyGoalRun, fallBackRun, hostOf, regulationMatch, theBrain } from '../src/core/bot/marks';
 import { ballOnTerriers, dribble, kickoffPinch, lonePush, pushTime } from '../src/core/sim/cases';
 import { JOIN, READY, type TickInput } from '../src/core/sim/input';
@@ -475,6 +475,7 @@ function thinkTiming(c: Config, seeds: number): Record<string, number> {
   for (let seed = 0; seed < seeds; seed++) {
     const s = genesis({ packSize: 4, matchMinutes: c.matchLengthDefaultMinutes }, P);
     const ids = botIds(hostOf(seed));
+    const names = botNames(ids);
     const brains = ids.map((id) => newBrain(id, 0, P, B));
     const sim = makeSim(P, 4);
     const list: TickInput[] = [];
@@ -487,7 +488,7 @@ function thinkTiming(c: Config, seeds: number): Record<string, number> {
       list.length = 0;
       for (let k = 0; k < 8; k++) {
         const id = ids[k]!;
-        list.push(t === 1 ? { id, input: inputs[k]!, events: JOIN | READY, joinPack: k & 1, coat: botCoat(id, P.coatCount), name: botName(id) } : { id, input: inputs[k]!, events: 0 });
+        list.push(t === 1 ? { id, input: inputs[k]!, events: JOIN | READY, joinPack: k & 1, coat: botCoat(id, P.coatCount), name: names[k]! } : { id, input: inputs[k]!, events: 0 });
       }
       step(sim, s, list);
     }

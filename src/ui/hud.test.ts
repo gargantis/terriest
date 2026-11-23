@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../config';
-import { personId } from '../core/bot/bot-id';
+import { botName, personId } from '../core/bot/bot-id';
 import type { ConfirmedGoal } from '../core/session/index';
 import { CELEBRATION, defaultParams, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
 import type { UiCommand } from '../input/source';
@@ -32,6 +32,8 @@ const P = defaultParams;
 const TPS = config.ticksPerSecond;
 const ME = personId(7, 0);
 const BOT = `${'b'.repeat(4)}${'0'.repeat(28)}`;
+/** Its name, as its host's JOIN gives it (the owner, 2026-11-22). */
+const BOT_NAME = botName(BOT);
 
 describe("the HUD's texts", () => {
   it('reads the clock as m:ss left, a part second as a whole one, and overtime counting up from 0:00 (D-8, L111)', () => {
@@ -160,7 +162,7 @@ describe('the HUD layer', () => {
 
 describe("the goal's banner and the follow choice's order (L110, C-4, C-26, §3.4)", () => {
   const BEA = personId(7, 1);
-  const names: Readonly<Record<string, string>> = { [ME]: 'Ada', [BOT]: 'Bot BBBB', [BEA]: 'Bea' };
+  const names: Readonly<Record<string, string>> = { [ME]: 'Ada', [BOT]: BOT_NAME, [BEA]: 'Bea' };
   const name = (id: string): string => names[id] ?? '?';
 
   it("names every terrier credited, each sharer of a shared goal, and says Own goal when nobody is", () => {
@@ -218,7 +220,7 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
    *  pitch screen's, which sets the view's mode. */
   function rig(o: { spectator?: boolean } = {}) {
     const calls: Calls = [];
-    const base = stateWith(2, 100, [{ id: ME, pack: 0, name: 'Ada' }, { id: BOT, pack: 1, name: 'Bot BBBB' }, { id: BEA, pack: 0, name: 'Bea' }]);
+    const base = stateWith(2, 100, [{ id: ME, pack: 0, name: 'Ada' }, { id: BOT, pack: 1, name: BOT_NAME }, { id: BEA, pack: 0, name: 'Bea' }]);
     const match = new StateMatch(o.spectator === true ? WATCHER : ME, base);
     const view = new FakeView(calls, match);
     view.mode = o.spectator === true ? { kind: 'spectator', follow: null } : { kind: 'player', view: 'ball', terrier: ME };
@@ -285,7 +287,7 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
     expect(r.seen().scorer).toBe('Goals taken back');
     r.match.board.goals.push(goal(2400, [BOT]));
     r.layer.frame!(r.ctx(phased(play, CELEBRATION, 2400, 2405)));
-    expect(r.seen().scorer).toBe('Goal: Bot BBBB');
+    expect(r.seen().scorer).toBe(`Goal: ${BOT_NAME}`);
     expect(r.host.announced.filter((a) => a.kind === 'goalWithdrawn').length).toBe(3);
   });
 
@@ -312,10 +314,10 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
     expect(r.match.state.terriers.map((T) => T.id)).toEqual([ME, BOT, BEA]); // the state's own order: by spot, then pack
     const buttons = follow.querySelectorAll('button');
     expect(buttons.map((b) => [b.getAttribute('data-follow'), only(b, '.hud-follow-name').textContent])).toEqual([
-      ['ball', 'Ball'], [ME, 'Ada'], [BEA, 'Bea'], [BOT, 'Bot BBBB'],
+      ['ball', 'Ball'], [ME, 'Ada'], [BEA, 'Bea'], [BOT, BOT_NAME],
     ]);
     // The one followed by a check mark too, never by colour alone, seen but not heard (§5.14).
-    expect(buttons.map((b) => shownText(b))).toEqual(['✓Ball', 'Ada', 'Bea', 'Bot BBBB']);
+    expect(buttons.map((b) => shownText(b))).toEqual(['✓Ball', 'Ada', 'Bea', BOT_NAME]);
     expect(only(buttons[0]!, '.hud-follow-check').getAttribute('aria-hidden')).toBe('true');
     // Each terrier's with its pack's swatch, in its colour and pattern (L43).
     expect(buttons.slice(1).map((b) => only(b, '.swatch').className)).toEqual(['swatch pack plain', 'swatch pack plain', 'swatch pack striped']);
@@ -325,7 +327,7 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
     expect(r.modes).toEqual([{ kind: 'spectator', follow: BEA }]);
     // Pressed at once, before the next frame, and read back so.
     expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true', 'false']);
-    expect(buttons.map((b) => shownText(b))).toEqual(['Ball', 'Ada', '✓Bea', 'Bot BBBB']);
+    expect(buttons.map((b) => shownText(b))).toEqual(['Ball', 'Ada', '✓Bea', BOT_NAME]);
     expect(r.seen().following).toBe(BEA);
     r.layer.frame!(r.ctx());
     expect(r.seen().following).toBe(BEA);

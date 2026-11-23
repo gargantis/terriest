@@ -91,7 +91,7 @@ export function outcomeText(end: ConfirmedEnd, look: Look, me: string): string {
   return `${won} ${mine.pack === end.winner ? 'Your pack won.' : 'Your pack lost.'}`;
 }
 
-/** "The Terriest: Ada.", or "The Terriests: Ada and Bot 1A2B." when level (D-8). */
+/** "The Terriest: Ada.", or "The Terriests: Ada and Mecha-Mutt." when level (D-8). */
 export function terriestText(end: ConfirmedEnd): string {
   const names = end.rows.filter((r) => r.terriest).map((r) => shownName(r.name, r.id));
   if (names.length === 0) return '';

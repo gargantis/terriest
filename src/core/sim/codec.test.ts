@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it, vi } from 'vitest';
 import { config } from '../../config';
+import { BOT_NAMES } from '../bot/bot-id';
 import { CODEC_VERSION, decodeState, encodeState, hashState } from './codec';
 import { bytesToHash, hash64, hashToBytes } from './hash';
 import { KEPT_BITS } from './input';
@@ -55,7 +56,7 @@ const float = fc.oneof(
   fc.constantFrom(0, -0, 5e-324, -5e-324, Number.MAX_VALUE, -Number.MAX_VALUE),
 );
 const hexId = fc.uint8Array({ minLength: 16, maxLength: 16 }).map((b) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join(''));
-const NAMES = ['', 'Rex', 'Bot 1A2B', '\ufeffBOM first', 'Ünïcödé', '🐶 and 🐕\u200d🦺', 'x'.repeat(20), 'é'.repeat(16), '狗'.repeat(10)];
+const NAMES = ['', 'Rex', ...BOT_NAMES, '\ufeffBOM first', 'Ünïcödé', '🐶 and 🐕\u200d🦺', 'x'.repeat(20), 'é'.repeat(16), '狗'.repeat(10)];
 const name = fc.oneof(fc.constantFrom(...NAMES), fc.string({ unit: 'grapheme', maxLength: 6 }).filter((n) => nameAllowed(n, P)));
 
 /** A terrier in a slot, whose slipped-from names the ball, another present

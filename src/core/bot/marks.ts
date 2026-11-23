@@ -2,11 +2,13 @@
 // seeded setups, their runs, the never-stuck watch, and the scripted people
 // of §16's end-to-end setups. Not shipped, but linted and scanned as bot
 // code, so exact operations only (D-39). A seed picks the host, and through
-// botIds(hostOf(seed)) the bots' IDs, coats and noise; it picks the
-// placements through mix(). The measures don't depend on the brain
-// (design §8.6): they read the state alone. The scripted people's inputs
-// and personId moved to setups.ts and bot-id.ts at M3, which the #test=net
-// page imports without the marks (M3's design §1.12): the same code.
+// botIds(hostOf(seed)) the bots' IDs, names, coats and noise, each name
+// with the names before it taken, as a host names bots it adds in one go;
+// it picks the placements through mix(). The measures don't depend on the
+// brain (design §8.6): they read the state alone. The scripted people's
+// inputs and personId moved to setups.ts and bot-id.ts at M3, which the
+// #test=net page imports without the marks (M3's design §1.12): the same
+// code.
 
 import { HELD, heldDirection, JOIN, READY, STEP_MASK, STEP_UNITS, type TickInput } from '../sim/input';
 import { datan2, mix, TURN } from '../sim/math';
@@ -17,7 +19,7 @@ import {
   ENDED, findTerrier, genesis, KICKOFF_COUNTDOWN, type MatchState, NEVER, type Pack, START_COUNTDOWN, type Terrier, WARM_UP,
 } from '../sim/state';
 import { makeSim, step } from '../sim/step';
-import { botCoat, botIds, botName, personId } from './bot-id';
+import { botCoat, botIds, botName, botNames, personId } from './bot-id';
 import { type BotParams, type Brain, CHASE, defaultBotParams, FALL_BACK, newBrain, type Role, think } from './brain';
 import { BACK_IN_BALL_VIEW, heldFirstSecond, SIDEWAYS_IN_BALL_VIEW } from './setups';
 
@@ -147,13 +149,15 @@ function decide(players: readonly Player[], s: Readonly<MatchState>, inputs: num
   }
 }
 
-/** A placed match's terriers, in list order, given the IDs and coats of
- *  bots: the list keeps its (spot, pack) order. */
+/** A placed match's terriers, in list order, given the IDs, names and
+ *  coats of bots, each name botName's with the names before it taken: the
+ *  list keeps its (spot, pack) order. */
 function botsFor(s: MatchState, ids: readonly string[], P: SimParams): void {
+  const names = botNames(ids.slice(0, s.terriers.length));
   for (let k = 0; k < s.terriers.length; k++) {
     const T = s.terriers[k]!;
     T.id = ids[k]!;
-    T.name = botName(T.id);
+    T.name = names[k]!;
     T.coat = botCoat(T.id, P.coatCount);
   }
 }
@@ -278,10 +282,12 @@ export function fallBackRun(
   const s = placedMatch(P, packSize, { seed });
   // The list is in slot order: index k is spot k >> 1 of pack k & 1.
   const ids = botIds(hostOf(seed));
+  const named: string[] = [];
   for (let k = D; k < s.terriers.length; k += 2) {
     const T = s.terriers[k]!;
     T.id = ids[k >> 1]!;
-    T.name = botName(T.id);
+    T.name = botName(T.id, named);
+    named.push(T.name);
     T.coat = botCoat(T.id, P.coatCount);
   }
   const R = P.ballRadius;
@@ -405,6 +411,10 @@ function playMatch(o: MatchOptions): MatchRun {
   const inputs: number[] = players.map(() => 0);
   const list: TickInput[] = [];
   const watch = stuckWatch(o.watched);
+  // The bots' names, each with the names before it taken, as a host names those it adds in one go.
+  const bots = players.filter((p) => p.brain !== null).map((p) => p.id);
+  const names = botNames(bots);
+  const nameOf = (p: Player): string => (p.brain ? names[bots.indexOf(p.id)]! : '');
   const indexOf: number[] = o.watched.map((id) => players.findIndex((p) => p.id === id));
   const watchedInputs: number[] = o.watched.map(() => 0);
   const readyEvery = READY_EVERY_SECONDS * P.config.ticksPerSecond;
@@ -424,7 +434,7 @@ function playMatch(o: MatchOptions): MatchRun {
       else if (p.brain && t % readyEvery === 1) events = READY;
       list.push(
         events & JOIN
-          ? { id: p.id, input: inputs[k]!, events, joinPack: p.pack, coat: p.brain ? botCoat(p.id, P.coatCount) : 0, name: p.brain ? botName(p.id) : '' }
+          ? { id: p.id, input: inputs[k]!, events, joinPack: p.pack, coat: p.brain ? botCoat(p.id, P.coatCount) : 0, name: nameOf(p) }
           : { id: p.id, input: inputs[k]!, events },
       );
     }

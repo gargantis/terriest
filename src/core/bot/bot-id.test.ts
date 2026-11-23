@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '../../config';
-import { isPlayerId } from '../sim/input';
+import { fitName } from '../names';
+import { decode, encodeTick, NO_TICK, type Tick, wireLimits, wireString, ZERO_HASH } from '../protocol/messages';
+import { isPlayerId, JOIN, READY } from '../sim/input';
 import { defaultParams } from '../sim/params';
 import { rankedIds } from '../sim/scenes';
 import { cleanName } from '../sim/state';
-import { BOT_SLOTS, botCoat, botId, botIds, botName, botSeed, isBot } from './bot-id';
+import { BOT_NAMES, BOT_SLOTS, botCoat, botId, botIds, botName, botNames, botSeed, isBot } from './bot-id';
 import { personId } from './marks';
 
-// Bot IDs, names, coats and seeds (PLAN D-39, Q-9; design §1.17, §8.3):
-// roslambo's bot ID tests, with terriest's slots, coats and seeds.
+// Bot IDs, names, coats and seeds (PLAN D-39, Q-9, §14; design §1.17,
+// §8.3): roslambo's bot ID tests, with terriest's slots, coats and seeds;
+// and the robot dogs' names (the owner, 2026-11-22).
 
 const host = (k: number): string => (k + 1).toString(16).padStart(32, '0');
 
@@ -37,14 +40,6 @@ describe('bot IDs (D-39)', () => {
     for (const id of [bot.slice(1), bot.toUpperCase(), `${bot.slice(0, 31)}g`, '']) expect(isBot(id)).toBe(false);
   });
 
-  it('names a bot from its ID, in a form the name rule keeps (C-17)', () => {
-    for (const id of botIds(host(5))) {
-      const name = botName(id);
-      expect(name).toBe(`Bot ${id.slice(0, 4).toUpperCase()}`);
-      expect(cleanName(name, defaultParams)).toBe(name);
-    }
-  });
-
   it('gives each bot a coat from the list, seeded by its ID (D-39)', () => {
     const seen = new Array<number>(config.coatCount).fill(0);
     for (let h = 0; h < 40; h++) {
@@ -71,5 +66,92 @@ describe('bot IDs (D-39)', () => {
       }
     }
     expect(seeds.size).toBe(20 * BOT_SLOTS);
+  });
+});
+
+describe("bots' names (the owner, 2026-11-22)", () => {
+  /** A bot whose first choice isn't the list's first name, so a walk from it can go round the end. */
+  const walker = botIds(host(0)).find((id) => botName(id) !== BOT_NAMES[0])!;
+  const first = BOT_NAMES.indexOf(botName(walker));
+  /** The list's names from the walker's first choice on, round the end. */
+  const from = (k: number): string => BOT_NAMES[(first + k) % BOT_NAMES.length]!;
+
+  it('lists 32 names, each its own, kept unchanged by the name rules (C-17) and the wire, and none a nameless label', () => {
+    expect(BOT_NAMES).toHaveLength(32);
+    expect(new Set(BOT_NAMES).size).toBe(BOT_NAMES.length);
+    const L = wireLimits();
+    const bot = botId(host(0), 0);
+    for (const name of BOT_NAMES) {
+      // As Home fits a typed name, as the simulation keeps a JOIN's, and as the wire writes one.
+      expect([fitName(name), cleanName(name, defaultParams), wireString(name, L.nameMaxBytes)], name).toEqual([name, name, name]);
+      expect(new TextEncoder().encode(name).length, name).toBeLessThanOrEqual(L.nameMaxBytes);
+      // A bot's JOIN carries it through a TICK unchanged.
+      const bytes = encodeTick({
+        t: 9, own: null, voteTick: NO_TICK, voteHash: ZERO_HASH, phase: 0,
+        bots: [{ id: bot, input: 0, present: 1, hist: new Array<number>(16).fill(0), events: [{ back: 0, events: JOIN | READY, joinPack: 1, coat: 2, name }] }],
+      });
+      expect((decode(bytes) as Tick).bots[0]!.events[0]!.name, name).toBe(name);
+      // Never the screens' label for a nameless person, nor the fallback (src/core/names.ts).
+      expect(name, name).not.toMatch(/^(Player|Bot) [0-9A-F]{4}$/);
+    }
+  });
+
+  it("has more names than a host's taken names can hold: its final state's terriers and its head's, its bots and its player", () => {
+    expect(BOT_NAMES.length).toBeGreaterThan(2 * 2 * config.packSizeMax + BOT_SLOTS + 1);
+  });
+
+  it("names a bot from the list by its ID alone, the same every time, every name some bot's first choice", () => {
+    const seen = new Array<number>(BOT_NAMES.length).fill(0);
+    for (let h = 0; h < 40; h++) {
+      for (const id of botIds(host(h))) {
+        const name = botName(id);
+        expect([botName(id), botName(id, []), botName(id, ['Ada'])], id).toEqual([name, name, name]);
+        seen[BOT_NAMES.indexOf(name)]!++;
+      }
+    }
+    // 320 bots over 32 names: every name drawn, none hugely favoured.
+    expect(seen.filter((n) => n === 0), 'names no bot took first').toEqual([]);
+    expect(Math.max(...seen)).toBeLessThan(30);
+  });
+
+  it('walks from a taken first choice to the next name free, round the end of the list', () => {
+    expect(first, "a first choice past the list's first, so a walk can go round its end").toBeGreaterThan(0);
+    expect(botName(walker, [from(0)])).toBe(from(1));
+    expect(botName(walker, [from(1), from(0)]), 'in any order').toBe(from(2));
+    expect(botName(walker, [from(1)]), 'a name after the first choice taken: still the first choice').toBe(from(0));
+    // Every name from the first choice to the list's end taken: the list's first.
+    expect(botName(walker, BOT_NAMES.slice(first))).toBe(BOT_NAMES[0]);
+    expect(botName(walker, BOT_NAMES.filter((n) => n !== from(5)))).toBe(from(5));
+  });
+
+  it("counts a person's name as taken, compared as the state holds names, by code unit once cleaned", () => {
+    // A person who named themselves after the bot's first choice.
+    expect(botName(walker, ['Ada', from(0), 'Bea'])).toBe(from(1));
+    // Not that name to the state: another case, a space, or a name cleanName drops to ''.
+    for (const near of [from(0).toLowerCase(), from(0).toUpperCase(), ` ${from(0)}`, `${from(0)} `]) expect(botName(walker, [near]), near).toBe(from(0));
+    const refused = `${from(0)}\u0007`;
+    expect(cleanName(refused, defaultParams)).toBe('');
+    expect([botName(walker, [refused]), botName(walker, [cleanName(refused, defaultParams)])]).toEqual([from(0), from(0)]);
+  });
+
+  it('gives "Bot" and four upper-case hex digits of the ID only once every name is taken, which cleanName keeps', () => {
+    for (const id of botIds(host(5))) {
+      const name = botName(id, BOT_NAMES);
+      expect(name).toBe(`Bot ${id.slice(0, 4).toUpperCase()}`);
+      expect(cleanName(name, defaultParams)).toBe(name);
+      expect(botName(id, BOT_NAMES.slice(1)), 'one name left').toBe(BOT_NAMES[0]);
+    }
+  });
+
+  it('names bots joining in turn apart, each with the names before it taken', () => {
+    for (let h = 0; h < 40; h++) {
+      const ids = botIds(host(h));
+      const names = botNames(ids);
+      expect(new Set(names).size, `host ${h}: ${names.join(', ')}`).toBe(ids.length);
+      names.forEach((name, k) => expect(name).toBe(botName(ids[k]!, names.slice(0, k))));
+      const taken = ['Ada', names[0]!];
+      expect(botNames(ids, taken)).toEqual(ids.map((_, k) => botName(ids[k]!, [...taken, ...botNames(ids.slice(0, k), taken)])));
+      expect(botNames(ids, taken)).not.toContain(names[0]);
+    }
   });
 });

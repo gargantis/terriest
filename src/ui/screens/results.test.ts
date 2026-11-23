@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../../config';
-import { personId } from '../../core/bot/bot-id';
+import { botName, personId } from '../../core/bot/bot-id';
 import type { ConfirmedEnd, MatchNetSummary, ResultRow } from '../../core/session/index';
 import { PLACEHOLDER_LOOK } from '../../render/look';
 import { FakeClock } from '../clock-testing';
@@ -24,6 +24,8 @@ import { focusScreen } from './screen';
 const LOOK = PLACEHOLDER_LOOK;
 const ME = personId(7, 0);
 const BOT = `${'1a2b'}${'0'.repeat(28)}`;
+/** Its name, as its host's JOIN gives it (the owner, 2026-11-22). */
+const BOT_NAME = botName(BOT);
 const row = (id: string, pack: 0 | 1, o: Partial<ResultRow> = {}): ResultRow => ({
   id, name: '', pack, coat: 0, goals: 0, touches: 0, terriest: false, bot: false, ...o,
 });
@@ -31,7 +33,7 @@ const end = (rows: ResultRow[], score: [number, number], winner: 0 | 1 | null): 
 
 describe("Results' rows and texts", () => {
   const rows = [
-    row(BOT, 1, { name: 'Bot 1A2B', goals: 2, touches: 9, terriest: true, bot: true, coat: 4 }),
+    row(BOT, 1, { name: BOT_NAME, goals: 2, touches: 9, terriest: true, bot: true, coat: 4 }),
     row(ME, 0, { name: 'Ada', goals: 1, touches: 12 }),
     row(`${'cc'.repeat(2)}${'0'.repeat(28)}`, 0, { touches: 3 }),
   ];
@@ -40,7 +42,7 @@ describe("Results' rows and texts", () => {
     expect(resultLines(end(rows, [1, 2], 1), LOOK, ME)).toEqual([
       { id: ME, name: 'Ada', coat: 0, pack: 0, packName: 'Blue', goals: 1, touches: 12, terriest: false, you: true, bot: false },
       { id: rows[2]!.id, name: 'Player CCCC', coat: 0, pack: 0, packName: 'Blue', goals: 0, touches: 3, terriest: false, you: false, bot: false },
-      { id: BOT, name: 'Bot 1A2B', coat: 4, pack: 1, packName: 'Orange', goals: 2, touches: 9, terriest: true, you: false, bot: true },
+      { id: BOT, name: BOT_NAME, coat: 4, pack: 1, packName: 'Orange', goals: 2, touches: 9, terriest: true, you: false, bot: true },
     ]);
   });
 
@@ -50,10 +52,10 @@ describe("Results' rows and texts", () => {
     expect(outcomeText(end(rows, [3, 2], 0), LOOK, ME)).toBe('Blue pack wins. Your pack won.');
     expect(outcomeText(end(rows, [1, 2], 1), LOOK, 'f'.repeat(32))).toBe('Orange pack wins.'); // a spectator's
     expect(outcomeText(end(rows, [2, 2], null), LOOK, ME)).toBe('The packs finished level.');
-    expect(terriestText(end(rows, [1, 2], 1))).toBe('The Terriest: Bot 1A2B.');
+    expect(terriestText(end(rows, [1, 2], 1))).toBe(`The Terriest: ${BOT_NAME}.`);
     const level = rows.map((r) => ({ ...r, terriest: true }));
-    expect(terriestText(end(level, [1, 2], 1))).toBe('The Terriests: Bot 1A2B, Ada and Player CCCC.');
-    expect(terriestText(end(level.slice(0, 2), [1, 2], 1))).toBe('The Terriests: Bot 1A2B and Ada.');
+    expect(terriestText(end(level, [1, 2], 1))).toBe(`The Terriests: ${BOT_NAME}, Ada and Player CCCC.`);
+    expect(terriestText(end(level.slice(0, 2), [1, 2], 1))).toBe(`The Terriests: ${BOT_NAME} and Ada.`);
     expect(terriestText(end([], [0, 0], null))).toBe('');
     expect([againText(false), againText(true)]).toEqual(['Play again', 'Join the next match']);
   });
@@ -79,7 +81,7 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     const copy = new FakeCopy();
     const summaries = { read: 0 };
     const screen = resultsScreen({
-      end: end([row(ME, 0, { name: 'Ada', goals: 3, terriest: true }), row(BOT, 1, { name: 'Bot 1A2B', bot: true, coat: 4 })], [3, 0], 0),
+      end: end([row(ME, 0, { name: 'Ada', goals: 3, terriest: true }), row(BOT, 1, { name: BOT_NAME, bot: true, coat: 4 })], [3, 0], 0),
       practice, me: ME, look: LOOK, clock,
       againSeen: () => again.seen,
       summary: () => {
@@ -107,7 +109,7 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     expect(table.querySelectorAll('th[scope="col"]').map((th) => th.textContent)).toEqual(['Terrier', 'Pack', 'Goals', 'Touches']);
     // Each coat by its name beside its swatch, never its colour alone (§5.14): Ada's coat 0, the bot's 4.
     expect(only(table, 'tbody').children.map((tr) => shownText(tr))).toEqual([
-      `Ada${LOOK.coats[0]!.name}youTerriestBlue30`, `Bot 1A2B${LOOK.coats[4]!.name}Orange00`,
+      `Ada${LOOK.coats[0]!.name}youTerriestBlue30`, `${BOT_NAME}${LOOK.coats[4]!.name}Orange00`,
     ]);
     // Each row's header a table cell like the others, so the row's rule and the "you" band run level across
     // it: the flex layout on a box inside the cell, never on the cell (phase 2d's review).

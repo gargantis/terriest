@@ -57,8 +57,8 @@ export function fitName(input: string, P: SimParams = defaultParams): string {
 }
 
 /** A terrier's label on the screens: its name, or for one without a name "Player" and four hex digits of
- *  its ID, which stays with its browser (roslambo's rule, M4's design §6). A bot's JOIN names it "Bot"
- *  and four hex digits already (D-39). */
+ *  its ID, which stays with its browser (roslambo's rule, M4's design §6). A bot's JOIN names it already,
+ *  a robot dog's name (botName; D-39, the owner's request of 2026-11-22). */
 export function shownName(name: string, id: string): string {
   return name !== '' ? name : `Player ${id.slice(0, 4).toUpperCase()}`;
 }

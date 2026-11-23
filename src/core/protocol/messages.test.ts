@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '../../config';
-import { BOT_SLOTS } from '../bot/bot-id';
+import { BOT_SLOTS, botName } from '../bot/bot-id';
 import { decodeState, encodeState as encodeMatchState } from '../sim/codec';
 import { JOIN, LEAVE, READY, SWITCH, UNREADY } from '../sim/input';
 import { everyone, join, newMatch, tick as step } from '../sim/match-testing';
@@ -56,7 +56,7 @@ const own: SenderInput = {
 };
 const bot: BotEntry = {
   id: id(40), input: 0x0101, present: 0xffff, hist: new Array<number>(16).fill(0x0101),
-  events: [{ back: 2, events: JOIN | READY, joinPack: 0, coat: 3, name: 'Bot 0029' }],
+  events: [{ back: 2, events: JOIN | READY, joinPack: 0, coat: 3, name: botName(id(40)) }],
 };
 const quiet: BotEntry = { id: id(41), input: 5, present: 0, hist: hist([]), events: [] };
 const tick: Omit<Tick, 'type'> = { t: 1234, own, voteTick: 1200, voteHash: hash, phase: 0.25, bots: [bot, quiet] };

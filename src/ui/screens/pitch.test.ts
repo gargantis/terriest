@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { personId } from '../../core/bot/bot-id';
+import { botIds, botName, personId } from '../../core/bot/bot-id';
 import type { BarkEvent, ConfirmedEnd } from '../../core/session/index';
 import { findTerrier, IN_PLAY, type MatchState, READY, START_COUNTDOWN, WARM_UP } from '../../core/sim/index';
 import { TEST_BUILD } from '../../core/timeline/testing';
@@ -37,6 +37,8 @@ import { focusScreen } from './screen';
 
 const ME = personId(7, 0);
 const BOT = `${'b'.repeat(4)}${'0'.repeat(28)}`;
+/** Its name, as its host's JOIN gives it (the owner, 2026-11-22). */
+const BOT_NAME = botName(BOT);
 const key = (kind: UiCommand['kind'], repeat = false): UiCommand => ({ kind, pressedAt: 0, source: 'keyboard', repeat });
 
 let dom: { readonly document: FakeDocument; restore(): void };
@@ -85,7 +87,7 @@ function rig(o: { state?: MatchState; test?: boolean; player?: boolean; settings
   const calls: Calls = [];
   const seen: PitchContext[] = [];
   const owned: number[] = [];
-  const match = new StateMatch(ME, o.state ?? stateWith(1, 100, [{ id: ME, pack: 0, name: 'Ada', coat: 2 }, { id: BOT, pack: 1, name: 'Bot BBBB' }]));
+  const match = new StateMatch(ME, o.state ?? stateWith(1, 100, [{ id: ME, pack: 0, name: 'Ada', coat: 2 }, { id: BOT, pack: 1, name: BOT_NAME }]));
   const view = new FakeView(calls, match);
   const stage = new FakeStage(calls);
   const controls = new FakeControls(calls);
@@ -105,7 +107,7 @@ const active = (): unknown => dom.document.activeElement;
 const withPhase = (s: MatchState, phase: MatchState['phase'], tick = s.tick): MatchState => ({ ...s, phase, phaseStart: tick, tick });
 
 describe("the pitch screen's rules (pure)", () => {
-  const s = stateWith(2, 50, [{ id: ME, pack: 0 }, { id: BOT, pack: 1, name: 'Bot BBBB', coat: 5 }]);
+  const s = stateWith(2, 50, [{ id: ME, pack: 0 }, { id: BOT, pack: 1, name: BOT_NAME, coat: 5 }]);
   const ready = (o: Partial<Parameters<typeof readyButton>[0]> = {}): ReturnType<typeof readyButton> =>
     readyButton({ pitchReady: true, final: s, headPhase: WARM_UP, me: ME, wish: null, ...o });
 
@@ -132,12 +134,12 @@ describe("the pitch screen's rules (pure)", () => {
   });
 
   it("lists a pack's terriers by spot, named as the screens name them, ready from the countdown on (§5.7)", () => {
-    const four = stateWith(2, 50, [{ id: BOT, pack: 1, name: 'Bot BBBB', coat: 5 }, { id: ME, pack: 0 }, { id: `${'d'.repeat(4)}${'0'.repeat(28)}`, pack: 0, name: 'Dee' }]);
+    const four = stateWith(2, 50, [{ id: BOT, pack: 1, name: BOT_NAME, coat: 5 }, { id: ME, pack: 0 }, { id: `${'d'.repeat(4)}${'0'.repeat(28)}`, pack: 0, name: 'Dee' }]);
     expect(packRows(four, 0, ME)).toEqual([
       { id: ME, name: `Player ${ME.slice(0, 4).toUpperCase()}`, coat: 0, ready: false, you: true },
       { id: `${'d'.repeat(4)}${'0'.repeat(28)}`, name: 'Dee', coat: 0, ready: false, you: false },
     ]);
-    expect(packRows(four, 1, ME)).toEqual([{ id: BOT, name: 'Bot BBBB', coat: 5, ready: false, you: false }]);
+    expect(packRows(four, 1, ME)).toEqual([{ id: BOT, name: BOT_NAME, coat: 5, ready: false, you: false }]);
     expect(packRows(withPhase(four, START_COUNTDOWN), 1, ME)[0]!.ready).toBe(true);
   });
 
@@ -446,7 +448,7 @@ describe('the pitch screen (M4\'s design §1.43)', () => {
 
   it("lists each pack from the final state, its free places too, and rebuilds a list only when it changes (§5.7)", async () => {
     const two = (readyUntil: number): MatchState => {
-      const s = stateWith(2, 100, [{ id: ME, pack: 0, name: 'Ada', coat: 2 }, { id: BOT, pack: 1, name: 'Bot BBBB', coat: 5 }]);
+      const s = stateWith(2, 100, [{ id: ME, pack: 0, name: 'Ada', coat: 2 }, { id: BOT, pack: 1, name: BOT_NAME, coat: 5 }]);
       s.terriers[findTerrier(s, BOT)]!.readyUntil = readyUntil;
       return s;
     };
@@ -457,12 +459,12 @@ describe('the pitch screen (M4\'s design §1.43)', () => {
     // Each coat by its name beside its swatch, never its colour alone (§5.14).
     const coat = (k: number): string => PLACEHOLDER_LOOK.coats[k]!.name;
     expect(shownText(a)).toBe(`Ada${coat(2)}you` + 'Not ready' + 'A free place');
-    expect(shownText(b)).toBe(`Bot BBBB${coat(5)}Not readyA free place`);
+    expect(shownText(b)).toBe(`${BOT_NAME}${coat(5)}Not readyA free place`);
     expect(a.querySelectorAll('li.you')).toHaveLength(1);
     const before = a.children[0];
     r.match.state = two(9999);
     r.match.run();
-    expect(shownText(b)).toBe(`Bot BBBB${coat(5)}Ready ✓A free place`);
+    expect(shownText(b)).toBe(`${BOT_NAME}${coat(5)}Ready ✓A free place`);
     expect(a.children[0]).toBe(before); // pack A's list unchanged, not rebuilt
     expect(shownText(r.screen.el as never)).toContain('1 of 2');
     r.screen.dispose();
@@ -543,8 +545,9 @@ describe("the pitch screen over Practice (M4's design §5.4, §5.7)", () => {
     clock.until(() => findTerrier(t().final, ME) >= 0, 1000);
     expect([ready.textContent, ready.getAttribute('aria-disabled')]).toEqual(['Ready', null]);
     expect(shownText(only(screen.el, '[data-test="pack-0"]'))).toContain('Ada');
+    // Practice's bot, always ready, by the name its host gave it with the person's taken (the owner, 2026-11-22).
     const coats = PLACEHOLDER_LOOK.coats.map((c) => c.name).join('|');
-    expect(shownText(only(screen.el, '[data-test="pack-1"]'))).toMatch(new RegExp(`^Bot [0-9A-F]{4}(${coats})Ready ✓$`)); // Practice's bot, always ready
+    expect(shownText(only(screen.el, '[data-test="pack-1"]'))).toMatch(new RegExp(`^${botName(botIds(ME)[0]!, ['Ada'])}(${coats})Ready ✓$`));
     screen.ui({ kind: 'press', pressedAt: clock.now(), source: 'keyboard', repeat: false });
     expect(ready.textContent).toBe('Ready ✓');
     expect(t().eventsInFlight(ME) & READY).toBe(READY);

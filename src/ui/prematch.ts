@@ -3,9 +3,9 @@
 // Q-17, M4-Q8): what the pitch screen (src/ui/screens/pitch.ts) shows over
 // the warming-up pitch, through the start countdown.
 // - Each pack's list from the final state, rebuilt only when it changes
-//   (roslambo's): each terrier's name (a bot's "Bot" and four hex digits,
-//   D-39), its coat's swatch and name, and Ready, your row marked "you",
-//   and the free places.
+//   (roslambo's): each terrier's name (a bot's from the robot dogs' list,
+//   D-39 and the owner's request of 2026-11-22), its coat's swatch and
+//   name, and Ready, your row marked "you", and the free places.
 // - Ready, a player's, focused from the screen's entry, aria-disabled and
 //   saying why until it can act ("Getting the pitch ready…", "Joining…"),
 //   then "Ready" or "Ready ✓", pressed again to cancel (L146), following the

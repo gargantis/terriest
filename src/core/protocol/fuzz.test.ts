@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it, vi } from 'vitest';
-import { BOT_SLOTS } from '../bot/bot-id';
+import { BOT_NAMES, BOT_SLOTS, botName } from '../bot/bot-id';
 import { decodeState, encodeState as encodeMatchState } from '../sim/codec';
 import { JOIN, LEAVE, READY, SWITCH, type TickInput, UNREADY } from '../sim/input';
 import { everyone, join, newMatch, noisyInputs, tick as step } from '../sim/match-testing';
@@ -42,10 +42,10 @@ const anyHex = (n: number): fc.Arbitrary<string> =>
 const anyId = anyHex(16);
 const anyHash = anyHex(8);
 const anyPhase = anyU16.map((k) => k / 65536);
-/** Names the wire carries: ones C-17 allows, ones it refuses, and U+FEFF first. */
+/** Names the wire carries: ones C-17 allows, ones it refuses, and U+FEFF first; and every bot's. */
 const NAMES = [
   '', 'Rex', '\ufeffRex', '\ufeff', 'é'.repeat(16), '🐶'.repeat(8), 'x'.repeat(32), 'x'.repeat(21), 'tab\there', 'nul\u0000',
-  'c1\u0085', '🐶 and 🐕\u200d🦺', 'Bot 1A2B',
+  'c1\u0085', '🐶 and 🐕\u200d🦺', ...BOT_NAMES,
 ];
 const anyName = fc.oneof(
   fc.constantFrom(...NAMES),
@@ -214,7 +214,7 @@ const rich: Omit<Tick, 'type'> = {
     events: [{ back: 0, events: JOIN | READY, joinPack: 1, coat: 200, name: '\ufeffRex' }, { back: 2, events: SWITCH | LEAVE, switchPack: 0 }, { back: 30, events: UNREADY }],
   },
   bots: [
-    { id: id(30), input: 3, present: 0xffff, hist: new Array<number>(16).fill(3), events: [{ back: 5, events: JOIN, joinPack: 0, coat: 1, name: 'Bot 001F' }] },
+    { id: id(30), input: 3, present: 0xffff, hist: new Array<number>(16).fill(3), events: [{ back: 5, events: JOIN, joinPack: 0, coat: 1, name: botName(id(30)) }] },
     { id: id(31), input: 0x8000, present: 0, hist: new Array<number>(16).fill(0), events: [] },
   ],
 };

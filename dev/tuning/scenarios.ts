@@ -9,7 +9,7 @@
 // the metrics run it in Node.
 
 import type { Config } from '../../src/config';
-import { botCoat, botIds, botName } from '../../src/core/bot/bot-id';
+import { botCoat, botIds, botName, botNames } from '../../src/core/bot/bot-id';
 import { type BotParams, botParams, type Brain, newBrain, think } from '../../src/core/bot/brain';
 import { hostOf } from '../../src/core/bot/marks';
 import { ballOnTerriers, DOWN_METRES, dribble, kickoffPinch, pushTime } from '../../src/core/sim/cases';
@@ -599,12 +599,14 @@ function byIndex(s: Readonly<MatchState>, input: (k: number, t: number, s: Reado
 }
 
 /** A placed match's terriers become bots of the seed's host, as the marks'
- *  are: their IDs, names and coats, in the list's (spot, pack) order. */
+ *  are: their IDs, names and coats, in the list's (spot, pack) order, each
+ *  name with the names before it taken. */
 function asBots(P: SimParams, B: BotParams, s: MatchState, seed: number): Brain[] {
   const ids = botIds(hostOf(seed));
+  const names = botNames(ids.slice(0, s.terriers.length));
   s.terriers.forEach((T, k) => {
     T.id = ids[k]!;
-    T.name = botName(T.id);
+    T.name = names[k]!;
     T.coat = botCoat(T.id, P.coatCount);
   });
   return s.terriers.map((T) => newBrain(T.id, T.prevInput, P, B));
@@ -623,13 +625,14 @@ const READY_EVERY_SECONDS = 50;
 function botMatchSetup(P: SimParams, B: BotParams, seed: number, packSize: number): Setup {
   const s = genesis({ packSize, matchMinutes: P.config.matchLengthDefaultMinutes }, P);
   const ids = botIds(hostOf(seed)).slice(0, 2 * packSize);
+  const names = botNames(ids);
   const brains = ids.map((id) => newBrain(id, 0, P, B));
   const readyEvery = READY_EVERY_SECONDS * P.config.ticksPerSecond;
   const inputs: Inputs = (t, st, out) => {
     for (let k = 0; k < brains.length; k++) {
       const id = ids[k]!;
       const input = think(brains[k]!, st);
-      if (t === 1) out.push({ id, input, events: JOIN | READY, joinPack: k & 1, coat: botCoat(id, P.coatCount), name: botName(id) });
+      if (t === 1) out.push({ id, input, events: JOIN | READY, joinPack: k & 1, coat: botCoat(id, P.coatCount), name: names[k]! });
       else out.push({ id, input, events: t % readyEvery === 1 ? READY : 0 });
     }
   };
@@ -701,7 +704,7 @@ function kickoffs(): Scenario[] {
       const bot = botIds(hostOf(seed))[0]!;
       const T = s.terriers[1]!;
       T.id = bot;
-      T.name = botName(bot);
+      T.name = botName(bot, [s.terriers[0]!.name]);
       T.coat = botCoat(bot, P.coatCount);
       const brain = newBrain(bot, 0, P, B);
       const person = s.terriers[0]!.id;

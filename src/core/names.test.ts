@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { botIds, botName } from './bot/bot-id';
 import { fitName, shownName } from './names';
 import { cleanName, defaultParams, nameAllowed } from './sim/index';
 
@@ -74,6 +75,8 @@ describe('shownName (M4\'s design §6)', () => {
     const id = `3f2a${'0'.repeat(28)}`;
     expect(shownName('Ada', id)).toBe('Ada');
     expect(shownName('', id)).toBe('Player 3F2A');
-    expect(shownName('Bot 1A2B', id)).toBe('Bot 1A2B');
+    // A bot's JOIN names it already (the owner, 2026-11-22).
+    const bot = botIds(id)[0]!;
+    expect(shownName(botName(bot), bot)).toBe(botName(bot));
   });
 });
