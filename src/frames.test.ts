@@ -119,17 +119,34 @@ describe("the forced repair's figures (M3-Q14, bench-F4)", () => {
     expect(repairFigures(calls, { hold: null, states, witnessStates: 3 }, 0)).toMatchObject({ back: null, statesFromHold: 0 });
   });
 
-  it('times and measures the STATE the page took, not one sent before it that came too late for its resync', () => {
+  it("times and measures the first STATE the page took from the hold's start, not one sent before it that came too late for its resync, nor a later one's", () => {
     // The first STATE from the hold's start, 257 ticks back, comes through the held burst once its resync has moved
-    // on, and the page drops it, stepping nothing; it takes the next, its next resync's, 240 ticks back.
+    // on, and the page drops it, stepping nothing; it takes the next, its next resync's, 240 ticks back. A later
+    // transient's resync takes another, 15 back, inside the second the calls are kept for after the repair.
     const hold = { fromMs: 20_000, toMs: 24_100, resyncsBefore: 0, armedMs: 19_000, calm: false, repairedMs: 26_900 };
-    const states = [{ atMs: 24_150, g: 850, senderTick: 1107 }, { atMs: 26_650, g: 1100, senderTick: 1340 }];
+    const states = [{ atMs: 24_150, g: 850, senderTick: 1107 }, { atMs: 26_650, g: 1100, senderTick: 1340 }, { atMs: 27_450, g: 1365, senderTick: 1380 }];
     const calls = [
       { at: 26_600, ms: 1.1, kind: 'STATE', steps: 0, state: { g: 850, senderTick: 1107 } }, { at: 26_620, ms: 0.2, kind: 'TICK', steps: 0 },
       { at: 26_700, ms: 6.4, kind: 'STATE', steps: 14, state: { g: 1100, senderTick: 1340 } }, { at: 26_720, ms: 3.2, kind: 'timer', steps: 14 },
+      { at: 27_500, ms: 2.5, kind: 'STATE', steps: 6, state: { g: 1365, senderTick: 1380 } },
     ];
-    expect(repairFigures(calls, { hold, states, witnessStates: 2 }, 1)).toMatchObject({
-      adoptMs: 6.4, back: 240, statesFromHold: 2, witnessStates: 2, worstMs: 6.4, worstSteps: 14, steps: 28, resyncs: 1,
+    expect(repairFigures(calls, { hold, states, witnessStates: 3 }, 2)).toMatchObject({
+      adoptMs: 6.4, back: 240, statesFromHold: 3, witnessStates: 3, worstMs: 6.4, worstSteps: 14, steps: 34, resyncs: 2,
+    });
+  });
+
+  it('gives no adoption and no depth when the page took none of the STATEs from the hold, never a dropped one in its place', () => {
+    // Each STATE comes through the held burst once its resync has moved on, and the page drops it: three sent, none
+    // taken, no resync done, and the window ends first.
+    const hold = { fromMs: 20_000, toMs: 24_100, resyncsBefore: 0, armedMs: 19_000, calm: false, repairedMs: null };
+    const states = [{ atMs: 24_150, g: 850, senderTick: 1107 }, { atMs: 26_650, g: 1100, senderTick: 1340 }, { atMs: 29_150, g: 1350, senderTick: 1590 }];
+    const calls = [
+      { at: 26_600, ms: 1.1, kind: 'STATE', steps: 0, state: { g: 850, senderTick: 1107 } }, { at: 26_620, ms: 0.2, kind: 'TICK', steps: 0 },
+      { at: 29_100, ms: 0.9, kind: 'STATE', steps: 0, state: { g: 1100, senderTick: 1340 } }, { at: 29_120, ms: 3.2, kind: 'timer', steps: 14 },
+      { at: 31_600, ms: 1.0, kind: 'STATE', steps: 0, state: { g: 1350, senderTick: 1590 } },
+    ];
+    expect(repairFigures(calls, { hold, states, witnessStates: 3 }, 0)).toMatchObject({
+      adoptMs: null, back: null, statesFromHold: 3, witnessStates: 3, worstMs: 3.2, worstSteps: 14, steps: 14, resyncs: 0,
     });
   });
 });

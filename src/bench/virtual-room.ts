@@ -66,10 +66,11 @@
 //   the page's (bench-F2);
 // - its report: the page's message calls, and the timer runs src/frames.ts
 //   times, from the hold to a second after the repair, with their steps,
-//   a STATE's with its ticks; the backlog; the room's own time on the page, its brains, encoding and
-//   delivery, apart from the page's (an estimated 0.1–0.3 ms a tick); the
-//   age of each TICK the page's clock took as a sample, from its due time
-//   to its handling (§8.4's run 4); and the witness's STATEs.
+//   a STATE's with its ticks; the backlog; the room's own time on the
+//   page, its brains, encoding and delivery, apart from the page's (an
+//   estimated 0.1–0.3 ms a tick); the age of each TICK the page's clock
+//   took as a sample, from its due time to its handling (§8.4's run 4);
+//   and the witness's STATEs.
 // Nothing here contacts anything: the relays NetGame passes go unused.
 
 import { config } from '../config';
@@ -270,9 +271,19 @@ export interface VirtualRoom extends TransportFactory {
   timerCall(atMs: number, ms: number, steps: number): void;
   /** Its figures; the kept samples' age over [fromMs, toMs) when a window is given. */
   report(window?: { readonly fromMs: number; readonly toMs: number }): RoomReport;
-  /** The witness's progress and the hold's, from counters alone: the hold's start once it has begun, and the
-   *  page's completed resyncs then. */
-  peek(): { readonly witnessStates: number; readonly witnessError: string | null; readonly holdFromMs: number | null; readonly resyncsAtHold: number | null };
+  /** The witness's progress and the hold's, from counters alone. */
+  peek(): RoomPeek;
+}
+
+/** The witness's STATEs and its Worker's failure, if any; and the hold's start once it has begun, the resyncs the
+ *  page's timeline had completed then, that timeline's own, not the match's over every timeline it passed
+ *  through, and when the room saw it complete the next, the repair (the report's hold.repairedMs). */
+export interface RoomPeek {
+  readonly witnessStates: number;
+  readonly witnessError: string | null;
+  readonly holdFromMs: number | null;
+  readonly resyncsAtHold: number | null;
+  readonly repairedMs: number | null;
 }
 
 interface Link {
@@ -462,10 +473,10 @@ class Room {
     if (atMs <= this.callsUntil && this.calls.length < CALLS_KEPT) this.calls.push({ at: atMs, ms, kind: 'timer', steps });
   }
 
-  peek(): { readonly witnessStates: number; readonly witnessError: string | null; readonly holdFromMs: number | null; readonly resyncsAtHold: number | null } {
+  peek(): RoomPeek {
     return {
       witnessStates: this.witnessStates, witnessError: this.witnessError, holdFromMs: this.holdBegun ? this.holdFrom : null,
-      resyncsAtHold: this.holdBegun ? this.resyncsAtHold : null,
+      resyncsAtHold: this.holdBegun ? this.resyncsAtHold : null, repairedMs: this.repairedAt,
     };
   }
 

@@ -154,10 +154,10 @@ test("repair=1 with a hold 1 s into play: the witness's Worker answers the page'
   expect(all.room.peers.filter((p) => p.witness)).toHaveLength(1);
   // The hold, armed 1 s into play, begun once the room is calm or 15 s after (bench-F2); the repair waited for from it.
   await waitForBench(page, (x) => x.holdFromMs !== null, 'the hold, 1 s into play', HOLD_BEGUN_MS);
-  // A resync done once the hold has begun: the forced one, whatever a transient did before it.
-  const r = await waitForBench(
-    page, (x) => x.resyncsAtHold !== null && x.resyncs > x.resyncsAtHold, "the page's repair from the witness's STATE", REPAIRED_MS,
-  );
+  // A resync done once the hold has begun, as the room saw it: the page's timeline's count past its own at the
+  // hold's start, never the match's, which an earlier timeline's adds to; the forced one, whatever a transient or
+  // a rejoin did before it.
+  const r = await waitForBench(page, (x) => x.repairedMs !== null, "the page's repair from the witness's STATE", REPAIRED_MS);
   const repair = r.repair!;
   console.log(
     `the forced repair: the STATE adopted in ${repair.adoptMs?.toFixed(2) ?? '-'} ms, the worst call ${repair.worstMs.toFixed(2)} ms for ` +

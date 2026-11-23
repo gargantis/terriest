@@ -255,11 +255,14 @@ export interface BenchStatus {
   /** The final roster's size as the window opened; 0 before. */
   readonly terriers: number;
   readonly window: { readonly fromMs: number | null; readonly seconds: number; readonly endedBy: FrameReport['window']['endedBy'] };
-  /** The forced repair's progress: the page's completed resyncs, the hold's start once it has begun and the
-   *  resyncs completed by then, and the witness's STATEs. */
+  /** The forced repair's progress: the page's completed resyncs, the match's over every timeline it passed
+   *  through (bench-F3); the hold's start once it has begun, the resyncs the page's timeline had completed by
+   *  then, that timeline's own, so never to be set against the match's, and when the room saw that timeline
+   *  complete the next, the repair; and the witness's STATEs. */
   readonly resyncs: number;
   readonly holdFromMs: number | null;
   readonly resyncsAtHold: number | null;
+  readonly repairedMs: number | null;
   readonly witness: 'none' | 'worker';
   readonly witnessStates: number;
   readonly witnessError: string | null;

@@ -549,6 +549,8 @@ describe("the forced repair's hold, from a calm room (§2.11, bench-F2)", () => 
     }
     const hold = r.room.report().hold!;
     expect(hold.repairedMs).toBe(null);
+    // A poll reads the hold as the report does, the page's timeline's own count.
+    expect(r.room.peek()).toMatchObject({ holdFromMs: hold.fromMs, resyncsAtHold: 0, repairedMs: null });
     // The page repairs at 3.5 s, past the hold's end.
     r.t.stats.resyncs = 1;
     for (let k = 0; k < 15; k++) {
@@ -561,6 +563,7 @@ describe("the forced repair's hold, from a calm room (§2.11, bench-F2)", () => 
     const repairedMs = r.room.report().hold!.repairedMs!;
     expect(repairedMs).toBeGreaterThanOrEqual(3500);
     expect(repairedMs).toBeLessThanOrEqual(3500 + NET.timerMs);
+    expect(r.room.peek()).toMatchObject({ resyncsAtHold: 0, repairedMs });
     // The six's TICKs, by when each was due to be sent: the page's hashes before the hold, the witness's from
     // its start to the repair, and the page's after it; a tick's slack each side.
     const six = r.got.filter((g) => g.peer !== 'virtual-1' && g.m.voteTick !== NO_TICK);

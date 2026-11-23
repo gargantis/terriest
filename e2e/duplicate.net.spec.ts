@@ -160,8 +160,10 @@ test("a duplicate player ID waits out a lingering connection before its message,
     // silent, and once it has been for 2 s the twin is let in in its place (C-12), with no message. The kill
     // is timed from its command: the renderer's IO thread takes Page.crash at once, whatever its main thread
     // is doing, so the joiner sends nothing from a few ms after it. The crash event reaches Node only once the
-    // browser has seen the process exit, and a machine that first dumps its core puts that off: on GitHub's
-    // runner the twin was back 373 ms after the event, the joiner by then silent 2 s at the keeper.
+    // browser has seen the process exit, which a machine that first dumps its core may put off. On GitHub's
+    // runner the twin was back 373 ms after the event, the joiner by then silent 2 s at the keeper: probably the
+    // event late, though a joiner stalled just before the kill would look the same. How late the event came,
+    // in a failure's message as in the log, tells the two apart.
     await at(tp, 'message-try-again').click();
     await waitForScreen(tp, 'join', ANSWER_MS);
     messages.length = 0;
@@ -172,14 +174,15 @@ test("a duplicate player ID waits out a lingering connection before its message,
     void cdp.send('Page.crash').catch(() => {});
     await crashed;
     took['crash reported'] = Math.round(monotonicMs() - killed);
+    const reported = `the crash reported ${took['crash reported']} ms after it`;
     // Back in its terrier, or on Join with the match held and the terrier gone, warm-up's removal: Join while the
     // roster still holds it is the moment between the STATE's adoption and the timer run that shows Pre-match.
     const back = await looks(tp, (i) => i.screen === 'prematch' || (i.screen === 'join' && i.match?.started === true && !i.match.returning && !i.match.inRoster), {
-      what: 'the twin back in the room', timeoutMs: BACK_MS, each: noted,
+      what: `the twin back in the room after the kill's command, ${reported}`, timeoutMs: BACK_MS, each: noted,
     });
     took['back after the kill'] = Math.round(back.atMs - killed);
     expect(messages, 'no message once the joiner had gone (C-12)').toEqual([]);
-    expect(back.atMs - killed, `the twin let in ${Math.round(back.atMs - killed)} ms after the kill: no sooner than the old connection's ${SILENT_MS} ms of silence`)
+    expect(back.atMs - killed, `the twin let in ${Math.round(back.atMs - killed)} ms after the kill's command, ${reported}: no sooner than the old connection's ${SILENT_MS} ms of silence`)
       .toBeGreaterThanOrEqual(SILENT_MS - POLL_MS);
     const returned = back.i.screen === 'prematch';
     console.log(`duplicate: the twin back ${took['back after the kill']} ms after the kill, ${returned ? 'in its terrier' : `on Join, warm-up's ${REMOVAL_MS} ms having taken its terrier`}`);
