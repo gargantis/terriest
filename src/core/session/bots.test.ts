@@ -719,7 +719,7 @@ describe("BotHost's names (the owner, 2026-11-22)", () => {
     expect(names.filter((n) => n !== mine).every((n) => BOT_NAMES.includes(n))).toBe(true);
   });
 
-  it('takes no name a terrier has in the final state or the head: a person, another host\'s bot, or a JOIN only the head shows yet', () => {
+  it('takes no name a terrier in the head has: a person, another host\'s bot, or a JOIN only the head shows yet', () => {
     // Another host whose first bot's first choice is this host's first bot's.
     let other = '';
     for (let k = 0; other === ''; k++) if (botName(botId(personId(9, k), 0)) === walk(ids[0]!, 0)) other = botId(personId(9, k), 0);
@@ -738,6 +738,25 @@ describe("BotHost's names (the owner, 2026-11-22)", () => {
     expect(joinNames(t, ids[0]!)).toEqual([walk(ids[0]!, 3)]);
     run(t, host, 1 + D + W);
     expect(new Set(finalNames(t)).size).toBe(4);
+  });
+
+  it("takes no name a terrier in the final state has that the head has lost: a person whose LEAVE rides yet, which a repair's lineage can undo", () => {
+    // x, named as the first bot would be, leaves in the warm-up: its LEAVE is in the head and not yet final.
+    const x = personId(6, 0);
+    const name = walk(ids[0]!, 0);
+    const leaveAt = 60;
+    const t = new FakeTimeline({ packSize: 4, matchMinutes: 1 });
+    t.ahead = true;
+    t.people = (tick) => [
+      tick === 1 ? { id: x, input: 0, events: JOIN, joinPack: 0, coat: 0, name } : { id: x, input: 0, events: tick === leaveAt ? LEAVE : 0 },
+    ];
+    const host = new BotHost(me, P, B, ROOM);
+    run(t, host, leaveAt);
+    expect([t.terrier(x)?.name, findTerrier(t.head, x)], 'x in the final state, gone from the head').toEqual([name, -1]);
+    host.add(0, t);
+    expect(joinNames(t, ids[0]!)).toEqual([walk(ids[0]!, 1)]);
+    run(t, host, 1 + D + W);
+    expect([t.terrier(x), t.terrier(ids[0]!)?.name], 'the LEAVE final, the bot in under the next name').toEqual([undefined, walk(ids[0]!, 1)]);
   });
 
   it("names a bot added as another leaves apart from it, and an ID that comes back its own name again (Remove, Practice's swap)", () => {

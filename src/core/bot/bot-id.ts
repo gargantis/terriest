@@ -58,10 +58,12 @@ export function botCoat(id: string, coatCount: number): number {
 }
 
 /** The robot dogs' names (the owner, 2026-11-22), in the order botName walks them. Each is kept unchanged
- *  by cleanName and fitName (C-17) and fits the wire's name limit, and none is a famous robot dog's name
- *  or a trademark: so no Sparky, Bolt, Servo, Chip or Axle, which Five Nights at Freddy's, Disney's Bolt,
- *  Rescue Bots, WowWee's CHiP and the film A.X.L. hold, and Subwoofer, Wirehair, Sensor, Circuit and
- *  Coil stand in their places. Content, not a setting: a JOIN carries the name its host picked. */
+ *  by cleanName and fitName (C-17) and fits the wire's name limit. A web search, not a legal review, left
+ *  off Sparky, Bolt, Servo, Chip and Axle, which Five Nights at Freddy's, Disney's Bolt, Rescue Bots,
+ *  WowWee's CHiP and the film A.X.L. hold, for Subwoofer, Wirehair, Sensor, Circuit and Coil. It kept some
+ *  on the line, such as Rover and Rusty, which lesser robot dogs have, and Pixel and Volt, marks outside
+ *  dogs: PLAN's status lists them for the owner to strike. Content, not a setting: a JOIN carries the name
+ *  its host picked. */
 export const BOT_NAMES: readonly string[] = [
   'Subwoofer', 'Wirehair', 'Gizmo', 'Widget', 'Sensor', 'Sprocket', 'Gadget', 'Rusty',
   'Circuit', 'Byte', 'Pixel', 'Turbo', 'Rivet', 'Piston', 'Dynamo', 'Coil',

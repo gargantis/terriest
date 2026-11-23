@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../../config';
-import { botName, personId } from '../../core/bot/bot-id';
+import { botIds, botName, botNames, personId } from '../../core/bot/bot-id';
 import type { ConfirmedEnd, MatchNetSummary, ResultRow } from '../../core/session/index';
 import { PLACEHOLDER_LOOK } from '../../render/look';
 import { FakeClock } from '../clock-testing';
@@ -70,7 +70,10 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     dom.restore();
   });
 
-  function results(practice: boolean, figures: MatchNetSummary = summaryOf()): {
+  function results(
+    practice: boolean, figures: MatchNetSummary = summaryOf(),
+    shown = end([row(ME, 0, { name: 'Ada', goals: 3, terriest: true }), row(BOT, 1, { name: BOT_NAME, bot: true, coat: 4 })], [3, 0], 0),
+  ): {
     screen: ReturnType<typeof resultsScreen>; clock: FakeClock; announced: Announcement[]; acts: string[]; again: { seen: boolean };
     copy: FakeCopy; summaries: { read: number };
   } {
@@ -81,7 +84,7 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     const copy = new FakeCopy();
     const summaries = { read: 0 };
     const screen = resultsScreen({
-      end: end([row(ME, 0, { name: 'Ada', goals: 3, terriest: true }), row(BOT, 1, { name: BOT_NAME, bot: true, coat: 4 })], [3, 0], 0),
+      end: shown,
       practice, me: ME, look: LOOK, clock,
       againSeen: () => again.seen,
       summary: () => {
@@ -124,6 +127,25 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     expect(order.indexOf('results')).toBeGreaterThan(order.indexOf('buttons'));
     // The Network figures below everything else (§5.9's "Below them").
     expect(order.at(-1)).toBe('readout');
+    screen.dispose!();
+  });
+
+  it("shows each bot's row and the Terriests under each bot's own name, two bots apart (the owner, 2026-11-22)", () => {
+    // Two bots of one host, named in turn as it names those it adds in one go, with Ada's name taken.
+    const [b0, b1] = botIds(ME) as [string, string];
+    const [n0, n1] = botNames([b0, b1], ['Ada']) as [string, string];
+    expect(n0, 'two names apart').not.toBe(n1);
+    const { screen, clock } = results(true, summaryOf(), end([
+      row(ME, 0, { name: 'Ada', goals: 1, touches: 5 }),
+      row(b0, 1, { name: n0, goals: 2, touches: 7, terriest: true, bot: true, coat: 3 }),
+      row(b1, 1, { name: n1, goals: 2, touches: 4, terriest: true, bot: true, coat: 5 }),
+    ], [1, 4], 1));
+    const el = fake(screen.el);
+    clock.advance(1000);
+    expect(only(el, '[data-test="terriest"]').textContent).toBe(`The Terriests: ${n0} and ${n1}.`);
+    expect(only(only(el, 'table[data-test="results"]'), 'tbody').children.map((tr) => shownText(tr))).toEqual([
+      `Ada${LOOK.coats[0]!.name}youBlue15`, `${n0}${LOOK.coats[3]!.name}TerriestOrange27`, `${n1}${LOOK.coats[5]!.name}TerriestOrange24`,
+    ]);
     screen.dispose!();
   });
 
