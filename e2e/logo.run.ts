@@ -21,13 +21,13 @@
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, extname, join, relative, resolve } from 'node:path';
+import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
 import { LOGO_FILES, logoFiles, type RgbaImage } from '../dev/logo/files';
 import type { LogoRender } from '../dev/logo/main';
 import { GL_PATH } from './lib/gl';
-import { expect, expectWebGL2, test } from './lib/guards';
+import { expect, expectEverywhere, expectWebGL2, test } from './lib/guards';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const OUT = process.env.TERRIEST_LOGO_OUT;
@@ -36,13 +36,19 @@ const OVERWRITE = process.env.TERRIEST_LOGO_OVERWRITE === '1';
 const ORIGIN = 'http://logo.invalid/';
 const TYPES: Readonly<Record<string, string>> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
 
+/** Whether `file` is inside the folder `dir`. */
+function inside(dir: string, file: string): boolean {
+  const r = relative(dir, file);
+  return r !== '' && !r.startsWith('..') && !isAbsolute(r);
+}
+
 /** The folder's files, refused at once without the variable, or where one would write over a file in the repo. */
 function targets(): string[] {
   if (OUT === undefined || OUT === '') {
     throw new Error("Refusing to run without TERRIEST_LOGO_OUT: set it to the folder the files go to, or to the repo's root with TERRIEST_LOGO_OVERWRITE=1 to replace the committed ones");
   }
   const files = LOGO_FILES.map((path) => resolve(OUT, path));
-  const committed = files.filter((file) => !relative(ROOT, file).startsWith('..') && existsSync(file));
+  const committed = files.filter((file) => inside(ROOT, file) && existsSync(file));
   if (committed.length > 0 && !OVERWRITE) {
     throw new Error(`Refusing to write over ${committed.map((f) => relative(ROOT, f)).join(', ')} without TERRIEST_LOGO_OVERWRITE=1`);
   }
@@ -60,7 +66,7 @@ test("draws the owner's logo and icons from the game's terrier", async ({ page, 
     await page.route('**/*', async (route) => {
       const url = new URL(route.request().url());
       const file = resolve(dist, `.${decodeURIComponent(url.pathname)}`);
-      if (url.origin !== new URL(ORIGIN).origin || relative(dist, file).startsWith('..') || !existsSync(file)) {
+      if (url.origin !== new URL(ORIGIN).origin || !inside(dist, file) || !existsSync(file)) {
         await route.abort();
         return;
       }
@@ -74,6 +80,8 @@ test("draws the owner's logo and icons from the game's terrier", async ({ page, 
     console.log(`drawn in ${(drawn.totalMs / 1000).toFixed(1)} s, the shots ${drawn.shotsMs.join(', ')} ms, on ${GL_PATH}: ${JSON.stringify(drawn.gl)}`);
     const images: Record<string, RgbaImage> = {};
     for (const [name, im] of Object.entries(drawn.images)) images[name] = { w: im.w, h: im.h, rgba: Buffer.from(im.b64, 'base64') };
+    // The guard's checks before any file is written, so a page that logged an error replaces nothing.
+    expectEverywhere(guard);
     for (const [path, bytes] of logoFiles(images)) {
       const file = files[LOGO_FILES.indexOf(path)]!;
       mkdirSync(dirname(file), { recursive: true });

@@ -28,15 +28,15 @@ export interface LockupSpec {
 
 const css = (hex: number): string => `#${hex.toString(16).padStart(6, '0')}`;
 
-/** Whether the system has `family`: a canvas falls back silently, so text set in it must measure unlike text set in
- *  each fallback alone. */
+/** Whether the system has `family`: a canvas falls back silently, so text set in a missing family measures as text set
+ *  in its fallback alone, with either fallback. One of them may be the family itself, so one difference is enough. */
 export function hasFamily(family: string, weight: number): boolean {
   const ctx = document.createElement('canvas').getContext('2d')!;
   const width = (font: string): number => {
     ctx.font = font;
     return ctx.measureText('terriest mmmwwwiii').width;
   };
-  return ['monospace', 'serif'].every((generic) => width(`${weight} 72px "${family}", ${generic}`) !== width(`${weight} 72px ${generic}`));
+  return ['monospace', 'serif'].some((generic) => width(`${weight} 72px "${family}", ${generic}`) !== width(`${weight} 72px ${generic}`));
 }
 
 export async function lockup(o: LockupSpec): Promise<Rgba & { readonly baseline: number }> {
