@@ -8,7 +8,9 @@
 //
 // PLACEHOLDER_LOOK is the M0 spike's (research/spike/src/scene/look.ts, its
 // ball's colours and its terrier pose's SHAPE), M1's pitch colours and, from
-// C-57, the ground beyond the glass walls, until the owner's pick.
+// C-57, the ground beyond the glass walls, until the owner's pick. PAGE_LOOK
+// names the look the page draws, so the frame bench and the logo page
+// (dev/logo.html) draw it too, whichever it is.
 
 export type Markings = 'none' | 'ears' | 'points' | 'saddle';
 
@@ -113,6 +115,9 @@ export const PLACEHOLDER_LOOK: Look = {
   },
   packCue: 'none',
 };
+
+/** The look the page draws, and the frame bench and the logo page with it: the placeholder until the owner's pick (Q-11). */
+export const PAGE_LOOK: Look = PLACEHOLDER_LOOK;
 
 /** A coat outside the list draws as coat 0, as D-12 treats a JOIN's (L44). */
 export function coatOf(look: Look, index: number): Coat {

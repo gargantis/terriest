@@ -80,7 +80,7 @@ import type { KeyboardScreen } from '../input/keyboard';
 import type { InputKind, UiCommand } from '../input/source';
 import type { Boot } from '../main';
 import { toRadians } from '../render/interpolate';
-import { type Look, PLACEHOLDER_LOOK } from '../render/look';
+import { type Look, PAGE_LOOK } from '../render/look';
 import type { Stage } from '../render/stage-types';
 import { MatchView } from '../render/view';
 import type { ProfileStore } from '../storage/profile';
@@ -215,7 +215,7 @@ export interface AppDeps {
   readonly wake?: { want(on: boolean): void; inspect(): WakeLockInspection };
   /** The page's sound (sound's src/ui/layers/sound.ts's audioOut()): its inspect() is the hook's audio. */
   readonly audio?: { inspect(): AudioInspection | null };
-  /** Tests: the look (PLACEHOLDER_LOOK), the fragment, the devices and the animation frames. */
+  /** Tests: the look (the page's, PAGE_LOOK), the fragment, the devices and the animation frames. */
   readonly look?: Look;
   readonly location?: AppLocation;
   readonly devices?: (host: DeviceHost) => PageDevices;
@@ -388,7 +388,7 @@ export class App {
 
   constructor(d: AppDeps) {
     this.d = d;
-    this.look = d.look ?? PLACEHOLDER_LOOK;
+    this.look = d.look ?? PAGE_LOOK;
     this.location = d.location ?? browserLocation;
     // Before any room exists, so its beforeunload listener is the window's first, ahead of Trystero's (§1.49).
     this.guard = d.guard ?? installLeaveGuard(window);

@@ -1,12 +1,12 @@
 // dev/logo.html's module (the owner's logo and icons of 2026-11-22, PLAN's
 // status): draws the picks (picks.ts) from the game's own terrier in the
-// look the page draws, src/main.ts's, by src/render/portrait.ts, makes each
+// look the page draws, PAGE_LOOK, by src/render/portrait.ts, makes each
 // size by its own resampler (post.ts), and sets the lock-ups (lockup.ts).
 // Draw shows them here, on a light ground and a dark one; for
 // e2e/logo.run.ts, which writes the files, window.logo.render() hands them
 // over. Dev only: the build never takes it, and it stores nothing.
 
-import { PLACEHOLDER_LOOK } from '../../src/render/look';
+import { PAGE_LOOK } from '../../src/render/look';
 import { type PortraitFeatures, Portraits } from '../../src/render/portrait';
 import { lockup, type Rgba } from './lockup';
 import { LOCKUP, LOCKUP_MARK, LOCKUPS, PAGE_DARK, PAGE_LIGHT, SHOTS } from './picks';
@@ -32,7 +32,7 @@ declare global {
   }
 }
 
-const portraits = new Portraits(PLACEHOLDER_LOOK);
+const portraits = new Portraits(PAGE_LOOK);
 
 /** Every output and lock-up, by name, and each shot's time. */
 async function draw(): Promise<{ images: Record<string, Rgba>; shotsMs: number[] }> {

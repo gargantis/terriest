@@ -28,7 +28,7 @@ import { BUILD_INPUTS } from './build-info';
 import { config, type RenderQuality } from './config';
 import { buildHash } from './core/session/index';
 import { createCodeDrawer } from './render/drawers/code';
-import { PLACEHOLDER_LOOK } from './render/look';
+import { PAGE_LOOK } from './render/look';
 import { createStage } from './render/scene';
 import type { Stage } from './render/stage-types';
 import { ProfileStore } from './storage/profile';
@@ -83,7 +83,7 @@ async function start(boot: Boot): Promise<void> {
   // A model's URL only from a spec's hook, as a shipped model's would load (D-27); '' in the MVP.
   const modelUrl = typeof test?.modelUrl === 'string' ? test.modelUrl : config.terrierModelUrl;
   const makeStage = (quality: RenderQuality): Stage | null =>
-    createStage({ quality, look: PLACEHOLDER_LOOK, drawer: createCodeDrawer, capacity: 2 * config.packSizeMax, modelUrl });
+    createStage({ quality, look: PAGE_LOOK, drawer: createCodeDrawer, capacity: 2 * config.packSizeMax, modelUrl });
   const stage = makeStage(settings.get().quality);
   if (stage === null) {
     boot.noWebGL2();

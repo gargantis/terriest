@@ -19,7 +19,7 @@
 import { config } from '../../src/config';
 import { RUNNING, STANDING } from '../../src/core/sim/state';
 import { FACE_DARK } from '../../src/render/drawers/code';
-import { PLACEHOLDER_LOOK } from '../../src/render/look';
+import { PAGE_LOOK } from '../../src/render/look';
 import type { PortraitLights, PortraitPart, PortraitShot } from '../../src/render/portrait';
 import type { LockupSpec } from './lockup';
 import type { PostOp } from './post';
@@ -84,7 +84,7 @@ export const SHOTS: readonly Shot[] = [
     scene: { ...HEAD_ON, catchlight: true, frame: { parts: HEAD, pad: 0.005 } },
     outputs: [{
       name: 'apple', size: 180,
-      post: [{ op: 'badge', colour: PLACEHOLDER_LOOK.pitch.grass, scale: 0.8, square: true, shadow: { blur: 0.025, dy: 0.02, opacity: 0.35, colour: PAGE_DARK } }],
+      post: [{ op: 'badge', colour: PAGE_LOOK.pitch.grass, scale: 0.8, square: true, shadow: { blur: 0.025, dy: 0.02, opacity: 0.35, colour: PAGE_DARK } }],
     }],
   },
 ];

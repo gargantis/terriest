@@ -60,7 +60,7 @@ import { CELEBRATION, defaultParams, KICKOFF_COUNTDOWN, type MatchSettings } fro
 import { type RoomCall, type RoomReport, type Spread, type VirtualRoom, virtualRoom } from './bench/virtual-room';
 import type { Boot } from './main';
 import { createCodeDrawer } from './render/drawers/code';
-import { PLACEHOLDER_LOOK } from './render/look';
+import { PAGE_LOOK } from './render/look';
 import { createStage } from './render/scene';
 import type { RenderInfo, ResourceCounts, Stage } from './render/stage-types';
 import { MatchView } from './render/view';
@@ -431,7 +431,7 @@ export function run(boot: Boot): void {
     boot.started();
     return;
   }
-  const stage = createStage({ quality: p.quality, look: PLACEHOLDER_LOOK, drawer: createCodeDrawer, capacity: 2 * config.packSizeMax, modelUrl: '' });
+  const stage = createStage({ quality: p.quality, look: PAGE_LOOK, drawer: createCodeDrawer, capacity: 2 * config.packSizeMax, modelUrl: '' });
   if (stage === null) {
     boot.noWebGL2();
     return;
@@ -591,11 +591,11 @@ class Bench {
         sample = scriptSampler('brain', this.me, base, P, B);
       },
     );
-    const view = new MatchView(m, PLACEHOLDER_LOOK, () => ({ calmCamera: false, names: true }), new BarkTracker(this.me));
+    const view = new MatchView(m, PAGE_LOOK, () => ({ calmCamera: false, names: true }), new BarkTracker(this.me));
     this.view = view;
     const settings = benchSettings(this.p.quality);
     const screen = pitchScreen({
-      match: m, stage: this.drawStage, view, controls: null, settings, profile: benchProfile(this.me), look: PLACEHOLDER_LOOK, test: false,
+      match: m, stage: this.drawStage, view, controls: null, settings, profile: benchProfile(this.me), look: PAGE_LOOK, test: false,
       announce: () => {}, openMenu: () => {}, closeMenu: () => {}, leave: () => this.finish('error', 'the bench was left'), ui: () => {},
       setMode: () => {}, results: () => this.finish('results'), page: browserPage, invite: null,
     }, PITCH_LAYERS);

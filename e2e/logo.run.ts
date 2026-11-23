@@ -11,15 +11,16 @@
 // public/favicon.ico, favicon.svg and apple-touch-icon.png, and
 // docs/brand/logo.png, lockup-light.png and lockup-dark.png. Without the
 // variable it refuses at once, and it refuses to write over a file in the
-// repo, as the repo's root as the folder would, unless
-// TERRIEST_LOGO_OVERWRITE=1. On C-6's GPU path while GALLIUM_DRIVER is set
-// (e2e/lib/gl.ts), as the committed files were drawn: another GPU, or
-// software, draws a little differently, so the run logs what drew. The page
-// is watched as the gate watches one: no console error, and no request
-// outside its own address. Named .run.ts, so the gate's
-// playwright.config.ts, which matches *.spec.ts, never runs it.
+// repo, as the repo's root as the folder would, however the folder reaches
+// it, by a symbolic link too, unless TERRIEST_LOGO_OVERWRITE=1. On C-6's
+// GPU path while GALLIUM_DRIVER is set (e2e/lib/gl.ts), as the committed
+// files were drawn: another GPU, or software, draws a little differently,
+// so the run logs what drew. The page is watched as the gate watches one:
+// no console error, and no request outside its own address. Named .run.ts,
+// so the gate's playwright.config.ts, which matches *.spec.ts, never runs
+// it.
 
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,15 +43,21 @@ function inside(dir: string, file: string): boolean {
   return r !== '' && !r.startsWith('..') && !isAbsolute(r);
 }
 
-/** The folder's files, refused at once without the variable, or where one would write over a file in the repo. */
+/**
+ * The folder's files, refused at once without the variable, or where one would write over a file in the repo. Each
+ * file that exists is placed by its real path, and the repo by its own, so a folder that reaches the repo by a
+ * symbolic link, as a shell's logical $PWD can, is refused as the repo's root is; a file that doesn't exist yet
+ * writes over nothing.
+ */
 function targets(): string[] {
   if (OUT === undefined || OUT === '') {
     throw new Error("Refusing to run without TERRIEST_LOGO_OUT: set it to the folder the files go to, or to the repo's root with TERRIEST_LOGO_OVERWRITE=1 to replace the committed ones");
   }
   const files = LOGO_FILES.map((path) => resolve(OUT, path));
-  const committed = files.filter((file) => inside(ROOT, file) && existsSync(file));
+  const root = realpathSync(ROOT);
+  const committed = files.filter((file) => existsSync(file)).map((file) => realpathSync(file)).filter((file) => inside(root, file));
   if (committed.length > 0 && !OVERWRITE) {
-    throw new Error(`Refusing to write over ${committed.map((f) => relative(ROOT, f)).join(', ')} without TERRIEST_LOGO_OVERWRITE=1`);
+    throw new Error(`Refusing to write over ${committed.map((f) => relative(root, f)).join(', ')} without TERRIEST_LOGO_OVERWRITE=1`);
   }
   return files;
 }
