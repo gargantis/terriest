@@ -13,7 +13,8 @@ describe('public/_headers', () => {
   it('marks the hashed assets immutable, and nothing else', () => {
     expect(rules.map((r) => r.pattern)).toEqual(['/assets/*', '/*']);
     expect(header('/assets/index-abc123.js', 'Cache-Control')).toBe('public, max-age=31536000, immutable');
-    for (const path of ['/', '/index.html', '/boot.js', '/THIRD-PARTY-LICENSES.txt']) {
+    // The icons keep their names from build to build, so they're revalidated too (D-35).
+    for (const path of ['/', '/index.html', '/boot.js', '/THIRD-PARTY-LICENSES.txt', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png']) {
       expect(header(path, 'Cache-Control'), path).toBeUndefined();
     }
   });

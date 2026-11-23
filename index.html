@@ -8,8 +8,15 @@
          screen, the HUD and the touch controls in their own styles. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="referrer" content="no-referrer" />
-    <!-- An empty icon: otherwise Firefox asks for favicon.ico, which isn't shipped (M0). -->
-    <link rel="icon" href="data:," />
+    <!-- The icons, each linked relatively so the site works from a subpath (L232). In
+         the tab: favicon.svg, which shows a light outline on a dark tab, where an engine
+         takes SVG icons, and favicon.ico, at 16, 32 and 48 px, where it doesn't; the
+         ICO's sizes say 32x32, not any, so an engine that takes both picks the SVG, as
+         the common recipe has it. On a phone's home screen: apple-touch-icon.png,
+         180 × 180 and full bleed, since iOS fills a transparent one with black. -->
+    <link rel="icon" href="favicon.ico" sizes="32x32" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <title>terriest</title>
     <style>
       html, body { margin: 0; height: 100%; }
