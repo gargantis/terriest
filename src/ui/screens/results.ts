@@ -2,9 +2,11 @@
 // D-8, D-12, D-14, Q-15, Q-17, C-26, C-50; L153, L154, M3-Q24, M4-Q26): the
 // confirmed end, its final score and winner; a table of each terrier's
 // name, pack, goals and touches, saying under it that a shared goal counts
-// for each sharer (C-26); the Terriest, or Terriests when level (D-8); Play
-// again, focused first, which in a match with others reads "Join the next
-// match" once an AGAIN has arrived (roslambo's), and Home; and below them
+// for each sharer (C-26), a bot's swatch a robot's head and " bot" heard
+// after its name (bot-head.ts, the owner, 2026-11-23); the Terriest, or
+// Terriests when level (D-8); Play again, focused first, which in a match
+// with others reads "Join the next match" once an AGAIN has arrived
+// (roslambo's), and Home; and below them
 // all, the Network figures with Copy (readout.ts, M3-Q24): a match with
 // others' rows, its late inputs, resyncs and repairs among them, or
 // Practice's own. Q-17's nav works the three buttons, with its guard: only a
@@ -28,6 +30,7 @@ import { h, setText } from '../dom';
 import type { Announcement } from '../inspect';
 import { ButtonNav } from '../nav';
 import { addStyle } from '../style';
+import { botWord, terrierSwatch } from './bot-head';
 import { type CopyEnv, summaryPanel } from './readout';
 import css from './results.css?inline';
 import { coatName, coatSwatch, packName, packSwatch, type Screen, screenStyles } from './screen';
@@ -111,7 +114,7 @@ export function resultsScreen(host: ResultsHost): Screen {
       // The cell a table cell, its rule and the "you" band the row's whole height; its swatch, name and tags
       // laid out in a box inside it (phase 2d's review).
       h('th', { scope: 'row', class: 'name' }, h('span', { class: 'name-row' },
-        coatSwatch(look, r.coat), h('span', {}, r.name), coatName(look, r.coat),
+        terrierSwatch(coatSwatch(look, r.coat), r.id), h('span', {}, r.name), botWord(r.id), coatName(look, r.coat),
         r.you ? h('span', { class: 'tag' }, 'you') : null,
         r.terriest ? h('span', { class: 'tag' }, 'Terriest') : null)),
       h('td', {}, h('span', { class: 'pack-cell' }, packSwatch(look.packs[r.pack]), r.packName)),

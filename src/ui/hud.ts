@@ -18,9 +18,11 @@
 //   empty meter (C-20), shows why.
 // - A spectator's follow choice (L167, D-28, §3.4): Ball and a button for
 //   each terrier drawn, by pack and spot, pack A's first, as Pre-match's
-//   lists and Results order them, the one followed pressed; a tap on one,
-//   and Q-17's next and prev, the view key's and the shoulders', going
-//   along that order, each go through the host's setMode.
+//   lists and Results order them, a bot's swatch a robot's head and its
+//   name heard as "… bot" (screens/bot-head.ts, the owner, 2026-11-23),
+//   the one followed pressed; a tap on one, and Q-17's next and prev, the
+//   view key's and the shoulders', going along that order, each go through
+//   the host's setMode.
 // - "Graphics were lost; restoring" while the stage's context is lost, as
 //   PitchContext.graphics says (D-30), under the plain message once that
 //   covers the pitch; the message and its 5 s are the pitch screen's.
@@ -47,6 +49,7 @@ import { h, setClass, setShown, setText } from './dom';
 import css from './hud.css?inline';
 import type { HudInspection } from './inspect';
 import type { Layer, PitchContext, PitchHost } from './layer';
+import { botWord, terrierSwatch } from './screens/bot-head';
 import { packName, packSwatch } from './screens/screen';
 import { addStyle } from './style';
 
@@ -239,12 +242,13 @@ export function hudLayer(host: PitchHost): HudLayer {
   };
 
   /** A choice's button: its check mark, seen while it's pressed and never heard, since aria-pressed says so;
-   *  a terrier's pack's swatch; and its name. */
+   *  a terrier's pack's swatch, a bot's a robot's head; and its name, a bot's heard as "… bot". */
   const choice = (value: Follow, text: string, pack: Pack | null): { value: Follow; el: HTMLButtonElement; check: HTMLElement } => {
     const check = h('span', { class: 'hud-follow-check', 'aria-hidden': 'true', hidden: true }, '✓');
     const el = h('button', {
       type: 'button', class: 'hud-follow-choice', 'aria-pressed': 'false', 'data-follow': value ?? 'ball', onclick: () => choose(value),
-    }, check, pack === null ? null : packSwatch(look.packs[pack]), h('span', { class: 'hud-follow-name' }, text));
+    }, check, value === null || pack === null ? null : terrierSwatch(packSwatch(look.packs[pack]), value),
+    h('span', { class: 'hud-follow-name' }, text), value === null ? null : botWord(value));
     return { value, el, check };
   };
 

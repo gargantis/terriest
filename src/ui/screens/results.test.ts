@@ -5,7 +5,7 @@ import { botIds, botName, botNames, personId } from '../../core/bot/bot-id';
 import type { ConfirmedEnd, MatchNetSummary, ResultRow } from '../../core/session/index';
 import { PLACEHOLDER_LOOK } from '../../render/look';
 import { FakeClock } from '../clock-testing';
-import { cssDeclarations, fake, FakeEvent, type FakeDocument, installDom, only, shownText } from '../dom-testing';
+import { cssDeclarations, fake, FakeEvent, type FakeDocument, heardText, installDom, only, shownText } from '../dom-testing';
 import type { Announcement } from '../inspect';
 import { COPIED } from './readout';
 import { FakeCopy, quantiles, summaryOf } from './readout-testing';
@@ -23,7 +23,8 @@ import { focusScreen } from './screen';
 
 const LOOK = PLACEHOLDER_LOOK;
 const ME = personId(7, 0);
-const BOT = `${'1a2b'}${'0'.repeat(28)}`;
+/** Another host's first bot, a bot by its ID (isBot), as every page tells one. */
+const BOT = botIds(personId(7, 1))[0]!;
 /** Its name, as its host's JOIN gives it (the owner, 2026-11-22). */
 const BOT_NAME = botName(BOT);
 const row = (id: string, pack: 0 | 1, o: Partial<ResultRow> = {}): ResultRow => ({
@@ -113,6 +114,16 @@ describe('the Results screen (Q-17, M4-Q26)', () => {
     // Each coat by its name beside its swatch, never its colour alone (§5.14): Ada's coat 0, the bot's 4.
     expect(only(table, 'tbody').children.map((tr) => shownText(tr))).toEqual([
       `Ada${LOOK.coats[0]!.name}youTerriestBlue30`, `${BOT_NAME}${LOOK.coats[4]!.name}Orange00`,
+    ]);
+    // The bot's swatch a robot's head, and its name heard as "… bot" in its row's header, which names the row;
+    // Ada's swatch round and her name as it is (the owner, 2026-11-23).
+    const names = only(table, 'tbody').children.map((tr) => only(tr, 'th'));
+    expect(names.map((th) => [only(th, '.swatch').className, only(th, '.swatch').querySelectorAll('svg').length, heardText(th)])).toEqual([
+      ['swatch coat', 0, `Ada${LOOK.coats[0]!.name}youTerriest`], ['swatch coat bot', 1, `${BOT_NAME} bot${LOOK.coats[4]!.name}`],
+    ]);
+    // The name still the row box's second child, after the swatch, as the specs find it, the word right after it.
+    expect(names.map((th) => only(th, '.name-row').children.slice(1, 3).map((c) => [c.className, c.textContent]))).toEqual([
+      [['', 'Ada'], ['coat-name', LOOK.coats[0]!.name]], [['', BOT_NAME], ['visually-hidden', ' bot']],
     ]);
     // Each row's header a table cell like the others, so the row's rule and the "you" band run level across
     // it: the flex layout on a box inside the cell, never on the cell (phase 2d's review).

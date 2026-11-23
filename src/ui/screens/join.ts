@@ -7,9 +7,11 @@
 // the roster has returned and skips Join, its terrier taken back at once
 // (L215, D-17): the app's move, before this screen offers anything. Then
 // each pack: its swatch, its free places and who's in it, each by name and
-// coat; Play in either pack, the smaller suggested (the first on a tie), a
-// full pack's marked aria-disabled and reading "full", every Play so once
-// the start countdown has locked the roster; and Watch, which moves up
+// coat, a bot's swatch a robot's head and " bot" heard after its name
+// (bot-head.ts, the owner, 2026-11-23); Play in either pack, the smaller
+// suggested (the first on a tie), a full pack's marked aria-disabled and
+// reading "full", every Play so once the start countdown has locked the
+// roster; and Watch, which moves up
 // beside the status when it's the only choice, both packs full or the
 // match started, so it shows without scrolling past the packs (phase 2b's
 // review, P8). Its controls are
@@ -26,6 +28,7 @@ import { h, isEnabled, setShown, setText } from '../dom';
 import type { Match } from '../match-types';
 import { ButtonNav, padOnly } from '../nav';
 import { addStyle } from '../style';
+import { botWord, terrierSwatch } from './bot-head';
 import css from './join.css?inline';
 import { playButton, playText } from './propose';
 import { coatName, coatSwatch, codeGroups, packName, packSwatch, type Screen, screenStyles } from './screen';
@@ -152,7 +155,8 @@ export function joinScreen(host: JoinHost): JoinScreen {
       x.key = key;
       setText(x.count, `${rows.length} of ${F.packSize}`);
       x.list.replaceChildren(
-        ...rows.map((T) => h('li', {}, coatSwatch(look, T.coat), h('span', { class: 'name' }, shownName(T.name, T.id)), coatName(look, T.coat))),
+        ...rows.map((T) => h('li', {},
+          terrierSwatch(coatSwatch(look, T.coat), T.id), h('span', { class: 'name' }, shownName(T.name, T.id)), botWord(T.id), coatName(look, T.coat))),
         ...Array.from({ length: Math.max(0, F.packSize - rows.length) }, () => h('li', { class: 'free' }, 'A free place')),
       );
     }

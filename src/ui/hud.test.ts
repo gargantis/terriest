@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../config';
-import { botName, personId } from '../core/bot/bot-id';
+import { botIds, botName, personId } from '../core/bot/bot-id';
 import type { ConfirmedGoal } from '../core/session/index';
 import { CELEBRATION, defaultParams, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
 import type { UiCommand } from '../input/source';
 import type { CameraMode } from '../render/frame';
-import { cssDeclarations, cssLength, fake, type FakeDocument, FakeElement, installDom, only, shownText } from './dom-testing';
+import { cssDeclarations, cssLength, fake, type FakeDocument, FakeElement, heardText, installDom, only, shownText } from './dom-testing';
 import {
   bannerText, clockText, countdownText, followed, followOrder, goalText, GRAPHICS_NOTE, hudLayer, nameList, nextFollow, OWN_GOAL, percent,
   takenBackText,
@@ -31,7 +31,8 @@ import { type Calls, drawnOf, FakeControls, FakeStage, FakeView, StateMatch, sta
 const P = defaultParams;
 const TPS = config.ticksPerSecond;
 const ME = personId(7, 0);
-const BOT = `${'b'.repeat(4)}${'0'.repeat(28)}`;
+/** Ada's first bot, a bot by its ID (isBot), as every page tells one. */
+const BOT = botIds(ME)[0]!;
 /** Its name, as its host's JOIN gives it (the owner, 2026-11-22). */
 const BOT_NAME = botName(BOT);
 
@@ -319,8 +320,12 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
     // The one followed by a check mark too, never by colour alone, seen but not heard (§5.14).
     expect(buttons.map((b) => shownText(b))).toEqual(['✓Ball', 'Ada', 'Bea', BOT_NAME]);
     expect(only(buttons[0]!, '.hud-follow-check').getAttribute('aria-hidden')).toBe('true');
-    // Each terrier's with its pack's swatch, in its colour and pattern (L43).
-    expect(buttons.slice(1).map((b) => only(b, '.swatch').className)).toEqual(['swatch pack plain', 'swatch pack plain', 'swatch pack striped']);
+    // Each terrier's with its pack's swatch, in its colour and pattern (L43), the bot's a robot's head in its
+    // swatch's box, and the bot's name heard as "… bot", never seen so (the owner, 2026-11-23).
+    expect(buttons.slice(1).map((b) => only(b, '.swatch').className)).toEqual(['swatch pack plain', 'swatch pack plain', 'swatch pack striped bot']);
+    expect(buttons.slice(1).map((b) => only(b, '.swatch').querySelectorAll('svg').length)).toEqual([0, 0, 1]);
+    expect(only(buttons[3]!, '.swatch').style.getPropertyValue('--c')).toBe('#f07a1a');
+    expect(buttons.map((b) => heardText(b))).toEqual(['Ball', 'Ada', 'Bea', `${BOT_NAME} bot`]);
     expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false']);
     expect([r.seen().following, r.seen().meter]).toEqual(['ball', null]);
     buttons[2]!.click();
@@ -331,6 +336,16 @@ describe("the HUD layer's goals, graphics and follow choice (§5.8, D-28, D-30, 
     expect(r.seen().following).toBe(BEA);
     r.layer.frame!(r.ctx());
     expect(r.seen().following).toBe(BEA);
+    // The bot's pressed as any other: its check mark seen, its head kept, its outline the pressed button's dark
+    // text, as the head draws it in the text's colour (bot-head.ts).
+    buttons[3]!.click();
+    r.layer.frame!(r.ctx());
+    expect([r.modes.at(-1), r.seen().following]).toEqual([{ kind: 'spectator', follow: BOT }, BOT]);
+    expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false', 'true']);
+    expect([shownText(buttons[3]!), heardText(buttons[3]!), only(buttons[3]!, '.swatch').className]).toEqual([`✓${BOT_NAME}`, `${BOT_NAME} bot`, 'swatch pack striped bot']);
+    expect(only(only(buttons[3]!, '.swatch'), 'path.bot-line').style.getPropertyValue('fill')).toBe('currentColor');
+    const pressed = cssDeclarations(readFileSync(new URL('./hud.css', import.meta.url), 'utf8'), '.hud .hud-follow-choice[aria-pressed="true"]');
+    expect(pressed['color']).toBe('var(--primary-fg)');
     buttons[0]!.click();
     r.layer.frame!(r.ctx());
     expect([r.modes.at(-1), r.seen().following]).toEqual([{ kind: 'spectator', follow: null }, 'ball']);

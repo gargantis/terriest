@@ -5,7 +5,9 @@
 // - Each pack's list from the final state, rebuilt only when it changes
 //   (roslambo's): each terrier's name (a bot's from the robot dogs' list,
 //   D-39 and the owner's request of 2026-11-22), its coat's swatch and
-//   name, and Ready, your row marked "you", and the free places.
+//   name, and Ready, your row marked "you", and the free places; a bot's
+//   swatch a robot's head, and " bot" heard after its name (bot-head.ts,
+//   the owner, 2026-11-23).
 // - Ready, a player's, focused from the screen's entry, aria-disabled and
 //   saying why until it can act ("Getting the pitch ready…", "Joining…"),
 //   then "Ready" or "Ready ✓", pressed again to cancel (L146), following the
@@ -32,6 +34,7 @@ import type { Look } from '../render/look';
 import { h, isEnabled, setEnabled, setShown, setText } from './dom';
 import type { Match } from './match-types';
 import css from './prematch.css?inline';
+import { botWord, terrierSwatch } from './screens/bot-head';
 import { invitePanel, inviteButtons, type InviteOptions } from './screens/invite';
 import { coatName, coatSwatch, packName, packSwatch, screenStyles } from './screens/screen';
 import { addStyle } from './style';
@@ -266,7 +269,7 @@ export function prematchPanel(host: PrematchHost): PrematchPanel {
       setText(x.count, `${rows.length} of ${F.packSize}`);
       x.list.replaceChildren(
         ...rows.map((row) => h('li', { class: row.you ? 'you' : '' },
-          coatSwatch(look, row.coat), h('span', { class: 'name' }, row.name), coatName(look, row.coat),
+          terrierSwatch(coatSwatch(look, row.coat), row.id), h('span', { class: 'name' }, row.name), botWord(row.id), coatName(look, row.coat),
           row.you ? h('span', { class: 'tag' }, 'you') : null,
           h('span', { class: 'ready' }, row.ready ? 'Ready ✓' : 'Not ready'))),
         ...Array.from({ length: Math.max(0, F.packSize - rows.length) }, () => h('li', { class: 'free' }, 'A free place')),

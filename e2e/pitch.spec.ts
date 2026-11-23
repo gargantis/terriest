@@ -22,7 +22,9 @@
 // apart, robot dogs' names as their host named them in turn, and every
 // name on the list keeps to one line in a bot's row, its Ready inside the
 // panel, at 640 × 360 and at a phone's size held sideways (the owner,
-// 2026-11-22). Three tests, one load each (§9.9).
+// 2026-11-22); each bot's row shows a robot's head for its swatch and is
+// heard as "… bot", the person's neither, axe on them (the owner,
+// 2026-11-23). Three tests, one load each (§9.9).
 // Nothing here depends on the frame rate: the rate is measured
 // and reported, with the GL path, never judged. What's drawn is read off a
 // capture taken at a steady drawing buffer: WebKit's capture of a WebGL
@@ -38,8 +40,8 @@ import type { Inspection } from '../src/main';
 import { GL_PATH } from './lib/gl';
 import { expect, expectWebGL2, test } from './lib/guards';
 import {
-  expectAxeClean, expectStarted, inspect, installHook, monotonicMs, namesInRow, openPractice, overlayOf, POLL_MS, seedStorage, smallViewport,
-  steadyCapture, waitForInspection, waitForScreen,
+  expectAxeClean, expectStarted, inspect, installHook, markText, monotonicMs, namesInRow, openPractice, overlayOf, POLL_MS, rowMarks, seedStorage,
+  smallViewport, steadyCapture, waitForInspection, waitForScreen,
 } from './lib/page';
 import { type Image, meanColour } from './lib/png';
 
@@ -163,6 +165,12 @@ test("Practice's Pre-match draws the pitch from the player's ball view, fills th
   expect(await unfittedNames(page), `list names past a bot's row at ${smallViewport.width}×${smallViewport.height}`).toEqual([]);
   // The measure sees a wrap: C-17's longest name, of its widest letter, takes two lines in the same row.
   expect((await namesInRow(page, BOT_ROW, [longName]))[0]!.lines, "20 W's in a bot's row").toBeGreaterThan(1);
+  // Each bot's row marked as a bot's, its swatch a robot's head drawn in the swatch's own box and " bot" heard
+  // after its name, the person's row neither (the owner, 2026-11-23).
+  const marked = (await rowMarks(page, '.prematch-pack li:not(.free)', '.name')).map(markText).sort();
+  expect(marked, "the rows' marks").toEqual(
+    [...botsNamed.map((name) => markText({ name, head: true, heardAsBot: true })), markText({ name: longName, head: false, heardAsBot: false })].sort(),
+  );
 
   // The one landmark, the app's, with the pitch a named image in it (M4-Q1), and axe (§5.14).
   await expect(page.getByRole('main')).toHaveCount(1);

@@ -3,7 +3,9 @@
 // screens and layers built with it, so their tests run the real modules
 // without a browser or a DOM library (M4 adds no dependency, §11). It keeps
 // what the screens touch and the rules their behaviour rests on: an
-// element's attributes, classes, style, hidden flag and text; the focus,
+// element's attributes, classes, style, hidden flag and text, an SVG
+// element's too (createElementNS, a bot's head, the owner, 2026-11-23);
+// its text as seen and as heard (shownText, heardText); the focus,
 // which a hidden, detached or disabled element can't take, as in a
 // browser, where Q-17's aria-disabled buttons keep it (§1.42); the
 // window's scroll, each scrollTo and scrollIntoView recorded; events
@@ -186,8 +188,14 @@ export class FakeStyle {
   }
 }
 
+/** HTML's namespace, an element's unless createElementNS names another, such as SVG's. */
+const HTML_NS = 'http://www.w3.org/1999/xhtml';
+
 export class FakeElement extends FakeNode {
+  /** As the DOM's: an HTML element's upper-cased, another namespace's as created ('svg', 'path'). */
   readonly tagName: string;
+  readonly localName: string;
+  readonly namespaceURI: string;
   readonly childNodes: FakeNode[] = [];
   readonly style = new FakeStyle();
   readonly classList: FakeClassList = new FakeClassList(this);
@@ -200,9 +208,12 @@ export class FakeElement extends FakeNode {
   private valueNow: string | null = null;
   private readonly attrs = new Map<string, string>();
 
-  constructor(doc: FakeDocument, tag: string) {
+  constructor(doc: FakeDocument, tag: string, namespaceURI = HTML_NS) {
     super(doc);
-    this.tagName = tag.toUpperCase();
+    const html = namespaceURI === HTML_NS;
+    this.tagName = html ? tag.toUpperCase() : tag;
+    this.localName = html ? tag.toLowerCase() : tag;
+    this.namespaceURI = namespaceURI;
   }
 
   get value(): string {
@@ -351,18 +362,19 @@ export class FakeElement extends FakeNode {
   }
 }
 
-/** One compound selector: a tag, then any .class and [attr] or [attr="v"] parts. */
+/** One compound selector: a tag, then any .class and [attr] or [attr="v"] parts. A tag matches an element's
+ *  local name, an HTML element's in any case, as a page's selectors do, and an SVG element's lower-case one. */
 function compile(selector: string): (el: FakeElement) => boolean {
   const parts = selector.match(/^([a-zA-Z][a-zA-Z0-9-]*)?((?:\.[\w-]+|\[[\w-]+(?:="[^"]*")?\])*)$/);
   if (parts === null) throw new Error(`the fake DOM reads no selector like ${selector}`);
-  const tag = parts[1]?.toUpperCase() ?? null;
+  const tag = parts[1]?.toLowerCase() ?? null;
   const tests: ((el: FakeElement) => boolean)[] = [];
   for (const m of (parts[2] ?? '').matchAll(/\.([\w-]+)|\[([\w-]+)(?:="([^"]*)")?\]/g)) {
     const [, cls, attr, value] = m;
     if (cls !== undefined) tests.push((el) => el.classList.contains(cls));
     else if (attr !== undefined) tests.push((el) => (value === undefined ? el.hasAttribute(attr) : el.getAttribute(attr) === value));
   }
-  return (el) => (tag === null || el.tagName === tag) && tests.every((t) => t(el));
+  return (el) => (tag === null || el.localName === tag) && tests.every((t) => t(el));
 }
 
 /** The document's window, as far as the screens use one: its scroll, each move recorded, and a computed
@@ -405,6 +417,10 @@ export class FakeDocument extends FakeNode {
     return new FakeElement(this, tag);
   }
 
+  createElementNS(namespaceURI: string, tag: string): FakeElement {
+    return new FakeElement(this, tag, namespaceURI);
+  }
+
   createTextNode(data: string): FakeText {
     return new FakeText(this, data);
   }
@@ -428,10 +444,18 @@ export function installDom(): { readonly document: FakeDocument; restore(): void
 /** A real-typed element as the fake it is. */
 export const fake = (el: unknown): FakeElement => el as FakeElement;
 
-/** The element's visible text, without its hidden descendants. */
+/** The element's visible text, without its hidden descendants, nor its visually hidden ones (screens.css'
+ *  .visually-hidden), which only a screen reader meets (heardText). */
 export function shownText(el: FakeElement): string {
-  if (el.hidden) return '';
+  if (el.hidden || el.classList.contains('visually-hidden')) return '';
   return el.childNodes.map((n) => (n instanceof FakeElement ? shownText(n) : n.textContent)).join('');
+}
+
+/** The element's text as a screen reader meets it: its visually hidden descendants' too, but not its hidden
+ *  ones' nor those marked aria-hidden. */
+export function heardText(el: FakeElement): string {
+  if (el.hidden || el.getAttribute('aria-hidden') === 'true') return '';
+  return el.childNodes.map((n) => (n instanceof FakeElement ? heardText(n) : n.textContent)).join('');
 }
 
 /** The one element under root matching selector: a test's failure if none or several. */

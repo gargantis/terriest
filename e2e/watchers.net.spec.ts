@@ -38,7 +38,9 @@
 //   names from the list, in its packs' lists, on a watcher's follow choice
 //   and in Join's lists, none cut short or wrapped in either list, nor any
 //   name on the list, at 640 × 360 and at a phone's size: held sideways for
-//   the follow choice, as a phone watches, and upright for Join.
+//   the follow choice, as a phone watches, and upright for Join. Each bot's
+//   follow button and Join row shows a robot's head for its swatch and is
+//   heard as "… bot", the proposer's neither (the owner, 2026-11-23).
 // - Every page logged no error and requested nothing but the preview and
 //   the relay (expectEverywhere).
 // The peer counts are the hook's match.peers, the match's status().peers.
@@ -52,7 +54,7 @@ import type { Inspection } from '../src/main';
 import { startNostrRelay } from '../vendor/hermet/nostr-relay.mjs';
 import { type AppPage, launch, openAppPage, SPEC_SEED } from './lib/browsers';
 import { expect, expectEverywhere, test } from './lib/guards';
-import { expectAxeClean, inspect, monotonicMs, namesInRow, POLL_MS, waitForInspection, waitForScreen } from './lib/page';
+import { expectAxeClean, inspect, markText, monotonicMs, namesInRow, POLL_MS, rowMarks, waitForInspection, waitForScreen } from './lib/page';
 
 const PACK_SIZE = 2; // not a setting: the room's (§9.3)
 const MINUTES = 1; // not a setting: the room's
@@ -277,6 +279,11 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     expect([await cut(), await unfitted()], "names cut short on a watcher's follow choice, then the list's in a follow button").toEqual([[], []]);
     // The measure sees a name cut short: C-17's longest, of its widest letter, ends in an ellipsis there.
     expect((await namesInRow(viewer, followRow, ['W'.repeat(config.displayNameMaxChars)]))[0]!.clipped, 'a follow button cutting 20 W short').toBe(true);
+    // Each bot's button marked as a bot's, its swatch a robot's head drawn in the swatch's own box and its name
+    // heard as "… bot", the proposer's neither (the owner, 2026-11-23); Join's rows the same, below.
+    const marks = [nameOf(0), ...names].map((name) => markText({ name, head: name !== nameOf(0), heardAsBot: name !== nameOf(0) })).sort();
+    const followMarks = await rowMarks(viewer, '[data-test="hud-follow"] button:not([data-follow="ball"])', '.hud-follow-name');
+    expect(followMarks.map(markText).sort(), "the follow choice's marks").toEqual(marks);
     await viewer.setViewportSize(PHONE_SIDEWAYS);
     expect([await cut(), await unfitted()], `the same at ${PHONE_SIDEWAYS.width}×${PHONE_SIDEWAYS.height}`).toEqual([[], []]);
     await viewer.setViewportSize({ width: 640, height: 360 });
@@ -291,6 +298,7 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     for (const name of names) {
       await expect(leaver.page.locator('.join-pack li').getByText(name, { exact: true }), `${name} in Join's lists`).toHaveCount(1);
     }
+    expect((await rowMarks(leaver.page, '.join-pack li:not(.free)', '.name')).map(markText).sort(), "Join's rows' marks").toEqual(marks);
     // Pack B's rows are the proposer's bots alone.
     const joinUnfitted = async (): Promise<unknown[]> =>
       (await namesInRow(leaver.page, { row: '[data-test="join-pack-1"] li:not(.free)', name: '.name', inside: '.join-pack', within: '.coat-name' }, BOT_NAMES))

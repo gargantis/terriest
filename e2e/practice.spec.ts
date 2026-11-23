@@ -32,7 +32,9 @@
 //   robot dog's name its host gave it, the person's name taken, and every
 //   name on the list on one line in the bot's Results row, the table inside
 //   its screen, at 640 × 360 and at a phone's width held upright (the
-//   owner, 2026-11-22).
+//   owner, 2026-11-22); the bot's Results row shows a robot's head for its
+//   swatch and is heard as "… bot", the person's neither (the owner,
+//   2026-11-23).
 // - Through the controls, in each engine, the gamepad stubbed: on
 //   Pre-match no hints before a control is used; your mark drawn and on top
 //   of the HUD and the panel, a click on the pitch leaving the focus on
@@ -63,7 +65,7 @@ import type { Control } from '../src/input/source';
 import type { Inspection } from '../src/main';
 import { PAD, setButton, setStick } from './lib/gamepad';
 import { expect, expectWebGL2, test } from './lib/guards';
-import { acceptLeavePrompt, expectStarted, hintsOf, hudOf, namesInRow, overlayOf, POLL_MS, smallViewport } from './lib/page';
+import { acceptLeavePrompt, expectStarted, hintsOf, hudOf, markText, namesInRow, overlayOf, POLL_MS, rowMarks, smallViewport } from './lib/page';
 import {
   AFTER_WARM_UP_TICKS, anchorAfter, barksSeen, BOT, clearReadyStates, copiedFrom, emulateHidden, expectBotFirst, expectFocusOnce, expectGaugeShort,
   expectNothingContacted, FIRST_GOAL_MS, focused, gaugeSeen, kickoffWhistles, lastInputBy, PracticeRun, readoutSeen, RESULTS_MS, SHOWN_MS, topAt,
@@ -211,6 +213,11 @@ test.describe('the whole match', () => {
       // after (the owner, 2026-11-22).
       const botRow = '[data-test="results"] tbody tr:not(.you)';
       await expect(page.locator(`${botRow} th .name-row > span:nth-child(2)`), "the bot's row on Results").toHaveText([BOT_NAME]);
+      // The bot's row marked as a bot's, its swatch a robot's head and " bot" heard in its row's header after its
+      // name, the person's row neither (the owner, 2026-11-23).
+      expect((await rowMarks(page, '[data-test="results"] tbody th', '.name-row > span:nth-child(2)')).map(markText), "Results' rows' marks").toEqual([
+        markText({ name: LONG_NAME, head: false, heardAsBot: false }), markText({ name: BOT_NAME, head: true, heardAsBot: true }),
+      ]);
       const unfitted = async (): Promise<object[]> =>
         (await namesInRow(page, { row: botRow, name: 'th .name-row > span:nth-child(2)', inside: '.screen.results', within: 'th, td' }, BOT_NAMES))
           .filter((f) => f.lines !== 1 || f.clipped || !f.inside);

@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { config } from '../../config';
-import { personId } from '../../core/bot/bot-id';
+import { botIds, botName, personId } from '../../core/bot/bot-id';
 import { formatMatchId } from '../../core/match-id';
 import { ENDED, IN_PLAY, type MatchSettings, type MatchState, type Pack, START_COUNTDOWN } from '../../core/sim/index';
 import type { UiCommand } from '../../input/source';
 import { PLACEHOLDER_LOOK } from '../../render/look';
-import { cssDeclarations, fake, FakeEvent, type FakeDocument, type FakeElement, installDom, only, shownText } from '../dom-testing';
+import { cssDeclarations, fake, FakeEvent, type FakeDocument, type FakeElement, heardText, installDom, only, shownText } from '../dom-testing';
 import { MemoryProfile, stateWith, StateMatch } from '../pitch-testing';
 import { homeScreen, NOT_A_CODE } from './home';
 import { COPIED, invitePanel, NOT_COPIED } from './invite';
@@ -235,6 +235,25 @@ describe('Join (§5.6, M4-Q2)', () => {
     button(el, 'watch').click();
     button(el, 'join-home').click();
     expect(chose).toEqual(['play 1', 'watch', 'home']);
+  });
+
+  it("draws a bot's swatch as a robot's head and says \" bot\" after its name, a person's row as it was (the owner, 2026-11-23)", () => {
+    const { s, el } = join();
+    // Ada's first bot, a bot by its ID (isBot), beside her in pack A, and Bea in pack B.
+    const bot = botIds(B(0))[0]!;
+    const name = botName(bot, ['Ada']);
+    s.update(new StateMatch(ME, stateWith(2, 100, [{ id: B(0), pack: 0, name: 'Ada', coat: 2 }, { id: bot, pack: 0, name, coat: 6 }, { id: B(1), pack: 1, name: 'Bea' }])));
+    const coat = (k: number): string => LOOK.coats[k]!.name;
+    const rows = [...only(el, '[data-test="join-pack-0"]').children, only(el, '[data-test="join-pack-1"]').children[0]!];
+    expect(rows.map((li) => [only(li, '.swatch').className, only(li, '.swatch').querySelectorAll('svg').length])).toEqual([
+      ['swatch coat', 0], ['swatch coat bot', 1], ['swatch coat', 0],
+    ]);
+    // Heard: " bot" right after the bot's name; seen: every row as it was.
+    expect(rows.map((li) => li.children.map((c) => c.className))).toEqual([
+      ['swatch coat', 'name', 'coat-name'], ['swatch coat bot', 'name', 'visually-hidden', 'coat-name'], ['swatch coat', 'name', 'coat-name'],
+    ]);
+    expect(rows.map((li) => heardText(li))).toEqual([`Ada${coat(2)}`, `${name} bot${coat(6)}`, `Bea${coat(0)}`]);
+    expect(rows.map((li) => shownText(li))).toEqual([`Ada${coat(2)}`, `${name}${coat(6)}`, `Bea${coat(0)}`]);
   });
 
   it('suggests the first pack on a tie, and none once the countdown has locked the roster, every Play saying so', () => {

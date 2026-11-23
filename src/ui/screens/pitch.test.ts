@@ -8,7 +8,7 @@ import type { UiCommand } from '../../input/source';
 import { PLACEHOLDER_LOOK } from '../../render/look';
 import { type BarkSource, MatchView } from '../../render/view';
 import { FakeClock, fakePage } from '../clock-testing';
-import { cssDeclarations, cssLength, fake, type FakeDocument, FakeEvent, installDom, only, shownText } from '../dom-testing';
+import { cssDeclarations, cssLength, fake, type FakeDocument, FakeEvent, heardText, installDom, only, shownText } from '../dom-testing';
 import { hudLayer } from '../hud';
 import type { Layer, LayerFactory, PitchContext, PitchHost } from '../layer';
 import { practiceMatch } from '../match';
@@ -467,6 +467,27 @@ describe('the pitch screen (M4\'s design §1.43)', () => {
     expect(shownText(b)).toBe(`${BOT_NAME}${coat(5)}Ready ✓A free place`);
     expect(a.children[0]).toBe(before); // pack A's list unchanged, not rebuilt
     expect(shownText(r.screen.el as never)).toContain('1 of 2');
+    r.screen.dispose();
+  });
+
+  it("draws a bot's swatch as a robot's head and says \" bot\" after its name, a person's row as it was (the owner, 2026-11-23)", async () => {
+    // Practice's first bot, a bot by its ID (isBot), beside Ada in pack A, and Bea in pack B.
+    const bot = botIds(ME)[0]!;
+    const name = botName(bot, ['Ada']);
+    const BEA = personId(7, 1);
+    const r = rig({ state: stateWith(2, 100, [{ id: ME, pack: 0, name: 'Ada', coat: 2 }, { id: bot, pack: 0, name, coat: 0 }, { id: BEA, pack: 1, name: 'Bea', coat: 4 }]) });
+    await r.stage.finish();
+    const coat = (k: number): string => PLACEHOLDER_LOOK.coats[k]!.name;
+    const rows = [...only(r.screen.el, '[data-test="pack-0"]').children.slice(0, 2), only(r.screen.el, '[data-test="pack-1"]').children[0]!];
+    expect(rows.map((li) => [only(li, '.swatch').className, only(li, '.swatch').querySelectorAll('svg').length])).toEqual([
+      ['swatch coat', 0], ['swatch coat bot', 1], ['swatch coat', 0],
+    ]);
+    // Heard: " bot" right after the bot's name; seen: every row as it was.
+    expect(rows.map((li) => li.children.map((c) => c.className))).toEqual([
+      ['swatch coat', 'name', 'coat-name', 'tag', 'ready'], ['swatch coat bot', 'name', 'visually-hidden', 'coat-name', 'ready'], ['swatch coat', 'name', 'coat-name', 'ready'],
+    ]);
+    expect(rows.map((li) => heardText(li))).toEqual([`Ada${coat(2)}youNot ready`, `${name} bot${coat(0)}Not ready`, `Bea${coat(4)}Not ready`]);
+    expect(rows.map((li) => shownText(li))).toEqual([`Ada${coat(2)}youNot ready`, `${name}${coat(0)}Not ready`, `Bea${coat(4)}Not ready`]);
     r.screen.dispose();
   });
 
