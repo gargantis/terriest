@@ -13,7 +13,7 @@ import type { DrawnMatch } from './frame';
 // The shadows' look, the spike's: a terrier's 0.62 m across on its 0.25 m
 // radius and the ball's 1.7 m on its 0.8 m, shrinking as the body rises to
 // at most this share of their size.
-const TERRIER_SHADOW_RADII = 2.48;
+export const TERRIER_SHADOW_RADII = 2.48;
 const BALL_SHADOW_RADII = 2.125;
 /** Shrinking with the body's height over the floor, to its smallest at this height. */
 const FADE_HEIGHT_METRES = 5;

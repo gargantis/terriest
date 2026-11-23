@@ -210,6 +210,14 @@ npm run build && TERRIEST_LOAD_OUT=research/load/results.json npx playwright tes
 
 It refuses to run without `TERRIEST_LOAD_OUT`, which names the file its raw reports go to, and `LOAD_SECONDS` sets the play it measures. It also watches the backlog: every 2 s of the play it reads each page's report, and `dev/load/backlog.ts` works out each receiver's backlog, how many more TICKs its senders have sent it than it has taken since the first poll, in seconds of their output by their own ticks. It's summed over the receiver's senders, so one link alone behind shows at its share. Each page's line ends with its largest backlog; the last line gives the largest of all, whether and when one passed d + w (0.233 s), when the first late input showed, the intervals it left out, with the mesh not whole through them, and the machine's 1-minute load; and the file holds every poll. When a check fails, its message starts with what the backlog shows: a backlog past d + w no later than the first late input means the rig's message path fell behind first, the machine's capacity rather than the protocol's; inputs late before that, and the message says how many, and that the watch can't tell which failed first. `docs/acceptance.md` logs its runs.
 
+## Draw the logo
+
+The icons in `public/`, and the logo and its lock-ups in `docs/brand/`, are drawn from the game's own terrier, so a new look (Q-11) draws them again. With the dev server running, http://localhost:5173/dev/logo.html draws them, dev only; a run outside the gate writes the files at the repo's paths under the folder `TERRIEST_LOGO_OUT` names, refuses without it, and won't write over the committed files without `TERRIEST_LOGO_OVERWRITE=1`. On the development machine's GPU path it draws them byte for byte in about 10 s:
+
+```sh
+GALLIUM_DRIVER=d3d12 TERRIEST_LOGO_OUT="$(mktemp -d)" npx playwright test -c playwright.logo.config.ts
+```
+
 ## Build
 
 ```sh

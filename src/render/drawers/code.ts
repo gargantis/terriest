@@ -58,7 +58,27 @@ export type CodePart = 'body' | 'head' | 'snout' | 'face' | 'ear' | 'leg' | 'tai
 export type TerrierGeometries = Readonly<Record<Exclude<CodePart, 'cue'>, BufferGeometry>> & { readonly cue: BufferGeometry | null };
 
 /** The eyes and the nose: no look's choice. */
-const FACE_DARK = 0x1b1714;
+export const FACE_DARK = 0x1b1714;
+
+/** Each part's segments, as three's geometries take them: the body's and the head's spheres, the snout's, and the
+ *  eyes' and the nose's, each [width, height]; the ears' cones [radial, height]; the legs' and the tail's capsules
+ *  [cap, radial, height]; the bandana's torus [radial, tubular]. */
+export interface TerrierSegments {
+  readonly body: readonly [number, number];
+  readonly snout: readonly [number, number];
+  readonly face: readonly [number, number];
+  readonly ear: readonly [number, number];
+  readonly leg: readonly [number, number, number];
+  readonly tail: readonly [number, number, number];
+  readonly bandana: readonly [number, number];
+}
+
+/** The play distance's, which the drawing budget counts (§2.11); a close-up, as dev/logo.html's portraits, takes
+ *  more of them. */
+export const PLAY_SEGMENTS: TerrierSegments = {
+  body: [16, 10], snout: [10, 6], face: [6, 4], ear: [8, 1], leg: [3, 8, 1], tail: [2, 6, 1], bandana: [6, 16],
+};
+
 /** The striped bandana's stripes round the band, and their dark's share of the pack's colour. */
 const STRIPES = 8;
 const STRIPE_DARK = 0.28;
@@ -90,24 +110,25 @@ export function cueGeometry(cue: PackCue): BufferGeometry | null {
 
 /** The code-built terrier's geometries, in its own frame (src/render/drawers/pose.ts): the head's parts about the
  *  neck pivot, the rest about the floor point; and the look's pack cue, if any. */
-export function terrierGeometries(shape: TerrierShape, cue: PackCue = 'none'): TerrierGeometries {
+export function terrierGeometries(shape: TerrierShape, cue: PackCue = 'none', segments: TerrierSegments = PLAY_SEGMENTS): TerrierGeometries {
   const s = shape;
-  const body = new SphereGeometry(1, 16, 10).scale(s.body.radii[0], s.body.radii[1], s.body.radii[2]);
-  const head = new SphereGeometry(s.head.radius, 16, 10).translate(s.head.centre[0], 0, s.head.centre[2]);
-  const snout = new SphereGeometry(1, 10, 6).scale(s.snout.radii[0], s.snout.radii[1], s.snout.radii[2]).translate(s.snout.centre[0], 0, s.snout.centre[2]);
-  const eye = (side: number): BufferGeometry => new SphereGeometry(s.eyes.radius, 6, 4).translate(s.eyes.centre[0], side * s.eyes.centre[1], s.eyes.centre[2]);
-  const nose = new SphereGeometry(s.nose.radius, 6, 4).translate(s.nose.centre[0], 0, s.nose.centre[2]);
+  const n = segments;
+  const body = new SphereGeometry(1, ...n.body).scale(s.body.radii[0], s.body.radii[1], s.body.radii[2]);
+  const head = new SphereGeometry(s.head.radius, ...n.body).translate(s.head.centre[0], 0, s.head.centre[2]);
+  const snout = new SphereGeometry(1, ...n.snout).scale(s.snout.radii[0], s.snout.radii[1], s.snout.radii[2]).translate(s.snout.centre[0], 0, s.snout.centre[2]);
+  const eye = (side: number): BufferGeometry => new SphereGeometry(s.eyes.radius, ...n.face).translate(s.eyes.centre[0], side * s.eyes.centre[1], s.eyes.centre[2]);
+  const nose = new SphereGeometry(s.nose.radius, ...n.face).translate(s.nose.centre[0], 0, s.nose.centre[2]);
   const parts = [eye(1), eye(-1), nose];
   const face = mergeGeometries(parts);
   for (const g of parts) g.dispose();
   if (!face) throw new Error('could not merge the face');
   // Cones and capsules stand along +y; turned to stand along +z from their pivot.
-  const ear = new ConeGeometry(s.ear.radius, s.ear.height, 8).rotateX(Math.PI / 2).translate(0, 0, s.ear.height / 2);
-  const leg = new CapsuleGeometry(s.legs.radius, s.legs.length - 2 * s.legs.radius, 3, 8).rotateX(Math.PI / 2).translate(0, 0, -s.legs.length / 2);
-  const tail = new CapsuleGeometry(s.tail.radius, s.tail.length - 2 * s.tail.radius, 2, 6).rotateX(Math.PI / 2).translate(0, 0, s.tail.length / 2);
-  const bandanaPlain = new TorusGeometry(s.bandana.radius, s.bandana.tube, 6, 16);
+  const ear = new ConeGeometry(s.ear.radius, s.ear.height, ...n.ear).rotateX(Math.PI / 2).translate(0, 0, s.ear.height / 2);
+  const leg = new CapsuleGeometry(s.legs.radius, s.legs.length - 2 * s.legs.radius, ...n.leg).rotateX(Math.PI / 2).translate(0, 0, -s.legs.length / 2);
+  const tail = new CapsuleGeometry(s.tail.radius, s.tail.length - 2 * s.tail.radius, ...n.tail).rotateX(Math.PI / 2).translate(0, 0, s.tail.length / 2);
+  const bandanaPlain = new TorusGeometry(s.bandana.radius, s.bandana.tube, ...n.bandana);
   // Stripes need crisp edges, so each triangle is coloured alone.
-  const bandanaStriped = new TorusGeometry(s.bandana.radius, s.bandana.tube, 6, 16).toNonIndexed();
+  const bandanaStriped = new TorusGeometry(s.bandana.radius, s.bandana.tube, ...n.bandana).toNonIndexed();
   const pos = bandanaStriped.getAttribute('position');
   const colours = new Float32Array(pos.count * 3);
   for (let i = 0; i < pos.count; i += 3) {

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- An empty icon: no favicon request. -->
+    <link rel="icon" href="data:," />
+    <title>terriest logo</title>
+    <!-- The owner's logo and icons of 2026-11-22, drawn from the game's own terrier:
+         dev only, served by `npm run dev`, never built. e2e/logo.run.ts writes the files. -->
+    <style>
+      html, body { margin: 0; }
+      body { background: #f3f3f3; color: #1d2b1f; font: 14px/1.45 system-ui, sans-serif; }
+      main { max-width: 72rem; padding: 12px 16px; }
+      h1 { font-size: 18px; margin: 0 0 6px; }
+      h1 small { font-weight: normal; color: #5a665c; }
+      p { margin: 4px 0 10px; }
+      button { font: inherit; padding: 4px 12px; }
+      #pictures { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: 16px; margin-top: 12px; }
+      figure { margin: 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+      figcaption { flex-basis: 100%; font-size: 12px; color: #5a665c; }
+      canvas { display: block; }
+      canvas.fit { max-width: calc(50% - 4px); height: auto; }
+      canvas.pixels { image-rendering: pixelated; height: auto; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>terriest logo <small>dev only, never built</small></h1>
+      <p>
+        The tab icon, the phone's icon, the logo and its lock-ups, as the owner picked them, drawn from the game's own
+        terrier in the look the page draws. Draw takes a few seconds on a GPU, and minutes in software.
+        <code>e2e/logo.run.ts</code> writes the files.
+      </p>
+      <button id="draw" type="button">Draw</button>
+      <p id="status" role="status"></p>
+      <div id="pictures"></div>
+    </main>
+    <script type="module" src="./logo/main.ts"></script>
+  </body>
+</html>

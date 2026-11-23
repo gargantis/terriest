@@ -11,7 +11,7 @@ import { makeSim, step } from '../../core/sim/step';
 import { type DrawerFrame, TERRIER_LAYER, type TerrierDrawer, type TerrierFrame } from '../drawer';
 import { type Look, PLACEHOLDER_LOOK, type TerrierShape } from '../look';
 import { type BarkSource, MatchView, type ViewTimeline } from '../view';
-import { createCodeDrawer, terrierGeometries, triangleCount } from './code';
+import { createCodeDrawer, PLAY_SEGMENTS, terrierGeometries, type TerrierSegments, triangleCount } from './code';
 import { newPartMatrices, newPoseParams, poseParts, pushingWeight, rootMatrix, terrierPose } from './pose';
 
 // The code-built drawer (M4's design §1.4, §2.11, §9.2; D-27, L310), in
@@ -340,6 +340,20 @@ describe("the drawer's budget and painting (§2.11, D-27, L43, L44)", () => {
     const d = createCodeDrawer(PLACEHOLDER_LOOK, CAPACITY);
     expect(d.counts().trianglesPerTerrier).toBe(each);
     d.dispose();
+  });
+
+  it("takes a close-up's segments, as dev/logo.html's portraits do: the same parts in the same places, finer", () => {
+    const play = terrierGeometries(PLACEHOLDER_LOOK.terrier);
+    // Each count doubled, so every vertex at the play distance is one of the close-up's too.
+    const doubled = Object.fromEntries(Object.entries(PLAY_SEGMENTS).map(([part, n]: [string, readonly number[]]) => [part, n.map((k) => 2 * k)])) as unknown as TerrierSegments;
+    const close = terrierGeometries(PLACEHOLDER_LOOK.terrier, 'none', doubled);
+    for (const part of ['body', 'head', 'snout', 'face', 'ear', 'leg', 'tail', 'bandanaPlain', 'bandanaStriped'] as const) {
+      expect(triangleCount(close[part]), part).toBeGreaterThanOrEqual(3 * triangleCount(play[part]));
+      const [a, b] = [play[part], close[part]].map((g) => (g.computeBoundingBox(), g.boundingBox!));
+      expect(b!.containsBox(a!), `${part}'s box`).toBe(true);
+      // Within a millimetre: the face's eyes and nose are spheres of two sizes, so the coarser's sag shifts its box.
+      expect(b!.getCenter(new Vector3()).distanceTo(a!.getCenter(new Vector3())), `${part}'s centre`).toBeLessThan(1e-3);
+    }
   });
 
   it('paints every coat and both packs by index, each part from its coat, each bandana in its pack\'s colour and pattern', () => {
