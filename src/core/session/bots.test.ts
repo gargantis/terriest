@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { botCoat, botIds, botName, personId } from '../bot/bot-id';
+import { BOT_NAMES, botCoat, botId, botIds, botName, botNames, personId } from '../bot/bot-id';
 import { defaultBotParams, newBrain, think } from '../bot/brain';
 import {
   decode, encodeState as encodeStateMessage, type EventPayload, type InputRecord, NO_TICK, type StateMsg, type Tick, type TickEvent,
@@ -183,15 +183,17 @@ describe('BotHost (PLAN §14, D-39)', () => {
     const t = new FakeTimeline({ packSize: 2, matchMinutes: 1 });
     const host = new BotHost(me, P, B, ROOM);
     expect([host.add(0, t)!.id, host.add(1, t)!.id]).toEqual(ids.slice(0, 2));
+    // Named in turn, the second with the first's name taken (the owner, 2026-11-22).
+    const names = botNames(ids.slice(0, 2));
     expect(t.queued).toEqual(
-      [0, 1].map((k) => ({ who: ids[k], at: 0, e: { events: JOIN | READY, joinPack: k, coat: botCoat(ids[k]!, P.coatCount), name: botName(ids[k]!) } })),
+      [0, 1].map((k) => ({ who: ids[k], at: 0, e: { events: JOIN | READY, joinPack: k, coat: botCoat(ids[k]!, P.coatCount), name: names[k] } })),
     );
     expect([...t.bots.keys()]).toEqual(ids.slice(0, 2));
     // Its JOIN rides in tick 1 + d, final w later.
     run(t, host, 1 + D + W);
     for (const k of [0, 1]) {
       const T = t.terrier(ids[k]!)!;
-      expect([T.pack, T.coat, T.name, T.joinTick, ready(T, t.finalTick)]).toEqual([k, botCoat(ids[k]!, P.coatCount), botName(ids[k]!), 1 + D, true]);
+      expect([T.pack, T.coat, T.name, T.joinTick, ready(T, t.finalTick)]).toEqual([k, botCoat(ids[k]!, P.coatCount), names[k], 1 + D, true]);
     }
     run(t, host, 600);
     expect(t.queued, 'nothing more once the state shows them').toHaveLength(2);
@@ -679,6 +681,143 @@ describe('BotHost (PLAN §14, D-39)', () => {
     expect(t.terrier(ids[0]!)!.readyUntil - t.final.tick).toBeLessThanOrEqual(ROOM.botReadyRenewTicks);
     run(t, host, 200);
     expect(t.queued).toEqual([]);
+  });
+});
+
+// --- Names (the owner, 2026-11-22) ---
+
+/** A person present every tick from tick 1, named: its JOIN at joinAt, into pack. */
+function namedPerson(id: string, pack: Pack, name: string, joinAt = 1): (t: number) => TickInput {
+  return (t) => (t === joinAt ? { id, input: 0, events: JOIN, joinPack: pack, coat: 0, name } : { id, input: 0, events: 0 });
+}
+
+/** The list's k-th name from id's first choice on, round the end: what its walk meets. */
+const walk = (id: string, k: number): string => BOT_NAMES[(BOT_NAMES.indexOf(botName(id)) + k) % BOT_NAMES.length]!;
+
+/** Each JOIN's name queued for a bot, in order. */
+const joinNames = (t: FakeTimeline, id: string): (string | undefined)[] => t.events(id, JOIN).map((q) => q.e.name);
+
+/** The final state's names, which must differ. */
+const finalNames = (t: FakeTimeline): string[] => t.final.terriers.map((T) => T.name);
+
+describe("BotHost's names (the owner, 2026-11-22)", () => {
+  it("names every bot it adds in one go apart, none as its player, whose JOIN the state doesn't show yet (Practice's genesis)", () => {
+    // This browser's player is named as its first bot would be, and JOINs beside its bots, as Practice's does.
+    const mine = walk(ids[0]!, 0);
+    const t = new FakeTimeline({ packSize: 4, matchMinutes: 1 });
+    t.people = (tick) => [namedPerson(me, 0, mine, 1 + D)(tick)];
+    const host = new BotHost(me, P, B, ROOM, mine);
+    for (let k = 1; k < 4; k++) host.add(0, t);
+    for (let k = 0; k < 4; k++) host.add(1, t);
+    const want = botNames(ids.slice(0, 7), [mine]);
+    expect(ids.slice(0, 7).map((id) => joinNames(t, id))).toEqual(want.map((name) => [name]));
+    expect(want[0], "its first bot walks past its player's name").toBe(walk(ids[0]!, 1));
+    run(t, host, 1 + D + W);
+    const names = finalNames(t);
+    expect(names).toHaveLength(8);
+    expect(new Set(names).size, names.join(', ')).toBe(8);
+    expect(names.filter((n) => n !== mine).every((n) => BOT_NAMES.includes(n))).toBe(true);
+  });
+
+  it('takes no name a terrier has in the final state or the head: a person, another host\'s bot, or a JOIN only the head shows yet', () => {
+    // Another host whose first bot's first choice is this host's first bot's.
+    let other = '';
+    for (let k = 0; other === ''; k++) if (botName(botId(personId(9, k), 0)) === walk(ids[0]!, 0)) other = botId(personId(9, k), 0);
+    const x = personId(6, 0);
+    const z = personId(6, 1);
+    const t = new FakeTimeline({ packSize: 4, matchMinutes: 1 });
+    t.ahead = true;
+    const late = 60; // z's JOIN: in the head once the clock passes it, final w later
+    t.people = (tick) => [
+      namedPerson(other, 1, walk(ids[0]!, 0))(tick), namedPerson(x, 0, walk(ids[0]!, 1))(tick), namedPerson(z, 1, walk(ids[0]!, 2), late)(tick),
+    ];
+    const host = new BotHost(me, P, B, ROOM);
+    run(t, host, late);
+    expect([t.terrier(z), findTerrier(t.head, z) >= 0], "z's JOIN in the head alone").toEqual([undefined, true]);
+    host.add(0, t);
+    expect(joinNames(t, ids[0]!)).toEqual([walk(ids[0]!, 3)]);
+    run(t, host, 1 + D + W);
+    expect(new Set(finalNames(t)).size).toBe(4);
+  });
+
+  it("names a bot added as another leaves apart from it, and an ID that comes back its own name again (Remove, Practice's swap)", () => {
+    // A host whose first two bots would choose one name first.
+    let h = '';
+    for (let k = 0; h === ''; k++) if (botName(botId(personId(9, k), 0)) === botName(botId(personId(9, k), 1))) h = personId(9, k);
+    const [b0, b1] = botIds(h) as [string, string];
+    const t = new FakeTimeline({ packSize: 2, matchMinutes: 1 });
+    const host = new BotHost(h, P, B, ROOM);
+    host.add(0, t);
+    run(t, host, 1 + D + W);
+    const first = t.terrier(b0)!.name;
+    expect(first).toBe(botName(b0));
+    // In one tick, as Practice's Switch pack: a new bot, the next ID, in the other pack, and the first's LEAVE.
+    expect(host.add(1, t)!.id).toBe(b1);
+    expect(host.remove(0, t)).toBe(true);
+    expect(joinNames(t, b1)).toEqual([walk(b1, 1)]);
+    expect(walk(b1, 0), "the name it would take first, the leaving bot's").toBe(first);
+    run(t, host, 2 * (1 + D + W));
+    expect([host.hosted.map((b) => b.id), finalNames(t)]).toEqual([[b1], [walk(b1, 1)]]);
+    // The first ID free again: it comes back, and its name with it.
+    expect(host.add(0, t)!.id).toBe(b0);
+    expect(joinNames(t, b0)).toEqual([first, first]);
+  });
+
+  it("waits for a timeline to name Play again's bots, then names them apart and clear of the state's (D-12)", () => {
+    // The next match as a STATE brings it: a person in it already, named as the first bot would be.
+    const s = genesis({ packSize: 2, matchMinutes: 1 }, P);
+    const sim = makeSim(P, 2);
+    const x = personId(6, 0);
+    const taken = walk(ids[0]!, 0);
+    for (let u = 1; u <= 3; u++) step(sim, s, [namedPerson(x, 0, taken)(u)]);
+    const t = new FakeTimeline(s);
+    t.people = (tick) => [namedPerson(x, 0, taken, -1)(tick)];
+    t.started = false;
+    const host = new BotHost(me, P, B, ROOM);
+    host.add(0, t, true);
+    host.add(1, t, true);
+    host.tend(t, false);
+    expect(t.queued, 'no name before a timeline').toEqual([]);
+    t.started = true;
+    host.adopt(t);
+    host.tend(t, false);
+    const want = botNames(ids.slice(0, 2), [taken]);
+    expect(ids.slice(0, 2).map((id) => joinNames(t, id))).toEqual(want.map((name) => [name]));
+    run(t, host, 1 + D + W);
+    expect(finalNames(t).sort()).toEqual([taken, ...want].sort());
+    expect(new Set(finalNames(t)).size).toBe(3);
+  });
+
+  it("names a JOIN that goes again afresh: a person who took its name meanwhile keeps it, and so does a new timeline's", () => {
+    const t = new FakeTimeline({ packSize: 2, matchMinutes: 1 });
+    const x = personId(6, 0);
+    const name = walk(ids[0]!, 0);
+    t.people = (tick) => [namedPerson(x, 0, name, 5)(tick)];
+    const host = new BotHost(me, P, B, ROOM);
+    // Its first JOIN lost; before it goes again, x joins under the name it carried.
+    t.lose.add(ids[0]!);
+    host.add(1, t);
+    run(t, host, 400);
+    expect(joinNames(t, ids[0]!)).toEqual([name, walk(ids[0]!, 1)]);
+    expect([t.terrier(x)!.name, t.terrier(ids[0]!)!.name]).toEqual([name, walk(ids[0]!, 1)]);
+    // A JOIN on its way when a merge's timeline comes goes again in it, named from what that one holds:
+    // there y joined under the name the JOIN carried.
+    const a = new FakeTimeline({ packSize: 2, matchMinutes: 1 });
+    const other = new BotHost(me, P, B, ROOM);
+    a.lose.add(ids[0]!);
+    other.add(1, a);
+    expect(joinNames(a, ids[0]!)).toEqual([name]);
+    const merged = new FakeTimeline({ packSize: 2, matchMinutes: 1 });
+    const y = personId(6, 1);
+    merged.people = (tick) => [namedPerson(y, 0, name)(tick)];
+    while (merged.finalTick <= 1) merged.advance();
+    expect(merged.terrier(y)!.name).toBe(name);
+    const next = new FakeTimeline(merged.final);
+    next.people = merged.people;
+    other.reset(next);
+    other.adopt(next);
+    other.tend(next, false);
+    expect(joinNames(next, ids[0]!)).toEqual([walk(ids[0]!, 1)]);
   });
 });
 

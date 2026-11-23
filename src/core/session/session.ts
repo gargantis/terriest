@@ -391,7 +391,7 @@ export class Session implements RoomPeer {
     this.L =
       cfg.wire ??
       wireLimits({ ...config, inputDelayTicks: tl.delay, lateWindowTicks: tl.window, stateHistoryTicks: tl.history, inputHistoryTicks: tl.inputHistory });
-    this.bots = new BotHost(cfg.me, cfg.P, cfg.B, cfg.net.room);
+    this.bots = new BotHost(cfg.me, cfg.P, cfg.B, cfg.net.room, cfg.name);
     this.current = this.newTimeline();
     const again = cfg.again;
     if (again !== undefined) {

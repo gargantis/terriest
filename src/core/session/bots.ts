@@ -25,7 +25,14 @@
 //   input, as the session's onControl does (D-10, M3 phase 4);
 // - a narrow timeline interface, BotTimeline, so this builds beside the
 //   timeline (design §0): timeline.ts's Timeline satisfies it, which the
-//   session's tests assert.
+//   session's tests assert;
+// - from the owner's request of 2026-11-22, a robot dog's name (botName),
+//   picked as each JOIN goes, so that it's none that another terrier in
+//   the final state or the head has, nor another of this host's bots, nor
+//   this browser's player's, whose JOIN can still be on its way, as
+//   Practice's is beside its bots' at genesis. Two pages that add bots
+//   before either's JOIN reaches the other can still pick one name: each
+//   sees only what has reached it.
 // Pure: the timeline it's handed is its only way out.
 
 import { botCoat, botIds, botName } from '../bot/bot-id';
@@ -71,10 +78,13 @@ export interface HostedBot {
   triedOther: boolean;
 }
 
-/** The sampler's memory beside a hosted bot's. */
+/** The sampler's memory beside a hosted bot's, and its name. */
 interface Hosted extends HostedBot {
   thought: number; // the head tick it last thought on, −1 for none
   input: number; // what it thought then
+  /** The name the state shows, or until it shows the bot, the one its last JOIN carried: '' before
+   *  its first, which waits for a timeline. */
+  name: string;
 }
 
 const NONE = -1; // not a setting: no tick
@@ -84,15 +94,18 @@ export class BotHost {
   private readonly B: BotParams;
   private readonly room: RoomSettings;
   private readonly ids: readonly string[]; // botIds(me): the IDs this browser gives its bots, in order
+  /** This browser's player's name, its JOIN's, which no bot of its takes. */
+  private readonly myName: string;
   private readonly list: Hosted[] = [];
   private adoptedFor: BotTimeline | null = null;
   private resetFor: BotTimeline | null = null;
 
-  constructor(me: string, P: SimParams, B: BotParams, room: RoomSettings) {
+  constructor(me: string, P: SimParams, B: BotParams, room: RoomSettings, myName = '') {
     this.P = P;
     this.B = B;
     this.room = room;
     this.ids = botIds(me);
+    this.myName = myName;
   }
 
   /** The bots hosted, oldest first: wanted ones, and removed ones until their LEAVE is final. */
@@ -113,7 +126,7 @@ export class BotHost {
   }
 
   /** A bot for pack, under the first of this browser's bot IDs neither hosted nor in the final roster:
-   *  its JOIN | READY with botCoat and botName go in the next input, or once a timeline is held. Only a
+   *  its JOIN | READY with botCoat and its name go in the next input, or once a timeline is held. Only a
    *  free ID and the warm-up are checked here, so Practice's swap can JOIN a place its SWITCH frees in
    *  the same tick (D-22); a person's Add checks canAdd first. `again`: Play again's bot, which takes the
    *  other pack when its own is full (D-12). Null with no free ID, or from the start countdown on. */
@@ -124,7 +137,7 @@ export class BotHost {
     if (id === null) return null;
     const b: Hosted = {
       id, pack, brain: newBrain(id, 0, this.P, this.B), wanted: true,
-      joinSentAt: NONE, readySentAt: NONE, leaveAt: NONE, triedOther: !again, thought: NONE, input: 0,
+      joinSentAt: NONE, readySentAt: NONE, leaveAt: NONE, triedOther: !again, thought: NONE, input: 0, name: '',
     };
     this.list.push(b);
     t.bots.set(id, this.sampler(b, t));
@@ -167,11 +180,15 @@ export class BotHost {
       const T = s.terriers[at]!;
       let b = this.list.find((x) => x.id === id);
       if (!b) {
-        b = { id, pack: T.pack, brain: newBrain(id, 0, this.P, this.B), wanted: true, joinSentAt: NONE, readySentAt: NONE, leaveAt: NONE, triedOther: true, thought: NONE, input: 0 };
+        b = {
+          id, pack: T.pack, brain: newBrain(id, 0, this.P, this.B), wanted: true,
+          joinSentAt: NONE, readySentAt: NONE, leaveAt: NONE, triedOther: true, thought: NONE, input: 0, name: T.name,
+        };
         this.list.push(b);
       }
       const n = t.newestInput(id);
       b.pack = T.pack;
+      b.name = T.name;
       b.brain = newBrain(id, n !== undefined && n.tick > t.finalTick ? n.input & KEPT_BITS : T.prevInput, this.P, this.B);
       b.thought = NONE;
       b.joinSentAt = NONE;
@@ -204,6 +221,7 @@ export class BotHost {
       const flying = t.eventsInFlight(b.id);
       if (T) {
         b.joinSentAt = NONE;
+        b.name = T.name;
         const renew = s.phase === WARM_UP && T.readyUntil - s.tick <= this.room.botReadyRenewTicks;
         if (renew && (flying & READY) === 0 && (b.readySentAt === NONE || f > b.readySentAt + retry)) {
           t.queueEvent(b.id, { events: READY });
@@ -289,10 +307,25 @@ export class BotHost {
     };
   }
 
+  /** Its JOIN | READY, named afresh each time it goes, so a retry, Play again's other pack and a new
+   *  timeline's JOIN each take what's free then: each goes only once the last is final without the state
+   *  showing the bot, or gone with its timeline. */
   private join(b: Hosted, t: BotTimeline): void {
-    t.queueEvent(b.id, { events: JOIN | READY, joinPack: b.pack, coat: botCoat(b.id, this.P.coatCount), name: botName(b.id) });
+    b.name = botName(b.id, this.taken(b, t));
+    t.queueEvent(b.id, { events: JOIN | READY, joinPack: b.pack, coat: botCoat(b.id, this.P.coatCount), name: b.name });
     b.joinSentAt = t.localTick;
     b.readySentAt = t.localTick;
+  }
+
+  /** The names b's JOIN may not carry (the owner, 2026-11-22): every other terrier's in the timeline's
+   *  final state and its head, the newest it holds; every other bot's this host names, joined or on its
+   *  way, so two it adds in one go, Practice's at genesis or Play again's as a timeline comes, never
+   *  share one; and this browser's player's, whose JOIN the state may not show yet. */
+  private taken(b: Hosted, t: BotTimeline): string[] {
+    const out: string[] = this.myName === '' ? [] : [this.myName];
+    for (const s of [t.final, t.head]) for (const T of s.terriers) if (T.id !== b.id && T.name !== '') out.push(T.name);
+    for (const x of this.list) if (x !== b && x.name !== '') out.push(x.name);
+    return out;
   }
 
   private unwant(b: Hosted, t: BotTimeline): void {

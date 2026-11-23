@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { BOT_SLOTS, botIds, isBot, personId } from '../core/bot/bot-id';
+import { BOT_NAMES, BOT_SLOTS, botIds, botName, botNames, isBot, personId } from '../core/bot/bot-id';
 import { defaultBotParams } from '../core/bot/brain';
 import { type ScriptName, scriptSampler } from '../core/bot/setups';
 import { T } from '../core/protocol/messages';
@@ -34,6 +34,7 @@ const D = NET.timeline.delay;
 interface Spec {
   readonly size?: number; // a side
   readonly seed?: number; // the person's ID is personId(seed, 0)
+  readonly name?: string; // the person's, 'P0' by default
   readonly script?: ScriptName;
   readonly net?: NetSettings;
   readonly verify?: number;
@@ -64,7 +65,7 @@ class Practice {
     };
     this.p = new PracticeSession(
       {
-        P, B, net: spec.net ?? NET, me: this.me, name: 'P0', coat: 0, settings: { packSize: spec.size ?? 2, matchMinutes: 1 },
+        P, B, net: spec.net ?? NET, me: this.me, name: spec.name ?? 'P0', coat: 0, settings: { packSize: spec.size ?? 2, matchMinutes: 1 },
         build: TEST_BUILD, verify: spec.verify ?? 8,
       },
       this.link,
@@ -336,6 +337,42 @@ describe('Switch pack (Q-15, D-22)', () => {
     expect(x.p.switchPack()).toBe(false);
     expect(x.p.session.bots.hosted).toHaveLength(1);
     expect(x.t.eventsInFlight(x.me)).toBe(0);
+  });
+});
+
+describe("bots' names (the owner, 2026-11-22)", () => {
+  /** Each terrier's name in the final roster, by ID. */
+  const nameOf = (x: Practice, id: string): string | undefined => x.F.terriers[findTerrier(x.F, id)]?.name;
+
+  it("names every bot apart from the others and the person, at each pack size, through Switch pack and Play again", () => {
+    // The person named as its first bot would choose first: the bot takes another.
+    const mine = botName(botIds(personId(3, 0))[0]!);
+    for (const size of [1, 2, 3, 4]) {
+      const x = new Practice({ size, name: mine });
+      x.until(() => full(x), 1000);
+      const bots = x.p.session.hostedBots();
+      expect(bots.map((id) => nameOf(x, id)), `${size} a side`).toEqual(botNames(bots, [mine]));
+      expect(nameOf(x, x.me)).toBe(mine);
+      const names = x.F.terriers.map((T) => T.name);
+      expect(new Set(names).size, `${size} a side: ${names.join(', ')}`).toBe(2 * size);
+      for (const id of bots) expect(BOT_NAMES, `${size} a side`).toContain(nameOf(x, id));
+      if (size === 1) continue;
+      // Switch pack: the new bot joins in the tick its rival leaves, named apart from that one too.
+      const leaving = bots.at(-1)!;
+      const was = nameOf(x, leaving)!;
+      expect(x.p.switchPack()).toBe(true);
+      const at = x.t.localTick + 1 + D;
+      x.until(() => x.F.tick >= at, 1000);
+      const fresh = x.p.session.hostedBots().find((id) => !bots.includes(id))!;
+      expect(findTerrier(x.F, leaving)).toBe(-1);
+      expect(nameOf(x, fresh)).toBe(botName(fresh, [mine, ...bots.map((id) => (id === leaving ? was : nameOf(x, id)!))]));
+      expect(new Set(x.F.terriers.map((T) => T.name)).size, `${size} a side, swapped`).toBe(2 * size);
+      // Play again: the next Practice's bots, the same IDs in the same order, take the same names.
+      x.run(200);
+      x.p = x.p.again(x.now, practiceTimelineId(new Uint8Array([size, 2, 3, 4, 5, 6, 7, 8])));
+      x.until(() => full(x), 1000);
+      expect(x.p.session.hostedBots().map((id) => nameOf(x, id)), `${size} a side, Play again`).toEqual(botNames(bots, [mine]));
+    }
   });
 });
 
