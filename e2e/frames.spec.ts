@@ -37,13 +37,20 @@ const POLL_MS = 250;
 const BENCH_DONE_MS = 26_000;
 const BENCH_TEST_MS = 30_000;
 /** The repair's: all eight in at worst 3.9 s from load (the start-up's stall in SwiftShader among it), 3 × 3.9
- *  + 2 = 13.7 s. The page's repair, from all eight in, on the page's clock: the start countdown and 1 s of play,
- *  8 s at worst; the hold's wait for a calm room, up to its 15 s (bench-F2; 0 to 4 s in phase 2b's review's
- *  runs); the 4.1 s hold and the repair, 1 s; 1.5 × 28.1 + 2 = 44.2 s. The whole test more than its waits and
- *  the start's together, so a wait fails first, with its status (bench-F2); it ran 15.7 to 19.6 s. */
+ *  + 2 = 13.7 s. The hold's start, from all eight in: the start countdown, which the eight's readies lengthen,
+ *  8.8 s at worst (CI's), 3 × 8.8 + 2 = 28.4 s; and on the page's clock 1 s of play, the hold's wait for a calm
+ *  room, up to its 15 s, and its lead (bench-F2), 1.5 × 16.1 + 2 = 26.2 s: 54.6 s. The repair, from the hold's
+ *  start: the 4.1 s hold, 1.5 × 4.1 + 2 = 8.2 s; then the repair, which a page slow to drain the held burst
+ *  lengthens, its first resyncs giving up before their STATEs come through it: 14.7 s at worst in twelve runs
+ *  on four cores at 3× CPU throttle, CI's over 11 s, 3 × 14.7 + 2 = 46.1 s: 54.3 s. The bench's window is both
+ *  waits and 10 s, so it never ends first. The whole test more than its waits and the start's together, so a
+ *  wait fails first, with its status (bench-F2); it ran 17.5 to 31.4 s in eleven runs on the development
+ *  machine, one pinned to four cores. */
 const EIGHT_IN_MS = 14_000;
-const REPAIRED_MS = 45_000;
-const REPAIR_TEST_MS = 30_000 + EIGHT_IN_MS + REPAIRED_MS + 5_000;
+const HOLD_BEGUN_MS = 55_000;
+const REPAIRED_MS = 55_000;
+const REPAIR_SECONDS = Math.ceil((HOLD_BEGUN_MS + REPAIRED_MS) / 1000) + 10;
+const REPAIR_TEST_MS = 30_000 + EIGHT_IN_MS + HOLD_BEGUN_MS + REPAIRED_MS + 5_000;
 /** The held frames' 5 s bench from load to its report: at worst 7.4 s in phase 2b's review's runs (load 1.4 to
  *  2.5), 3 × 7.4 + 2 = 24.2 s; the whole test as the 5 s bench's. */
 const HELD_DONE_MS = 26_000;
@@ -76,6 +83,7 @@ async function waitForBench(page: Page, until: (s: BenchStatus) => boolean, what
     const s = await page.evaluate(() => window.terriestTest?.bench?.status() ?? null);
     if (s !== null && until(s)) return report(page);
     if (s?.error) throw new Error(`${what}: the bench stopped: ${s.error}`);
+    if (s?.done) throw new Error(`${what}: the bench's window ended first: ${JSON.stringify(s)}`);
     if (performance.now() > deadline) throw new Error(`${what}: not within ${timeoutMs / 1000} s: ${JSON.stringify(s)}`);
     await page.waitForTimeout(POLL_MS);
   }
@@ -140,10 +148,12 @@ test('#test=frames&seconds=5 plays and reports, eight terriers in, no error', as
 
 test("repair=1 with a hold 1 s into play: the witness's Worker answers the page's STATE_REQ, and the page repairs from it (M4-Q18)", async ({ page, guard }) => {
   test.setTimeout(REPAIR_TEST_MS);
-  await page.goto('./#test=frames&quality=low&repair=1&holdAt=1&seconds=40');
+  await page.goto(`./#test=frames&quality=low&repair=1&holdAt=1&seconds=${REPAIR_SECONDS}`);
   await expectBenchPage(page);
   const all = await waitForBench(page, (x) => x.terriers === 8, 'all eight in, the witness among them', EIGHT_IN_MS);
   expect(all.room.peers.filter((p) => p.witness)).toHaveLength(1);
+  // The hold, armed 1 s into play, begun once the room is calm or 15 s after (bench-F2); the repair waited for from it.
+  await waitForBench(page, (x) => x.holdFromMs !== null, 'the hold, 1 s into play', HOLD_BEGUN_MS);
   // A resync done once the hold has begun: the forced one, whatever a transient did before it.
   const r = await waitForBench(
     page, (x) => x.resyncsAtHold !== null && x.resyncs > x.resyncsAtHold, "the page's repair from the witness's STATE", REPAIRED_MS,
