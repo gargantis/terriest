@@ -65,8 +65,8 @@
 //   from then, so a later transient of the witness's can't cascade into
 //   the page's (bench-F2);
 // - its report: the page's message calls, and the timer runs src/frames.ts
-//   times, from the hold to a second after the repair, with their steps;
-//   the backlog; the room's own time on the page, its brains, encoding and
+//   times, from the hold to a second after the repair, with their steps,
+//   a STATE's with its ticks; the backlog; the room's own time on the page, its brains, encoding and
 //   delivery, apart from the page's (an estimated 0.1–0.3 ms a tick); the
 //   age of each TICK the page's clock took as a sample, from its due time
 //   to its handling (§8.4's run 4); and the witness's STATEs.
@@ -212,6 +212,8 @@ export interface RoomCall {
   readonly kind: string;
   /** Steps of the simulation the call took (the timeline's). */
   readonly steps: number;
+  /** A STATE from the witness: its tick and its sender's, as the report's states have them. */
+  readonly state?: { readonly g: number; readonly senderTick: number };
 }
 
 /** The queue's backlog at a second: messages due and not delivered, by link (the peers' order) and summed. */
@@ -307,6 +309,8 @@ interface Due {
   readonly bytes: Uint8Array;
   /** An answer to this goes out as if from this connection. */
   readonly replyAs: string | null;
+  /** A STATE's ticks, for its call's record. */
+  readonly state?: RoomCall['state'];
 }
 
 const spread = (xs: readonly number[]): Spread => {
@@ -549,7 +553,7 @@ class Room {
             this.witnessStates++;
             if (m.state !== undefined) this.states.push({ atMs: sentAt, ...m.state });
           }
-          this.toPage(w, this.unvoted(m.bytes, sentAt), sentAt, m.as ?? w.peer, null);
+          this.toPage(w, this.unvoted(m.bytes, sentAt), sentAt, m.as ?? w.peer, null, m.state);
         } else if (m.bytes[0] === T.STATE_REQ) {
           // Its join's ask of a virtual player: the page answers as if it were that player.
           this.toPage(w, m.bytes, sentAt, w.peer, m.to);
@@ -633,8 +637,9 @@ class Room {
   }
 
   /** A message to the page on link l, sent at sentAt: its arrival the link's latency and jitter later; one sent
-   *  in the hold, at its end, every link's in the order sent; and never before the link's last (FIFO). */
-  private toPage(l: Link, bytes: Uint8Array, sentAt: number, peer: string, replyAs: string | null): void {
+   *  in the hold, at its end, every link's in the order sent; and never before the link's last (FIFO). A STATE
+   *  carries its ticks to its call's record. */
+  private toPage(l: Link, bytes: Uint8Array, sentAt: number, peer: string, replyAs: string | null, state?: RoomCall['state']): void {
     let due = sentAt + l.latency + this.rand() * this.o.jitterMs;
     const hold = this.holdFrom;
     if (hold !== null && sentAt >= hold && sentAt < hold + this.o.holdMs) due = Math.max(due, hold + this.o.holdMs);
@@ -648,7 +653,7 @@ class Room {
       if (q[mid]!.due <= due) lo = mid + 1;
       else hi = mid;
     }
-    q.splice(lo, 0, { due, link: l, peer, bytes, replyAs });
+    q.splice(lo, 0, { due, link: l, peer, bytes, replyAs, ...(state === undefined ? {} : { state }) });
   }
 
   /** The next due message, in a task of its own, unless one is posted already; the capacity's gap
@@ -713,7 +718,9 @@ class Room {
     this.byKind[kind] = (this.byKind[kind] ?? 0) + 1;
     if (this.messageMs.length < PER_TICK_KEPT) this.messageMs.push(ms);
     const took = (t?.stats.steps ?? 0) - steps;
-    if (at <= this.callsUntil && this.calls.length < CALLS_KEPT) this.calls.push({ at, ms, kind, steps: took });
+    if (at <= this.callsUntil && this.calls.length < CALLS_KEPT) {
+      this.calls.push({ at, ms, kind, steps: took, ...(m.state === undefined ? {} : { state: m.state }) });
+    }
     if (t !== null && t.stats.clockSamples > samples && this.sampleAges.length < PER_TICK_KEPT) {
       this.sampleAges.push(at - m.due);
       this.sampleAt.push(at);

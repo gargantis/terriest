@@ -106,15 +106,30 @@ describe("L286's verdict (M4-Q17, bench-F6, bench-F7)", () => {
 });
 
 describe("the forced repair's figures (M3-Q14, bench-F4)", () => {
-  it("reads its depth off the first STATE the witness sent from the hold's start, not a rejoin's or a transient's before it", () => {
+  it("reads its depth off the STATE the page took from the hold's start, not a rejoin's or a transient's before it", () => {
     const hold = { fromMs: 20_000, toMs: 24_100, resyncsBefore: 0, armedMs: 19_000, calm: true, repairedMs: 24_500 };
     const states = [{ atMs: 8_884, g: 499, senderTick: 512 }, { atMs: 24_150, g: 850, senderTick: 1107 }, { atMs: 24_700, g: 900, senderTick: 1110 }];
     const calls = [
-      { at: 24_120, ms: 0.2, kind: 'TICK', steps: 0 }, { at: 24_160, ms: 5.3, kind: 'STATE', steps: 14 }, { at: 24_170, ms: 7.1, kind: 'timer', steps: 20 },
+      { at: 24_120, ms: 0.2, kind: 'TICK', steps: 0 }, { at: 24_160, ms: 5.3, kind: 'STATE', steps: 14, state: { g: 850, senderTick: 1107 } },
+      { at: 24_170, ms: 7.1, kind: 'timer', steps: 20 },
     ];
     const r = repairFigures(calls, { hold, states, witnessStates: 3 }, 1);
     expect(r).toMatchObject({ back: 257, statesFromHold: 2, witnessStates: 3, adoptMs: 5.3, worstMs: 7.1, worstSteps: 20, steps: 34, resyncs: 1 });
     // No hold yet: no forced repair's depth, whatever came before.
     expect(repairFigures(calls, { hold: null, states, witnessStates: 3 }, 0)).toMatchObject({ back: null, statesFromHold: 0 });
+  });
+
+  it('times and measures the STATE the page took, not one sent before it that came too late for its resync', () => {
+    // The first STATE from the hold's start, 257 ticks back, comes through the held burst once its resync has moved
+    // on, and the page drops it, stepping nothing; it takes the next, its next resync's, 240 ticks back.
+    const hold = { fromMs: 20_000, toMs: 24_100, resyncsBefore: 0, armedMs: 19_000, calm: false, repairedMs: 26_900 };
+    const states = [{ atMs: 24_150, g: 850, senderTick: 1107 }, { atMs: 26_650, g: 1100, senderTick: 1340 }];
+    const calls = [
+      { at: 26_600, ms: 1.1, kind: 'STATE', steps: 0, state: { g: 850, senderTick: 1107 } }, { at: 26_620, ms: 0.2, kind: 'TICK', steps: 0 },
+      { at: 26_700, ms: 6.4, kind: 'STATE', steps: 14, state: { g: 1100, senderTick: 1340 } }, { at: 26_720, ms: 3.2, kind: 'timer', steps: 14 },
+    ];
+    expect(repairFigures(calls, { hold, states, witnessStates: 2 }, 1)).toMatchObject({
+      adoptMs: 6.4, back: 240, statesFromHold: 2, witnessStates: 2, worstMs: 6.4, worstSteps: 14, steps: 28, resyncs: 1,
+    });
   });
 });

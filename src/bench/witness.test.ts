@@ -118,9 +118,10 @@ describe("the forced repair's witness (§1.53, M3-Q14)", () => {
     const held = (hold.toMs - hold.fromMs) / NET.tickMs;
     expect(back).toBeGreaterThan(held - 2 * NET.timeline.window);
     expect(back).toBeLessThan(NET.timeline.history);
-    // The repair's calls are kept, the STATE's adoption among them, with its steps.
+    // The repair's calls are kept, the STATE's adoption among them, with its steps and its ticks as it was sent.
     const adopt = report.calls.find((c) => c.kind === 'STATE')!;
     expect(adopt.steps).toBeGreaterThan(0);
+    expect(adopt.state).toEqual({ g: report.states[0]!.g, senderTick: report.states[0]!.senderTick });
     expect(report.calls.filter((c) => c.kind === 'TICK').length).toBeGreaterThan(1000);
     // Then it agrees again: no further disagreement, and nothing failed.
     const [disagreed, agreed] = [t().stats.disagree, t().stats.agree];

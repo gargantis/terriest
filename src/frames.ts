@@ -211,8 +211,8 @@ export interface FrameReport {
     readonly steps: number; readonly resyncs: number;
     /** The witness's STATEs to the page: in the whole run, and from the hold's start. */
     readonly witnessStates: number; readonly statesFromHold: number;
-    /** How far back the first STATE the witness sent from the hold's start was: its sender's tick less its own
-     *  (§2.11's about 240); null before one (bench-F4). */
+    /** How far back the STATE the page took from the hold's start was: its sender's tick less its own (§2.11's
+     *  about 240); null before one (bench-F4). */
     readonly back: number | null;
   } | null;
   readonly room: Omit<RoomReport, 'calls'>;
@@ -387,19 +387,20 @@ const COUNTED = ['late', 'lateAbsent', 'disagree', 'resyncs', 'resyncFailed', 'r
 type Counts = Record<(typeof COUNTED)[number], number>;
 const countsOf = (s: TimelineStats): Counts => Object.fromEntries(COUNTED.map((k) => [k, s[k]])) as Counts;
 
-/** The forced repair's figures from the calls kept (M3-Q14): the STATE's adoption alone, the worst call,
- *  their steps, the resyncs the page completed, and the first STATE the witness sent from the hold's start,
- *  not one of a rejoin's or a transient's before it (bench-F4). */
+/** The forced repair's figures from the calls kept (M3-Q14): the STATE the page took from the hold's start, not
+ *  one of a rejoin's or a transient's before it (bench-F4), the first STATE call there that stepped, as one the
+ *  page drops steps nothing, with its adoption alone and how far back it was; the worst call; their steps; the
+ *  resyncs the page completed; and the STATEs the witness sent from the hold's start. */
 export function repairFigures(calls: readonly RoomCall[], room: Pick<RoomReport, 'hold' | 'states' | 'witnessStates'>, resyncs: number): NonNullable<FrameReport['repair']> {
-  const adopt = calls.find((c) => c.kind === 'STATE');
+  const from = room.hold?.fromMs ?? null;
+  const adopt = from === null ? undefined : calls.find((c) => c.kind === 'STATE' && c.steps > 0 && c.at >= from);
   const stepped = calls.filter((c) => c.steps > 0);
   const worst = stepped.reduce<RoomCall | null>((a, c) => (a === null || c.ms > a.ms ? c : a), null);
-  const from = room.hold?.fromMs ?? null;
   const states = from === null ? [] : room.states.filter((s) => s.atMs >= from);
   return {
     calls: calls.map((c) => ({ ...c })), adoptMs: adopt?.ms ?? null, worstMs: worst?.ms ?? 0, worstSteps: worst?.steps ?? 0,
     steps: stepped.reduce((n, c) => n + c.steps, 0), resyncs, witnessStates: room.witnessStates, statesFromHold: states.length,
-    back: states.length === 0 ? null : states[0]!.senderTick - states[0]!.g,
+    back: adopt?.state === undefined ? null : adopt.state.senderTick - adopt.state.g,
   };
 }
 
