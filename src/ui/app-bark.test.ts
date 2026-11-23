@@ -123,9 +123,9 @@ describe("a bark a stall draws again (§9.1, D-22's stall)", () => {
     r.device.bark = true;
     playUntil(r, () => look(r).controls!.presses.bark === 1 && myBark(r) !== null, 200);
     const start = myBark(r)!.start;
-    // Each head tick drawn late: no timer runs for a tick's time, so the frame draws the head itself, its fraction
-    // 1, and the timer then catches that tick up before the next. Till a frame hands the bark none: it's over at
-    // that drawn time.
+    // Each frame draws the head late: no timer runs for a tick's time, so the frame draws the head itself, its
+    // fraction 1, and the timer then catches up what fell due, a tick or now and then two. Till a frame hands the
+    // bark none: it's over at that drawn time.
     const late: { time: number; bark: number | null }[] = [];
     for (let k = 0; k < 2 * config.ticksPerSecond && late.at(-1)?.bark !== null; k++) {
       if (k > 0) r.clock.advance(1);

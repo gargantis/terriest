@@ -27,8 +27,9 @@
 // begins. The drawer outlives each match on its stage, whose ticks count
 // from 0 again, so a frame whose drawn time runs back more than a tick
 // forgets the starts counted: within a timeline it runs back a tick at
-// most, at a stall or a clock jump, and an overlay shown again then is the
-// one counted.
+// most, at a stall or a clock jump, and a bark or a celebration shown
+// again then is the one counted, while a push drawn again then counts
+// again, as a push counts when its pose begins, by a flag, not a start.
 //
 // A port of the M0 spike's research/spike/src/scene/code-drawer.ts
 // (terrierGeometries, triangleCount, the parts, their painting and counts),

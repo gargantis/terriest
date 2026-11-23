@@ -75,7 +75,9 @@ export interface DrawerCounts {
   /** Since the drawer was made, each counted once as it starts: a bark or a celebration by its terrier and its
    *  start, a push as it begins. A frame whose drawn time runs back more than a tick, as it never does within a
    *  timeline, is another match's or timeline's, and the starts counted before it are forgotten: a bark in the
-   *  stage's next match, its ticks from 0 again, is counted though the last match counted one at its start. */
+   *  stage's next match, its ticks from 0 again, is counted though the last match counted one at its start. A
+   *  frame a tick back, at a stall or a clock jump, shows a bark or a celebration again as the one counted,
+   *  while a push it draws again counts again, as a push counts when its pose begins. */
   readonly overlaysShown: { readonly barking: number; readonly celebrating: number; readonly pushing: number };
 }
 
