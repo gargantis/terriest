@@ -9,9 +9,11 @@
 // 50 ms, never animation frames (C-6), and no sleep stands in for an
 // event. Nobody presses Ready, so the match stays in warm-up throughout.
 // - A proposer at pack size 2 plays in pack A on a networked Pre-match.
-//   Add a bot puts a bot in pack A, by its name, Remove shown and Add
-//   marked full; Remove a bot takes it out, the button gone and the roster
-//   back to the proposer alone, Add able again; Add again brings it back.
+//   Add a bot puts a bot in pack A, by its name, a robot dog's from the
+//   list as its host names it with the proposer's taken (the owner,
+//   2026-11-22), Remove shown and Add marked full; Remove a bot takes it
+//   out, the button gone and the roster back to the proposer alone, Add
+//   able again; Add again brings it back, by its name.
 //   Invite shows the link and the code Created showed, each group of the
 //   code on one line at 640 × 360 (C-15). axe on that Pre-match, Remove and
 //   the invite showing (§9.6).
@@ -32,7 +34,11 @@
 // - P8: the proposer fills pack B with two bots, and the watcher who left
 //   opens the link again: Join, into a room whose packs are both full,
 //   says "Both packs are full: you can watch." with Watch in view at
-//   640 × 360, without scrolling.
+//   640 × 360, without scrolling. The proposer's three bots have three
+//   names from the list, in its packs' lists, on a watcher's follow choice
+//   and in Join's lists, none cut short or wrapped in either list, nor any
+//   name on the list, at 640 × 360 and at a phone's size: held sideways for
+//   the follow choice, as a phone watches, and upright for Join.
 // - Every page logged no error and requested nothing but the preview and
 //   the relay (expectEverywhere).
 // The peer counts are the hook's match.peers, the match's status().peers.
@@ -41,12 +47,12 @@
 
 import type { Browser, Locator, Page } from '@playwright/test';
 import { config } from '../src/config';
-import { botIds, botName, personId } from '../src/core/bot/bot-id';
+import { BOT_NAMES, botIds, botName, personId } from '../src/core/bot/bot-id';
 import type { Inspection } from '../src/main';
 import { startNostrRelay } from '../vendor/hermet/nostr-relay.mjs';
 import { type AppPage, launch, openAppPage, SPEC_SEED } from './lib/browsers';
 import { expect, expectEverywhere, test } from './lib/guards';
-import { expectAxeClean, inspect, monotonicMs, POLL_MS, waitForInspection, waitForScreen } from './lib/page';
+import { expectAxeClean, inspect, monotonicMs, namesInRow, POLL_MS, waitForInspection, waitForScreen } from './lib/page';
 
 const PACK_SIZE = 2; // not a setting: the room's (§9.3)
 const MINUTES = 1; // not a setting: the room's
@@ -59,6 +65,12 @@ const PROPOSER = personId(SPEC_SEED, 0);
 /** The proposer's bots: the first is the one its first Add a bot makes (D-39). */
 const BOTS = botIds(PROPOSER);
 const BOT = BOTS[0]!;
+/** Its name, as its host names it with the proposer's own name taken (the owner, 2026-11-22). */
+const BOT_NAME = botName(BOT, [nameOf(0)]);
+/** A phone held upright, as it shows Join, and sideways, as it watches Pre-match and Match (D-30): the screens
+ *  spec's phone. */
+const PHONE_UPRIGHT = { width: 412, height: 915 } as const;
+const PHONE_SIDEWAYS = { width: 915, height: 412 } as const;
 
 /**
  * Timeouts, from this spec's measured runs (phase 2d and its review, software GL, the machine's load 7 to
@@ -90,6 +102,9 @@ const peersOf = (i: Inspection): number | null => i.match?.peers ?? null;
 const inPack = (i: Inspection, pack: number): string[] => (i.match?.roster ?? []).filter((T) => T.pack === pack).map((T) => T.id);
 /** The proposer's bots in `pack`'s final roster. */
 const botsIn = (i: Inspection, pack: number): number => inPack(i, pack).filter((id) => BOTS.includes(id)).length;
+/** The proposer's bots' names in the final roster, by ID. */
+const botNamesIn = (i: Inspection): Record<string, string> =>
+  Object.fromEntries((i.match?.roster ?? []).filter((T) => BOTS.includes(T.id)).map((T) => [T.id, T.name]));
 
 /** Each page's look, every 50 ms, until every page counts `peers` connections; fails on a timeout with
  *  what each counts. Returns how long it took. */
@@ -154,7 +169,9 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     await add.click();
     await timed('bot in', () => waitForInspection(pp, (i) => inPack(i, 0).includes(BOT), { what: "the bot in pack A's final roster", timeoutMs: ANSWER_MS }));
     await expect(listed(pp, 0), "pack A's list, the bot in it").toHaveCount(PACK_SIZE, { timeout: ANSWER_MS });
-    await expect(at(pp, 'pack-0'), "pack A's list").toContainText(botName(BOT));
+    expect(BOT_NAMES, "the bot's name, from the list").toContain(BOT_NAME);
+    expect(botNamesIn(await inspect(pp)), "the bot's name in the final roster").toEqual({ [BOT]: BOT_NAME });
+    await expect(at(pp, 'pack-0'), "pack A's list").toContainText(BOT_NAME);
     await expect(remove, 'Remove a bot, with a bot hosted').toBeVisible();
     await expect(add, 'Add a bot to a full pack').toBeDisabled();
     await remove.click();
@@ -162,11 +179,15 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     expect(back.match!.roster.map((T) => T.id), 'the roster back to the proposer alone').toEqual([PROPOSER]);
     await expect(remove, 'Remove a bot, once its bot is out').toBeHidden({ timeout: ANSWER_MS });
     await expect(listed(pp, 0), "pack A's list, the bot out").toHaveCount(1);
-    await expect(at(pp, 'pack-0'), "pack A's list").not.toContainText(botName(BOT));
+    await expect(at(pp, 'pack-0'), "pack A's list").not.toContainText(BOT_NAME);
     await expect(add, 'Add a bot, with a place again').toBeEnabled();
     await add.click();
-    await timed('bot in again', () => waitForInspection(pp, (i) => botsIn(i, 0) === 1, { what: "a bot in pack A's final roster again", timeoutMs: ANSWER_MS }));
+    const backIn = await timed('bot in again', () => waitForInspection(pp, (i) => botsIn(i, 0) === 1, { what: "a bot in pack A's final roster again", timeoutMs: ANSWER_MS }));
     await expect(remove, 'Remove a bot, with the bot back').toBeVisible({ timeout: ANSWER_MS });
+    // Back by a list name: the first ID's own once its LEAVE has gone, or the next ID's with it taken.
+    const [againId, againName] = Object.entries(botNamesIn(backIn))[0]!;
+    expect(againName, `the bot back in, ${againId}`).toBe(againId === BOT ? BOT_NAME : botName(againId, [nameOf(0), BOT_NAME]));
+    await expect(at(pp, 'pack-0'), "pack A's list").toContainText(againName);
 
     // Invite: the link and the code Created showed (§5.7).
     const invite = at(pp, 'invite-button');
@@ -236,12 +257,48 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
       await at(pp, 'add-bot-1').click();
       await waitForInspection(pp, (i) => botsIn(i, 1) === n, { what: `bot ${n} in pack B's final roster`, timeoutMs: ANSWER_MS });
     }
+    // Three bots of one host, three names from the list, in its lists and on a watcher's follow choice
+    // (the owner, 2026-11-22), each whole there, as every name on the list is in a follow button, here and
+    // at a phone's size held sideways.
+    const bots = botNamesIn(await inspect(pp));
+    const names = Object.values(bots);
+    expect([names.length, new Set(names).size, names.every((n) => BOT_NAMES.includes(n))], `the bots' names, ${JSON.stringify(bots)}`).toEqual([3, 3, true]);
+    for (const [id, name] of Object.entries(bots)) {
+      await expect(pp.locator('.prematch-pack li:not(.free)').getByText(name, { exact: true }), `${id}'s row in its pack's list`).toHaveCount(1);
+    }
+    const viewer = stay[0]!.page;
+    for (const name of names) {
+      await expect(at(viewer, 'hud-follow').getByText(name, { exact: true }), `${name} on a watcher's follow choice`).toHaveCount(1, { timeout: ANSWER_MS });
+    }
+    const cut = (): Promise<unknown[]> =>
+      viewer.locator('[data-test="hud-follow"] .hud-follow-name').evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1).map((e) => e.textContent));
+    const followRow = { row: `[data-test="hud-follow"] button[data-follow="${Object.keys(bots)[0]!}"]`, name: '.hud-follow-name' };
+    const unfitted = async (): Promise<unknown[]> => (await namesInRow(viewer, followRow, BOT_NAMES)).filter((f) => f.lines !== 1 || f.clipped);
+    expect([await cut(), await unfitted()], "names cut short on a watcher's follow choice, then the list's in a follow button").toEqual([[], []]);
+    // The measure sees a name cut short: C-17's longest, of its widest letter, ends in an ellipsis there.
+    expect((await namesInRow(viewer, followRow, ['W'.repeat(config.displayNameMaxChars)]))[0]!.clipped, 'a follow button cutting 20 W short').toBe(true);
+    await viewer.setViewportSize(PHONE_SIDEWAYS);
+    expect([await cut(), await unfitted()], `the same at ${PHONE_SIDEWAYS.width}×${PHONE_SIDEWAYS.height}`).toEqual([[], []]);
+    await viewer.setViewportSize({ width: 640, height: 360 });
     await leaver.page.goto(link);
     await timed('full join', () => joinScreen(leaver, 'Both packs are full: you can watch.'));
     const watch = at(leaver.page, 'watch');
     await expect(at(leaver.page, 'watch-alone').locator('[data-test="watch"]'), 'Watch beside the status (P8)').toBeVisible();
     await expect(watch, 'Watch in view at 640 × 360 (P8)').toBeInViewport({ ratio: 1 });
     for (const p of [0, 1]) await expect(at(leaver.page, `play-${p}`), `Play in pack ${p}, full`).toBeDisabled();
+    // Join's lists by the bots' names, and every name on the list on one line in a bot's row there, inside its
+    // pack's box, at 640 × 360 and at a phone's width held upright (the owner, 2026-11-22).
+    for (const name of names) {
+      await expect(leaver.page.locator('.join-pack li').getByText(name, { exact: true }), `${name} in Join's lists`).toHaveCount(1);
+    }
+    // Pack B's rows are the proposer's bots alone.
+    const joinUnfitted = async (): Promise<unknown[]> =>
+      (await namesInRow(leaver.page, { row: '[data-test="join-pack-1"] li:not(.free)', name: '.name', inside: '.join-pack', within: '.coat-name' }, BOT_NAMES))
+        .filter((f) => f.lines !== 1 || f.clipped || !f.inside);
+    expect(await joinUnfitted(), "list names past a bot's row in Join's lists at 640×360").toEqual([]);
+    await leaver.page.setViewportSize(PHONE_UPRIGHT);
+    expect(await joinUnfitted(), `list names past a bot's row in Join's lists at ${PHONE_UPRIGHT.width}×${PHONE_UPRIGHT.height}`).toEqual([]);
+    await leaver.page.setViewportSize({ width: 640, height: 360 });
 
     console.log(`watchers: ${JSON.stringify(took)}`);
     for (const p of pages) expectEverywhere(p.watch);

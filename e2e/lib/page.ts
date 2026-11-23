@@ -7,7 +7,8 @@
 // the real screens; a key held and let go by the hook's state, polled every
 // 50 ms, never on animation frames (C-6); the leave prompt accepted; a boot
 // failure's message, checked with axe; the page captured at a steady
-// drawing buffer, with the inspection read just before; and the built page
+// drawing buffer, with the inspection read just before; how names lay out
+// in a copy of one of the page's own rows; and the built page
 // answered from dist/ by request interception, at an address no server here
 // answers: an insecure host, or a subpath of the preview's origin (§16).
 // Every wait's
@@ -174,6 +175,59 @@ export async function steadyCapture(
       throw new Error(`no steady capture in ${k}: ${why}`);
     }
   }
+}
+
+/** How one name laid out in a copy of a page's row (namesInRow). */
+export interface NameFit {
+  readonly name: string;
+  /** The line boxes its text took: 1 when it keeps to one line. */
+  readonly lines: number;
+  /** Its text ran past its own box, cut off or ended with an ellipsis. */
+  readonly clipped: boolean;
+  /** The copy's box, and each of its `within` elements', inside the `inside` element's content box, left to
+   *  right. */
+  readonly inside: boolean;
+}
+
+/** How each of `names` lays out in one of the page's own rows (the bots' names, the owner, 2026-11-22): in a
+ *  copy of the first element `row` matches, set beside it, its `name` element's text the name, measured,
+ *  and taken out again, so the page's own rows are never touched while the copy takes their styles, fonts
+ *  and widths. `inside`: the row's nearest container that matches it, whose content box the copy, and
+ *  its `within` elements, must keep inside; none for a row that scrolls. */
+export function namesInRow(
+  page: Page, o: { readonly row: string; readonly name: string; readonly inside?: string; readonly within?: string }, names: readonly string[],
+): Promise<NameFit[]> {
+  return page.evaluate(({ o, names }) => {
+    const row = document.querySelector(o.row);
+    const box = o.inside === undefined ? null : (row?.closest(o.inside) ?? null);
+    if (row === null || (o.inside !== undefined && box === null)) throw new Error(row === null ? `no ${o.row}` : `no ${o.inside} round ${o.row}`);
+    let edge: { left: number; right: number } | null = null;
+    if (box !== null) {
+      const r = box.getBoundingClientRect();
+      const css = getComputedStyle(box);
+      const side = (k: 'Left' | 'Right'): number => (parseFloat(css[`padding${k}`]) || 0) + (parseFloat(css[`border${k}Width`]) || 0);
+      edge = { left: r.left + side('Left'), right: r.right - side('Right') };
+    }
+    const inBox = (r: DOMRect): boolean => edge === null || (r.left >= edge.left - 0.5 && r.right <= edge.right + 0.5);
+    return names.map((name) => {
+      const copy = row.cloneNode(true) as HTMLElement;
+      copy.setAttribute('aria-hidden', 'true');
+      row.after(copy);
+      try {
+        const el = copy.querySelector<HTMLElement>(o.name);
+        if (el === null) throw new Error(`no ${o.name} in ${o.row}`);
+        el.textContent = name;
+        const text = document.createRange();
+        text.selectNodeContents(el);
+        const lines = new Set(Array.from(text.getClientRects(), (r) => Math.round(r.top))).size;
+        const within = o.within === undefined ? [] : Array.from(copy.querySelectorAll(o.within), (x) => x.getBoundingClientRect());
+        // A pixel's slack: the two widths round a fractional box apart.
+        return { name, lines, clipped: el.scrollWidth > el.clientWidth + 1, inside: inBox(copy.getBoundingClientRect()) && within.every(inBox) };
+      } finally {
+        copy.remove();
+      }
+    });
+  }, { o, names });
 }
 
 /** Every dialog accepted, the leave prompt among them (§5.11): a spec that reloads or leaves a match. */

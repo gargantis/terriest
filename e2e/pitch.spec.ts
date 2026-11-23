@@ -18,8 +18,11 @@
 // draws that wall's kick band from outside at every look the camera is
 // outside a wall's plane, naming the end wall's pieces, and at none it's
 // inside them all, W bringing it back, with nothing compiled in play;
-// e2e/camera.spec.ts reads what the glass draws. Three tests, one load each
-// (§9.9).
+// e2e/camera.spec.ts reads what the glass draws. The bots' rows name them
+// apart, robot dogs' names as their host named them in turn, and every
+// name on the list keeps to one line in a bot's row, its Ready inside the
+// panel, at 640 × 360 and at a phone's size held sideways (the owner,
+// 2026-11-22). Three tests, one load each (§9.9).
 // Nothing here depends on the frame rate: the rate is measured
 // and reported, with the GL path, never judged. What's drawn is read off a
 // capture taken at a steady drawing buffer: WebKit's capture of a WebGL
@@ -29,14 +32,14 @@
 
 import type { Page } from '@playwright/test';
 import { config } from '../src/config';
-import { personId } from '../src/core/bot/bot-id';
+import { BOT_NAMES, botIds, botNames, personId } from '../src/core/bot/bot-id';
 import { insideFloorPlan } from '../src/core/sim/pitch';
 import type { Inspection } from '../src/main';
 import { GL_PATH } from './lib/gl';
 import { expect, expectWebGL2, test } from './lib/guards';
 import {
-  expectAxeClean, expectStarted, inspect, installHook, monotonicMs, openPractice, overlayOf, POLL_MS, seedStorage, smallViewport, steadyCapture,
-  waitForInspection, waitForScreen,
+  expectAxeClean, expectStarted, inspect, installHook, monotonicMs, namesInRow, openPractice, overlayOf, POLL_MS, seedStorage, smallViewport,
+  steadyCapture, waitForInspection, waitForScreen,
 } from './lib/page';
 import { type Image, meanColour } from './lib/png';
 
@@ -103,6 +106,18 @@ function contexts(page: Page): Promise<{ made: number; alive: number }> {
   return page.evaluate(() => (window as unknown as { terriestContexts: () => { made: number; alive: number } }).terriestContexts());
 }
 
+/** A phone held sideways, as it plays Pre-match and Match (D-30): the screens spec's phone, turned. */
+const PHONE_SIDEWAYS = { width: 915, height: 412 } as const;
+
+/** A bot's row on Pre-match, its name, and the panel its row and Ready keep inside. */
+const BOT_ROW = { row: '.prematch-pack li:not(.free):not(.you)', name: '.name', inside: '[data-test="prematch"]', within: '.ready' } as const;
+
+/** Every list name in a copy of a bot's row on Pre-match, each that doesn't keep to one line, or whose row or
+ *  Ready runs past the panel's edge (the owner, 2026-11-22). */
+async function unfittedNames(page: Page): Promise<object[]> {
+  return (await namesInRow(page, BOT_ROW, BOT_NAMES)).filter((f) => f.lines !== 1 || f.clipped || !f.inside);
+}
+
 /** The drawing buffer by §9.1's rule: the CSS size times min(devicePixelRatio, cap) times the governor's scale. */
 async function expectFilled(page: Page, r: Inspection['render'], width: number, height: number): Promise<void> {
   const dpr = await page.evaluate(() => devicePixelRatio);
@@ -114,7 +129,8 @@ async function expectFilled(page: Page, r: Inspection['render'], width: number, 
 test("Practice's Pre-match draws the pitch from the player's ball view, fills the window and compiles nothing after prepare", async ({ page, browserName }, testInfo) => {
   test.setTimeout(90_000);
   // A name as long as C-17 allows, of its widest letter.
-  await seedStorage(page, { profile: { playerId: personId(7, 0), name: 'W'.repeat(20) }, settings: { quality: 'low' } });
+  const longName = 'W'.repeat(20);
+  await seedStorage(page, { profile: { playerId: personId(7, 0), name: longName }, settings: { quality: 'low' } });
   await page.goto('./');
   await expectStarted(page);
   // Home draws nothing: the stage's box is hidden off the pitch screens (M4-Q9).
@@ -137,6 +153,16 @@ test("Practice's Pre-match draws the pitch from the player's ball view, fills th
     });
   });
   expect(rows.filter((r) => !r.inside), "rows whose Ready runs past the panel's edge").toEqual([]);
+  // The bots' names (the owner, 2026-11-22): seven, apart, none the person's, as their host named them in
+  // turn, pack A's then pack B's, each with the names before it and the person's taken; and every name on
+  // the list keeps to one line in a bot's row, its Ready inside the panel.
+  const botRows = await page.evaluate(() => [...document.querySelectorAll('.prematch-pack li:not(.free):not(.you) .name')].map((n) => n.textContent));
+  const botsNamed = botNames(botIds(personId(7, 0)).slice(0, 7), [longName]);
+  expect([...botRows].sort(), "the bots' rows").toEqual([...botsNamed].sort());
+  expect(new Set(botRows).size, "the bots' names, apart").toBe(7);
+  expect(await unfittedNames(page), `list names past a bot's row at ${smallViewport.width}×${smallViewport.height}`).toEqual([]);
+  // The measure sees a wrap: C-17's longest name, of its widest letter, takes two lines in the same row.
+  expect((await namesInRow(page, BOT_ROW, [longName]))[0]!.lines, "20 W's in a bot's row").toBeGreaterThan(1);
 
   // The one landmark, the app's, with the pitch a named image in it (M4-Q1), and axe (§5.14).
   await expect(page.getByRole('main')).toHaveCount(1);
@@ -201,6 +227,11 @@ test("Practice's Pre-match draws the pitch from the player's ball view, fills th
     expect(await page.locator('#stage canvas').boundingBox()).toEqual({ x: 0, y: 0, width, height });
     await waitForInspection(page, (i) => i.render.frames > r.frames, { what: 'a frame at the new size' });
   }
+  // At a phone's size held sideways, every list name still keeps to one line in a bot's row (the owner,
+  // 2026-11-22).
+  await page.setViewportSize(PHONE_SIDEWAYS);
+  await waitForInspection(page, (i) => i.render.cssWidth === PHONE_SIDEWAYS.width, { what: `the canvas at ${PHONE_SIDEWAYS.width}×${PHONE_SIDEWAYS.height}` });
+  expect(await unfittedNames(page), `list names past a bot's row at ${PHONE_SIDEWAYS.width}×${PHONE_SIDEWAYS.height}`).toEqual([]);
 });
 
 test.describe('the render quality, set through Home\'s Settings (D-33, M4-Q4)', () => {

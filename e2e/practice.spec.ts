@@ -28,7 +28,11 @@
 //   the network figures, Practice's own, with no late input or resync
 //   (§5.9); Copy reached by the arrows, in view, and the clipboard holding
 //   the figures drawn; Play again to a fresh Pre-match; Leave to Home;
-//   nothing contacted.
+//   nothing contacted. The bot's row on Pre-match and on Results by the
+//   robot dog's name its host gave it, the person's name taken, and every
+//   name on the list on one line in the bot's Results row, the table inside
+//   its screen, at 640 × 360 and at a phone's width held upright (the
+//   owner, 2026-11-22).
 // - Through the controls, in each engine, the gamepad stubbed: on
 //   Pre-match no hints before a control is used; your mark drawn and on top
 //   of the HUD and the panel, a click on the pitch leaving the focus on
@@ -52,15 +56,16 @@
 //   keyboard's hints and the pad's again; nothing contacted.
 
 import { config, derived } from '../src/config';
+import { BOT_NAMES, botName } from '../src/core/bot/bot-id';
 import { FRAME_BALL, frameOf, heldDirection, stepOf } from '../src/core/sim/input';
 import { AIRBORNE, ZOOMING } from '../src/core/sim/state';
 import type { Control } from '../src/input/source';
 import type { Inspection } from '../src/main';
 import { PAD, setButton, setStick } from './lib/gamepad';
 import { expect, expectWebGL2, test } from './lib/guards';
-import { acceptLeavePrompt, expectStarted, hintsOf, hudOf, overlayOf, POLL_MS, smallViewport } from './lib/page';
+import { acceptLeavePrompt, expectStarted, hintsOf, hudOf, namesInRow, overlayOf, POLL_MS, smallViewport } from './lib/page';
 import {
-  AFTER_WARM_UP_TICKS, anchorAfter, barksSeen, clearReadyStates, copiedFrom, emulateHidden, expectBotFirst, expectFocusOnce, expectGaugeShort,
+  AFTER_WARM_UP_TICKS, anchorAfter, barksSeen, BOT, clearReadyStates, copiedFrom, emulateHidden, expectBotFirst, expectFocusOnce, expectGaugeShort,
   expectNothingContacted, FIRST_GOAL_MS, focused, gaugeSeen, kickoffWhistles, lastInputBy, PracticeRun, readoutSeen, RESULTS_MS, SHOWN_MS, topAt,
   WHOLE_ANCHOR, where,
 } from './lib/practice';
@@ -104,6 +109,10 @@ const HINTS_AGAIN = 'Each control’s hint shows again until you use it.';
 const ALL_SIX = (1 << SIX.length) - 1;
 /** A name as long as C-17 allows, of its widest letter (phase 2b's review, P3). */
 const LONG_NAME = 'W'.repeat(20);
+/** The bot's name, as its host gives it with the person's taken (the owner, 2026-11-22). */
+const BOT_NAME = botName(BOT, [LONG_NAME]);
+/** A phone held upright, where Results shows as any screen does: the screens spec's phone (C-15). */
+const PHONE_UPRIGHT = { width: 412, height: 915 } as const;
 
 /** The origin every request stays under (P10): the preview's. */
 const originOf = (baseURL: string | undefined): string => `${new URL(baseURL!).origin}/`;
@@ -129,6 +138,9 @@ test.describe('the whole match', () => {
       // A name as long as C-17 allows, of its widest letter, which Results' table wraps (P3).
       await run.load('./', { profile: { name: LONG_NAME } });
       await run.practice();
+      // The bot's row by the robot dog's name its host gave it (the owner, 2026-11-22).
+      expect(BOT_NAMES, "the bot's name, from the list").toContain(BOT_NAME);
+      await expect(page.locator('[data-test="pack-1"] li:not(.free) .name'), "the bot's row on Pre-match").toHaveText([BOT_NAME]);
       await run.ready(WHOLE_ANCHOR);
 
       // A held from each countdown, through the match to Results, with the menu at the 2nd and 4th goals'
@@ -194,6 +206,20 @@ test.describe('the whole match', () => {
       });
       expect(fits.table, `Results' table's right edge within its screen's content, ${JSON.stringify(fits)}`).toBeLessThanOrEqual(fits.screen + 1);
       await expect(page.locator('[data-test="results"] tbody th').filter({ hasText: LONG_NAME })).toHaveCount(1);
+      // The bot's row by the name Pre-match showed, and every name on the list on one line in it, the row
+      // inside the screen, here and at a phone's width held upright, the window's size and scroll put back
+      // after (the owner, 2026-11-22).
+      const botRow = '[data-test="results"] tbody tr:not(.you)';
+      await expect(page.locator(`${botRow} th .name-row > span:nth-child(2)`), "the bot's row on Results").toHaveText([BOT_NAME]);
+      const unfitted = async (): Promise<object[]> =>
+        (await namesInRow(page, { row: botRow, name: 'th .name-row > span:nth-child(2)', inside: '.screen.results', within: 'th, td' }, BOT_NAMES))
+          .filter((f) => f.lines !== 1 || f.clipped || !f.inside);
+      expect(await unfitted(), `list names past the bot's Results row at ${smallViewport.width}×${smallViewport.height}`).toEqual([]);
+      const scrolled = await page.evaluate(() => [scrollX, scrollY] as const);
+      await page.setViewportSize(PHONE_UPRIGHT);
+      expect(await unfitted(), `list names past the bot's Results row at ${PHONE_UPRIGHT.width}×${PHONE_UPRIGHT.height}`).toEqual([]);
+      await page.setViewportSize(smallViewport);
+      await page.evaluate(([x, y]) => scrollTo(x, y), scrolled);
 
       // The network figures, Practice's own (§5.9, M3-Q24): its lone timeline takes no input from another
       // browser, so no late input, resync or repair; its final ticks those that ended it, at the least, and
