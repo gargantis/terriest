@@ -1,4 +1,8 @@
-# terriest
+<h1><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/lockup-dark.png">
+  <img alt="terriest" src="docs/brand/lockup-light.png" width="360">
+</picture></h1>
+
 Rocket League with terriers: two packs of small dogs corral a giant rubber ball into goals. Terri. Terrier. Terriest.
 
 **Status:** in development. Practice against the bots, and matches with others through the screens, are playable (Play, below). [REQUIREMENTS.md](REQUIREMENTS.md) says what the game must do; [PLAN.md](PLAN.md) says how, and lists the milestones. Numbers such as Q-5 or C-14 below are the plan's. Done so far: M0, the physics and rendering spike ([research/spike/REPORT.md](research/spike/REPORT.md)); M1, the skeleton and its test gate, with a page that draws an empty pitch; M2, the deterministic simulation, its goldens, the bot brain and the tuning page, all running offline; and M3, the rollback timeline, the protocol, matches between browsers over Trystero with consensus, bots hosted in them, and Practice, with the correction measurement ([research/corrections/REPORT.md](research/corrections/REPORT.md)). Under way: M4, the drawing, input, screens and sound. Its first two phases are in: Practice and matches with others through the screens, drawn in 3D with code-built terriers, on the keyboard, a gamepad or a touch screen, with sound; the drawing's finer animation, the stand-in model and the look are its next. [docs/acceptance.md](docs/acceptance.md) holds the acceptance criteria and the log of runs the gate doesn't make.
