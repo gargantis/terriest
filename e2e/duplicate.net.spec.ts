@@ -57,8 +57,8 @@ const REMOVAL_MS = (config.removalSilentTicks / config.ticksPerSecond) * 1000;
  * as this one's are, 2.40 s: 3 × 2.40 + 2 = 9.2 s, set to its 10 s. The message: no sooner than
  * HOLD_MS after that refusal, on the page's own clock, which a 50 ms look can only lengthen, and within
  * HOLD_MS + MESSAGE_SLACK_MS of it, at worst 12.0 s, a timer run's lateness and a look's lag inside the
- * 2 s. BACK_MS: from the kill to the page back in the room, at worst 2.2 s: 3 × 2.2 + 2 = 8.6 s, set to
- * 12 s, past warm-up's 3 s removal and the Join that follows it.
+ * 2 s. BACK_MS: from the kill's command to the page back in the room, at worst 2.4 s: 3 × 2.4 + 2 = 9.2 s,
+ * set to 12 s, past warm-up's 3 s removal and the Join that follows it.
  */
 const ANSWER_MS = 4_000;
 const JOIN_MS = 12_000;
@@ -157,17 +157,24 @@ test("a duplicate player ID waits out a lingering connection before its message,
     expect(await tp.evaluate(() => location.hash), "the link's fragment kept for Try again and a reload").toBe(fragment);
 
     // Try again, refused again while the joiner plays; then the joiner's tab killed. Its connection lingers,
-    // silent, and once it has been for 2 s the twin is let in in its place (C-12), with no message.
+    // silent, and once it has been for 2 s the twin is let in in its place (C-12), with no message. The kill
+    // is timed from its command: the renderer's IO thread takes Page.crash at once, whatever its main thread
+    // is doing, so the joiner sends nothing from a few ms after it. The crash event reaches Node only once the
+    // browser has seen the process exit, and a machine that first dumps its core puts that off: on GitHub's
+    // runner the twin was back 373 ms after the event, the joiner by then silent 2 s at the keeper.
     await at(tp, 'message-try-again').click();
     await waitForScreen(tp, 'join', ANSWER_MS);
     messages.length = 0;
     await looks(tp, (i) => i.match?.refusal === REFUSAL.DUPLICATE, { what: 'the twin refused again', timeoutMs: REFUSED_MS, each: noted });
     const crashed = new Promise<void>((resolve) => jp.once('crash', () => resolve()));
     const cdp = await joiner.context.newCDPSession(jp);
+    const killed = monotonicMs();
     void cdp.send('Page.crash').catch(() => {});
     await crashed;
-    const killed = monotonicMs();
-    const back = await looks(tp, (i) => i.screen === 'prematch' || (i.screen === 'join' && i.match?.started === true), {
+    took['crash reported'] = Math.round(monotonicMs() - killed);
+    // Back in its terrier, or on Join with the match held and the terrier gone, warm-up's removal: Join while the
+    // roster still holds it is the moment between the STATE's adoption and the timer run that shows Pre-match.
+    const back = await looks(tp, (i) => i.screen === 'prematch' || (i.screen === 'join' && i.match?.started === true && !i.match.returning && !i.match.inRoster), {
       what: 'the twin back in the room', timeoutMs: BACK_MS, each: noted,
     });
     took['back after the kill'] = Math.round(back.atMs - killed);
