@@ -261,7 +261,7 @@ None. All rights reserved: this repository is public so it can be read, but no l
 
 - **Safari may delete stored data** after 7 days without a visit (C-14): the player ID, name, coat and settings the game keeps from M4. Only a re-typed name and coat are at stake.
 - **Real Safari is unverified.** Playwright's WebKit stands in for it in the gate. If the device round before M5 names a Mac or an iPhone, the determinism page and one match run on it before release (Q-12).
-- **Phone performance is unverified** while the Pixel 8a's run is pending (Q-13).
+- **Phone performance is unmeasured.** The owner has played it on the Pixel 8a in Chrome, and it works, but the phone's frame-time run is still pending (Q-13).
 
 ## Windows: the Sticky Keys shortcut
 
