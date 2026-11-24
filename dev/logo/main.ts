@@ -1,15 +1,16 @@
 // dev/logo.html's module (the owner's logo and icons of 2026-11-22, PLAN's
 // status): draws the picks (picks.ts) from the game's own terrier in the
 // look the page draws, PAGE_LOOK, by src/render/portrait.ts, makes each
-// size by its own resampler (post.ts), and sets the lock-ups (lockup.ts).
-// Draw shows them here, on a light ground and a dark one; for
-// e2e/logo.run.ts, which writes the files, window.logo.render() hands them
-// over. Dev only: the build never takes it, and it stores nothing.
+// size by its own resampler (post.ts), and sets the lock-ups and the
+// link-preview card (lockup.ts). Draw shows them here, on a light ground
+// and a dark one; for e2e/logo.run.ts, which writes the files,
+// window.logo.render() hands them over. Dev only: the build never takes it,
+// and it stores nothing.
 
 import { PAGE_LOOK } from '../../src/render/look';
 import { type PortraitFeatures, Portraits } from '../../src/render/portrait';
-import { lockup, type Rgba } from './lockup';
-import { LOCKUP, LOCKUP_MARK, LOCKUPS, PAGE_DARK, PAGE_LIGHT, SHOTS } from './picks';
+import { card, lockup, type Rgba } from './lockup';
+import { CARD, CARD_MARK, CARD_NAME, LOCKUP, LOCKUP_MARK, LOCKUPS, PAGE_DARK, PAGE_LIGHT, SHOTS } from './picks';
 import { applyPost, toBytes } from './post';
 
 /** An image as page.evaluate hands it over: straight 8-bit RGBA, base64. */
@@ -48,11 +49,17 @@ async function draw(): Promise<{ images: Record<string, Rgba>; shotsMs: number[]
       features[o.name] = r.features;
     }
   }
-  const mark = images[LOCKUP_MARK]!;
-  const { feet, box } = features[LOCKUP_MARK]!;
-  if (feet === null) throw new Error("the lock-up's mark has no feet to stand on the baseline");
-  delete images[LOCKUP_MARK];
-  for (const l of LOCKUPS) images[l.name] = await lockup({ ...LOCKUP, mark, feet, box, colour: l.colour });
+  /** A lock-up's mark, with its feet and box, taken out of the outputs: it's no file of its own. */
+  const markOf = (name: string): { mark: Rgba; feet: number; box: PortraitFeatures['box'] } => {
+    const mark = images[name]!;
+    const { feet, box } = features[name]!;
+    if (feet === null) throw new Error(`${name} has no feet to stand on the baseline`);
+    delete images[name];
+    return { mark, feet, box };
+  };
+  const mark = markOf(LOCKUP_MARK);
+  for (const l of LOCKUPS) images[l.name] = await lockup({ ...LOCKUP, ...mark, colour: l.colour });
+  images[CARD_NAME] = await card({ ...CARD, lockup: { ...CARD.lockup, ...markOf(CARD_MARK) } });
   return { images, shotsMs };
 }
 

@@ -15,18 +15,26 @@
 // A's bandana, under a warm key nearer the camera, a warm fill and a lifted
 // ground. Catchlights from 180 px up, matte below, where a highlight's pixel
 // would eat a 1 px eye.
+// And the link-preview card (the owner's request of 2026-11-23), made of
+// those picks alone: the dark lock-up, W1 beside the name, drawn smaller
+// from the same shot, on the page's ground, with one line below it.
 
 import { config } from '../../src/config';
 import { RUNNING, STANDING } from '../../src/core/sim/state';
 import { FACE_DARK } from '../../src/render/drawers/code';
 import { PAGE_LOOK } from '../../src/render/look';
 import type { PortraitLights, PortraitPart, PortraitShot } from '../../src/render/portrait';
-import type { LockupSpec } from './lockup';
+import type { CardSpec, LockupSpec } from './lockup';
 import type { PostOp } from './post';
 
-/** index.html's background and text colours. */
+/** index.html's background and text colours, and the screens' muted text colour (src/ui/screens.css' --muted). */
 export const PAGE_DARK = 0x1d2b1f;
 export const PAGE_LIGHT = 0xeef3ea;
+export const PAGE_MUTED = 0xb8c7b5;
+
+/** The lock-up's mark's side in px, beside the name at LOCKUP's size; the card's lock-up is CARD_SCALE of it all. */
+const LOCKUP_MARK_PX = 400;
+const CARD_SCALE = 0.475;
 
 const HEAD: readonly PortraitPart[] = ['head', 'snout', 'jaw', 'face', 'ears', 'bandana'];
 const ALL: readonly PortraitPart[] = ['body', 'head', 'snout', 'jaw', 'face', 'ears', 'legs', 'tail', 'bandana'];
@@ -79,7 +87,10 @@ export const SHOTS: readonly Shot[] = [
     scene: { ...TROTTING, blob: { opacity: 0.3, fade: { left: 0.08, right: 0.08, bottom: 0.1 } }, frame: { parts: ALL, pad: 0.02, grow: [0, 0, 0.04, 0] } },
     outputs: [{ name: 'logo', size: 1024, post: [] }],
   },
-  { scene: { ...TROTTING, frame: { parts: ALL, pad: 0.01 } }, outputs: [{ name: 'lockupMark', size: 400, post: [] }] },
+  {
+    scene: { ...TROTTING, frame: { parts: ALL, pad: 0.01 } },
+    outputs: [{ name: 'lockupMark', size: LOCKUP_MARK_PX, post: [] }, { name: 'cardMark', size: Math.round(LOCKUP_MARK_PX * CARD_SCALE), post: [] }],
+  },
   {
     scene: { ...HEAD_ON, catchlight: true, frame: { parts: HEAD, pad: 0.005 } },
     outputs: [{
@@ -99,3 +110,16 @@ export const LOCKUPS: readonly { readonly name: string; readonly colour: number 
   { name: 'lockupLight', colour: PAGE_DARK },
   { name: 'lockupDark', colour: PAGE_LIGHT },
 ];
+
+/** The link-preview card, index.html's og:image, 1200 × 630 as unfurlers ask: the dark lock-up at CARD_SCALE of its
+ *  size, its mark cardMark, and below it a line in its family and weight and the screens' muted colour, the two
+ *  centred on the page's ground. The lock-up stays inside the middle square, which a reader that crops the card to a
+ *  square thumbnail keeps, and everything stays `clear` px inside that square's sides and the card's edges: card()
+ *  refuses a layout that doesn't. */
+export const CARD_MARK = 'cardMark';
+export const CARD_NAME = 'card';
+export const CARD: Omit<CardSpec, 'lockup'> & { readonly lockup: Omit<LockupSpec, 'mark' | 'feet' | 'box'> } = {
+  w: 1200, h: 630, ground: PAGE_DARK, clear: 40,
+  lockup: { ...LOCKUP, fontPx: LOCKUP.fontPx * CARD_SCALE, gap: LOCKUP.gap * CARD_SCALE, colour: PAGE_LIGHT },
+  line: { text: 'Two packs of small dogs. One giant ball.', fontPx: 40, colour: PAGE_MUTED, gap: 40 },
+};

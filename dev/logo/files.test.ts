@@ -55,12 +55,13 @@ describe("the logo's files", () => {
   });
 
   it("gives each file its own image, in LOGO_FILES' order, and refuses a missing one", () => {
-    const names = { fav16: 16, fav32: 32, fav32Dark: 32, fav48: 48, apple: 180, logo: 64, lockupLight: 40, lockupDark: 40 };
-    const images = Object.fromEntries(Object.entries(names).map(([name, n], k) => [name, rgba(n, n === 40 ? 15 : n, k)]));
+    const sizes = { fav16: [16, 16], fav32: [32, 32], fav32Dark: [32, 32], fav48: [48, 48], apple: [180, 180], card: [40, 21], logo: [64, 64], lockupLight: [40, 15], lockupDark: [40, 15] };
+    const images = Object.fromEntries(Object.entries(sizes).map(([name, [w, h]], k) => [name, rgba(w!, h!, k)]));
     const files = logoFiles(images);
     expect(files.map(([path]) => path)).toEqual([...LOGO_FILES]);
     const file = (path: string): Buffer => files.find(([p]) => p === path)![1];
     expect(file('public/apple-touch-icon.png').equals(encodePng(images['apple']!))).toBe(true);
+    expect(file('public/og.png').equals(encodePng(images['card']!))).toBe(true);
     expect(file('docs/brand/lockup-dark.png').equals(encodePng(images['lockupDark']!))).toBe(true);
     expect(file('public/favicon.svg').toString()).toBe(faviconSvg(encodePng(images['fav32']!), encodePng(images['fav32Dark']!), 32));
     expect(file('public/favicon.ico').readUInt16LE(4)).toBe(3);

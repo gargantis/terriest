@@ -8,17 +8,17 @@
 // interception at an address that never resolves, draws the picks
 // (dev/logo/picks.ts); this run writes dev/logo/files.ts' files under the
 // folder TERRIEST_LOGO_OUT names, at the paths the repo holds them:
-// public/favicon.ico, favicon.svg and apple-touch-icon.png, and
-// docs/brand/logo.png, lockup-light.png and lockup-dark.png. Without the
-// variable it refuses at once, and it refuses to write over a file in the
-// repo, as the repo's root as the folder would, however the folder reaches
-// it, by a symbolic link too, unless TERRIEST_LOGO_OVERWRITE=1. On C-6's
-// GPU path while GALLIUM_DRIVER is set (e2e/lib/gl.ts), as the committed
-// files were drawn: another GPU, or software, draws a little differently,
-// so the run logs what drew. The page is watched as the gate watches one:
-// no console error, and no request outside its own address. Named .run.ts,
-// so the gate's playwright.config.ts, which matches *.spec.ts, never runs
-// it.
+// public/favicon.ico, favicon.svg, apple-touch-icon.png and og.png, the
+// link-preview card, and docs/brand/logo.png, lockup-light.png and
+// lockup-dark.png. Without the variable it refuses at once, and it refuses
+// to write over a file in the repo, as the repo's root as the folder would,
+// however the folder reaches it, by a symbolic link too, unless
+// TERRIEST_LOGO_OVERWRITE=1. On C-6's GPU path while GALLIUM_DRIVER is set
+// (e2e/lib/gl.ts), as the committed files were drawn: another GPU, or
+// software, draws a little differently, so the run logs what drew. The page
+// is watched as the gate watches one: no console error, and no request
+// outside its own address. Named .run.ts, so the gate's
+// playwright.config.ts, which matches *.spec.ts, never runs it.
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -62,7 +62,7 @@ function targets(): string[] {
   return files;
 }
 
-test("draws the owner's logo and icons from the game's terrier", async ({ page, guard }) => {
+test("draws the owner's logo and icons, and the link-preview card, from the game's terrier", async ({ page, guard }) => {
   const files = targets();
   const dist = mkdtempSync(join(tmpdir(), 'terriest-logo-'));
   try {

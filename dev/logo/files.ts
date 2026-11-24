@@ -1,8 +1,8 @@
 // The logo's files, as e2e/logo.run.ts writes them from what dev/logo.html
 // draws, at the paths the repo holds them (the owner's pick of 2026-11-22,
-// PLAN's status): the tab icon's ICO and SVG and the phone's icon, which
-// ship from public/, and the logo and its two lock-ups in docs/brand/,
-// which don't. In Node.
+// PLAN's status): the tab icon's ICO and SVG, the phone's icon and the
+// link-preview card, which ship from public/, and the logo and its two
+// lock-ups in docs/brand/, which don't. In Node.
 // - Each PNG is 8-bit RGBA exactly as the page made it, each row filtered by
 //   the filter whose bytes sum smallest, deflated at level 9, with no other
 //   chunk.
@@ -20,7 +20,8 @@ export interface RgbaImage { readonly w: number; readonly h: number; readonly rg
 
 /** The files, repo-relative, in the order logoFiles makes them. */
 export const LOGO_FILES = [
-  'public/favicon.ico', 'public/favicon.svg', 'public/apple-touch-icon.png', 'docs/brand/logo.png', 'docs/brand/lockup-light.png', 'docs/brand/lockup-dark.png',
+  'public/favicon.ico', 'public/favicon.svg', 'public/apple-touch-icon.png', 'public/og.png', 'docs/brand/logo.png', 'docs/brand/lockup-light.png',
+  'docs/brand/lockup-dark.png',
 ] as const;
 
 const SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -133,6 +134,7 @@ export function logoFiles(images: Readonly<Record<string, RgbaImage>>): [(typeof
     ['public/favicon.ico', encodeIco([icon('fav16'), icon('fav32'), icon('fav48')])],
     ['public/favicon.svg', Buffer.from(faviconSvg(png('fav32'), png('fav32Dark'), 32))],
     ['public/apple-touch-icon.png', png('apple')],
+    ['public/og.png', png('card')],
     ['docs/brand/logo.png', png('logo')],
     ['docs/brand/lockup-light.png', png('lockupLight')],
     ['docs/brand/lockup-dark.png', png('lockupDark')],

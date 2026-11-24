@@ -212,7 +212,7 @@ It refuses to run without `TERRIEST_LOAD_OUT`, which names the file its raw repo
 
 ## Draw the logo
 
-The icons in `public/`, and the logo and its lock-ups in `docs/brand/`, are drawn from the game's own terrier, so a new look (Q-11) draws them again. With the dev server running, http://localhost:5173/dev/logo.html draws them, dev only; a run outside the gate writes the files at the repo's paths under the folder `TERRIEST_LOGO_OUT` names, refuses without it, and won't write over the committed files without `TERRIEST_LOGO_OVERWRITE=1`. On the development machine's GPU path it draws them byte for byte in about 10 s:
+The icons and the link-preview card in `public/`, and the logo and its lock-ups in `docs/brand/`, are drawn from the game's own terrier, so a new look (Q-11) draws them again. With the dev server running, http://localhost:5173/dev/logo.html draws them, dev only; a run outside the gate writes the files at the repo's paths under the folder `TERRIEST_LOGO_OUT` names, refuses without it, and won't write over the committed files without `TERRIEST_LOGO_OVERWRITE=1`. On the development machine's GPU path it draws them byte for byte in about 10 s:
 
 ```sh
 GALLIUM_DRIVER=d3d12 TERRIEST_LOGO_OUT="$(mktemp -d)" npx playwright test -c playwright.logo.config.ts
