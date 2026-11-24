@@ -36,7 +36,6 @@ export const PREVIEW_TAGS: readonly PreviewTag[] = [
   { attr: 'property', key: 'og:site_name', value: 'terriest' },
   { attr: 'property', key: 'og:type', value: 'website' },
   { attr: 'property', key: 'og:url', value: SITE },
-  { attr: 'property', key: 'og:locale', value: 'en' },
   { attr: 'property', key: 'og:image', value: `${SITE}${CARD_FILE}` },
   { attr: 'property', key: 'og:image:type', value: 'image/png' },
   { attr: 'property', key: 'og:image:width', value: '1200' },
