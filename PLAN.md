@@ -49,7 +49,7 @@
   - **What it collects:** no cookie or stored ID. Its report holds the page's address and the referring page's, without fragment or query, so no `#join=` code leaves the page; load and responsiveness timings; and the browser's and system's versions. The script's host sees each visitor's IP, Origin and User-Agent as it loads (§20).
   - **Two requirement lines change,** §2's last two rows: Platform's L238, since each page load now fetches a script from a third party before any match, and Quality's L254, whose "no tracking" now names the beacon. L283 holds: Practice itself contacts only terriest.com.
   - **It undercounts:** ad blockers, Brave's among them, block the beacon. Cloudflare's own counts of the requests at its edge need no script.
-  - The gate never sees the beacon, which only the edge adds: `scripts/headers.test.mjs` pins the policy, and the deploy's check loads the live page in each engine (`docs/acceptance.md`).
+  - The gate never sees the beacon, which only the edge adds: `scripts/headers.test.mjs` pins the policy, and the deploy's check loads the live page in each engine. Deployed that day from main at 0454a74: in Chromium, Firefox and WebKit the live beacon ran with nothing refused and reported to `/cdn-cgi/rum`, and Cloudflare answered Chromium's report with 204 (`docs/acceptance.md`).
 
 **Date:** 2026-11-14; approved 2026-11-15.
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
