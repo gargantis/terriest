@@ -235,7 +235,7 @@ Beyond roslambo's approach:
 - If WebGL 2 is missing or lost, the page says so plainly instead of going blank
 - Desktop and mobile browsers: current Chrome, Edge, Firefox and Safari
 - Keyboard, touch and gamepad are all in scope
-- Nothing contacts a third party until a player proposes or joins a match; opening a `#join=` link or entering a code counts as joining (C-32). Practice contacts none
+- Nothing contacts a third party until a player proposes or joins a match; opening a `#join=` link or entering a code counts as joining (C-32). Practice contacts none. Cloudflare's Web Analytics, which terriest.com's host adds to each page it serves, is the one exception: each page load fetches its script from static.cloudflareinsights.com, and the script reports the visit to terriest.com itself (C-58)
 
 ## Performance
 
@@ -251,7 +251,7 @@ Beyond roslambo's approach:
 - End-to-end tests that play matches through the real page and its controls, not only through test modes
 - End-to-end tests also play a match with a stand-in skinned model, kept out of the shipped build and served to it by the tests (C-33), in place of the code-built terriers, and lint keeps the simulation from importing the drawing code, so the swap is tested before any model exists
 - The gate tooling shared with amorfus and roslambo, from hermet
-- No secrets, API keys or tracking
+- No secrets, API keys or tracking. Cloudflare's Web Analytics, which sets no cookies and follows no one from site to site, counts the visits (C-58)
 
 ## Out of scope for MVP
 

@@ -62,5 +62,13 @@
     "purpose": "STUN: finds this machine's public address for direct connections",
     "operator": "Google",
     "sees": "IP and port"
+  },
+  {
+    "host": "static.cloudflareinsights.com",
+    "url": "https://static.cloudflareinsights.com/beacon.min.js",
+    "kind": "analytics",
+    "purpose": "Cloudflare Web Analytics' beacon, which Cloudflare's edge adds to each page terriest.com serves; it reports the visit to terriest.com's own /cdn-cgi/rum (C-58)",
+    "operator": "Cloudflare, terriest.com's host",
+    "sees": "IP, Origin, User-Agent and timing as the script loads; its report, sent to terriest.com, holds the page's and the referring page's addresses without fragment or query, load and responsiveness timings, and the browser's and system's versions, with no cookie or stored ID"
   }
 ]

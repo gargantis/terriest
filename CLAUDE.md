@@ -31,6 +31,7 @@ That is lint, public-scan, typecheck, unit tests (`vendor/hermet`'s included), t
 - Only `src/storage/**` touches browser storage.
 - No root-absolute URL and no History API, so the site works from a subpath (L232). The fragment is set with `location.replace`.
 - Every external host is listed in `third-party.json`; the dist audit fails on any other but the site's own address, terriest.com, which `index.html`'s link-preview tags name in the absolute URLs unfurlers need and the page never requests (`scripts/audit-dist.mjs`' `ignoredHosts`; `e2e/link-preview.spec.ts`).
+- On terriest.com, Cloudflare's edge adds its Web Analytics beacon to the page, one `<script>` from static.cloudflareinsights.com before `</body>`, so the live page is `dist/index.html` with that tag added. `public/_headers`' script-src allows that host, by its host alone, and `third-party.json` lists it as kind `analytics` (C-58). The build never holds the beacon, so no spec sees it: `scripts/headers.test.mjs` pins the policy.
 - `package.json` says `"sideEffects": false`, so the bundler drops a module none of whose exports the page uses: that keeps the goldens' scripts, which `src/core/sim/index.ts` reaches through `canaryHash`, out of the page's module (M2's design §7.5, from M4). So no module in `src` is imported for its side effects alone; what must run at start-up is called.
 - The module paths of §6 are part of the contract: the lint, and from M2 the golden files, depend on them.
 

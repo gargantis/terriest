@@ -45,6 +45,11 @@
   - The dist audit takes the site's own address, which the tags name, as a stated exception (`scripts/audit-dist.mjs`' `ignoredHosts`), not a third party in `third-party.json`.
   - `e2e/link-preview.spec.ts` reads every tag from the built page in each engine and fetches the card from the page's own server; `e2e/lib/link-preview.test.ts` reads `index.html` itself.
   - The description is Claude's, from the README's pitch without naming another game: "Two packs of small dogs corral a giant rubber ball into goals. Play in your browser against bots, or with friends by link, up to 4 a side." Yours to change.
+- *The owner, 2026-11-25:* "yes, allow it and deploy", of Cloudflare's Web Analytics, which you had turned on in Cloudflare's dashboard and which had counted no visits. Cloudflare's edge adds its beacon, a script from static.cloudflareinsights.com, to each page terriest.com serves, and D-35's `script-src 'self'` refused it in every browser, each load logging the refusal as a console error. So `script-src` also takes that host, and the beacon reports each visit to terriest.com's own `/cdn-cgi/rum`, which `connect-src 'self'` already covers (C-58, D-35).
+  - **What it collects:** no cookie or stored ID. Its report holds the page's address and the referring page's, without fragment or query, so no `#join=` code leaves the page; load and responsiveness timings; and the browser's and system's versions. The script's host sees each visitor's IP, Origin and User-Agent as it loads (§20).
+  - **Two requirement lines change,** §2's last two rows: Platform's L238, since each page load now fetches a script from a third party before any match, and Quality's L254, whose "no tracking" now names the beacon. L283 holds: Practice itself contacts only terriest.com.
+  - **It undercounts:** ad blockers, Brave's among them, block the beacon. Cloudflare's own counts of the requests at its edge need no script.
+  - The gate never sees the beacon, which only the edge adds: `scripts/headers.test.mjs` pins the policy, and the deploy's check loads the live page in each engine (`docs/acceptance.md`).
 
 **Date:** 2026-11-14; approved 2026-11-15.
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
@@ -181,7 +186,9 @@ Four rows waited for a later step. One has gone in, and three still wait:
 
 **M3:** none of M3's settings is a requirement, so M3 adds no row (M3's design §10). A change of w would move the confirmation delay, (w + v) ÷ 60 s, and so L202's "about 0.4 s after the ball crosses the line" (Q-7); a row here would then propose the new figure for your edit. The Goal celebration row's "3 s plus the confirmation delay" stays true at any w. Rule 3 confirmed w = 12 (research/corrections/REPORT.md section 2.1), so no row is proposed; a pick for C-55 that changes w brings L202's row with it.
 
-**M4:** your decision of 2026-11-21, clear plexiglass walls with the players' cameras free to go outside them (C-57), changes two lines, applied with it: Cameras' L89 and Look and sound's L96, the last two rows.
+**M4:** your decision of 2026-11-21, clear plexiglass walls with the players' cameras free to go outside them (C-57), changes two lines, applied with it: Cameras' L89 and Look and sound's L96, the two rows after Q-10's and Q-4's.
+
+**After M4's phase 2:** your decision of 2026-11-25 to let Cloudflare's Web Analytics run (C-58) changes two lines, applied with it: Platform's L238 and Quality's L254, the last two rows.
 
 | Requirement (current) | Amended wording | From |
 |---|---|---|
@@ -227,6 +234,8 @@ Four rows waited for a later step. One has gone in, and three still wait:
 | Acceptance: devices and runs | Add: "The devices, people and networks that meet these lines are named before M5 and recorded in `docs/acceptance.md`." L280's, L284's and L286's own conditions stand | Q-4 |
 | Cameras: "A player's camera stays inside the pitch, and a wall or the ball that comes between it and their terrier turns see-through" | "A player's camera keeps its place behind their terrier even where that's outside the walls, in a goal or behind one, since the walls are clear plexiglass, and a goal or the ball that comes between the camera and their terrier turns see-through" | C-57 |
 | Look and sound: "… a grass pitch inside padded walls under a rope net …" | "… a grass pitch inside clear plexiglass walls under a rope net …" | C-57 |
+| Platform: "Nothing contacts a third party until a player proposes or joins a match; … Practice contacts none" | Add: "Cloudflare's Web Analytics, which terriest.com's host adds to each page it serves, is the one exception: each page load fetches its script from static.cloudflareinsights.com, and the script reports the visit to terriest.com itself" | C-58 |
+| Quality: "No secrets, API keys or tracking" | Add: "Cloudflare's Web Analytics, which sets no cookies and follows no one from site to site, counts the visits" | C-58 |
 
 ---
 
@@ -436,6 +445,7 @@ Four rows waited for a later step. One has gone in, and three still wait:
 | C-53 | L102 lists no goal whistle, but L202 has one, and L265 rules out sound beyond L102's list. | §2: a whistle with a goal's chorus, at the confirmed tick (D-32) |
 | C-54 | hermet's checks have gaps, found by M1's review. The dist audit misses a host written with an upper-case scheme (`HTTPS://`), one in a JS string that starts with `//`, and anything in a shipped `.svg`, whose text it never reads. public-scan misses a home path that ends at the user's name, and the Windows path into WSL (`\\wsl.localhost\…\home\<name>\…`). Its private denylist, `TERRIEST_PRIVATE_TERMS`, isn't set on this machine, so only the built-in patterns run here too. | A hermet change, for your go-ahead, needed before any `.svg` ships (§15). Until then, D-38's lint bans src's root-absolute and `//` URL literals, the e2e guard fails any request a test makes outside its servers, and `public-scan` says when it ran without the denylist. Setting the variable, to a file kept outside the repo, is yours (README). |
 | C-57 | L89 keeps a player's camera inside the pitch. So at a wall, in a corner or in a goal, the camera rises or is held close, and loses the ball off the top of the view. In M4's comparison of ball view's camera at the walls, the camera held inside the pitch kept both your terrier and the ball on screen in 31% of the frames at the walls and 63% at your own goal, and moved up to 3.6 m in a frame at a corner. | Settled by your decision of 2026-11-21: "Let's make the walls transparent like plexiglass. This way the virtual camera can go outside of the arena." The walls are clear plexiglass, and a player's camera keeps its place behind its terrier, outside the walls and in or behind a goal too (D-28's M4 note, A.5; §2: L89, L96). The comparison's prototype E kept both in 100% of the frames there, with a largest camera move of 0.55 m a frame against 3.6 m. Its cost on the development machine's GPU, the Iris Xe, was about +0.5 ms a frame at 1280 × 720 and +1 ms at 2560 × 1440, within the drawing budget's calls and triangles; not yet measured on the Pixel 8a, which the performance track's phone run checks (C-2). The look, the camera in and behind a goal, the posts solid from 4.5 m, the gravel apron and the grass round the cage, the spectators' camera unchanged, the cost, and the arrow for a ball behind the HUD's bar are settled provisionally at the comparison's defaults, and owner-pending (`docs/acceptance.md`). |
+| C-58 | Cloudflare's Web Analytics, which you turned on in Cloudflare's dashboard, counted no visits. Cloudflare's edge adds its beacon, a script from static.cloudflareinsights.com, to each page terriest.com serves, and D-35's `script-src 'self'` refused it in every browser, each load logging the refusal as a console error. L238 has nothing contact a third party before a match, and L254 rules out tracking. | Settled by your decision of 2026-11-25: "yes, allow it and deploy". `script-src` also takes `https://static.cloudflareinsights.com`, by its host alone: the edge's script URL carries a version path, `beacon.min.js/v…`, which the source Cloudflare's FAQ gives, ending in `beacon.min.js`, wouldn't match. The snippet the edge adds names a version, so the beacon reports to the page's own `/cdn-cgi/rum`, not to cloudflareinsights.com, and `connect-src 'self'` covers it; it posts JSON, so its request carries the page's Origin under `no-referrer`. The beacon's own code strips the fragment and query from the two addresses its report holds, the page's and the referrer's, so no `#join=` code leaves the page. Before the change, a test browser given the host ran the beacon on the live page, refused nothing else, and caught its report unsent. The host is in `third-party.json` as kind `analytics`, which the dist audit reads and the room config ignores; §2 amends L238 and L254, and §20 and the README's Privacy say what it sees (D-35). |
 
 ---
 
@@ -1023,6 +1033,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - `object-src 'none'` and `base-uri 'none'`: no plugins, and no `<base>` to redirect the relative paths.
   - The gate plays the stand-in under this file unchanged, and a unit test checks its rules (§16). §12 lists what a model's decoder would add.
 - **M0, confirmed as written** (research/spike/REPORT.md §3, §5.4, §8): `blob:` in connect-src is needed, and it's enough. Under amorfus's policy, each engine refused one fetch, connect-src blocking `blob:`, and the stand-in's embedded texture was missing. Under this policy exactly as written, it loaded at 256 × 256 in all three engines, and nothing was refused, by three or by the page. Vite's module-preload polyfill fetches same-origin URLs, which `'self'` covers, and `build.modulePreload.polyfill: false` drops it.
+- **C-58,** your decision of 2026-11-25: `script-src` also takes `https://static.cloudflareinsights.com`, the host of Cloudflare's Web Analytics beacon, which Cloudflare's edge adds to each page it serves and the build never holds. So the policy is `script-src 'self' https://static.cloudflareinsights.com; connect-src 'self' wss: blob:; object-src 'none'; base-uri 'none'`. The beacon reports to the page's own `/cdn-cgi/rum`, which `'self'` covers, so `connect-src` is unchanged. The gate's pages never hold the beacon, so of the gate only `scripts/headers.test.mjs` sees the change; the deploy's check loads the live page.
 
 **D-36 — The spike stays separate (roslambo D-26).** M0 lives in `research/spike/`, with its own `package.json`. Nothing in `src/` imports it; its findings go in `research/spike/REPORT.md`.
 
@@ -2011,6 +2022,7 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
 
 **Runtime.** Contacted only after Propose or Join (counting the opening of a `#join=` link), except hosting. Practice contacts none.
 - **M3:** the `#test=net` page, in a production build, takes only `third-party.json`'s relays, which M5's relay check uses, or a loopback `ws:` one, and otherwise says so and contacts nothing, so no link can send a visitor's browser to a relay this table doesn't list (M3's design §6.7; nettest-params.test.ts, nettest.spec.ts). The gate contacts none of these hosts: its specs use the local relay alone (§16).
+- **C-58:** on terriest.com, Cloudflare's Web Analytics too, from each page load: its script from static.cloudflareinsights.com, which Cloudflare's edge adds to the page, and its report to terriest.com's own `/cdn-cgi/rum`. Practice itself contacts only terriest.com.
 
 | Party | Role | Sees |
 |---|---|---|
@@ -2020,6 +2032,7 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
 | The user's TURN server, if any | relay for blocked pairs | IP, traffic volume |
 | Other peers in the match | the game | your IP address, player ID, name, coat and inputs; and, as M3 built the protocol, your build's hash in HELLO, your role and the timeline you hold, its ID, kind, tick and hash, in HELLO and PEERS, and in PEERS the player IDs of the browsers you're connected to (§9) |
 | Cloudflare | hosting | HTTP requests, never the `#join=` fragment; logs off |
+| static.cloudflareinsights.com, and terriest.com's `/cdn-cgi/rum` | Cloudflare's Web Analytics, which its edge adds to each page (C-58) | the script's host: IP, Origin, User-Agent, timing. The report: the page's and the referring page's addresses without fragment or query, load and responsiveness timings, the browser's and system's versions; no cookie or stored ID |
 
 **Build and test:** the npm registry, Playwright's browser downloads, GitHub Actions.
 

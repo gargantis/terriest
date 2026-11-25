@@ -4,10 +4,12 @@ import { headersFor, parseHeadersFile } from '../e2e/lib/serve.mjs';
 
 // PLAN D-35, §16: public/_headers, read by the rules terriest.com applies
 // (e2e/lib/serve.mjs): the hashed assets immutable, D-35's policy and
-// amorfus's other security headers on every path.
+// amorfus's other security headers on every path. From C-58 the policy also
+// lets Cloudflare's Web Analytics beacon run, which only Cloudflare's edge
+// adds to the page, so no end-to-end spec ever sees it: this pins it.
 const rules = parseHeadersFile(readFileSync(new URL('../public/_headers', import.meta.url), 'utf8'));
 const header = (path, name) => headersFor(rules, path).find(([k]) => k === name)?.[1];
-const POLICY = "script-src 'self'; connect-src 'self' wss: blob:; object-src 'none'; base-uri 'none'";
+const POLICY = "script-src 'self' https://static.cloudflareinsights.com; connect-src 'self' wss: blob:; object-src 'none'; base-uri 'none'";
 
 describe('public/_headers', () => {
   it('marks the hashed assets immutable, and nothing else', () => {
@@ -19,7 +21,7 @@ describe('public/_headers', () => {
     }
   });
 
-  it("sets D-35's policy on every path, wss: and blob: in connect-src included", () => {
+  it("sets D-35's policy on every path, the beacon's host in script-src and wss: and blob: in connect-src included", () => {
     const directives = Object.fromEntries(
       header('/', 'Content-Security-Policy')
         .split(';')
@@ -27,7 +29,11 @@ describe('public/_headers', () => {
         .map(([name, ...sources]) => [name, sources]),
     );
     expect(directives).toEqual({
-      'script-src': ["'self'"],
+      // The host alone (C-58): the edge's script URL carries a version path,
+      // beacon.min.js/v…, which a source ending in beacon.min.js wouldn't match.
+      // Its report goes to the page's own /cdn-cgi/rum, so connect-src names no
+      // Cloudflare host.
+      'script-src': ["'self'", 'https://static.cloudflareinsights.com'],
       'connect-src': ["'self'", 'wss:', 'blob:'],
       'object-src': ["'none'"],
       'base-uri': ["'none'"],

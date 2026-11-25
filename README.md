@@ -238,9 +238,9 @@ It deploys `dist/` to Cloudflare Workers static assets, at terriest.com: assets 
 
 ## Privacy
 
-No accounts, analytics or tracking.
+No accounts or tracking. The one analytics is Cloudflare's Web Analytics, which counts visits without cookies (Hosting, below; PLAN C-58).
 
-- **The game's page** contacts only the server it's loaded from, and the gate fails a page that requests anything else, until you propose or join a match: opening a `#join=` link or entering a code counts as joining.
+- **The game's page** contacts only the server it's loaded from, and on terriest.com Cloudflare's analytics script, until you propose or join a match: opening a `#join=` link or entering a code counts as joining. The gate fails a page that requests anything else; it never sees the analytics script, which only Cloudflare adds.
 - **A match with others,** through the screens, uses `third-party.json`'s relays and any you add in Settings, and under `npm run dev:local` the local relay alone; it asks `third-party.json`'s STUN servers for the browser's public address, and uses your TURN server if you add one. The network test page uses the one relay its address names: in a built page, one of `third-party.json`'s or one on this machine, so a link can't send a browser to any other; under `npm run dev:local`, the local relay. With `ice=default`, its default only when no relay is given, so under `npm run dev:local`, it also asks the STUN servers; with `ice=none` or `ice=local`, none. These see the following (PLAN §20; the relays and STUN servers are in [third-party.json](third-party.json)):
 
 | Who | Why | What they see |
@@ -251,7 +251,7 @@ No accounts, analytics or tracking.
 | The other browsers in the match | the game | your IP address, player ID, name, coat and inputs; your build's hash, your role and the timeline you hold (its ID, kind, tick and hash); and which other players your browser is connected to |
 
 - **Practice** contacts no one: no relay, STUN server or other browser (P10), which `e2e/practice.spec.ts` checks through the screens and `e2e/practice-net.spec.ts` through the network test page, with `mode=practice`. It sets no `#join=` fragment, so a reload goes Home and contacts no one either.
-- **Hosting:** once deployed, Cloudflare serves terriest.com. It sees each HTTP request, never the `#join=` fragment, and request logs are off.
+- **Hosting:** once deployed, Cloudflare serves terriest.com. It sees each HTTP request, never the `#join=` fragment, and request logs are off. It also adds its Web Analytics to each page it serves: a script from static.cloudflareinsights.com, which sees your IP address, Origin, User-Agent and timing as it loads, and which reports the visit to terriest.com with the page's and the referring page's addresses, without fragment or query, so never a `#join=` code; the page's load and responsiveness timings; and your browser's and system's versions. It sets no cookie and stores no ID (PLAN C-58, §20).
 
 ## Licence
 
