@@ -3,9 +3,13 @@ import { fileURLToPath } from 'node:url';
 import { ESLint } from 'eslint';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
-import { config, type Config, type Derived, derive, derived, packSpots, type PitchShape, type SpotTable } from './config';
+import {
+  config, type Config, type Derived, derive, derived, matchConfig, type MatchRules, NO_RULES, packSpots, type PitchShape, RULE_SETTINGS, type RuleSetting,
+  type SpotTable,
+} from './config';
 import { BOT_SLOTS } from './core/bot/bot-id';
 import { STEP_MASK } from './core/sim/input';
+import { simParams } from './core/sim/params';
 import { buildPitch, CAPSULE, FRAME, GOAL_NET, insideFloorPlan, type Piece, type Pitch, pitch, PLANE, QUAD } from './core/sim/pitch';
 
 // PLAN §7.4: the configuration checks. Each check returns the problems it
@@ -378,6 +382,66 @@ function cameras(c: Config): string[] {
   return problems;
 }
 
+// --- The match rules' choices (C-59) ---
+
+/** The checks above that read a setting a match's rules set, or one
+ *  matchConfig moves with them: the bound reads the speeds, the jump and
+ *  the push assist's cap; the meter its times; the assist its cap and the
+ *  zoomies speed. */
+const RULE_CHECKS: readonly ((c: Config) => string[])[] = [tunnelling, zoomiesMeter, pushAssist];
+/** The rest, which read none of those settings, so no rule can break them:
+ *  the test plants each of them NaN. */
+const OTHER_CHECKS: readonly ((c: Config) => string[])[] = [
+  history, kickoff, goalMouth, stickSteps, terrierFloor, botBarks, tickHistory, trysteroFrame, spreadCap, botsReady, leaving, afterStall,
+  liveness, wireCounts, cameras,
+];
+
+/** The configurations a match can play over c, each named: every rule at
+ *  each of its choices alone, and every rule at its lowest and at its
+ *  highest together, through matchConfig (C-59). */
+function matchConfigs(c: Config): [string, Config][] {
+  const lists = Object.entries(c.matchRules) as [string, readonly number[]][];
+  const out: [string, Config][] = [];
+  for (const [k, choices] of lists) for (const v of choices) out.push([`${k} at ${v}`, matchConfig(c, { [k]: v })]);
+  const together = (end: (choices: readonly number[]) => number): MatchRules =>
+    Object.fromEntries(lists.flatMap(([k, choices]) => (choices.length > 0 ? [[k, end(choices)]] : [])));
+  out.push(['every rule at its lowest', matchConfig(c, together((x) => Math.min(...x)))]);
+  out.push(['every rule at its highest', matchConfig(c, together((x) => Math.max(...x)))]);
+  return out;
+}
+
+/** Each match rule a numeric setting, its choices finite and ascending, so
+ *  none twice, with the setting's own value among them; and every
+ *  configuration a match can play passing the checks a rule can break and
+ *  building its parameters (C-59). */
+function matchRuleChoices(c: Config): string[] {
+  const problems: string[] = [];
+  for (const [k, choices] of Object.entries(c.matchRules) as [string, readonly number[]][]) {
+    const own = (c as unknown as Readonly<Record<string, unknown>>)[k];
+    if (typeof own !== 'number') problems.push(`${k} is no numeric setting, so no match rule`);
+    else if (!choices.some((v) => Object.is(v, own))) problems.push(`${k}'s choices, ${choices.join(', ')}, don't hold its setting's ${own}`);
+    if (!choices.every((v, i) => Number.isFinite(v) && (i === 0 || v > choices[i - 1]!))) {
+      problems.push(`${k}'s choices, ${choices.join(', ')}, aren't finite and ascending`);
+    }
+  }
+  for (const [what, m] of matchConfigs(c)) {
+    const found = RULE_CHECKS.flatMap((check) => check(m));
+    try {
+      simParams(m);
+    } catch (e) {
+      // derive()'s refusals, which the meter's check gives too, once.
+      if (!found.includes(message(e))) found.push(message(e));
+    }
+    for (const problem of found) problems.push(`${what}: ${problem}`);
+  }
+  return problems;
+}
+
+/** The configuration with a match rule's choices planted: a list replaced,
+ *  or one added. */
+const plantedChoices = (k: string, choices: readonly number[]): Config =>
+  planted({ matchRules: { ...config.matchRules, [k]: choices } as unknown as Config['matchRules'] });
+
 // --- Every setting from the tables is in src/config.ts (§7.4) ---
 
 /** How a table row maps to src/config.ts: the settings it names, and the
@@ -566,7 +630,43 @@ const A5: Readonly<Record<string, Row>> = {
   // M4's rows (M4's design §10, M4-Q34).
   "Players' cameras": { keys: ['cameraBehindMetres', 'cameraAboveMetres', 'cameraFovDegrees', 'cameraWallMarginMetres', 'chaseLookAheadMetres'] },
   "Spectators' camera": { keys: ['spectatorViewLengthMetres', 'spectatorFollowSeconds'] },
+  // The match rules' choices (C-59), each row its setting's list, in order.
+  ...choicesRows({
+    runSpeedMetresPerSecond: "Run speed's choices (C-59)",
+    zoomiesSpeedMetresPerSecond: "Zoomies speed's choices (C-59)",
+    zoomiesFullSeconds: "Zoomies meter's choices (C-59)",
+    turnRateTurnsPerSecond: "Turn rate's choices (C-59)",
+    idleFrictionMetresPerSecond2: "Idle friction's choices (C-59)",
+    jumpHeightMetres: "Jump's choices (C-59)",
+    // "for the lunge's 0.3 s"
+    pounceSpeedMetresPerSecond: ["Pounce speed's choices (C-59)", (c) => [...c.matchRules.pounceSpeedMetresPerSecond, c.lungeSeconds]],
+    pounceWaitSeconds: "Pounce wait's choices (C-59)",
+    bowlingSpeedMetresPerSecond: "Bowling speed's choices (C-59)",
+    // "the get-up its last 0.5 s"
+    tumbleSeconds: ["Tumble's choices (C-59)", (c) => [...c.matchRules.tumbleSeconds, c.getUpSeconds]],
+    tumbleGuardSeconds: "Tumble guard's choices (C-59)",
+    // "the goal's netting keeps 0"
+    ballRestitution: ["Ball bounce's choices (C-59)", (c) => [...c.matchRules.ballRestitution, c.goalNetRestitution]],
+    // "a terrier's 1"
+    ballMassKg: ["Ball mass's choices (C-59)", (c) => [...c.matchRules.ballMassKg, c.terrierMassKg]],
+    rollingSlowdownMetresPerSecond2: "Ball rolling slowdown's choices (C-59)",
+    kickoffCountdownSeconds: "Kickoff countdown's choices (C-59)",
+  }),
 };
+
+/** A.5's row for each match rule's choices (C-59): its name, and with it
+ *  the numbers its value cell gives where they aren't the list alone. */
+function choicesRows(
+  names: { readonly [K in RuleSetting]: string | readonly [string, (c: Config) => readonly number[]] },
+): Record<string, Row> {
+  const out: Record<string, Row> = {};
+  for (const key of RULE_SETTINGS) {
+    const n = names[key];
+    const [name, numbers] = typeof n === 'string' ? [n, (c: Config) => c.matchRules[key]] : n;
+    out[name] = { keys: [`matchRules.${key}`], numbers };
+  }
+  return out;
+}
 
 /** Settings in none of the tables, with their sources. */
 const ELSEWHERE: Readonly<Record<string, string>> = {
@@ -1144,6 +1244,104 @@ describe('the configuration checks (PLAN §7.4)', () => {
     expect(cameras(planted({ cameraAboveMetres: 2.7 }))).toEqual([]);
     expect(cameras(planted({ cameraBehindMetres: 14 }))).toEqual([]);
     expect(cameras(plantedPitch({ goalDepthMetres: 1 }))).toEqual([]);
+  });
+
+  it("the match rules' choices (C-59)", () => {
+    expect(matchRuleChoices(config)).toEqual([]);
+    // The checks it runs are the ones a rule can break: matchConfig moves the rules' settings, the
+    // meter's refill and the assist's cap, and no other; with each of those planted NaN, each of the
+    // three checks finds a problem, and each of the rest still finds none, since none reads them.
+    const configs = matchConfigs(config);
+    const moved = Object.keys(config).filter((k) => configs.some(([, m]) => !Object.is(valueAt(m, k), valueAt(config, k))));
+    expect(moved.sort()).toEqual([...RULE_SETTINGS, 'pushAssistCapMetresPerSecond', 'zoomiesRefillSeconds'].sort());
+    const unread = planted(Object.fromEntries(moved.map((k) => [k, NaN])) as Partial<Config>);
+    for (const check of RULE_CHECKS) expect(check(unread), check.name).not.toEqual([]);
+    for (const check of OTHER_CHECKS) expect(check(unread), check.name).toEqual([]);
+
+    // A planted choice that breaks a check is caught, alone and with every rule at its highest: a pounce
+    // past D-3's bound, and a zoomies speed past it, which takes the assist's cap with it (C-18).
+    const pounce = config.matchRules.pounceSpeedMetresPerSecond;
+    const pounces = matchRuleChoices(plantedChoices('pounceSpeedMetresPerSecond', [...pounce.slice(0, -1), 30]));
+    expect(pounces).toHaveLength(2);
+    expect(pounces.join('\n')).toMatch(/^pounceSpeedMetresPerSecond at 30: a pounce from the air reaches [\d.]+ m\/s, not under the 25 m\/s bound$/m);
+    expect(pounces.join('\n')).toMatch(/^every rule at its highest: a pounce from the air reaches [\d.]+ m\/s, not under the 25 m\/s bound$/m);
+    const zoomies = config.matchRules.zoomiesSpeedMetresPerSecond;
+    expect(matchRuleChoices(plantedChoices('zoomiesSpeedMetresPerSecond', [...zoomies.slice(0, -1), 26]))).toEqual(
+      ['zoomiesSpeedMetresPerSecond at 26', 'every rule at its highest'].flatMap((what) => [
+        `${what}: zoomies speed reaches 26 m/s, not under the 25 m/s bound`,
+        `${what}: the push assist's cap reaches 26 m/s, not under the 25 m/s bound`,
+      ]),
+    );
+    // A meter's time a tenth of a tick past a whole number of ticks, which derive() refuses, and a tumble
+    // past A.1's u16, which only the parameters do.
+    const meter = config.matchRules.zoomiesFullSeconds;
+    const off = meter[1] + 1 / (10 * config.ticksPerSecond);
+    expect(matchRuleChoices(plantedChoices('zoomiesFullSeconds', meter.map((v, i) => (i === 1 ? off : v))))).toEqual([
+      `zoomiesFullSeconds at ${off}: zoomies from full: ${off} s is ${off * config.ticksPerSecond} ticks, not a whole number`,
+    ]);
+    const tumble = config.matchRules.tumbleSeconds;
+    const tumbles = matchRuleChoices(plantedChoices('tumbleSeconds', [...tumble.slice(0, -1), 1200]));
+    expect(tumbles).toHaveLength(2);
+    expect(tumbles.join('\n')).toMatch(/^tumbleSeconds at 1200: the lunge, pounce wait, tumble and guard, .* don't fit A.1's u16$/m);
+    expect(tumbles.join('\n')).toMatch(/^every rule at its highest: the lunge, pounce wait, tumble and guard, .* don't fit A.1's u16$/m);
+
+    // And the lists: a rule that's no numeric setting, one without its setting's own value, one out of
+    // order or with a choice twice, and one with a choice that's no number.
+    expect(matchRuleChoices(plantedChoices('ballSpinTurnsPerSecond', [0, 1]))).toEqual(['ballSpinTurnsPerSecond is no numeric setting, so no match rule']);
+    expect(matchRuleChoices(plantedChoices('steering', [0]))).toEqual(['steering is no numeric setting, so no match rule']);
+    const own = config.pounceSpeedMetresPerSecond;
+    const without = pounce.filter((v) => v !== own);
+    expect(matchRuleChoices(plantedChoices('pounceSpeedMetresPerSecond', without))).toEqual([
+      `pounceSpeedMetresPerSecond's choices, ${without.join(', ')}, don't hold its setting's ${own}`,
+    ]);
+    for (const list of [[pounce[1], pounce[0], ...pounce.slice(2)], [...pounce, pounce[pounce.length - 1]!]]) {
+      expect(matchRuleChoices(plantedChoices('pounceSpeedMetresPerSecond', list)), list.join(', ')).toEqual([
+        `pounceSpeedMetresPerSecond's choices, ${list.join(', ')}, aren't finite and ascending`,
+      ]);
+    }
+    // NaN fails the bound too, alone and as the lowest and the highest, which Math.min and Math.max make it.
+    const nan = matchRuleChoices(plantedChoices('pounceSpeedMetresPerSecond', [...pounce, NaN]));
+    expect(nan).toEqual([
+      `pounceSpeedMetresPerSecond's choices, ${[...pounce, NaN].join(', ')}, aren't finite and ascending`,
+      ...['pounceSpeedMetresPerSecond at NaN', 'every rule at its lowest', 'every rule at its highest'].map(
+        (what) => `${what}: a pounce from the air reaches NaN m/s, not under the 25 m/s bound`,
+      ),
+    ]);
+  });
+
+  it("moves the meter's refill and the push assist's cap with a match's zoomies (C-59, A.1, C-18)", () => {
+    // The meter refills in the build's proportion of its time, so at every length its rates are whole
+    // units a tick, the refill's the build's own; without the move, a shorter meter's refill isn't.
+    const proportion = config.zoomiesRefillSeconds / config.zoomiesFullSeconds;
+    for (const full of config.matchRules.zoomiesFullSeconds) {
+      const m = matchConfig(config, { zoomiesFullSeconds: full });
+      expect(m.zoomiesRefillSeconds, `${full} s`).toBe(full * proportion);
+      expect(zoomiesMeter(m), `${full} s`).toEqual([]);
+      expect(derive(m).zoomiesMeterRefillPerTick, `${full} s`).toBe(derived.zoomiesMeterRefillPerTick);
+    }
+    expect(zoomiesMeter(planted({ zoomiesFullSeconds: config.matchRules.zoomiesFullSeconds[0] })).join('\n')).toMatch(/^the zoomies meter: .* not whole units/);
+    // A push assist that's on keeps its cap at least the zoomies speed, one above them all keeps its own,
+    // and one that's off stays off; without the move, a faster zoomies than the cap is slowed by it.
+    const fastest = Math.max(...config.matchRules.zoomiesSpeedMetresPerSecond);
+    const off = planted({ pushAssistCapMetresPerSecond: 0 });
+    const high = planted({ pushAssistCapMetresPerSecond: config.speedBoundMetresPerSecond - 1 });
+    expect(high.pushAssistCapMetresPerSecond).toBeGreaterThan(fastest);
+    for (const zoomies of config.matchRules.zoomiesSpeedMetresPerSecond) {
+      const m = matchConfig(config, { zoomiesSpeedMetresPerSecond: zoomies });
+      expect(m.pushAssistCapMetresPerSecond, `${zoomies} m/s`).toBe(Math.max(config.pushAssistCapMetresPerSecond, zoomies));
+      expect(pushAssist(m), `${zoomies} m/s`).toEqual([]);
+      const capOf = (c: Config): number => matchConfig(c, { zoomiesSpeedMetresPerSecond: zoomies }).pushAssistCapMetresPerSecond;
+      expect(capOf(high), `${zoomies} m/s, a high cap`).toBe(high.pushAssistCapMetresPerSecond);
+      expect(capOf(off), `${zoomies} m/s, the assist off`).toBe(0);
+    }
+    expect(fastest).toBeGreaterThan(config.pushAssistCapMetresPerSecond);
+    expect(pushAssist(planted({ zoomiesSpeedMetresPerSecond: fastest }))).toHaveLength(1);
+    // No rules, or a rule left undefined, give the configuration itself; rules give a frozen copy.
+    expect(matchConfig(config, NO_RULES)).toBe(config);
+    expect(matchConfig(config, { runSpeedMetresPerSecond: undefined } as unknown as MatchRules)).toBe(config);
+    const m = matchConfig(config, { zoomiesFullSeconds: config.matchRules.zoomiesFullSeconds[0] });
+    expect(m).not.toBe(config);
+    expect(Object.isFrozen(m) && Object.isFrozen(m.pitch) && Object.isFrozen(m.matchRules)).toBe(true);
   });
 
   it('has every setting of the Configuration table, A.4 and A.5, with their values', () => {

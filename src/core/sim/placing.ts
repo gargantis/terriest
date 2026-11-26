@@ -51,7 +51,8 @@ export interface PlacedOptions {
 }
 
 /** A match placed for a kickoff (D-8, design §6.4) at tick 0: every member
- *  present, by ID rank on its pack's spots, Ready 0, phaseStart 0. */
+ *  present, by ID rank on its pack's spots, Ready 0, phaseStart 0, under
+ *  the rules P was made for (C-59). */
 export function placedMatch(P: SimParams, packSize: number, opts: PlacedOptions = {}): MatchState {
   const members = opts.members ?? [packSize, packSize];
   for (const m of members) {
@@ -63,7 +64,7 @@ export function placedMatch(P: SimParams, packSize: number, opts: PlacedOptions 
   const length = minutes === undefined ? LONG_CLOCK : minutes * P.ticksPerMinute;
   const s: MatchState = {
     phase: opts.phase ?? IN_PLAY, phaseStart: 0, overtime: false, tick: 0,
-    packSize, matchLengthTicks: length, clock: length,
+    packSize, matchLengthTicks: length, rules: P.rules, clock: length,
     score: [0, 0], lastGoalTick: NEVER, lastGoalPack: 0, ownGoal: false, scorers: 0,
     ball: {
       x: 0, y: 0, z: P.ballRadius, vx: 0, vy: 0, vz: 0, onFloor: true,

@@ -12,13 +12,17 @@ import { homeScreen, NOT_A_CODE } from './home';
 import { COPIED, invitePanel, NOT_COPIED } from './invite';
 import { joinScreen, joinStatus, playState, suggestedPack } from './join';
 import { createdScreen, joinedText, playText, proposeScreen } from './propose';
+import { focusScreen } from './screen';
 
 // The networked screens' own parts (M4's design §1.43, §5.3, §5.5, §5.6,
-// §5.14; PLAN §11, L163, L190, C-15, Q-17, M4-Q2), on the DOM fake: Home's
-// Propose a match and Join with a code, a code taken in lowercase, dashes,
-// spaces and Crockford's look-alikes, one that isn't a code said so and
-// nothing joined; Propose's choices and Create, "Creating…" once pressed,
-// the choices made by the pad's d-pad too (L82);
+// §5.14; PLAN §11, L163, L190, C-15, C-59, Q-17, M4-Q2), on the DOM fake:
+// Home's Propose a match and Join with a code, a code taken in lowercase,
+// dashes, spaces and Crockford's look-alikes, one that isn't a code said
+// so and nothing joined; Propose's choices and Create, "Creating…" once
+// pressed, the choices made by the pad's d-pad too (L82), and with the
+// app's match rules their row as Practice's setup has it, its Rules…
+// opening the Rules screen with the choices made, which its Back brings
+// back, Rules… the focus (C-59);
 // Created's link, code, joiners and choices; Join's "Connecting to the
 // match…" until the state is held, then each pack with its places, a full
 // pack's Play marked, the smaller suggested, the countdown's lock; the
@@ -34,6 +38,8 @@ const key = (kind: UiCommand['kind']): UiCommand => ({ kind, pressedAt: 0, sourc
 const settle = async (): Promise<void> => {
   for (let k = 0; k < 5; k++) await Promise.resolve();
 };
+/** What the app's match rules sum up to: any text, which Propose shows as it is (C-59). */
+const SUMMARY = 'The rules as the app sums them up';
 
 let dom: { readonly document: FakeDocument; restore(): void };
 beforeEach(() => {
@@ -157,6 +163,47 @@ describe('Propose and Created (§5.5, L163)', () => {
     s.ui?.(pad('down'));
     s.ui?.(pad('press'));
     expect(went).toEqual(['home']);
+  });
+
+  it("offers no Rules row without the app's match rules, and with them their summary and Rules…, between the choices and Create, which the pad's d-pad reaches and which opens the Rules screen with the choices as they stand (C-59, L82)", () => {
+    expect(fake(proposeScreen({ create: () => {}, home: () => {} }).el).querySelectorAll('[data-test="rules"], [data-test="rules-summary"]')).toHaveLength(0);
+    const made: MatchSettings[] = [];
+    const opened: MatchSettings[] = [];
+    const s = mount(proposeScreen({ create: (x) => made.push(x), home: () => {}, rules: { summary: () => SUMMARY, open: (c) => opened.push(c) } }));
+    const el = fake(s.el);
+    const summary = only(el, '[data-test="rules-summary"]');
+    const rules = button(el, 'rules');
+    expect([summary.textContent, rules.textContent, rules.getAttribute('aria-describedby'), rules.hasAttribute('data-focus')]).toEqual([SUMMARY, 'Rules…', summary.id, false]);
+    const order: (string | null)[] = [];
+    for (let k = 0; k < 5; k++) {
+      s.ui?.(pad('down'));
+      order.push(dom.document.activeElement.getAttribute('data-test'));
+    }
+    expect(order).toEqual(['pack-size', 'match-length', 'rules', 'create', 'back']);
+    s.ui?.(pad('down'));
+    s.ui?.(pad('right')); // a size larger
+    s.ui?.(pad('down'));
+    s.ui?.(pad('down'));
+    s.ui?.(pad('press'));
+    only(el, 'select[data-test="match-length"]').value = String(config.matchLengthMinMinutes);
+    rules.click();
+    expect([opened, made]).toEqual([[
+      { packSize: config.packSizeDefault + 1, matchMinutes: config.matchLengthDefaultMinutes },
+      { packSize: config.packSizeDefault + 1, matchMinutes: config.matchLengthMinMinutes },
+    ], []]);
+  });
+
+  it('comes back from the Rules screen at the choices it went with, Rules… its focus, and creates with them (C-59)', () => {
+    const chosen: MatchSettings = { packSize: config.packSizeMax, matchMinutes: config.matchLengthMinMinutes };
+    const made: MatchSettings[] = [];
+    const s = mount(proposeScreen({ create: (x) => made.push(x), home: () => {}, rules: { summary: () => SUMMARY, open: () => {} }, chosen }));
+    const el = fake(s.el);
+    expect(['pack-size', 'match-length'].map((t) => only(el, `select[data-test="${t}"]`).value)).toEqual([String(chosen.packSize), String(chosen.matchMinutes)]);
+    expect(button(el, 'rules').getAttribute('data-focus')).toBe('');
+    focusScreen(s);
+    expect(dom.document.activeElement).toBe(button(el, 'rules'));
+    button(el, 'create').click();
+    expect(made).toEqual([chosen]);
   });
 
   it('shows the link and the code, says how many have joined, and offers Play in either pack, Watch and Leave at once', () => {

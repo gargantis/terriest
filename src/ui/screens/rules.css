@@ -1,0 +1,12 @@
+/* The Rules screen (C-59): screens.css's fields, a rule's note tucked under
+   its select, and Settings' status line, kept at the foot of what shows
+   whatever is scrolled to, on its opaque backing, so what a change came to
+   is seen beside it; empty, it takes no room. The page keeps a focus
+   scrolled to clear of it. */
+.rules-list { display: grid; gap: 12px; }
+.rule-note { margin-top: -8px; }
+.rules > p[role="status"] {
+  position: sticky; bottom: 0; z-index: 1; margin: 0; padding: 8px 0; background: var(--bg); border-top: 1px solid var(--line);
+}
+.rules > p[role="status"]:empty { padding: 0; border-top: 0; }
+:root:has(.screen.rules) { scroll-padding-bottom: 72px; }

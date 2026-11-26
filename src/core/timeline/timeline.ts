@@ -62,7 +62,7 @@
 // Pure: no DOM, timers or clocks. The caller passes `now` (ms, monotonic)
 // and routes messages in.
 
-import { config } from '../../config';
+import { config, type MatchRules, sameRules } from '../../config';
 import { botIds, isBot } from '../bot/bot-id';
 import {
   type BotEntry, encodeState as encodeStateMessage, encodeStateReq, encodeTick, type EventPayload, type InputRecord, NO_TICK,
@@ -72,16 +72,20 @@ import {
 import type { TimelineSettings } from '../session/settings';
 import {
   canonicalInputs, cloneState, decodeState, encodeState, genesis, hash64, hashState, JOIN, KEPT_BITS, LEAVE, makeSim,
-  type MatchSettings, type MatchState, NEVER, READY, sameInputs, type Sim, type SimParams, step, SWITCH, type TickInput, UNREADY,
+  type MatchSettings, type MatchState, NEVER, paramsFor, READY, sameInputs, type Sim, type SimParams, step, SWITCH, type TickInput, UNREADY,
 } from '../sim';
 import { PHASE_CAP, TickClock } from './clock';
 import { FinalHistory } from './history';
 import { InputStore, type PutResult, type Recorded } from './inputs';
 import { type TallyResult, VoteBook } from './votes';
 
+/** At most this many matches' rules keep their Sims: a timeline steps one match's (C-59). */
+const SIMS_RULES_MAX = 4; // not a setting
+
 /** settings.ts's TimelineSettings: d, w and v (A.4), the 256-tick state history, the TICK's 16-tick
  *  history, the stores' span, the spread's cap (A.4), the joiner's warm-up, the resync's retry,
  *  stallSendTicks (Infinity in Practice, D-22) and the clock's settings. */
+
 export interface TimelineConfig extends TimelineSettings {
   readonly P: SimParams;
   readonly me: string; // this browser's player ID
@@ -303,8 +307,9 @@ export class Timeline {
   private readonly book: VoteBook;
   /** The predicted chain, a ring by tick: entries (finalTick, validTo] are valid (§2.1). */
   private readonly chain: (Entry | null)[];
-  /** One Sim per pack size steps F and every predicted clone (§0). */
-  private readonly sims: (Sim | undefined)[] = [];
+  /** One Sim per pack size and match rules steps F and every predicted clone (§0, C-59): for each
+   *  match's rules, by value, its parameters and its Sims by pack size, the newest first. */
+  private readonly sims: { readonly rules: MatchRules; readonly bySize: (Sim | undefined)[] }[] = [];
   private idValue = ZERO_HASH;
   private isStarted = false;
   private local = 0;
@@ -430,6 +435,11 @@ export class Timeline {
   /** The newest final state. */
   get final(): Readonly<MatchState> {
     return this.F;
+  }
+
+  /** The parameters the match plays by: its rules over the configuration's (C-59). */
+  get params(): SimParams {
+    return paramsFor(this.F.rules, this.P);
   }
 
   /** The drawn head and the one drawn before it (§2.8): objects the timeline doesn't write while they
@@ -880,11 +890,23 @@ export class Timeline {
     return e !== null && e !== undefined && e.tick === u ? e : null;
   }
 
-  private simFor(packSize: number): Sim {
-    let sim = this.sims[packSize];
+  /** The Sim that steps s: its pack size's, under its match's parameters, its rules over P (C-59). A
+   *  timeline holds one match, so one set of rules, which F and every clone share by identity, but for a
+   *  STATE adopted in its place; the rules are matched by value, so a Sim outlives paramsFor's memo. */
+  private simFor(s: Readonly<MatchState>): Sim {
+    const list = this.sims;
+    let at = 0;
+    while (at < list.length && list[at]!.rules !== s.rules && !sameRules(list[at]!.rules, s.rules)) at++;
+    if (at === list.length) {
+      if (list.length >= SIMS_RULES_MAX) list.pop();
+      list.unshift({ rules: s.rules, bySize: [] });
+      at = 0;
+    }
+    const bySize = list[at]!.bySize;
+    let sim = bySize[s.packSize];
     if (sim === undefined) {
-      sim = makeSim(this.P, packSize);
-      this.sims[packSize] = sim;
+      sim = makeSim(paramsFor(s.rules, this.P), s.packSize);
+      bySize[s.packSize] = sim;
     }
     return sim;
   }
@@ -937,7 +959,7 @@ export class Timeline {
         this.F = s === this.headState || s === this.prevHeadState ? cloneState(s) : s;
         this.stats.reusedFinals++;
       } else {
-        step(this.simFor(this.F.packSize), this.F, ins);
+        step(this.simFor(this.F), this.F, ins);
         steps++;
         this.stats.steppedFinals++;
       }
@@ -1038,7 +1060,7 @@ export class Timeline {
     let steps = 0;
     let replaced = false;
     const room = this.chain.length;
-    const sim = this.simFor(this.F.packSize);
+    const sim = this.simFor(this.F);
     // The ring holds every tick the stores' windows can; past it a prediction waits.
     while (this.validTo < target && steps < budget && this.validTo + 1 - this.finalAt < room) {
       const u = this.validTo + 1;
@@ -1367,7 +1389,9 @@ export class Timeline {
       return true;
     }
     const r = this.resync;
-    if (r === null || m.timeline !== this.idValue || m.g !== r.g || m.decoded.packSize !== this.F.packSize) return false;
+    if (r === null || m.timeline !== this.idValue || m.g !== r.g || m.decoded.packSize !== this.F.packSize || !sameRules(m.decoded.rules, this.F.rules)) {
+      return false;
+    }
     if (hash64(m.state) !== r.hash) return false;
     this.adoptRepair(m, r, now);
     return true;
@@ -1519,7 +1543,7 @@ export class Timeline {
   /** A reused final against F stepped with the final inputs. */
   private verifyReuse(t: number, ins: readonly TickInput[], reused: Readonly<MatchState>): void {
     const s = cloneState(this.F);
-    step(this.simFor(s.packSize), s, ins);
+    step(this.simFor(s), s, ins);
     if (hashState(s) !== hashState(reused)) {
       this.stats.verifyMismatches++;
       this.note(`verify: reused final ${t}`);
@@ -1528,7 +1552,7 @@ export class Timeline {
 
   /** The window recomputed from F with the inputs prediction would use now, against every entry. */
   private verifyChain(): void {
-    const sim = this.simFor(this.F.packSize);
+    const sim = this.simFor(this.F);
     let base: MatchState = this.F;
     for (let u = this.finalAt + 1; u <= this.validTo; u++) {
       const e = this.entryAt(u);

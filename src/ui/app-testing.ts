@@ -25,6 +25,7 @@ import { PLACEHOLDER_LOOK } from '../render/look';
 import type { RenderInfo } from '../render/stage-types';
 import { MemoryStorage } from '../storage/kv';
 import { ProfileStore } from '../storage/profile';
+import { RulesStore } from '../storage/rules';
 import { SettingsStore } from '../storage/settings';
 import { holdTabLock, type TabLocks } from '../storage/tab-lock';
 import { App, type AppLocation, appRoot, type MessageScreens } from './app';
@@ -263,6 +264,8 @@ export interface AppRig {
   readonly calls: string[];
   readonly test: TerriestTest;
   readonly settings: SettingsStore;
+  /** The match rules' store, over the rig's storage (C-59). */
+  readonly rules: RulesStore;
   readonly location: TestLocation;
   readonly device: Pad;
   /** The devices' host, as the app made it. */
@@ -326,6 +329,7 @@ export function appRig(o: AppRigOptions): AppRig {
   const settings = new SettingsStore(storage, { reducedMotion: () => false, qualityDefault: () => 'high' });
   const me = o.me ?? ME;
   const profile = new ProfileStore(storage, () => me, () => 3);
+  const rules = new RulesStore(storage);
   const test: TerriestTest = o.test ?? {};
   const location = testLocation(clock, o.hash ?? '');
   const device = new Pad();
@@ -357,7 +361,7 @@ export function appRig(o: AppRigOptions): AppRig {
   // The real wake lock, which this browser refuses, as headless engines do: its refusal for the hook.
   const wakeLock = new WakeLock({ request: () => Promise.reject(new DOMException('No wake lock here', 'NotAllowedError')), page });
   const app = new App({
-    root: root as unknown as HTMLElement, stage: first, makeStage, profile, settings, test, build: TEST_BUILD, clock, page, boot,
+    root: root as unknown as HTMLElement, stage: first, makeStage, profile, settings, rules, test, build: TEST_BUILD, clock, page, boot,
     location, devices, frames, messages: FAKE_MESSAGES, invite,
     ...(o.realGuard === true ? {} : { guard }),
     wake: {
@@ -379,7 +383,7 @@ export function appRig(o: AppRigOptions): AppRig {
     transport: (o.transport ?? nowhere)(rooms), devRelay: () => Promise.resolve(null),
   });
   return {
-    app, root, clock, page, frames, stages, calls, test, settings, location, device, host: () => deviceHost!, order, guard, canaries, rooms, wakes,
+    app, root, clock, page, frames, stages, calls, test, settings, rules, location, device, host: () => deviceHost!, order, guard, canaries, rooms, wakes,
     used, copied,
   };
 }

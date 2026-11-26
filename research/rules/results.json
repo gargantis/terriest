@@ -1,0 +1,3277 @@
+{
+ "sections": "slip-out, netting, guard, head-on, touches, roll (dev/tuning.metrics.ts)",
+ "botsSections": "bots, its brain candidates held at the base",
+ "rounds": {
+  "1, each value alone": [
+   {
+    "settings": {
+     "accelerationMetresPerSecond2": 10
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 2.275 s, over 1.5 s (3 a side at 7\u00b0, ball frame)",
+     "slip:case 3: 24 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "accelerationMetresPerSecond2": 12
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 1.504 s, over 1.5 s (1 a side at 50\u00b0, ball frame, off mirror)"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "accelerationMetresPerSecond2": 20
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 1.746 s, over 1.5 s (4 a side at 16\u00b0, ball frame, off mirror)",
+     "slip:case 3: 24 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "accelerationMetresPerSecond2": 25
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 2.092 s, over 1.5 s (4 a side at 23\u00b0, ball frame, off mirror)",
+     "slip:case 3: 48 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballMassKg": 1.5
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 2.158 s, over 1.5 s (4 a side at 15\u00b0, ball frame)",
+     "slip:case 2: two sitting terriers take 2.658 s, over 0.5 s",
+     "slip:case 3: 24 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballMassKg": 1
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 2.487 s, over 1.5 s (4 a side at 15\u00b0, ball frame)",
+     "slip:case 2: two sitting terriers take 7.688 s, over 0.5 s",
+     "slip:case 3: 96 slip-outs in 336 dribbles",
+     "touch:a ball met on its rebound from the wall makes no touches, not 2"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballMassKg": 3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballMassKg": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballRestitution": 0.3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballRestitution": 0.4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballRestitution": 0.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballRestitution": 0.6
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballRestitution": 0.8
+    },
+    "fails": [
+     "slip:case 3: 24 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "ballRestitution": 0.9
+    },
+    "fails": [
+     "slip:case 3: 32 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "bowlingSpeedMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "bowlingSpeedMetresPerSecond": 2
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "bowlingSpeedMetresPerSecond": 3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "bowlingSpeedMetresPerSecond": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "bowlingSpeedMetresPerSecond": 6
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "bowlingSpeedMetresPerSecond": 8
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "gravityMetresPerSecond2": 12
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 2.079 s, over 1.5 s (3 a side at 6\u00b0, ball frame)"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "gravityMetresPerSecond2": 15
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "gravityMetresPerSecond2": 4.9
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 4.125 s, over 1.5 s (4 a side at 13\u00b0, ball frame)",
+     "slip:case 2: two sitting terriers take 7.629 s, over 0.5 s",
+     "slip:case 3: 978 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "gravityMetresPerSecond2": 7
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 2.317 s, over 1.5 s (4 a side at 15\u00b0, ball frame)",
+     "slip:case 2: two sitting terriers take 3.35 s, over 0.5 s",
+     "slip:case 3: 36 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "idleFrictionMetresPerSecond2": 10
+    },
+    "fails": [
+     "slip:case 2: two sitting terriers take 0.887 s, over 0.5 s"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "idleFrictionMetresPerSecond2": 12
+    },
+    "fails": [
+     "slip:case 2: two sitting terriers take 2.979 s, over 0.5 s"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "idleFrictionMetresPerSecond2": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "idleFrictionMetresPerSecond2": 6
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "jumpHeightMetres": 0.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "jumpHeightMetres": 0.75
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "jumpHeightMetres": 1.25
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "jumpHeightMetres": 1.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceSpeedMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceSpeedMetresPerSecond": 14
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceSpeedMetresPerSecond": 15
+    },
+    "fails": [
+     "touch:a ball met on its rebound from the wall makes no touches, not 2"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceSpeedMetresPerSecond": 16
+    },
+    "fails": [
+     "touch:a ball met on its rebound from the wall makes no touches, not 2"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceSpeedMetresPerSecond": 6
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceSpeedMetresPerSecond": 7
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceSpeedMetresPerSecond": 8
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceWaitSeconds": 0.25
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceWaitSeconds": 0.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceWaitSeconds": 1
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceWaitSeconds": 2
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "pounceWaitSeconds": 3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "rollingSlowdownMetresPerSecond2": 0.1
+    },
+    "fails": [],
+    "roll3Metres": 33.188,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "rollingSlowdownMetresPerSecond2": 0.2
+    },
+    "fails": [],
+    "roll3Metres": 22.481,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "rollingSlowdownMetresPerSecond2": 0.3
+    },
+    "fails": [],
+    "roll3Metres": 14.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "rollingSlowdownMetresPerSecond2": 1.5
+    },
+    "fails": [],
+    "roll3Metres": 2.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "rollingSlowdownMetresPerSecond2": 1
+    },
+    "fails": [],
+    "roll3Metres": 4.481,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "rollingSlowdownMetresPerSecond2": 2
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 3
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 2.075 s, over 1.5 s (4 a side at 15\u00b0, ball frame)"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 4.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 5.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 6.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 7.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 7
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 8
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "runSpeedMetresPerSecond": 9
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "terrierBallRestitution": 0.2
+    },
+    "fails": [
+     "slip:case 3: 24 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "terrierBallRestitution": 0.3
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 1.992 s, over 1.5 s (4 a side at 15\u00b0, ball frame)",
+     "slip:case 3: 24 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "terrierBallRestitution": 0.4
+    },
+    "fails": [
+     "slip:case 3: 4 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "terrierBallRestitution": 0.6
+    },
+    "fails": [
+     "slip:case 2: two sitting terriers take 0.504 s, over 0.5 s"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "terrierBallRestitution": 0.7
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 1.788 s, over 1.5 s (4 a side at 12\u00b0, ball frame, off mirror)",
+     "slip:case 2: two sitting terriers take 0.55 s, over 0.5 s",
+     "slip:case 3: 72 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "terrierBallRestitution": 0.8
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 7.088 s, over 1.5 s (4 a side at 15\u00b0, ball frame)",
+     "slip:case 2: two sitting terriers take 0.588 s, over 0.5 s",
+     "slip:case 3: 54 slip-outs in 336 dribbles",
+     "slip:case 4: the pinch at 3, zoomies stays up"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "tumbleGuardSeconds": 0.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.742
+   },
+   {
+    "settings": {
+     "tumbleGuardSeconds": 0
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.987
+   },
+   {
+    "settings": {
+     "tumbleGuardSeconds": 1
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "settings": {
+     "tumbleGuardSeconds": 2
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.445
+   },
+   {
+    "settings": {
+     "tumbleGuardSeconds": 3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.346
+   },
+   {
+    "settings": {
+     "tumbleGuardSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.297
+   },
+   {
+    "settings": {
+     "tumbleSeconds": 1.25
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.452
+   },
+   {
+    "settings": {
+     "tumbleSeconds": 1
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.393
+   },
+   {
+    "settings": {
+     "tumbleSeconds": 2.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.643
+   },
+   {
+    "settings": {
+     "tumbleSeconds": 2
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "settings": {
+     "tumbleSeconds": 3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.694
+   },
+   {
+    "settings": {
+     "turnRateTurnsPerSecond": 0.75
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "turnRateTurnsPerSecond": 1.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "turnRateTurnsPerSecond": 1
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "turnRateTurnsPerSecond": 2.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "turnRateTurnsPerSecond": 3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "turnRateTurnsPerSecond": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesFullSeconds": 1.5,
+     "zoomiesRefillSeconds": 3.0
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesFullSeconds": 1,
+     "zoomiesRefillSeconds": 2
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesFullSeconds": 2.5,
+     "zoomiesRefillSeconds": 5.0
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesFullSeconds": 2,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesFullSeconds": 4,
+     "zoomiesRefillSeconds": 8
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesFullSeconds": 5,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesFullSeconds": 6,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 10,
+     "pushAssistCapMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 11,
+     "pushAssistCapMetresPerSecond": 11
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 12,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 13,
+     "pushAssistCapMetresPerSecond": 13
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 14,
+     "pushAssistCapMetresPerSecond": 14
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 6,
+     "pushAssistCapMetresPerSecond": 9
+    },
+    "fails": [
+     "slip:case 3: 22 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 7,
+     "pushAssistCapMetresPerSecond": 9
+    },
+    "fails": [
+     "slip:case 3: 24 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 8,
+     "pushAssistCapMetresPerSecond": 9
+    },
+    "fails": [
+     "slip:case 3: 14 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   }
+  ],
+  "2, mixes and in-between values": [
+   {
+    "run": "allMax",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "zoomiesFullSeconds": 6,
+     "turnRateTurnsPerSecond": 4,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 3,
+     "ballRestitution": 0.7,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "bowlingSpeedMetresPerSecond": 10,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 4,
+     "kickoffCountdownSeconds": 5,
+     "idleFrictionMetresPerSecond2": 8,
+     "pushAssistCapMetresPerSecond": 12,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.462
+   },
+   {
+    "run": "allMin",
+    "settings": {
+     "runSpeedMetresPerSecond": 4,
+     "zoomiesSpeedMetresPerSecond": 9,
+     "zoomiesFullSeconds": 1,
+     "turnRateTurnsPerSecond": 1,
+     "jumpHeightMetres": 0.5,
+     "pounceSpeedMetresPerSecond": 6,
+     "pounceWaitSeconds": 0.5,
+     "ballRestitution": 0.3,
+     "ballMassKg": 2,
+     "rollingSlowdownMetresPerSecond2": 0.2,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 1.25,
+     "tumbleGuardSeconds": 0.5,
+     "kickoffCountdownSeconds": 1,
+     "idleFrictionMetresPerSecond2": 4,
+     "pushAssistCapMetresPerSecond": 9,
+     "zoomiesRefillSeconds": 2
+    },
+    "fails": [
+     "slip:case 4: the pinch at 1 stays up",
+     "slip:case 4: the pinch at 1, zoomies stays up"
+    ],
+    "roll3Metres": 22.481,
+    "guardShare": 0.702
+   },
+   {
+    "run": "bounce0.75",
+    "settings": {
+     "ballRestitution": 0.75
+    },
+    "fails": [
+     "slip:case 3: 6 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "deadBall",
+    "settings": {
+     "ballRestitution": 0.3,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "ballMassKg": 4
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.494
+   },
+   {
+    "run": "fastLight",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "pounceSpeedMetresPerSecond": 14,
+     "ballRestitution": 0.7,
+     "idleFrictionMetresPerSecond2": 4,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "friction5",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "friction7",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 7
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "heavyHard",
+    "settings": {
+     "ballMassKg": 4,
+     "pounceSpeedMetresPerSecond": 14,
+     "ballRestitution": 0.7
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "jumpy",
+    "settings": {
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 14,
+     "runSpeedMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "liveBall",
+    "settings": {
+     "ballRestitution": 0.7,
+     "rollingSlowdownMetresPerSecond2": 0.2,
+     "ballMassKg": 2,
+     "pounceSpeedMetresPerSecond": 14
+    },
+    "fails": [],
+    "roll3Metres": 22.481,
+    "guardShare": 0.494
+   },
+   {
+    "run": "mass2.5",
+    "settings": {
+     "ballMassKg": 2.5
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 2.05 s, over 1.5 s (4 a side at 15\u00b0, ball frame)"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "midMix",
+    "settings": {
+     "ballMassKg": 3,
+     "runSpeedMetresPerSecond": 8,
+     "zoomiesSpeedMetresPerSecond": 11,
+     "idleFrictionMetresPerSecond2": 6,
+     "ballRestitution": 0.5,
+     "pushAssistCapMetresPerSecond": 11
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "runAboveZoomies",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 9,
+     "pushAssistCapMetresPerSecond": 9
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "slideFast",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 4,
+     "runSpeedMetresPerSecond": 10,
+     "turnRateTurnsPerSecond": 4
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 1.663 s, over 1.5 s (4 a side at 18\u00b0, ball frame, off mirror)"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "slideHeavy",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 4,
+     "ballMassKg": 4,
+     "jumpHeightMetres": 1.5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "slowEverything",
+    "settings": {
+     "runSpeedMetresPerSecond": 4,
+     "turnRateTurnsPerSecond": 1,
+     "jumpHeightMetres": 0.5,
+     "pounceSpeedMetresPerSecond": 6
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "slowHeavy",
+    "settings": {
+     "runSpeedMetresPerSecond": 4,
+     "zoomiesSpeedMetresPerSecond": 9,
+     "pounceSpeedMetresPerSecond": 6,
+     "ballMassKg": 4,
+     "ballRestitution": 0.3,
+     "idleFrictionMetresPerSecond2": 8,
+     "pushAssistCapMetresPerSecond": 9
+    },
+    "fails": [
+     "slip:case 4: the pinch at 2 stays up"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "slowRunFastZoomies",
+    "settings": {
+     "runSpeedMetresPerSecond": 4,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   }
+  ],
+  "3, mixes and random mixes": [
+   {
+    "run": "allMaxNarrow",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "zoomiesFullSeconds": 6,
+     "turnRateTurnsPerSecond": 4,
+     "idleFrictionMetresPerSecond2": 8,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 3,
+     "bowlingSpeedMetresPerSecond": 10,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 4,
+     "ballRestitution": 0.7,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "kickoffCountdownSeconds": 5,
+     "pushAssistCapMetresPerSecond": 12,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.462
+   },
+   {
+    "run": "allMinNarrow",
+    "settings": {
+     "runSpeedMetresPerSecond": 5,
+     "zoomiesSpeedMetresPerSecond": 9,
+     "zoomiesFullSeconds": 1,
+     "turnRateTurnsPerSecond": 1,
+     "idleFrictionMetresPerSecond2": 4,
+     "jumpHeightMetres": 0.5,
+     "pounceSpeedMetresPerSecond": 8,
+     "pounceWaitSeconds": 0.5,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 1.25,
+     "tumbleGuardSeconds": 0.5,
+     "ballRestitution": 0.4,
+     "ballMassKg": 2,
+     "rollingSlowdownMetresPerSecond2": 0.2,
+     "kickoffCountdownSeconds": 1,
+     "pushAssistCapMetresPerSecond": 9,
+     "zoomiesRefillSeconds": 2
+    },
+    "fails": [],
+    "roll3Metres": 22.481,
+    "guardShare": 0.703
+   },
+   {
+    "run": "f4r10t4",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 4,
+     "runSpeedMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "f4t4",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 4,
+     "turnRateTurnsPerSecond": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "m3b03",
+    "settings": {
+     "ballMassKg": 3,
+     "ballRestitution": 0.3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "m4b03",
+    "settings": {
+     "ballMassKg": 4,
+     "ballRestitution": 0.3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "m4r4",
+    "settings": {
+     "ballMassKg": 4,
+     "runSpeedMetresPerSecond": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "p6b03",
+    "settings": {
+     "pounceSpeedMetresPerSecond": 6,
+     "ballRestitution": 0.3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "r4b03",
+    "settings": {
+     "runSpeedMetresPerSecond": 4,
+     "ballRestitution": 0.3
+    },
+    "fails": [
+     "slip:case 4: the pinch at 1 stays up"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "r4f4",
+    "settings": {
+     "runSpeedMetresPerSecond": 4,
+     "idleFrictionMetresPerSecond2": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "r4p6",
+    "settings": {
+     "runSpeedMetresPerSecond": 4,
+     "pounceSpeedMetresPerSecond": 6
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "r4p6b03",
+    "settings": {
+     "runSpeedMetresPerSecond": 4,
+     "pounceSpeedMetresPerSecond": 6,
+     "ballRestitution": 0.3
+    },
+    "fails": [
+     "slip:case 4: the pinch at 1 stays up"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "r4p8b04",
+    "settings": {
+     "runSpeedMetresPerSecond": 4,
+     "pounceSpeedMetresPerSecond": 8,
+     "ballRestitution": 0.4
+    },
+    "fails": [
+     "slip:case 4: the pinch at 1 stays up"
+    ],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "r5p6b03",
+    "settings": {
+     "runSpeedMetresPerSecond": 5,
+     "pounceSpeedMetresPerSecond": 6,
+     "ballRestitution": 0.3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand00",
+    "settings": {
+     "runSpeedMetresPerSecond": 9,
+     "zoomiesFullSeconds": 6,
+     "turnRateTurnsPerSecond": 1,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 0.75,
+     "tumbleSeconds": 2,
+     "rollingSlowdownMetresPerSecond2": 0.2,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 22.481,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand01",
+    "settings": {
+     "runSpeedMetresPerSecond": 5,
+     "zoomiesSpeedMetresPerSecond": 10,
+     "idleFrictionMetresPerSecond2": 4,
+     "ballMassKg": 3,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "pushAssistCapMetresPerSecond": 10
+    },
+    "fails": [
+     "slip:case 3: 2 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 2.231,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand02",
+    "settings": {
+     "runSpeedMetresPerSecond": 9,
+     "zoomiesFullSeconds": 2,
+     "idleFrictionMetresPerSecond2": 4,
+     "pounceWaitSeconds": 2,
+     "ballRestitution": 0.4,
+     "rollingSlowdownMetresPerSecond2": 0.3,
+     "kickoffCountdownSeconds": 5,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 1.55 s, over 1.5 s (4 a side at 18\u00b0, ball frame, off mirror)"
+    ],
+    "roll3Metres": 14.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand03",
+    "settings": {
+     "runSpeedMetresPerSecond": 8,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "turnRateTurnsPerSecond": 1,
+     "idleFrictionMetresPerSecond2": 4,
+     "jumpHeightMetres": 1.25,
+     "bowlingSpeedMetresPerSecond": 6,
+     "tumbleGuardSeconds": 4,
+     "ballRestitution": 0.5,
+     "ballMassKg": 4,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.297
+   },
+   {
+    "run": "rand04",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 12,
+     "zoomiesFullSeconds": 2,
+     "turnRateTurnsPerSecond": 3,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 8,
+     "pounceWaitSeconds": 3,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleGuardSeconds": 2,
+     "ballRestitution": 0.4,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "kickoffCountdownSeconds": 4,
+     "pushAssistCapMetresPerSecond": 12,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.445
+   },
+   {
+    "run": "rand05",
+    "settings": {
+     "runSpeedMetresPerSecond": 7,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "jumpHeightMetres": 0.5,
+     "pounceSpeedMetresPerSecond": 8,
+     "pounceWaitSeconds": 0.75,
+     "bowlingSpeedMetresPerSecond": 2,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand06",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "zoomiesFullSeconds": 5,
+     "jumpHeightMetres": 1.5,
+     "pounceWaitSeconds": 0.75,
+     "bowlingSpeedMetresPerSecond": 3,
+     "tumbleGuardSeconds": 1,
+     "ballRestitution": 0.6,
+     "rollingSlowdownMetresPerSecond2": 0.3,
+     "pushAssistCapMetresPerSecond": 12,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 14.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand07",
+    "settings": {
+     "jumpHeightMetres": 1.25,
+     "bowlingSpeedMetresPerSecond": 5,
+     "ballRestitution": 0.6,
+     "ballMassKg": 3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand08",
+    "settings": {
+     "runSpeedMetresPerSecond": 7,
+     "zoomiesFullSeconds": 1.5,
+     "turnRateTurnsPerSecond": 2.5,
+     "idleFrictionMetresPerSecond2": 6,
+     "pounceSpeedMetresPerSecond": 12,
+     "pounceWaitSeconds": 1,
+     "tumbleSeconds": 2,
+     "ballMassKg": 4,
+     "zoomiesRefillSeconds": 3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand09",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 10,
+     "zoomiesFullSeconds": 6,
+     "turnRateTurnsPerSecond": 1,
+     "idleFrictionMetresPerSecond2": 7,
+     "pounceSpeedMetresPerSecond": 8,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 0.5,
+     "pushAssistCapMetresPerSecond": 10,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.858
+   },
+   {
+    "run": "rand10",
+    "settings": {
+     "runSpeedMetresPerSecond": 5,
+     "idleFrictionMetresPerSecond2": 5,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 12,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 2,
+     "kickoffCountdownSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand11",
+    "settings": {
+     "runSpeedMetresPerSecond": 8,
+     "jumpHeightMetres": 0.75,
+     "pounceWaitSeconds": 2,
+     "tumbleSeconds": 2.5,
+     "tumbleGuardSeconds": 2,
+     "ballRestitution": 0.5,
+     "ballMassKg": 3,
+     "kickoffCountdownSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.579
+   },
+   {
+    "run": "rand12",
+    "settings": {
+     "runSpeedMetresPerSecond": 7,
+     "zoomiesFullSeconds": 4,
+     "turnRateTurnsPerSecond": 1.5,
+     "idleFrictionMetresPerSecond2": 5,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 12,
+     "tumbleGuardSeconds": 2,
+     "kickoffCountdownSeconds": 1,
+     "zoomiesRefillSeconds": 8
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.445
+   },
+   {
+    "run": "rand13",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "jumpHeightMetres": 0.75,
+     "pounceWaitSeconds": 0.75,
+     "tumbleSeconds": 2,
+     "tumbleGuardSeconds": 0.5,
+     "ballMassKg": 4,
+     "kickoffCountdownSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.793
+   },
+   {
+    "run": "rand14",
+    "settings": {
+     "runSpeedMetresPerSecond": 6.5,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "idleFrictionMetresPerSecond2": 7,
+     "pounceSpeedMetresPerSecond": 8,
+     "tumbleSeconds": 2.5,
+     "tumbleGuardSeconds": 3,
+     "ballRestitution": 0.5,
+     "kickoffCountdownSeconds": 1,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.493
+   },
+   {
+    "run": "rand15",
+    "settings": {
+     "runSpeedMetresPerSecond": 7,
+     "turnRateTurnsPerSecond": 2.5,
+     "idleFrictionMetresPerSecond2": 6,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 12,
+     "pounceWaitSeconds": 0.5,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleGuardSeconds": 1,
+     "ballRestitution": 0.6,
+     "ballMassKg": 3,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "kickoffCountdownSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand16",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 10,
+     "pounceWaitSeconds": 1,
+     "tumbleGuardSeconds": 1,
+     "ballRestitution": 0.5,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 1.5,
+     "pushAssistCapMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 2.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand17",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 11,
+     "turnRateTurnsPerSecond": 3,
+     "idleFrictionMetresPerSecond2": 7,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 1,
+     "bowlingSpeedMetresPerSecond": 6,
+     "tumbleGuardSeconds": 0.5,
+     "kickoffCountdownSeconds": 2,
+     "pushAssistCapMetresPerSecond": 11
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.742
+   },
+   {
+    "run": "rand18",
+    "settings": {
+     "runSpeedMetresPerSecond": 5.5,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "zoomiesFullSeconds": 6,
+     "idleFrictionMetresPerSecond2": 5,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 8,
+     "bowlingSpeedMetresPerSecond": 10,
+     "ballRestitution": 0.6,
+     "pushAssistCapMetresPerSecond": 12,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand19",
+    "settings": {
+     "runSpeedMetresPerSecond": 7,
+     "pounceSpeedMetresPerSecond": 8,
+     "ballRestitution": 0.5,
+     "rollingSlowdownMetresPerSecond2": 0.2
+    },
+    "fails": [],
+    "roll3Metres": 22.481,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand20",
+    "settings": {
+     "runSpeedMetresPerSecond": 5.5,
+     "zoomiesSpeedMetresPerSecond": 11,
+     "zoomiesFullSeconds": 2,
+     "idleFrictionMetresPerSecond2": 7,
+     "jumpHeightMetres": 1.25,
+     "pounceSpeedMetresPerSecond": 8,
+     "pounceWaitSeconds": 3,
+     "ballRestitution": 0.4,
+     "kickoffCountdownSeconds": 4,
+     "pushAssistCapMetresPerSecond": 11,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand21",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "jumpHeightMetres": 0.75,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleSeconds": 2,
+     "kickoffCountdownSeconds": 4,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand22",
+    "settings": {
+     "zoomiesFullSeconds": 2,
+     "turnRateTurnsPerSecond": 1,
+     "jumpHeightMetres": 1.5,
+     "tumbleSeconds": 3,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.694
+   },
+   {
+    "run": "rand23",
+    "settings": {
+     "runSpeedMetresPerSecond": 6.5,
+     "zoomiesSpeedMetresPerSecond": 10,
+     "turnRateTurnsPerSecond": 2.5,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 2,
+     "tumbleGuardSeconds": 2,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 1.5,
+     "pushAssistCapMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 2.981,
+    "guardShare": 0.527
+   },
+   {
+    "run": "rand24",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 11,
+     "zoomiesFullSeconds": 5,
+     "turnRateTurnsPerSecond": 2.5,
+     "idleFrictionMetresPerSecond2": 6,
+     "pounceSpeedMetresPerSecond": 8,
+     "tumbleGuardSeconds": 3,
+     "rollingSlowdownMetresPerSecond2": 1,
+     "kickoffCountdownSeconds": 5,
+     "pushAssistCapMetresPerSecond": 11,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 4.481,
+    "guardShare": 0.346
+   },
+   {
+    "run": "rand25",
+    "settings": {
+     "runSpeedMetresPerSecond": 5.5,
+     "zoomiesSpeedMetresPerSecond": 10,
+     "zoomiesFullSeconds": 2,
+     "jumpHeightMetres": 0.75,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 3,
+     "tumbleGuardSeconds": 0.5,
+     "kickoffCountdownSeconds": 5,
+     "pushAssistCapMetresPerSecond": 10,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand26",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 12,
+     "turnRateTurnsPerSecond": 4,
+     "bowlingSpeedMetresPerSecond": 10,
+     "tumbleSeconds": 1.25,
+     "tumbleGuardSeconds": 4,
+     "ballRestitution": 0.6,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.247
+   },
+   {
+    "run": "rand27",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 12,
+     "zoomiesFullSeconds": 1.5,
+     "idleFrictionMetresPerSecond2": 4,
+     "pounceWaitSeconds": 3,
+     "tumbleSeconds": 2,
+     "tumbleGuardSeconds": 4,
+     "ballRestitution": 0.4,
+     "ballMassKg": 3,
+     "rollingSlowdownMetresPerSecond2": 1,
+     "pushAssistCapMetresPerSecond": 12,
+     "zoomiesRefillSeconds": 3
+    },
+    "fails": [],
+    "roll3Metres": 4.481,
+    "guardShare": 0.331
+   },
+   {
+    "run": "rand28",
+    "settings": {
+     "turnRateTurnsPerSecond": 1,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 3,
+     "bowlingSpeedMetresPerSecond": 6,
+     "tumbleGuardSeconds": 3,
+     "ballRestitution": 0.5,
+     "rollingSlowdownMetresPerSecond2": 0.3
+    },
+    "fails": [],
+    "roll3Metres": 14.981,
+    "guardShare": 0.346
+   },
+   {
+    "run": "rand29",
+    "settings": {
+     "turnRateTurnsPerSecond": 3,
+     "jumpHeightMetres": 1.25,
+     "pounceWaitSeconds": 3,
+     "bowlingSpeedMetresPerSecond": 10,
+     "tumbleSeconds": 2,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 0.2
+    },
+    "fails": [],
+    "roll3Metres": 22.481,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand30",
+    "settings": {
+     "runSpeedMetresPerSecond": 5.5,
+     "zoomiesSpeedMetresPerSecond": 11,
+     "zoomiesFullSeconds": 5,
+     "idleFrictionMetresPerSecond2": 7,
+     "pounceSpeedMetresPerSecond": 8,
+     "tumbleSeconds": 2.5,
+     "ballRestitution": 0.4,
+     "pushAssistCapMetresPerSecond": 11,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.642
+   },
+   {
+    "run": "rand31",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "tumbleSeconds": 2,
+     "kickoffCountdownSeconds": 2,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand32",
+    "settings": {
+     "runSpeedMetresPerSecond": 9,
+     "turnRateTurnsPerSecond": 3,
+     "idleFrictionMetresPerSecond2": 7,
+     "jumpHeightMetres": 0.5,
+     "tumbleSeconds": 3,
+     "ballRestitution": 0.5,
+     "ballMassKg": 3
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.694
+   },
+   {
+    "run": "rand33",
+    "settings": {
+     "runSpeedMetresPerSecond": 6.5,
+     "zoomiesFullSeconds": 6,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 3,
+     "tumbleGuardSeconds": 3,
+     "ballRestitution": 0.6,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.346
+   },
+   {
+    "run": "rand34",
+    "settings": {
+     "runSpeedMetresPerSecond": 5.5,
+     "zoomiesFullSeconds": 6,
+     "jumpHeightMetres": 0.5,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 1,
+     "ballRestitution": 0.6,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.76
+   },
+   {
+    "run": "rand35",
+    "settings": {
+     "runSpeedMetresPerSecond": 9,
+     "zoomiesFullSeconds": 2.5,
+     "idleFrictionMetresPerSecond2": 5,
+     "jumpHeightMetres": 0.75,
+     "pounceSpeedMetresPerSecond": 12,
+     "pounceWaitSeconds": 2,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 0.5,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 1,
+     "kickoffCountdownSeconds": 4,
+     "zoomiesRefillSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 4.481,
+    "guardShare": 0.86
+   },
+   {
+    "run": "rand36",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "idleFrictionMetresPerSecond2": 7,
+     "pounceSpeedMetresPerSecond": 8,
+     "pounceWaitSeconds": 1,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 2,
+     "ballRestitution": 0.6,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "kickoffCountdownSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.597
+   },
+   {
+    "run": "rand37",
+    "settings": {
+     "runSpeedMetresPerSecond": 6.5,
+     "idleFrictionMetresPerSecond2": 5,
+     "tumbleGuardSeconds": 1,
+     "rollingSlowdownMetresPerSecond2": 0.3,
+     "kickoffCountdownSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 14.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand38",
+    "settings": {
+     "runSpeedMetresPerSecond": 5.5,
+     "zoomiesSpeedMetresPerSecond": 11,
+     "pounceSpeedMetresPerSecond": 14,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleSeconds": 2,
+     "ballRestitution": 0.6,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "kickoffCountdownSeconds": 4,
+     "pushAssistCapMetresPerSecond": 11
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand39",
+    "settings": {
+     "zoomiesFullSeconds": 5,
+     "turnRateTurnsPerSecond": 1.5,
+     "idleFrictionMetresPerSecond2": 6,
+     "jumpHeightMetres": 0.75,
+     "pounceWaitSeconds": 1,
+     "bowlingSpeedMetresPerSecond": 3,
+     "kickoffCountdownSeconds": 5,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "slowHeavyNarrow",
+    "settings": {
+     "runSpeedMetresPerSecond": 5,
+     "pounceSpeedMetresPerSecond": 8,
+     "ballMassKg": 4,
+     "ballRestitution": 0.4,
+     "idleFrictionMetresPerSecond2": 8
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   }
+  ],
+  "4, random mixes on the final lists, and rechecks": [
+   {
+    "run": "allMinFinal",
+    "settings": {
+     "runSpeedMetresPerSecond": 5,
+     "zoomiesSpeedMetresPerSecond": 9,
+     "zoomiesFullSeconds": 1,
+     "turnRateTurnsPerSecond": 1,
+     "idleFrictionMetresPerSecond2": 5,
+     "jumpHeightMetres": 0.5,
+     "pounceSpeedMetresPerSecond": 8,
+     "pounceWaitSeconds": 0.5,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 1.25,
+     "tumbleGuardSeconds": 0.5,
+     "ballRestitution": 0.4,
+     "ballMassKg": 2,
+     "rollingSlowdownMetresPerSecond2": 0.2,
+     "kickoffCountdownSeconds": 1,
+     "pushAssistCapMetresPerSecond": 9,
+     "zoomiesRefillSeconds": 2
+    },
+    "fails": [],
+    "roll3Metres": 22.481,
+    "guardShare": 0.703
+   },
+   {
+    "run": "rand00",
+    "settings": {
+     "runSpeedMetresPerSecond": 8,
+     "zoomiesSpeedMetresPerSecond": 10,
+     "turnRateTurnsPerSecond": 2.5,
+     "jumpHeightMetres": 0.5,
+     "pounceWaitSeconds": 2,
+     "bowlingSpeedMetresPerSecond": 10,
+     "tumbleGuardSeconds": 1,
+     "ballRestitution": 0.6,
+     "pushAssistCapMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand01",
+    "settings": {
+     "turnRateTurnsPerSecond": 2.5,
+     "idleFrictionMetresPerSecond2": 7,
+     "jumpHeightMetres": 0.75,
+     "pounceWaitSeconds": 0.75,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleGuardSeconds": 1
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand01f5",
+    "settings": {
+     "runSpeedMetresPerSecond": 5,
+     "zoomiesSpeedMetresPerSecond": 10,
+     "idleFrictionMetresPerSecond2": 5,
+     "ballMassKg": 3,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "pushAssistCapMetresPerSecond": 10
+    },
+    "fails": [
+     "slip:case 3: 2 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 2.231,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand02",
+    "settings": {
+     "runSpeedMetresPerSecond": 5,
+     "turnRateTurnsPerSecond": 4,
+     "jumpHeightMetres": 1.5,
+     "bowlingSpeedMetresPerSecond": 10,
+     "ballMassKg": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand02f5",
+    "settings": {
+     "runSpeedMetresPerSecond": 9,
+     "zoomiesFullSeconds": 2,
+     "idleFrictionMetresPerSecond2": 5,
+     "pounceWaitSeconds": 2,
+     "ballRestitution": 0.4,
+     "rollingSlowdownMetresPerSecond2": 0.3,
+     "kickoffCountdownSeconds": 5,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 14.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand03",
+    "settings": {
+     "zoomiesFullSeconds": 2.5,
+     "turnRateTurnsPerSecond": 4,
+     "idleFrictionMetresPerSecond2": 5,
+     "jumpHeightMetres": 0.5,
+     "pounceWaitSeconds": 2,
+     "tumbleSeconds": 1.25,
+     "kickoffCountdownSeconds": 1,
+     "zoomiesRefillSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.452
+   },
+   {
+    "run": "rand04",
+    "settings": {
+     "runSpeedMetresPerSecond": 9,
+     "zoomiesSpeedMetresPerSecond": 11,
+     "zoomiesFullSeconds": 5,
+     "jumpHeightMetres": 1.25,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleGuardSeconds": 2,
+     "ballRestitution": 0.4,
+     "ballMassKg": 3,
+     "pushAssistCapMetresPerSecond": 11,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.445
+   },
+   {
+    "run": "rand05",
+    "settings": {
+     "zoomiesFullSeconds": 6,
+     "idleFrictionMetresPerSecond2": 6,
+     "jumpHeightMetres": 0.75,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 2,
+     "tumbleGuardSeconds": 0.5,
+     "rollingSlowdownMetresPerSecond2": 0.3,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 14.981,
+    "guardShare": 0.793
+   },
+   {
+    "run": "rand06",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 10,
+     "pounceWaitSeconds": 1,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 3,
+     "ballRestitution": 0.6,
+     "rollingSlowdownMetresPerSecond2": 1.5,
+     "kickoffCountdownSeconds": 4,
+     "pushAssistCapMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 2.981,
+    "guardShare": 0.497
+   },
+   {
+    "run": "rand07",
+    "settings": {
+     "runSpeedMetresPerSecond": 5,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "jumpHeightMetres": 0.5,
+     "tumbleSeconds": 1.25,
+     "rollingSlowdownMetresPerSecond2": 1.5,
+     "kickoffCountdownSeconds": 1,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 2.981,
+    "guardShare": 0.452
+   },
+   {
+    "run": "rand08",
+    "settings": {
+     "zoomiesFullSeconds": 5,
+     "idleFrictionMetresPerSecond2": 7,
+     "pounceSpeedMetresPerSecond": 12,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleGuardSeconds": 0.5,
+     "ballMassKg": 3,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.742
+   },
+   {
+    "run": "rand09",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 6,
+     "pounceWaitSeconds": 0.75,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 2,
+     "tumbleGuardSeconds": 4,
+     "ballRestitution": 0.4,
+     "ballMassKg": 3,
+     "rollingSlowdownMetresPerSecond2": 0.3,
+     "kickoffCountdownSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 14.981,
+    "guardShare": 0.331
+   },
+   {
+    "run": "rand10",
+    "settings": {
+     "zoomiesFullSeconds": 6,
+     "pounceSpeedMetresPerSecond": 14,
+     "bowlingSpeedMetresPerSecond": 6,
+     "tumbleSeconds": 1.25,
+     "ballRestitution": 0.5,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.452
+   },
+   {
+    "run": "rand11",
+    "settings": {
+     "turnRateTurnsPerSecond": 1.5,
+     "jumpHeightMetres": 0.5,
+     "pounceSpeedMetresPerSecond": 14,
+     "bowlingSpeedMetresPerSecond": 3,
+     "tumbleGuardSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.297
+   },
+   {
+    "run": "rand12",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 6,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 8,
+     "pounceWaitSeconds": 1,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 4,
+     "kickoffCountdownSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.461
+   },
+   {
+    "run": "rand13",
+    "settings": {
+     "runSpeedMetresPerSecond": 8,
+     "zoomiesSpeedMetresPerSecond": 11,
+     "zoomiesFullSeconds": 5,
+     "turnRateTurnsPerSecond": 1,
+     "idleFrictionMetresPerSecond2": 5,
+     "jumpHeightMetres": 1.25,
+     "pounceWaitSeconds": 2,
+     "bowlingSpeedMetresPerSecond": 8,
+     "tumbleSeconds": 1.25,
+     "ballRestitution": 0.5,
+     "ballMassKg": 4,
+     "pushAssistCapMetresPerSecond": 11,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.452
+   },
+   {
+    "run": "rand14",
+    "settings": {
+     "runSpeedMetresPerSecond": 6.5,
+     "idleFrictionMetresPerSecond2": 5,
+     "jumpHeightMetres": 0.75,
+     "pounceWaitSeconds": 3,
+     "ballRestitution": 0.5,
+     "ballMassKg": 4,
+     "kickoffCountdownSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand15",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 10,
+     "zoomiesFullSeconds": 2,
+     "turnRateTurnsPerSecond": 4,
+     "pounceSpeedMetresPerSecond": 12,
+     "pounceWaitSeconds": 0.5,
+     "pushAssistCapMetresPerSecond": 10,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand16",
+    "settings": {
+     "runSpeedMetresPerSecond": 9,
+     "zoomiesFullSeconds": 4,
+     "turnRateTurnsPerSecond": 4,
+     "pounceSpeedMetresPerSecond": 12,
+     "pounceWaitSeconds": 2,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 1,
+     "ballRestitution": 0.5,
+     "rollingSlowdownMetresPerSecond2": 1,
+     "zoomiesRefillSeconds": 8
+    },
+    "fails": [],
+    "roll3Metres": 4.481,
+    "guardShare": 0.761
+   },
+   {
+    "run": "rand17",
+    "settings": {
+     "zoomiesFullSeconds": 2,
+     "turnRateTurnsPerSecond": 4,
+     "jumpHeightMetres": 1.25,
+     "pounceWaitSeconds": 1,
+     "tumbleSeconds": 2.5,
+     "tumbleGuardSeconds": 3,
+     "ballMassKg": 4,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand18",
+    "settings": {
+     "zoomiesFullSeconds": 2.5,
+     "idleFrictionMetresPerSecond2": 6,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 1,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleSeconds": 2,
+     "ballRestitution": 0.5,
+     "ballMassKg": 3,
+     "kickoffCountdownSeconds": 2,
+     "zoomiesRefillSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand19",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 7,
+     "pounceSpeedMetresPerSecond": 8,
+     "tumbleSeconds": 2.5,
+     "rollingSlowdownMetresPerSecond2": 1.5,
+     "kickoffCountdownSeconds": 1
+    },
+    "fails": [],
+    "roll3Metres": 2.981,
+    "guardShare": 0.642
+   },
+   {
+    "run": "rand20",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 10,
+     "idleFrictionMetresPerSecond2": 6,
+     "jumpHeightMetres": 0.5,
+     "pounceSpeedMetresPerSecond": 8,
+     "pounceWaitSeconds": 0.75,
+     "bowlingSpeedMetresPerSecond": 6,
+     "ballRestitution": 0.5,
+     "rollingSlowdownMetresPerSecond2": 0.2,
+     "kickoffCountdownSeconds": 5,
+     "pushAssistCapMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 22.481,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand21",
+    "settings": {
+     "idleFrictionMetresPerSecond2": 5,
+     "bowlingSpeedMetresPerSecond": 6,
+     "ballRestitution": 0.4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand22",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 12,
+     "turnRateTurnsPerSecond": 4,
+     "jumpHeightMetres": 0.75,
+     "pounceWaitSeconds": 3,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 1,
+     "ballRestitution": 0.5,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "kickoffCountdownSeconds": 2,
+     "pushAssistCapMetresPerSecond": 12
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.76
+   },
+   {
+    "run": "rand23",
+    "settings": {
+     "zoomiesFullSeconds": 5,
+     "jumpHeightMetres": 0.5,
+     "pounceSpeedMetresPerSecond": 8,
+     "tumbleSeconds": 1.25,
+     "ballMassKg": 3,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.452
+   },
+   {
+    "run": "rand24",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "zoomiesFullSeconds": 4,
+     "turnRateTurnsPerSecond": 2.5,
+     "jumpHeightMetres": 0.75,
+     "pounceSpeedMetresPerSecond": 12,
+     "rollingSlowdownMetresPerSecond2": 1,
+     "kickoffCountdownSeconds": 1,
+     "pushAssistCapMetresPerSecond": 12,
+     "zoomiesRefillSeconds": 8
+    },
+    "fails": [],
+    "roll3Metres": 4.481,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand25",
+    "settings": {
+     "zoomiesFullSeconds": 5,
+     "idleFrictionMetresPerSecond2": 6,
+     "jumpHeightMetres": 1.25,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleSeconds": 3,
+     "ballRestitution": 0.4,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "kickoffCountdownSeconds": 4,
+     "zoomiesRefillSeconds": 10
+    },
+    "fails": [],
+    "roll3Metres": 2.231,
+    "guardShare": 0.694
+   },
+   {
+    "run": "rand26",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "zoomiesFullSeconds": 4,
+     "turnRateTurnsPerSecond": 3,
+     "idleFrictionMetresPerSecond2": 5,
+     "jumpHeightMetres": 0.75,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 2,
+     "bowlingSpeedMetresPerSecond": 5,
+     "tumbleSeconds": 2,
+     "kickoffCountdownSeconds": 1,
+     "pushAssistCapMetresPerSecond": 12,
+     "zoomiesRefillSeconds": 8
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand27",
+    "settings": {
+     "runSpeedMetresPerSecond": 9,
+     "zoomiesFullSeconds": 2.5,
+     "idleFrictionMetresPerSecond2": 6,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 8,
+     "pounceWaitSeconds": 0.75,
+     "bowlingSpeedMetresPerSecond": 2,
+     "tumbleSeconds": 1.25,
+     "tumbleGuardSeconds": 2,
+     "ballRestitution": 0.4,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "zoomiesRefillSeconds": 5
+    },
+    "fails": [
+     "slip:case 1: the worst comes down in 1.529 s, over 1.5 s (4 a side at 18\u00b0, ball frame, off mirror)"
+    ],
+    "roll3Metres": 2.231,
+    "guardShare": 0.391
+   },
+   {
+    "run": "rand28",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 11,
+     "zoomiesFullSeconds": 2.5,
+     "idleFrictionMetresPerSecond2": 5,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 1,
+     "tumbleGuardSeconds": 1,
+     "ballMassKg": 3,
+     "rollingSlowdownMetresPerSecond2": 2,
+     "pushAssistCapMetresPerSecond": 11,
+     "zoomiesRefillSeconds": 5
+    },
+    "fails": [
+     "slip:case 3: 2 slip-outs in 336 dribbles"
+    ],
+    "roll3Metres": 2.231,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand29",
+    "settings": {
+     "runSpeedMetresPerSecond": 5.5,
+     "turnRateTurnsPerSecond": 4,
+     "idleFrictionMetresPerSecond2": 6,
+     "pounceWaitSeconds": 2,
+     "bowlingSpeedMetresPerSecond": 6,
+     "ballRestitution": 0.4,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 1
+    },
+    "fails": [],
+    "roll3Metres": 4.481,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand30",
+    "settings": {
+     "zoomiesFullSeconds": 4,
+     "turnRateTurnsPerSecond": 3,
+     "jumpHeightMetres": 0.5,
+     "tumbleSeconds": 2.5,
+     "ballMassKg": 3,
+     "rollingSlowdownMetresPerSecond2": 1,
+     "zoomiesRefillSeconds": 8
+    },
+    "fails": [],
+    "roll3Metres": 4.481,
+    "guardShare": 0.643
+   },
+   {
+    "run": "rand31",
+    "settings": {
+     "zoomiesFullSeconds": 2,
+     "pounceWaitSeconds": 1,
+     "ballRestitution": 0.6,
+     "kickoffCountdownSeconds": 1,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rand32",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "turnRateTurnsPerSecond": 1,
+     "pounceWaitSeconds": 0.75,
+     "tumbleSeconds": 2.5,
+     "ballRestitution": 0.6,
+     "ballMassKg": 3,
+     "kickoffCountdownSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.643
+   },
+   {
+    "run": "rand33",
+    "settings": {
+     "runSpeedMetresPerSecond": 5.5,
+     "zoomiesSpeedMetresPerSecond": 11,
+     "zoomiesFullSeconds": 6,
+     "idleFrictionMetresPerSecond2": 6,
+     "pounceWaitSeconds": 3,
+     "tumbleSeconds": 2,
+     "tumbleGuardSeconds": 3,
+     "pushAssistCapMetresPerSecond": 11,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.397
+   },
+   {
+    "run": "rand34",
+    "settings": {
+     "zoomiesFullSeconds": 4,
+     "turnRateTurnsPerSecond": 3,
+     "pounceWaitSeconds": 3,
+     "tumbleSeconds": 1.25,
+     "tumbleGuardSeconds": 2,
+     "zoomiesRefillSeconds": 8
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.392
+   },
+   {
+    "run": "rand35",
+    "settings": {
+     "tumbleSeconds": 2.5,
+     "kickoffCountdownSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.643
+   },
+   {
+    "run": "rand36",
+    "settings": {
+     "zoomiesFullSeconds": 2,
+     "pounceSpeedMetresPerSecond": 14,
+     "tumbleGuardSeconds": 1,
+     "ballRestitution": 0.6,
+     "kickoffCountdownSeconds": 2,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.593
+   },
+   {
+    "run": "rand37",
+    "settings": {
+     "zoomiesSpeedMetresPerSecond": 10,
+     "idleFrictionMetresPerSecond2": 5,
+     "pounceSpeedMetresPerSecond": 8,
+     "bowlingSpeedMetresPerSecond": 6,
+     "tumbleSeconds": 2,
+     "tumbleGuardSeconds": 2,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 1,
+     "pushAssistCapMetresPerSecond": 10
+    },
+    "fails": [],
+    "roll3Metres": 4.481,
+    "guardShare": 0.526
+   },
+   {
+    "run": "rand38",
+    "settings": {
+     "runSpeedMetresPerSecond": 6.5,
+     "zoomiesFullSeconds": 2,
+     "idleFrictionMetresPerSecond2": 5,
+     "pounceWaitSeconds": 1,
+     "bowlingSpeedMetresPerSecond": 8,
+     "tumbleGuardSeconds": 2,
+     "kickoffCountdownSeconds": 5,
+     "zoomiesRefillSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.445
+   },
+   {
+    "run": "rand39",
+    "settings": {
+     "turnRateTurnsPerSecond": 1,
+     "idleFrictionMetresPerSecond2": 7,
+     "jumpHeightMetres": 1.25,
+     "pounceWaitSeconds": 3,
+     "tumbleSeconds": 1.25,
+     "ballRestitution": 0.6,
+     "rollingSlowdownMetresPerSecond2": 1.5
+    },
+    "fails": [],
+    "roll3Metres": 2.981,
+    "guardShare": 0.411
+   }
+  ]
+ },
+ "bots": [
+  {
+   "run": "the defaults",
+   "settings": "src/config.ts",
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "allMax",
+   "settings": {
+    "runSpeedMetresPerSecond": 10,
+    "zoomiesSpeedMetresPerSecond": 12,
+    "zoomiesFullSeconds": 6,
+    "turnRateTurnsPerSecond": 4,
+    "jumpHeightMetres": 1.5,
+    "pounceSpeedMetresPerSecond": 14,
+    "pounceWaitSeconds": 3,
+    "bowlingSpeedMetresPerSecond": 10,
+    "tumbleSeconds": 3,
+    "tumbleGuardSeconds": 4,
+    "ballMassKg": 4,
+    "rollingSlowdownMetresPerSecond2": 2,
+    "kickoffCountdownSeconds": 5,
+    "pushAssistCapMetresPerSecond": 12,
+    "zoomiesRefillSeconds": 12
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "allMin",
+   "settings": {
+    "runSpeedMetresPerSecond": 5,
+    "zoomiesFullSeconds": 1,
+    "turnRateTurnsPerSecond": 1,
+    "idleFrictionMetresPerSecond2": 5,
+    "jumpHeightMetres": 0.5,
+    "pounceSpeedMetresPerSecond": 8,
+    "pounceWaitSeconds": 0.5,
+    "bowlingSpeedMetresPerSecond": 2,
+    "tumbleSeconds": 1.25,
+    "tumbleGuardSeconds": 0.5,
+    "ballRestitution": 0.4,
+    "rollingSlowdownMetresPerSecond2": 0.2,
+    "kickoffCountdownSeconds": 1,
+    "zoomiesRefillSeconds": 2
+   },
+   "emptyGoal": 99,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "ballMassKg=4",
+   "settings": {
+    "ballMassKg": 4
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "ballRestitution=0.4",
+   "settings": {
+    "ballRestitution": 0.4
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "bowlingSpeedMetresPerSecond=10",
+   "settings": {
+    "bowlingSpeedMetresPerSecond": 10
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "bowlingSpeedMetresPerSecond=2",
+   "settings": {
+    "bowlingSpeedMetresPerSecond": 2
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "idleFrictionMetresPerSecond2=5",
+   "settings": {
+    "idleFrictionMetresPerSecond2": 5
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 99,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "jumpHeightMetres=0.5",
+   "settings": {
+    "jumpHeightMetres": 0.5
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "jumpHeightMetres=1.5",
+   "settings": {
+    "jumpHeightMetres": 1.5
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 98,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "pounceSpeedMetresPerSecond=14",
+   "settings": {
+    "pounceSpeedMetresPerSecond": 14
+   },
+   "emptyGoal": 98,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "pounceSpeedMetresPerSecond=8",
+   "settings": {
+    "pounceSpeedMetresPerSecond": 8
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "pounceWaitSeconds=0.5",
+   "settings": {
+    "pounceWaitSeconds": 0.5
+   },
+   "emptyGoal": 99,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "pounceWaitSeconds=3",
+   "settings": {
+    "pounceWaitSeconds": 3
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "rollingSlowdownMetresPerSecond2=0.2",
+   "settings": {
+    "rollingSlowdownMetresPerSecond2": 0.2
+   },
+   "emptyGoal": 99,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 99,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "rollingSlowdownMetresPerSecond2=2",
+   "settings": {
+    "rollingSlowdownMetresPerSecond2": 2
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "runSpeedMetresPerSecond=10",
+   "settings": {
+    "runSpeedMetresPerSecond": 10
+   },
+   "emptyGoal": 99,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "runSpeedMetresPerSecond=5",
+   "settings": {
+    "runSpeedMetresPerSecond": 5
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "tumbleGuardSeconds=0.5",
+   "settings": {
+    "tumbleGuardSeconds": 0.5
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "tumbleGuardSeconds=4",
+   "settings": {
+    "tumbleGuardSeconds": 4
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "tumbleSeconds=1.25",
+   "settings": {
+    "tumbleSeconds": 1.25
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "tumbleSeconds=3",
+   "settings": {
+    "tumbleSeconds": 3
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "turnRateTurnsPerSecond=1",
+   "settings": {
+    "turnRateTurnsPerSecond": 1
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 99,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "turnRateTurnsPerSecond=4",
+   "settings": {
+    "turnRateTurnsPerSecond": 4
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "zoomiesFullSeconds=1",
+   "settings": {
+    "zoomiesFullSeconds": 1,
+    "zoomiesRefillSeconds": 2
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "zoomiesFullSeconds=6",
+   "settings": {
+    "zoomiesFullSeconds": 6,
+    "zoomiesRefillSeconds": 12
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "zoomiesSpeedMetresPerSecond=12",
+   "settings": {
+    "zoomiesSpeedMetresPerSecond": 12,
+    "pushAssistCapMetresPerSecond": 12
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  }
+ ]
+}

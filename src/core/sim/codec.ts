@@ -13,16 +13,23 @@
 // hashing allocates nothing: TextEncoder.encodeInto returns a new object,
 // and writes at an offset only through a new view.
 
+import { config, type MatchRules, NO_RULES, RULE_SETTINGS } from '../../config';
 import { hash64 } from './hash';
 import { isPlayerId } from './input';
 import { defaultParams, type SimParams } from './params';
 import type { AnimPhase, MatchState, Pack, Phase, Terrier } from './state';
 import { stateProblems } from './valid';
 
-export const CODEC_VERSION = 1; // not a setting
+/** The codec's version (A.1): 2 from the match rules (C-59). A match at the build's own settings is
+ *  written in version 1's layout, byte for byte as before them, so its hash is too; one with match rules
+ *  in version 2's, which adds their block after the match length. */
+export const CODEC_VERSION = 2; // not a setting
+const PLAIN = 1; // not a setting: the layout without match rules
+const WITH_RULES = 2; // not a setting: the layout with them
 
 // A.1's sizes in bytes, each marked for the configuration scan.
 const FIXED = 30 + 89 + 1; // not a setting: the header, the ball and n
+const RULES = RULE_SETTINGS.length; // not a setting: version 2's block, a byte a rule
 const TERRIER = 142; // not a setting: a terrier's bytes, its name's aside
 const NAME_MAX = 255; // not a setting: a name's u8 length
 const AFTER_NAME = 125; // not a setting: a terrier's bytes after its ID and its name
@@ -141,18 +148,49 @@ function flags(t: Readonly<Terrier>): number {
   );
 }
 
+/** The index of v in a rule's choices, or −1: by Object.is, so −0 is no choice. */
+function choiceIndex(choices: readonly number[], v: number): number {
+  for (let i = 0; i < choices.length; i++) if (Object.is(choices[i], v)) return i;
+  return -1;
+}
+
+/** Whether a match has rules: any rule set (C-59). */
+function hasRules(r: MatchRules): boolean {
+  if (typeof r !== 'object' || r === null) fail('the match rules', r, 'an object of rules');
+  for (let k = 0; k < RULES; k++) if (r[RULE_SETTINGS[k]!] !== undefined) return true;
+  return false;
+}
+
+/** Version 2's block of match rules (C-59), a byte each in A.1's order: 0 for the build's own setting,
+ *  else 1 + the index of the rule's value in its choices. */
+function rules(r: MatchRules): void {
+  for (let k = 0; k < RULES; k++) {
+    const key = RULE_SETTINGS[k]!;
+    const v = r[key];
+    if (v === undefined) {
+      buf[at++] = 0;
+      continue;
+    }
+    const i = choiceIndex(config.matchRules[key], v);
+    if (i < 0) fail(`the rule ${key}`, v, 'one of its choices (C-59)');
+    buf[at++] = i + 1;
+  }
+}
+
 /** Writes s into the shared buffer from 0 and returns its length. */
 function write(s: Readonly<MatchState>): number {
   at = 0;
   index = -1;
-  room(FIXED);
-  u16(CODEC_VERSION, 'the codec version');
+  room(FIXED + RULES);
+  const withRules = hasRules(s.rules);
+  u16(withRules ? WITH_RULES : PLAIN, 'the codec version');
   u8(s.phase, 'the phase');
   u32(s.phaseStart, 'the phase start');
   bool(s.overtime, 'overtime');
   u32(s.tick, 'the tick');
   u8(s.packSize, 'the pack size');
   u32(s.matchLengthTicks, 'the match length');
+  if (withRules) rules(s.rules);
   u32(s.clock, 'the clock');
   u8(s.score[0], "pack A's score");
   u8(s.score[1], "pack B's score");
@@ -245,7 +283,8 @@ const HEX = '0123456789abcdef';
 
 /** The state these bytes encode, or null. Total: malformed, inconsistent or
  *  trailing bytes give null, never an exception (§9's decoders), and so
- *  does a state stateProblems reports. */
+ *  does a state stateProblems reports, which checks it under the match's
+ *  own parameters: its rules over P's base (C-59). */
 export function decodeState(bytes: Uint8Array, P: SimParams = defaultParams): MatchState | null {
   if (!(bytes instanceof Uint8Array) || bytes.length < FIXED) return null;
   const len = bytes.length;
@@ -280,13 +319,30 @@ export function decodeState(bytes: Uint8Array, P: SimParams = defaultParams): Ma
   };
 
   // Read in A.1's order: an object literal's values are evaluated in order.
-  if (r16() !== CODEC_VERSION) return null;
+  const version = r16();
+  if (version !== PLAIN && version !== WITH_RULES) return null;
+  if (version === WITH_RULES && len < FIXED + RULES) return null;
   const phase = r8() as Phase;
   const phaseStart = r32();
   const overtime = rbool();
   const tick = r32();
   const packSize = r8();
   const matchLengthTicks = r32();
+  // Version 2's match rules: each byte 0 or 1 + one of its rule's choices, and one at least set, since a
+  // match without rules is written in version 1 (C-59); stateProblems refuses a rule that's the base's
+  // own setting, which is written as 0.
+  let given: Record<string, number> | null = null;
+  for (let k = 0; version === WITH_RULES && k < RULES; k++) {
+    const x = r8();
+    if (x === 0) continue;
+    const key = RULE_SETTINGS[k]!;
+    const choices = config.matchRules[key];
+    if (x > choices.length) return null;
+    given ??= {};
+    given[key] = choices[x - 1]!;
+  }
+  if (version === WITH_RULES && given === null) return null;
+  const rules: MatchRules = given === null ? NO_RULES : Object.freeze(given);
   const clock = r32();
   const score: [number, number] = [r8(), r8()];
   const lastGoalTick = r32();
@@ -350,8 +406,13 @@ export function decodeState(bytes: Uint8Array, P: SimParams = defaultParams): Ma
   }
   if (bad || o !== len) return null;
   const s: MatchState = {
-    phase, phaseStart, overtime, tick, packSize, matchLengthTicks, clock, score,
+    phase, phaseStart, overtime, tick, packSize, matchLengthTicks, rules, clock, score,
     lastGoalTick, lastGoalPack, ownGoal, scorers, ball, terriers,
   };
-  return stateProblems(s, P).length === 0 ? s : null;
+  // Checked under the match's own parameters, its rules' over P's base (C-59).
+  try {
+    return stateProblems(s, P).length === 0 ? s : null;
+  } catch {
+    return null;
+  }
 }

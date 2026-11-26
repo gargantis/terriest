@@ -43,7 +43,7 @@
 
 import { config } from '../config';
 import { type Correction, type MatchNetSummary, REFUSAL, type Scoreboard, type Session, type TimelineStats } from '../core/session/index';
-import { defaultParams, encodeInput, jumpCount, type MatchSettings, type MatchState, type Pack, pounceCount } from '../core/sim/index';
+import { defaultParams, encodeInput, jumpCount, type MatchSettings, matchSettingsOf, type MatchState, type Pack, pounceCount } from '../core/sim/index';
 import type { IceMode } from '../net/transport';
 import { acceptedRelay } from '../nettest-params';
 import type { Settings } from '../storage/schema';
@@ -295,9 +295,9 @@ function copiedTraffic(t: Traffic): Traffic {
   return { sent: t.sent, received: t.received, sentBytes: t.sentBytes, receivedBytes: t.receivedBytes, byType };
 }
 
-/** The settings a held timeline was proposed with: its pack size and length. */
+/** The settings a held timeline was proposed with: its pack size, its length and its rules. */
 function settingsOf(s: Readonly<MatchState>): MatchSettings {
-  return { packSize: s.packSize, matchMinutes: s.matchLengthTicks / defaultParams.ticksPerMinute };
+  return matchSettingsOf(s, defaultParams);
 }
 
 class NetMatchImpl implements NetMatch {

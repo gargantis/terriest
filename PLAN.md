@@ -50,6 +50,11 @@
   - **Two requirement lines change,** §2's last two rows: Platform's L238, since each page load now fetches a script from a third party before any match, and Quality's L254, whose "no tracking" now names the beacon. L283 holds: Practice itself contacts only terriest.com.
   - **It undercounts:** ad blockers, Brave's among them, block the beacon. Cloudflare's own counts of the requests at its edge need no script.
   - The gate never sees the beacon, which only the edge adds: `scripts/headers.test.mjs` pins the policy, and the deploy's check loads the live page in each engine. Deployed that day from main at 0454a74: in Chromium, Firefox and WebKit the live beacon ran with nothing refused and reported to `/cdn-cgi/rum`, and Cloudflare answered Chromium's report with 204 (`docs/acceptance.md`).
+- *The owner, 2026-11-25:* "Take various game parameters that likely affect playability that are currently constant and make them configurable per game. For a given browser, the parameters should persist between sessions. There should be a button that sets the parameters to their defaults." So fifteen settings are the **match rules** (C-59), each set for a match from a list of choices that holds its default (A.5): the run and zoomies speeds, the zoomies meter's time, the turn rate, idle friction, the jump, the pounce's speed and wait, the bowling speed, the tumble and its guard, the ball's bounce, mass and rolling slowdown, and the kickoff countdown. They aren't D-8's rules of play, which no match changes.
+  - **Where they're set:** Practice's setup and Propose each have a Rules row, its summary and **Rules…**, which opens the **Rules** screen: a choice list for each rule, each change stored at once, **Reset to defaults** and **Back**. This browser keeps the last choices (A.3), and Start or Create plays by them.
+  - **Who plays by them:** genesis writes a match's rules into its state (A.1), so every peer, joiner and spectator plays by the proposer's, Play again keeps them, and Pre-match lists those that differ from the defaults. A match at the defaults keeps A.1's bytes as before, so its hashes, the goldens and the canary are unchanged.
+  - **The choices** are the values the tuning metrics' play checks pass, alone and in mixes, and at which the bots' marks hold (`research/rules/REPORT.md`). Acceleration, gravity and the terrier–ball bounce failed the checks at every value tried, and the sizes, the solver and the bots' levers stay out (C-59).
+  - **Yours to change:** the rules and their choices are Claude's, from your request, and owner-pending: play them on `npm run play`'s build at http://localhost:4340/ (`docs/acceptance.md`).
 
 **Date:** 2026-11-14; approved 2026-11-15.
 **Answers:** the "First deliverable" section of [REQUIREMENTS.md](REQUIREMENTS.md), at commit 6254a1d.
@@ -89,7 +94,7 @@ Many decisions are roslambo's, unchanged. Those cite roslambo's PLAN.md by numbe
 | Rendering | three.js with its WebGL 2 renderer. Terriers drawn by one replaceable part: built in code now, modelled later. Screens are DOM. |
 | Input | Keyboard by key position, a touch stick and buttons, a standard gamepad. Anchored steering: directions relative to the ball in ball view, kept on the pitch in chase view. |
 | Sound | Effects synthesised with Web Audio. No files. |
-| Persistence | localStorage: player ID, name, coat, settings and control hints. One game tab per browser. |
+| Persistence | localStorage: player ID, name, coat, settings, control hints and the match rules last chosen (C-59). One game tab per browser. |
 | Build | Vite 8, TypeScript 6.0, ESLint 10, vitest, Playwright with Chromium, Firefox and WebKit, and the gate tooling in `vendor/hermet`. |
 | Hosting | Cloudflare Workers static assets: assets only, request logs off. |
 
@@ -188,7 +193,9 @@ Four rows waited for a later step. One has gone in, and three still wait:
 
 **M4:** your decision of 2026-11-21, clear plexiglass walls with the players' cameras free to go outside them (C-57), changes two lines, applied with it: Cameras' L89 and Look and sound's L96, the two rows after Q-10's and Q-4's.
 
-**After M4's phase 2:** your decision of 2026-11-25 to let Cloudflare's Web Analytics run (C-58) changes two lines, applied with it: Platform's L238 and Quality's L254, the last two rows.
+**After M4's phase 2:** your decision of 2026-11-25 to let Cloudflare's Web Analytics run (C-58) changes two lines, applied with it: Platform's L238 and Quality's L254, the two rows after C-57's.
+
+**After M4's phase 2:** your request of 2026-11-25 for game parameters set for each match (C-59) changes twenty lines, applied with it, the last eight rows: Proposing's L127, Practice's L158, Screens' L163, L164 and L166, Persistence's L222, the Configuration table's L294, and the notes of its rows for the rules, L302, L307 to L309, L314, L316, L319 to L321 and L323 to L326.
 
 | Requirement (current) | Amended wording | From |
 |---|---|---|
@@ -236,6 +243,14 @@ Four rows waited for a later step. One has gone in, and three still wait:
 | Look and sound: "… a grass pitch inside padded walls under a rope net …" | "… a grass pitch inside clear plexiglass walls under a rope net …" | C-57 |
 | Platform: "Nothing contacts a third party until a player proposes or joins a match; … Practice contacts none" | Add: "Cloudflare's Web Analytics, which terriest.com's host adds to each page it serves, is the one exception: each page load fetches its script from static.cloudflareinsights.com, and the script reports the visit to terriest.com itself" | C-58 |
 | Quality: "No secrets, API keys or tracking" | Add: "Cloudflare's Web Analytics, which sets no cookies and follows no one from site to site, counts the visits" | C-58 |
+| Proposing: "the **match length**" | Add: "and the **match rules**: the settings *Configuration* marks *Set by the proposer*, each one of its choices, starting from the proposer's last choices in this browser, with a button that sets every rule to its default" | C-59 |
+| Practice: "The player picks the pack size and match length" | "The player picks the pack size, match length and match rules" | C-59 |
+| Screens, Propose: "set the pack size and match length" | Add: "and the match rules on a **Rules** screen, with **Reset to defaults**" | C-59 |
+| Screens, Practice: "set the pack size and match length, then go to Pre-match" | "set the pack size, match length and match rules, as Propose does, then go to Pre-match" | C-59 |
+| Screens, Pre-match: "… the start countdown over the pitch" | Add: "and the match's rules where they differ from their defaults" | C-59 |
+| Persistence: "The ID, display name, coat and settings are stored in the player's browser" | "The ID, display name, coat, settings and the match rules last chosen are stored …" | C-59 |
+| Configuration: "Every setting should be easy to change. …" | Add: "A setting marked *Set by the proposer* is chosen for each match from its choices (PLAN A.5), and its value here is its default" | C-59 |
+| Configuration, the notes of Kickoff countdown, Ball, Ball bounce, Ball rolling slowdown, Run speed, Turn rate, Zoomies speed, Zoomies meter, Jump, Pounce, Bowling speed, Tumble and Tumble guard | Add: "Set by the proposer": for the ball its mass, for the pounce its speed and wait, for the zoomies meter its time, the refill keeping its proportion, and for the ball's bounce all but the netting's | C-59 |
 
 ---
 
@@ -446,6 +461,8 @@ Four rows waited for a later step. One has gone in, and three still wait:
 | C-54 | hermet's checks have gaps, found by M1's review. The dist audit misses a host written with an upper-case scheme (`HTTPS://`), one in a JS string that starts with `//`, and anything in a shipped `.svg`, whose text it never reads. public-scan misses a home path that ends at the user's name, and the Windows path into WSL (`\\wsl.localhost\…\home\<name>\…`). Its private denylist, `TERRIEST_PRIVATE_TERMS`, isn't set on this machine, so only the built-in patterns run here too. | A hermet change, for your go-ahead, needed before any `.svg` ships (§15). Until then, D-38's lint bans src's root-absolute and `//` URL literals, the e2e guard fails any request a test makes outside its servers, and `public-scan` says when it ran without the denylist. Setting the variable, to a file kept outside the repo, is yours (README). |
 | C-57 | L89 keeps a player's camera inside the pitch. So at a wall, in a corner or in a goal, the camera rises or is held close, and loses the ball off the top of the view. In M4's comparison of ball view's camera at the walls, the camera held inside the pitch kept both your terrier and the ball on screen in 31% of the frames at the walls and 63% at your own goal, and moved up to 3.6 m in a frame at a corner. | Settled by your decision of 2026-11-21: "Let's make the walls transparent like plexiglass. This way the virtual camera can go outside of the arena." The walls are clear plexiglass, and a player's camera keeps its place behind its terrier, outside the walls and in or behind a goal too (D-28's M4 note, A.5; §2: L89, L96). The comparison's prototype E kept both in 100% of the frames there, with a largest camera move of 0.55 m a frame against 3.6 m. Its cost on the development machine's GPU, the Iris Xe, was about +0.5 ms a frame at 1280 × 720 and +1 ms at 2560 × 1440, within the drawing budget's calls and triangles; not yet measured on the Pixel 8a, which the performance track's phone run checks (C-2). The look, the camera in and behind a goal, the posts solid from 4.5 m, the gravel apron and the grass round the cage, the spectators' camera unchanged, the cost, and the arrow for a ball behind the HUD's bar are settled provisionally at the comparison's defaults, and owner-pending (`docs/acceptance.md`). |
 | C-58 | Cloudflare's Web Analytics, which you turned on in Cloudflare's dashboard, counted no visits. Cloudflare's edge adds its beacon, a script from static.cloudflareinsights.com, to each page terriest.com serves, and D-35's `script-src 'self'` refused it in every browser, each load logging the refusal as a console error. L238 has nothing contact a third party before a match, and L254 rules out tracking. | Settled by your decision of 2026-11-25: "yes, allow it and deploy". `script-src` also takes `https://static.cloudflareinsights.com`, by its host alone: the edge's script URL carries a version path, `beacon.min.js/v…`, which the source Cloudflare's FAQ gives, ending in `beacon.min.js`, wouldn't match. The snippet the edge adds names a version, so the beacon reports to the page's own `/cdn-cgi/rum`, not to cloudflareinsights.com, and `connect-src 'self'` covers it; it posts JSON, so its request carries the page's Origin under `no-referrer`. The beacon's own code strips the fragment and query from the two addresses its report holds, the page's and the referrer's, so no `#join=` code leaves the page. Before the change, a test browser given the host ran the beacon on the live page, refused nothing else, and caught its report unsent. The host is in `third-party.json` as kind `analytics`, which the dist audit reads and the room config ignores; §2 amends L238 and L254, and §20 and the README's Privacy say what it sees (D-35). |
+| C-59 | Every setting is a build constant but the pack size and the match length, which the proposer sets (L125–L127, L298, L299), so trying a faster game, a bouncier ball or shorter zoomies takes a new build; and nothing about a match is stored (§10). | Settled by your request of 2026-11-25 (the status line). Fifteen settings are the **match rules**, each chosen for a match from A.5's list of choices, which holds its default: run speed, zoomies speed, the zoomies meter's time (its refill keeping its proportion), turn rate, idle friction, the jump, the pounce's speed and wait, the bowling speed, the tumble and its guard, the ball's bounce (the netting's 0 kept), mass and rolling slowdown, and the kickoff countdown; a zoomies speed above the push assist's cap takes the cap with it (C-18). They aren't D-8's rules of play, which no match changes. **Chosen** on Practice's setup and Propose, by a Rules row and the Rules screen (§11), from this browser's last choices (A.3), with **Reset to defaults**. **Carried** in the state: genesis writes them, A.1's version 2 with a byte a rule after the match length, so every peer plays by the proposer's, a joiner and a spectator take them with the STATE (L130), Play again keeps them (L154, D-12), and Pre-match lists them. A match at the defaults keeps version 1's bytes, so its hash, the goldens and the canary are as before. **The match's own parameters:** `paramsFor` makes them from the state's rules over the build's, for the step, the decoder's checks (a longer tumble's rule allows longer timers), the timeline's Sims, the bots' brains, the HUD's countdown and gauges, and the drawn meter. **Measured** (`research/rules/REPORT.md`): every choice passes the tuning metrics' play checks alone, every rule at its lowest and at its highest together, and the 68 random mixes that fall wholly on the lists; and the bots' marks hold at each rule's extremes. **Left out,** each failing those checks or another contract: acceleration and gravity, at every value tried (C-21); the terrier–ball bounce, at every value but its own; the pitch's, the goal's and the bodies' sizes, which the drawing, the kickoff spots and the slip-out window fit (D-4, C-19, C-21); the solver and the substeps (D-3, D-5); the bots' levers (§21's bot skill levels) and steering (§21). The build hash covers the lists as it does every setting (D-21), and a match's choices are its state's, never the configuration's, so browsers with different stored choices still match. Provisional and owner-pending, the choices Claude's: the bots' level at the extremes and networked play at higher speeds are unmeasured, and the pose's trot, lean and tilt scale by the defaults (D-27). §2 amends twenty lines. |
+| C-60 | **Open,** found on 2026-11-25 while building C-59, and already on main. A page whose peers' TICKs reach it late finalises their inputs absent and votes alone; when the burst lands, each late vote for a tick first ties this page's lone vote, and a tie goes to the smallest hash (D-13). Where this page wins those ties and its first loss comes at a later tick g, it repairs from g, and the votes still to come for the earlier ticks are dropped as before the repair (`lateVote`'s `g < repairedFrom`), so those ticks keep its own states in its history, against the others' agreed ones. Play converges from g, as the STATE brings the agreed state; only the history's few ticks before it differ, which a vote or a STATE for them would read. `src/core/timeline/spread.test.ts`' late-vote repair passes at the hashes it has: when C-59's first layout changed every state's bytes, its b won the ties at ticks 329 and 330, repaired from 331, and kept 329 and 330 apart, so the test failed. To settle: begin the repair at the earliest tick whose tally this page won only by a tie with votes still to come, or tally the late votes for those ticks once the repair is in; then show it with a test whose tie goes each way. | Open (D-13, M3's design §3.4, §3.6). |
 
 ---
 
@@ -627,6 +644,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - **Warm-up arrivals** face the ball, at rest. A point is clear when it's strictly apart from every body there, in 3D, the terriers placed earlier in the same tick included. The steps stay inside the floor plan by a terrier's radius, and an arrival keeps the spot it arrived on until the start countdown ranks its pack by ID (A.4).
   - **The warm-up ball** is immovable. It has no contact with any piece, the floor's included, and the forces, integration and support skip it. In its contacts with terriers its inverse mass is 0, so a terrier bounces off it at the terrier–ball bounce and the ball's bits never change. Its contacts set the pushing pose's ticks and the hit's tick and strength, and count no touch.
   - **Credit** goes by the tick: the scorers are the attackers whose last ball contact came at the ball's last contact tick. The first goal of a tick counts, and the ball is out of play for that tick's later substeps.
+- **C-59:** a match's rules set some of these values for it, from its state, the kickoff countdown among them; the phases and what terriers may do in each don't change.
 
 **D-9 — Everything an animation needs is in the state from the start (L345).**
 - **Per terrier:**
@@ -852,6 +870,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - **Watch:** after each adoption a watcher counts the room's spectators again on every timer run, as it meets them, until it has met everyone the STATE's sender's PEERS lists, or for `handshakeTimeoutMs`; a REFUSE 4 from any peer also makes it leave. Two that choose Watch together can both leave, and a burst past the cap leaves as a whole: accepted, since the cap always holds and each can try again.
   - **Liveness** (M3-Q23, C-12): a connection's last message or pong, with a ping to each peer every 1 s. A connection's leave clears its player's state only while the player still maps to it, and a replaced connection's messages are ignored.
   - **The duplicates' log,** `Session.duplicates`, is a diagnostic only: in these engines an unloading page's channels close at once, and Trystero 0.26 ignores SCTP's user-initiated abort, so no check can tell a leave from a closed connection (M3 phase 5).
+- **C-59:** the hash covers the match rules' choices as it does every setting. A match's chosen rules are in its state, never in the configuration, so two browsers with different stored choices still match.
 
 **D-22 — Practice runs on a local transport.**
 - **Choice:**
@@ -882,6 +901,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
 **D-24 — localStorage, and one game tab (roslambo D-18).**
 - **Choice:** the profile (player ID, name, coat, which inputs have finished their control hints) and the settings, as one key each (Appendix A.3). An unreadable profile is backed up before a fresh one is made. One Web Lock covers the whole app, Practice and watching included, with roslambo's **Use here**.
 - **Cost if wrong:** low.
+- **C-59:** a third key, `terriest.v1.rules`, the match rules last chosen (A.3).
 
 **D-25 — Player ID (roslambo D-20).** `crypto.randomUUID()`, kept apart from Trystero's per-load `selfId` (L347).
 - **M3:** the `#test=net` page's player ID is `personId(seed, k)` from its parameters, so the specs' IDs match M2's offline setups' and the network simulator's replays of them (`src/core/bot/bot-id.ts`; M3's design §4.4, §7.2). M4's screens take the profile's.
@@ -932,6 +952,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - **The stand-in** can be generated in memory by the tests from `scripts/make-standin.mjs`, byte-identical each run, so `e2e/fixtures/` needs no binary.
 - **M2:** the pushing pose's 8 ticks (M0's `PUSH_TICKS`) go into A.4 at M4, with the drawer, their first reader. M2's code never reads them: the pose is drawn from each terrier's last ball contact tick, which the state holds (D-9).
 - **M3:** across a phase's start the drawing snaps rather than glides: a correction whose drawn head before and after differs in its phase or in the tick that phase started, most often a kickoff placement shown a tick early or late after a late Ready or input moved a countdown or a goal, is drawn at once (M3 phase 5's answers). The correction measurement relies on it: its rules choose d and the glide from the steady corrections alone, and report those across a phase's start apart, deciding nothing, since this snap shows them (D-16; research/corrections/REPORT.md section 1.9). M4 builds it.
+- **C-59:** the HUD's countdown and gauges and the drawn meter read the match's own parameters, its rules'. The pose's trot, turn lean and jump tilt still scale by the default run speed, turn rate and jump speed: a cosmetic difference at other choices, which saturate or shrink them a little.
 
 **D-28 — Cameras (L87–L92).**
 - **Chase view:** behind and above the terrier, its yaw easing toward the heading with a 0.3 s time constant, at most 1 turn/s. The calmer camera uses 0.6 s and 0.5 turn/s. A held, unmoved direction doesn't depend on either (L87); a direction read from the screen takes the camera's yaw at that moment, so a re-read during a swing depends on the setting (Q-19).
@@ -1106,6 +1127,7 @@ Each decision gives the choice, the options rejected, and the cost if it's wrong
   - **The scripts** the marks, the `#test=net` page and the network simulator's setups share are `src/core/bot/setups.ts`'s: none, back, sideways and brain, each sampled on the timeline's head when a tick is sent. `personId(seed, k)` moved to `src/core/bot/bot-id.ts`.
 
 ---
+- **C-59:** a bot plays by its match's parameters, its rules': a brain made before its match was held, as Play again's are, is made again at its first thought. Q-9's marks were measured at the defaults, and hold at each rule's extremes too (`research/rules/REPORT.md`).
 
 ## 5. Evidence: what this plan rests on
 
@@ -1244,12 +1266,12 @@ Everything below is in the canonical state (Appendix A.1), and so in the hash. S
 7. **Animation fields** (D-9).
 
 **M2:** as `src/core/sim/step.ts` runs it. `step(sim, s, inputs)` advances the state in place, as roslambo's and M0's do, so a caller that needs the old state clones it first.
-- **Before step 1,** the inputs are made canonical (D-12), and the bodies bound to their slots from the state. Every call binds afresh, and binds again after a step that changes the roster or places the terriers, and every scratch entry is written before it's read. So nothing carries from one call to the next, and one `Sim` steps any states of its pack size in any order, as M3's timeline steps the final state and its predicted clones (D-11). A test checks that tick by tick against a fresh `Sim` for each state.
+- **Before step 1,** the inputs are made canonical (D-12), and the bodies bound to their slots from the state. Every call binds afresh, and binds again after a step that changes the roster or places the terriers, and every scratch entry is written before it's read. So nothing carries from one call to the next, and one `Sim` steps any states of its pack size in any order, as M3's timeline steps the final state and its predicted clones (D-11); from C-59, of its pack size and match rules, since a match's parameters are its rules'. A test checks that tick by tick against a fresh `Sim` for each state.
 - **The end is terminal** (D-8): a tick of an ended match only advances the tick. When step 3 ends the match, steps 4–7 don't run.
 - **"Began in play"** is read after step 3, and events act in warm-up only (D-8).
 - **Each substep,** in the spike's order: the forces and integration; detection; the floor's support; then bowling (in play), pounce tumbles (in warm-up and play) and the lunges a contact ends, all found from the contacts as detected and only then applied, so no contact's order counts; the ball's hit tick and strength; the impulses, then the hit's velocity change (A.1); the position passes and the slip-out; then the touches, contact ticks and pushes. Touching clears at the re-arm gap, and slipping once its body is down; then, in play, the goal test.
 - **Step 7** is the timers, then the animation fields.
-- **It throws** for a state whose pack size isn't its `Sim`'s. So do `makeSim` for a pack size outside the configuration's, the binding for a terrier outside its pack size's slots, and a kickoff placement with no spot for a terrier; no valid state reaches the last two.
+- **It throws** for a state whose pack size, or from C-59 match rules, isn't its `Sim`'s. So do `makeSim` for a pack size outside the configuration's, the binding for a terrier outside its pack size's slots, and a kickoff placement with no spot for a terrier; no valid state reaches the last two.
 
 ### 7.3 Contacts, in brief
 
@@ -1290,6 +1312,8 @@ Everything below is in the canonical state (Appendix A.1), and so in the hash. S
 - **Liveness:** pings go at most half the duplicate ID's silence apart, so a live connection always answers within C-12's 2 s, even one that sends only PEERS.
 - **Counts on the wire:** the name's byte limit, the IDs PEERS lists (every browser of the mesh but its sender: the mesh cap plus the spectators, less one) and the bots a TICK carries (`BOT_SLOTS`) each fit the protocol's u8 counts; the name's limit fits A.1's byte too.
 - **One tried and dropped:** a ninth, that goals 384 ticks apart outlast a repair's reach, came at phase 4 and went at its review, since a repair can reach further: D-14's goal ticks make the latch exact instead (hosting-H2).
+
+**C-59:** the match rules' choices: each rule a setting of the configuration, its list ascending and holding its default; and every choice alone, and every rule at its lowest and at its highest together, through `matchConfig`, passing the checks above that a rule could break and building its parameters, the meter's rates whole units and the assist's cap at least the zoomies speed. A planted choice that breaks one is caught.
 
 ---
 
@@ -1376,9 +1400,10 @@ roslambo's §9 applies: one Trystero action, `[u8 type][payload]`, little-endian
 - **Engine:** localStorage (D-24). Keys and shapes are in Appendix A.3.
 - **Profile:** player ID, display name, coat (a random one on the first visit, stored at once), and which inputs have finished their hints.
 - **Settings:** extra relays and one TURN server (as roslambo); names over terriers; start in ball view; calmer camera; mirrored touch layout; sound; render quality. The calmer camera and render quality follow their defaults until the player chooses (Appendix A.3).
+- **Match rules** (C-59): the last chosen, only where they differ from the defaults, under a key of their own, each as its value; a stored rule that isn't one of its choices now, or names no rule, plays at its default.
 - **One tab:** a Web Lock named `terriest-game`, with **Use here** (D-24).
 - **Bad data:** an unreadable profile is copied to a backup key before a fresh one is made. A failed write loses that write only, and Home says so.
-- **Not stored:** anything about matches. Nothing lasts (L216).
+- **Not stored:** anything about a match played. Nothing lasts (L216).
 - **Safari:** C-14.
 
 ---
@@ -1392,13 +1417,14 @@ roslambo's §9 applies: one Trystero action, `[u8 type][payload]`, little-endian
 | Screen | Contents |
 |---|---|
 | Home | Display name, editable (20 characters, 32 bytes); coat, from the fixed list; **Propose a match**; **Join** with a code field; **Practice**; **Settings**. Opening a `#join=` link skips it. |
-| Propose | Pack size (1–4, default 2) and match length (1–10 minutes, default 3). **Create** shows the link (copy, and share where available) and the code in groups of four, with "Keep this page open until someone joins". Then **Play** (with a pack), **Watch** and **Leave**, at once (as roslambo, as amended). |
-| Practice | Pack size and match length, then Pre-match. |
+| Propose | Pack size (1–4, default 2) and match length (1–10 minutes, default 3); a Rules row as Practice's (C-59). **Create** shows the link (copy, and share where available) and the code in groups of four, with "Keep this page open until someone joins". Then **Play** (with a pack), **Watch** and **Leave**, at once (as roslambo, as amended). |
+| Practice | Pack size and match length; a Rules row, its summary and **Rules…** (C-59); then Pre-match. |
 | Join | The packs, with free places and who's in them; **Play** in a pack (the smaller suggested); **Watch**. A returning player skips it (D-17). |
-| Pre-match | The pitch with terriers warming up; each pack's list with name, coat and Ready; **Ready**; **Switch pack**; **Add a bot** and **Remove a bot** for each pack, for players and spectators; **Leave**; "Invite" (link and code); the stick and buttons on touch; the start countdown over the pitch. |
+| Pre-match | The pitch with terriers warming up; each pack's list with name, coat and Ready; **Ready**; **Switch pack**; **Add a bot** and **Remove a bot** for each pack, for players and spectators; **Leave**; "Invite" (link and code); the stick and buttons on touch; the start countdown over the pitch.; the match's rules where they differ from the defaults (C-59) |
 | Match | The pitch; the score, each pack's in its colour and pattern, your pack marked; the clock, showing overtime; the countdown before each kickoff; the scorer's name after a goal; away marks. Players: zoomies meter and pounce wait; the stick and buttons on touch. Spectators: a choice of what to follow, by tapping a name or with the view key or shoulder buttons. A menu button: **Settings**, **Leave**, and in Practice **Resume**. |
 | Results | The final score, each terrier's goals (a shared goal counts for each sharer, as the screen says) and touches, the Terriest; **Play again**; **Home**. |
 | Settings | Extra relays and your own TURN server; names over the terriers (off); start in ball view (on); a calmer camera, in both views (off, unless the system asks for reduced motion); mirrored touch layout (off); sound (on); render quality (high; whether phones start at low is your call with their measurements, D-33); "Show control hints again". Everything but relays, TURN and render quality applies at once. In a match, render quality rebuilds the drawing when the menu closes (D-33); relays and TURN apply from the next match. |
+| Rules | From Practice's setup or Propose (C-59): a choice list for each match rule, its default marked, each change stored at once; **Reset to defaults**; **Back** to the setup it came from, its choices kept; a status line saying what came of the last change. |
 | Messages | The boot failures (D-30); graphics lost; canary failure, on Propose and Join (Practice still plays, D-23); a build mismatch; the connection failure (roslambo's wording); "This match is full, so you're watching it"; "The players have left" (Q-16); spectators full. |
 
 **Input:** D-29. **Sideways phones:** D-30. On a phone held sideways, the stick and buttons sit over the pitch (L170).
@@ -1659,7 +1685,7 @@ D-39, with roslambo's hosting:
   - **Each run's coverage is asserted** from its result: at least the goals, pounces, tumbles, hits, bounces, pushes, slip-outs, zooming and most contacts in a substep its spec names, the phases it must pass, how it ends, and its checks. So a run that stops covering its column fails, even after a re-emit, and an emit refuses to record one.
   - **Not in them:** D-4's second shape, which P8, the fuzz and the goal tests run, and the bot brain, which would move them whenever it's tuned (D-39).
   - **Their cost:** about 1.2–2 s to replay in Node, and 1.3–2.2 s an engine on the determinism page. The page, the goldens and the scripts are a chunk of their own, and the spec checks that a normal page never loads it and that the page's own module holds none of it.
-  - **Re-emitted twice, on purpose,** after the first emit at a9aca0a: for the slip release (ccf92c8; the canary from 08a15af95ae031ef to de2bb0d7a95ae1e7), and for the settled values (c82c3e8; 14 of the 25 runs change, and the canary becomes eea91a8dd7ba3cf4).
+  - **Re-emitted twice, on purpose,** after the first emit at a9aca0a: for the slip release (ccf92c8; the canary from 08a15af95ae031ef to de2bb0d7a95ae1e7), and for the settled values (c82c3e8; 14 of the 25 runs change, and the canary becomes eea91a8dd7ba3cf4). A third time for the match rules (C-59): the codec's version goes to 2, the 25 runs and the canary come out byte for byte as before, since a match at the defaults keeps version 1's layout, and a 26th run, `house rules 4`, plays a 4-a-side seeded match with every rule changed, so the cross-engine check covers a match's own parameters.
 
 **Timeline and consensus (simulated network):** roslambo's loopback tests and properties P1–P5 and P7, adapted for packs; plus:
 - P9 (a goal on every scoreboard, once, at its confirmed tick), including a resync for a later tick after the goal shows;
@@ -2009,6 +2035,7 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
 | Simulation and consensus; smoothing; barks | D-11 to D-16 | P1–P5, P7, P9, P11 |
 | Disconnects, returns, abandoned matches | D-16, D-17, Q-16 | network tests; end-to-end reload |
 | Persistence; one tab; names as plain text | §10, D-24, §12 | storage tests; end-to-end |
+| The match rules, set by the proposer, kept in the browser, Reset to defaults (C-59) | C-59, §10, §11, A.1, A.3, A.5 | configuration checks; codec, timeline, bot-host, storage and screen tests; a golden run under them; `e2e/rules.spec.ts` |
 | Platform: static, Workers, relative paths, WebGL 2, its loss, browsers, no third party before joining | D-30, D-34, D-35, D-38 | build; subpath test; boot-failure tests; request guard; Chromium, Firefox and WebKit in the gate; your Chrome, Edge and Firefox by hand; the Pixel 8a's Chrome, Firefox and Edge at M5; Safari per Q-12 |
 | 60 fps; drawing budget; 8 terriers and 4 spectators | C-2, §12, §16 | budget counts in the gate; by hand on the desktop; the Pixel 8a at M5; load run |
 | Quality: README, tests, determinism, real-page tests, the stand-in model, hermet, no secrets | §15, §16, D-37, D-38 | the gate |
@@ -2066,13 +2093,14 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
 
 | Bytes | Field | Written |
 |---|---|---|
-| u16 | codec version = 1 | constant |
+| u16 | codec version: 1 for a match at the build's own settings, 2 for one with match rules (C-59) | gen |
 | u8 | phase: 0 warm-up, 1 start countdown, 2 kickoff countdown, 3 in play, 4 celebration, 5 ended | 3; 5 (a goal starts a celebration); 6 (the end, or the overtime kickoff) |
 | u32 | phase start tick | with the phase |
 | u8 | overtime, 0 or 1 | 3 (a celebration ends level at 0:00), 6 |
 | u32 | tick | the tick's end |
 | u8 | pack size, 1–4 | gen |
 | u32 | match length, ticks | gen: minutes × ticks a minute |
+| 15 × u8 | version 2 only: the match rules in A.5's order, each 0 for the build's own setting or 1 + the index of its value in its choices, one at least not 0 (C-59) | gen |
 | u32 | clock: ticks left; in overtime, ticks since it began | gen (the length); 6 |
 | u8, u8 | score A, score B, saturating at 255 | 5 |
 | u32, u8, u8 | last goal tick (NEVER: none), its pack, own goal | 5; kept until the next goal |
@@ -2114,9 +2142,10 @@ The brain keeps to exact operations (D-39), so the counts are the same here and 
 - **The ball's hit change** (D-9, L101): the ball's velocity change in the substep that set its last hit, from after the forces to after the impulses, so the impulses and the floor's bounce without gravity. It's the squash's axis, which the velocity after a glancing hit would get wrong. A mirrored state's horizontal parts are ±0, so P8 holds, and the fixed warm-up ball's change is 0, which draws no axis.
 - **Encoding and decoding:** encoding refuses a float that isn't finite (D-1) and a field outside its type, and checks nothing else, so a test-only state, such as a short pack in play, still encodes and hashes. Decoding never throws: malformed, inconsistent or trailing bytes give nothing, and so does a state that `src/core/sim/valid.ts`'s checks refuse. So every state those checks pass round-trips byte for byte, and one they refuse never comes from a peer.
 - **Names:** a hand-written UTF-8 loop writes them, so hashing allocates nothing. A property test shows its bytes equal `TextEncoder`'s for every well-formed string, and a name with a lone surrogate never joins (C-17, D-12). The decoder keeps a leading U+FEFF, so a name that starts with one round-trips.
+- **C-59's match rules:** a match without rules is written in version 1's layout, byte for byte as before them, so its hash is; one with rules in version 2's. The decoder refuses version 2 with no rule set, a byte past its rule's choices, and a rule at the build's own setting, which is written as 0, so each state has one encoding. It checks the rest under the match's own parameters, its rules over the build's: a longer tumble's rule allows longer tumble timers.
 - **What `valid.ts` checks,** beyond each field's type: the roster in (spot, pack) order with unique slots and IDs, at most a pack size in each pack; names that pass C-17's rule unchanged; coats in the list; every float finite; a body slipped from that's the ball or another terrier present; the meter and timers within their maxima; and scorers that name terriers in the list. Then the rules': the tick under 2³¹; a phase begun at a tick that has passed; scorers only in a celebration or at the end, so a removal, which comes only in warm-up, never shifts a scorer's bit; overtime only from a kickoff countdown on; outside overtime, a clock within the match's length; both packs full from the start countdown on; a Ready no longer than its expiry; and join and input ticks that have passed.
 
-**Size:** 30 bytes of header, 89 for the ball and 1 for n, then 142 bytes a terrier plus its name: 1,512 bytes at 8 terriers with 32-byte names. The hash is roslambo's: MurmurHash3 x86-32 with seeds 0 and 0x9747B28C, 8 bytes, compared as an unsigned big-endian number.
+**Size:** 30 bytes of header, 89 for the ball and 1 for n, then 142 bytes a terrier plus its name: 1,512 bytes at 8 terriers with 32-byte names, and 15 more in a match with rules (C-59). The hash is roslambo's: MurmurHash3 x86-32 with seeds 0 and 0x9747B28C, 8 bytes, compared as an unsigned big-endian number.
 
 ### A.2 Input (u16)
 
@@ -2140,6 +2169,7 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | `terriest.v1.profile` | `{ v: 1, playerId, name, coat, hints: { keyboard, touch, gamepad } }` |
 | `terriest.v1.profile.backup` | the last unreadable profile, verbatim |
 | `terriest.v1.settings` | `{ v: 1, relays: [url], turn: [{ urls, username, credential }], names, ballView, calmCamera, mirrorTouch, sound, quality }` |
+| `terriest.v1.rules` | `{ v: 1, rules: { <setting>: <value> } }`: the match rules last chosen, only where they differ from the defaults (C-59) |
 
 `calmCamera` and `quality` are `null` until the player chooses. While null, they follow the default rule: `prefers-reduced-motion` for `calmCamera`, the device's default for `quality` (§11). So a later change to the system's preference still applies, though every change to a setting writes the whole object.
 
@@ -2218,6 +2248,21 @@ So every u16 is a valid input, which a fuzz test checks (§16).
 | Nose turn rate (vehicle-style) | 1 turn/s; reverse at up to 3 m/s |
 | Posts and crossbar | capsules, radius 0.1 m |
 | Ball-frame push assist (C-18) | a speed cap of 9 m/s (M2, provisional by measurement); a cap of 0 turns it off, and a cap that's on is at least the zoomies speed |
+| Run speed's choices (C-59) | 5, 5.5, 6, 6.5, 7, 8, 9, 10 m/s |
+| Zoomies speed's choices (C-59) | 9, 10, 11, 12 m/s; the push assist's cap follows the zoomies speed up |
+| Zoomies meter's choices (C-59) | 1, 1.5, 2, 2.5, 3, 4, 5, 6 s when full; the refill keeps its proportion of the meter's time |
+| Turn rate's choices (C-59) | 1, 1.5, 2, 2.5, 3, 4 turns per second |
+| Idle friction's choices (C-59) | 5, 6, 7, 8 m/s² |
+| Jump's choices (C-59) | 0.5, 0.75, 1, 1.25, 1.5 m high |
+| Pounce speed's choices (C-59) | 8, 10, 12, 14 m/s, for the lunge's 0.3 s |
+| Pounce wait's choices (C-59) | 0.5, 0.75, 1, 1.5, 2, 3 s |
+| Bowling speed's choices (C-59) | 2, 3, 4, 5, 6, 8, 10 m/s |
+| Tumble's choices (C-59) | 1.25, 1.5, 2, 2.5, 3 s, the get-up its last 0.5 s |
+| Tumble guard's choices (C-59) | 0.5, 1, 1.5, 2, 3, 4 s |
+| Ball bounce's choices (C-59) | 0.4, 0.5, 0.6, 0.7 of the speed into the surface; the goal's netting keeps 0 |
+| Ball mass's choices (C-59) | 2, 3, 4, a terrier's 1 |
+| Ball rolling slowdown's choices (C-59) | 0.2, 0.3, 0.5, 1, 1.5 m/s² |
+| Kickoff countdown's choices (C-59) | 1, 2, 3, 4, 5 s |
 
 **M2:** a row marked *provisional by measurement* here or in A.4 holds the value M2 settled by the method of `research/tuning/REPORT.md`, as the owner chose for Q-10 on 2026-11-17. Each is owner-pending: the owner confirms or changes it before M5's deploy (§17), and REQUIREMENTS' TBDs stay until the owner signs the values off. A value the owner sets on the tuning page is theirs, so Copy settings writes its row without the mark. What M2 measured at its values is in C-48 and C-18: at the netting's 0, every shot into the goal with nobody near stays wholly behind the line through its celebration, though pushers that follow the ball in can bring it back out over the line; at the assist's 9 m/s, two and four side by side in ball view beat a lone pusher.
 

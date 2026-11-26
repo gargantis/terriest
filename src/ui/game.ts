@@ -38,7 +38,7 @@ import { Scoreboard } from '../core/session/scoreboard';
 import { type AgainChoice, Session } from '../core/session/session';
 import { netSettings, type NetSettings } from '../core/session/settings';
 import { type MatchNetSummary, SummaryBuilder } from '../core/session/summary';
-import { defaultParams, findTerrier, type MatchSettings, type Pack } from '../core/sim/index';
+import { defaultParams, findTerrier, type MatchSettings, matchSettingsOf, type Pack } from '../core/sim/index';
 import type { Correction, Timeline, TimelineStats } from '../core/timeline/timeline';
 import { CURATED_RELAYS } from '../net/room-config';
 import type { IceMode, Transport, TransportOptions } from '../net/transport';
@@ -417,7 +417,8 @@ export class NetGame {
     const random = new Uint8Array(AGAIN_RANDOM_BYTES);
     crypto.getRandomValues(random);
     const s = t.final;
-    const settings: MatchSettings = { packSize: s.packSize, matchMinutes: s.matchLengthTicks / P.ticksPerMinute };
+    // The next match plays by this one's rules (C-59), as it takes its pack size and length.
+    const settings: MatchSettings = matchSettingsOf(s, P);
     const choice = this.againChoice();
     this.againPressed = true;
     const matchId = await nextMatchId(this.matchId);

@@ -124,7 +124,7 @@ Status: settled by the owner on 2026-11-14, and amended by PLAN.md, which the ow
 
 - A proposer creates a match and sets:
   - the **pack size**: 1 to 4 (see *Configuration*)
-  - the **match length**
+  - the **match length**, and the **match rules**: the settings *Configuration* marks *Set by the proposer*, each one of its choices, starting from the proposer's last choices in this browser, with a button that sets every rule to its default (C-59)
 - Creating a match produces a match ID (as roslambo)
 - The proposer shares the match ID by any means outside the game. There is no in-game lobby or discovery (as roslambo)
 - The match ID alone is enough to join. The proposer's browser stays in the match's room and gives the settings to the first peer who arrives. From then on every peer holds them as part of the shared state, and the proposer can leave (as roslambo)
@@ -155,15 +155,15 @@ Status: settled by the owner on 2026-11-14, and amended by PLAN.md, which the ow
 
 ### Practice
 
-- **Practice** plays a match against bots in the player's own browser, contacting no one. The player picks the pack size and match length, and bots fill every other place. It runs through Pre-match, Match and Results like any match, and the match menu can pause it. Opening the menu pauses play, the clock, animations and sound, and so does losing the graphics, until they're back. Hiding the tab, or the page freezing for over 2 s, opens the menu, which has **Resume** in Practice only; Resume, or closing the menu, carries on. A reload goes Home. The player starts in the first pack, and **Switch pack** swaps them with the other pack's newest bot; Pre-match has no **Add a bot** or **Remove a bot**. **Play again** starts a new Practice with the same settings (Q-15)
+- **Practice** plays a match against bots in the player's own browser, contacting no one. The player picks the pack size, match length and match rules, and bots fill every other place. It runs through Pre-match, Match and Results like any match, and the match menu can pause it. Opening the menu pauses play, the clock, animations and sound, and so does losing the graphics, until they're back. Hiding the tab, or the page freezing for over 2 s, opens the menu, which has **Resume** in Practice only; Resume, or closing the menu, carries on. A reload goes Home. The player starts in the first pack, and **Switch pack** swaps them with the other pack's newest bot; Pre-match has no **Add a bot** or **Remove a bot**. **Play again** starts a new Practice with the same settings (Q-15)
 
 ## Screens
 
 - **Home**: the player's display name and coat (editable), with **Propose a match**, **Join** (enter a code), **Practice** and **Settings**. Opening a `#join=` link skips Home (as roslambo)
-- **Propose**: set the pack size and match length. Shows the link and code to share, and asks the proposer to keep the page open until someone joins. The proposer can play or watch at once, or leave (as roslambo)
-- **Practice**: set the pack size and match length, then go to Pre-match
+- **Propose**: set the pack size and match length, and the match rules on a **Rules** screen, with **Reset to defaults** (C-59). Shows the link and code to share, and asks the proposer to keep the page open until someone joins. The proposer can play or watch at once, or leave (as roslambo)
+- **Practice**: set the pack size, match length and match rules, as Propose does, then go to Pre-match
 - **Join**: choose a pack to **Play**, or **Watch**
-- **Pre-match**: the pitch, with the terriers warming up; each pack's list with name, coat and ready status; the **Ready** button; **Switch pack**; **Add a bot** and **Remove a bot** for each pack, for players and spectators; **Leave**; on a touch screen, the stick and buttons; the start countdown over the pitch
+- **Pre-match**: the pitch, with the terriers warming up; each pack's list with name, coat and ready status; the **Ready** button; **Switch pack**; **Add a bot** and **Remove a bot** for each pack, for players and spectators; **Leave**; on a touch screen, the stick and buttons; the start countdown over the pitch; and the match's rules where they differ from their defaults (C-59)
 - **Match**: the pitch; the score, each pack's in its color and pattern, with the viewer's own pack marked; the clock, which shows when overtime has begun; the countdown before each kickoff; and a mark on any terrier that sits because its player, or its bot's host, is away. Players also see their zoomies meter and pounce wait, and on a touch screen the stick and buttons. Spectators see no play controls, only a choice of what to follow: the ball or any terrier. A menu button opens **Settings** and **Leave**
 - **Results**: the final score, each terrier's goals and touches, and the Terriest, with **Play again** and **Home**
 - **Settings**: extra relays and the player's own TURN server (as roslambo); whether names show over the terriers; whether a match starts in ball view; a calmer camera that swings more gently, for players prone to motion sickness; a mirrored touch layout, with the stick on the right; sound on or off; render quality, high or low, which a phone may start at low; and Show control hints again (D-29, D-33)
@@ -219,7 +219,7 @@ Beyond roslambo's approach:
 ## Persistence
 
 - A player's ID is randomly generated, for example a GUID. No accounts, no login (as roslambo)
-- The ID, display name, coat and settings are stored in the player's browser and persist across visits
+- The ID, display name, coat, settings and the match rules last chosen are stored in the player's browser and persist across visits (C-59)
 - Clearing browser data, or playing from another browser or device, means a new identity (as roslambo)
 - Display names are up to 20 characters and 32 bytes, without control characters, and always shown as plain text (C-17). They don't have to be unique (as roslambo)
 - One game tab per browser (as roslambo)
@@ -292,7 +292,7 @@ A written plan, approved before any code is written, covering rendering and the 
 
 ## Configuration
 
-Every setting should be easy to change. These are starting values, to be tuned on a tuning page as roslambo's were. Lengths are in meters.
+Every setting should be easy to change. These are starting values, to be tuned on a tuning page as roslambo's were. Lengths are in meters. A setting marked *Set by the proposer* is chosen for each match from its choices (PLAN A.5), and its value here is its default (C-59).
 
 | Setting | Value | Notes |
 |---|---|---|
@@ -300,31 +300,31 @@ Every setting should be easy to change. These are starting values, to be tuned o
 | Match length | 3 minutes, from 1 to 10 | Set by the proposer |
 | Ready expiry | 60 seconds | As roslambo |
 | Start countdown | 5 seconds | From the moment both packs are full and every player is ready, to the first kickoff's start of play |
-| Kickoff countdown | 3 seconds | At every kickoff but the first |
+| Kickoff countdown | 3 seconds | At every kickoff but the first. Set by the proposer (C-59) |
 | Goal celebration | 3 seconds, as seen | Between a goal and the kickoff countdown, with the clock stopped. The simulation holds it for 3 s plus the confirmation delay (Q-7) |
 | Kickoff spots | **TBD**, for each pack size from 1 to 4 | Mirrored between the packs. A fixed rule, such as player ID order, says which terrier takes which spot |
 | Pitch | 40 × 28 m; walls and net 6 m high; corners cut 4 m along each wall | A terrier at run speed crosses its length in about 7 s |
 | Goal mouth | 8 m wide, 3 m high, 2 m deep | The ball fits under the crossbar with 1.4 m to spare |
-| Ball | 1.6 m across, twice a terrier's mass | About 5 times a terrier's height |
-| Ball bounce | Keeps 70% of its speed into the surface off the floor, the walls, the overhead net and the goal frame, and all of its speed along it. The goal's netting keeps less, tuned at M2, so a goal bulges the net instead of springing back out (C-48) | Rubber: lively bounces. Unlike roslambo's walls, which scale the whole speed, this lets a rolling ball keep rolling |
-| Ball rolling slowdown | **TBD** | |
+| Ball | 1.6 m across, twice a terrier's mass | About 5 times a terrier's height. Its mass set by the proposer (C-59) |
+| Ball bounce | Keeps 70% of its speed into the surface off the floor, the walls, the overhead net and the goal frame, and all of its speed along it. The goal's netting keeps less, tuned at M2, so a goal bulges the net instead of springing back out (C-48) | Rubber: lively bounces. Unlike roslambo's walls, which scale the whole speed, this lets a rolling ball keep rolling. Set by the proposer, the netting's aside (C-59) |
+| Ball rolling slowdown | **TBD** | Set by the proposer (C-59) |
 | Terrier | 0.3 m at the shoulder, 0.6 m long | Code-built and modeled terriers both fit this size, so a model never changes play |
 | Terrier–ball bounce | Keeps 50% of their closing speed | Sets how hard hits are. Struck level through its middle, a resting ball goes off at half the hitter's speed: 3 m/s at a run, 4.5 m/s at zoomies speed, 5 m/s from a pounce. A push from the floor meets it low, so part of that speed goes into a hop |
 | Terrier bounce | **TBD** | Off other terriers and the walls. A landing terrier doesn't bounce |
 | Re-arm gap | **TBD** | How far a terrier must get from the ball before its next contact is a new touch, as roslambo's re-arm gap does for collisions |
-| Run speed | 6 m/s | |
+| Run speed | 6 m/s | Set by the proposer (C-59) |
 | Acceleration | 15 m/s² | Run speed from rest in 0.4 s |
-| Turn rate | 2 turns per second | Vehicle-style steering, if chosen, needs a slower one |
+| Turn rate | 2 turns per second | Vehicle-style steering, if chosen, needs a slower one. Set by the proposer (C-59) |
 | Steering | Anchored | Screen-relative and vehicle-style steering are the alternatives (see *Settled questions*); switching changes only what the controls send |
 | Chase view swing | **TBD** | How fast the chase view swings round behind a turning terrier, for comfort only. Each viewer's own; it changes nothing in the match |
-| Zoomies speed | 9 m/s | |
-| Zoomies meter | 3 s of zoomies when full; refills from empty in 6 s | Full at every kickoff |
-| Jump | 1 m high | About 0.9 s in the air |
+| Zoomies speed | 9 m/s | Set by the proposer (C-59) |
+| Zoomies meter | 3 s of zoomies when full; refills from empty in 6 s | Full at every kickoff. Its time set by the proposer, the refill keeping its proportion (C-59) |
+| Jump | 1 m high | About 0.9 s in the air. Set by the proposer (C-59) |
 | Gravity | 9.8 m/s² | |
-| Pounce | 10 m/s for 0.3 s, then 1.5 s before the next | |
-| Bowling speed | 4 m/s | A ball coming at a terrier at least this fast, by its own horizontal speed toward it, tumbles it, unless the terrier is lunging or touched the ball last. A pounce from the air sends a resting ball off fast enough. Pushes from the floor meet the ball low, so whether they bowl depends on the tuned values. A ball dribbled at a run does bowl (Q-8, C-5) |
-| Tumble | 1.5 s | |
-| Tumble guard | **TBD** | How long after getting up a terrier can't be tumbled again, so rivals taking turns can't keep it down |
+| Pounce | 10 m/s for 0.3 s, then 1.5 s before the next | Its speed and wait set by the proposer (C-59) |
+| Bowling speed | 4 m/s | A ball coming at a terrier at least this fast, by its own horizontal speed toward it, tumbles it, unless the terrier is lunging or touched the ball last. A pounce from the air sends a resting ball off fast enough. Pushes from the floor meet the ball low, so whether they bowl depends on the tuned values. A ball dribbled at a run does bowl (Q-8, C-5). Set by the proposer (C-59) |
+| Tumble | 1.5 s | Set by the proposer (C-59) |
+| Tumble guard | **TBD** | How long after getting up a terrier can't be tumbled again, so rivals taking turns can't keep it down. Set by the proposer (C-59) |
 | Bark | At most one a second | |
 | Spectators | Up to 4 | Mesh cap, as roslambo |
 

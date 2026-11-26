@@ -29,8 +29,8 @@ export type PressSource = InputKind | 'pointer';
 export type NavControl = HTMLButtonElement | HTMLInputElement | HTMLSelectElement;
 
 /** A select's value one option along, none past either end, as the browser's own arrows step a closed one,
- *  with the input and change a person's choice fires, from the element's own window, which the tests' DOM
- *  lacks (L82). */
+ *  with the input and change a person's choice fires, from the element's own window, where it has one
+ *  (L82). */
 function stepSelect(sel: HTMLSelectElement, by: 1 | -1): void {
   const options = Array.from(sel.querySelectorAll('option')).filter((o) => !o.disabled);
   const at = options.findIndex((o) => o.value === sel.value);

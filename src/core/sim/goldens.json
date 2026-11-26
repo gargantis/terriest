@@ -1,5 +1,5 @@
 {
- "codec": 1,
+ "codec": 2,
  "checkpointEvery": 500,
  "canary": "eea91a8dd7ba3cf4",
  "runs": [
@@ -848,6 +848,43 @@
    "contacts": 241784,
    "maxContacts": 14,
    "slipOuts": 18,
+   "phasesSeen": 31,
+   "overtimeSeen": false,
+   "unmet": []
+  },
+  {
+   "name": "house rules 4",
+   "checkpoints": [
+    "bbd0a084954919f9",
+    "366d7fc790c4289c",
+    "71deab955ef56734",
+    "62ef314e986e01f9",
+    "5f19ebfaf3e5d3f0",
+    "391d04ca3b86a5c5",
+    "4e584235d702df65",
+    "755a3d3328cf4d6d",
+    "72aec3f1e5673c43"
+   ],
+   "final": "72aec3f1e5673c43",
+   "tick": 4500,
+   "phase": 3,
+   "overtime": false,
+   "score": [
+    0,
+    2
+   ],
+   "terriers": 8,
+   "goals": 2,
+   "pounces": 181,
+   "tumbles": 6,
+   "hits": 150,
+   "zooms": 4120,
+   "floorBounces": 76,
+   "pieceBounces": 17,
+   "pushes": 345,
+   "contacts": 107132,
+   "maxContacts": 13,
+   "slipOuts": 6,
    "phasesSeen": 31,
    "overtimeSeen": false,
    "unmet": []

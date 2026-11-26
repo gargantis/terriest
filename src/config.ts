@@ -283,6 +283,30 @@ export const config = deepFreeze({
   botBarkEverySeconds: 5, // about: jittered by the bark gap either way
   botStuckSeconds: 2, // held within botStuckMetres, then it turns away
   botStuckMetres: 0.5,
+
+  // The match rules (C-59): the settings the player who makes a match
+  // chooses for it, in Practice or by proposing, each one of its choices
+  // here, which hold its value above, the default. Genesis writes a match's
+  // rules into its state (A.1), so every peer plays by them, and
+  // matchConfig() makes the match's configuration from them. The order is
+  // A.1's and A.5's; each choice is checked by measurement (C-59).
+  matchRules: {
+    runSpeedMetresPerSecond: [5, 5.5, 6, 6.5, 7, 8, 9, 10],
+    zoomiesSpeedMetresPerSecond: [9, 10, 11, 12], // the push assist's cap follows (matchConfig)
+    zoomiesFullSeconds: [1, 1.5, 2, 2.5, 3, 4, 5, 6], // the refill keeps its proportion (matchConfig)
+    turnRateTurnsPerSecond: [1, 1.5, 2, 2.5, 3, 4],
+    idleFrictionMetresPerSecond2: [5, 6, 7, 8],
+    jumpHeightMetres: [0.5, 0.75, 1, 1.25, 1.5],
+    pounceSpeedMetresPerSecond: [8, 10, 12, 14],
+    pounceWaitSeconds: [0.5, 0.75, 1, 1.5, 2, 3],
+    bowlingSpeedMetresPerSecond: [2, 3, 4, 5, 6, 8, 10],
+    tumbleSeconds: [1.25, 1.5, 2, 2.5, 3],
+    tumbleGuardSeconds: [0.5, 1, 1.5, 2, 3, 4],
+    ballRestitution: [0.4, 0.5, 0.6, 0.7],
+    ballMassKg: [2, 3, 4],
+    rollingSlowdownMetresPerSecond2: [0.2, 0.3, 0.5, 1, 1.5],
+    kickoffCountdownSeconds: [1, 2, 3, 4, 5],
+  },
 } as const);
 
 /** The configuration's type with its numbers widened, for a copy that a
@@ -298,6 +322,76 @@ type Widen<T> = T extends number
     : T extends object
       ? { readonly [K in keyof T]: Widen<T[K]> }
       : T;
+
+/** A setting a match's rules may set (C-59). */
+export type RuleSetting = keyof Config['matchRules'];
+/** A match's rules (C-59): the settings it plays by where they differ from
+ *  the build's, each one of its choices in matchRules; {} is the build's
+ *  own. */
+export type MatchRules = { readonly [K in RuleSetting]?: number };
+
+/** The rule settings in A.1's order. */
+export const RULE_SETTINGS = Object.freeze(Object.keys(config.matchRules) as RuleSetting[]);
+
+/** No rules: the build's own settings. */
+export const NO_RULES: MatchRules = Object.freeze({});
+
+/** The match's configuration: c with its rules' settings (C-59). The
+ *  zoomies meter refills in the same proportion of its length as c's, so
+ *  its rates stay whole units (A.1), and a push assist that's on keeps its
+ *  cap at least the zoomies speed (C-18). No rules give c itself. */
+export function matchConfig(c: Config, rules: MatchRules): Config {
+  let changed = false;
+  const out: Record<string, unknown> = { ...c };
+  for (const k of RULE_SETTINGS) {
+    const v = rules[k];
+    if (v === undefined) continue;
+    out[k] = v;
+    changed = true;
+  }
+  if (!changed) return c;
+  const full = rules.zoomiesFullSeconds;
+  if (full !== undefined) out['zoomiesRefillSeconds'] = full * (c.zoomiesRefillSeconds / c.zoomiesFullSeconds);
+  const zoomies = rules.zoomiesSpeedMetresPerSecond;
+  if (zoomies !== undefined && c.pushAssistCapMetresPerSecond > 0) out['pushAssistCapMetresPerSecond'] = Math.max(c.pushAssistCapMetresPerSecond, zoomies);
+  return deepFreeze(out) as Config;
+}
+
+/** Null if these are rules a match can take over c (C-59), else why not:
+ *  each a rule setting, each value one of its choices, and none the value
+ *  c has already, so a match's rules are written one way only. */
+export function rulesProblem(rules: MatchRules, c: Config): string | null {
+  for (const k of Object.keys(rules)) {
+    if (!Object.hasOwn(c.matchRules, k)) return `${k} is no match rule`;
+    const key = k as RuleSetting;
+    const v = rules[key];
+    if (v === undefined) continue;
+    if (!c.matchRules[key].some((x) => Object.is(x, v))) return `${key} ${String(v)} isn't one of its choices, ${c.matchRules[key].join(', ')}`;
+    if (Object.is(c[key], v)) return `${key} ${v} is the setting already: a rule is written only where it differs`;
+  }
+  return null;
+}
+
+/** The rules as a match writes them over c: each one c already has
+ *  dropped. Throws as rulesProblem refuses. */
+export function canonicalRules(rules: MatchRules, c: Config): MatchRules {
+  const out: Record<string, number> = {};
+  for (const k of RULE_SETTINGS) {
+    const v = rules[k];
+    if (v !== undefined && !Object.is(c[k], v)) out[k] = v;
+  }
+  for (const k of Object.keys(rules)) if (!Object.hasOwn(c.matchRules, k)) throw new Error(`${k} is no match rule (C-59)`);
+  const problem = rulesProblem(out, c);
+  if (problem !== null) throw new Error(`${problem} (C-59)`);
+  return Object.keys(out).length === 0 ? NO_RULES : Object.freeze(out);
+}
+
+/** Whether two matches' rules are the same, rule for rule. */
+export function sameRules(a: MatchRules, b: MatchRules): boolean {
+  if (a === b) return true;
+  for (const k of RULE_SETTINGS) if (!Object.is(a[k], b[k])) return false;
+  return true;
+}
 
 /** Each pack's kickoff spots by pack size: pack A's from the configuration,
  *  and pack B's their point mirror, (x, y) → (−x, −y), exact by negation

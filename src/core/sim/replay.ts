@@ -9,7 +9,7 @@
 
 import { hashState } from './codec';
 import type { TickInput } from './input';
-import { defaultParams, type SimParams } from './params';
+import { defaultParams, paramsFor, type SimParams } from './params';
 import { sceneStart } from './placing';
 import { scriptTickInputs } from './script-inputs';
 import type { ScriptSpec } from './scripts';
@@ -51,17 +51,18 @@ export interface GoldenResult {
   unmet: string[];
 }
 
-/** The script's state at tick 0: genesis, or its placed scene. */
-function scriptStart(spec: ScriptSpec, P: SimParams): MatchState {
-  if (spec.start === 'genesis') return genesis({ packSize: spec.packSize, matchMinutes: spec.matchMinutes }, P);
+/** The script's state at tick 0: genesis, or its placed scene, under M, its match's parameters. */
+function scriptStart(spec: ScriptSpec, M: SimParams): MatchState {
+  if (spec.start === 'genesis') return genesis({ packSize: spec.packSize, matchMinutes: spec.matchMinutes, rules: M.rules }, M);
   if (spec.start.packSize !== spec.packSize) throw new Error(`${spec.name}: a ${spec.start.packSize}-a-side scene for a ${spec.packSize}-a-side run`);
-  return sceneStart(spec.start, P, spec.seed);
+  return sceneStart(spec.start, M, spec.seed);
 }
 
-/** Replays a script from tick 0 and records its result. */
+/** Replays a script from tick 0 and records its result: under its rules over P, if it has any (C-59). */
 export function replay(spec: ScriptSpec, P: SimParams = defaultParams): GoldenResult {
-  const sim = makeSim(P, spec.packSize);
-  const s = scriptStart(spec, P);
+  const M = spec.rules === undefined ? P : paramsFor(spec.rules, P);
+  const sim = makeSim(M, spec.packSize);
+  const s = scriptStart(spec, M);
   const checks = spec.checks ?? [];
   // Each check's index, by tick, and whether it held.
   const order = checks.map((_, k) => k).sort((a, b) => checks[a]!.tick - checks[b]!.tick || a - b);

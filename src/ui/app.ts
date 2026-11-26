@@ -74,7 +74,7 @@
 import type { RenderQuality } from '../config';
 import { generateMatchId, matchIdFromHash } from '../core/match-id';
 import { BarkTracker, type ConfirmedEnd, netSettings, REFUSAL, ROLE } from '../core/session/index';
-import { defaultParams, findTerrier, LUNGING, type MatchSettings, type Pack } from '../core/sim/index';
+import { findTerrier, LUNGING, type MatchSettings, type Pack, paramsFor } from '../core/sim/index';
 import { Controls } from '../input/controls';
 import type { KeyboardScreen } from '../input/keyboard';
 import type { InputKind, UiCommand } from '../input/source';
@@ -84,7 +84,7 @@ import { type Look, PAGE_LOOK } from '../render/look';
 import type { Stage } from '../render/stage-types';
 import { MatchView } from '../render/view';
 import type { ProfileStore } from '../storage/profile';
-import type { Settings } from '../storage/schema';
+import type { RulesSource, Settings } from '../storage/schema';
 import type { SettingsStore } from '../storage/settings';
 import { holdTabLock } from '../storage/tab-lock';
 import { canaryOk } from './canary';
@@ -103,10 +103,11 @@ import { homeScreen } from './screens/home';
 import type { InviteOptions } from './screens/invite';
 import { type JoinScreen, joinScreen } from './screens/join';
 import { type PitchScreen, pitchScreen, type PitchScreenHost } from './screens/pitch';
-import { practiceScreen } from './screens/practice';
+import { practiceScreen, type RulesEntry } from './screens/practice';
 import { type CreatedScreen, createdScreen, proposeScreen } from './screens/propose';
 import { resultsScreen } from './screens/results';
 import { focusScreen, type Screen } from './screens/screen';
+import { rulesScreen, rulesSummary } from './screens/rules';
 import { settingsScreen } from './screens/settings';
 
 /** The page's fragment, as the router reads and sets it: window.location's, or a test's. */
@@ -200,6 +201,8 @@ export interface AppDeps {
   readonly makeStage: (quality: RenderQuality) => Stage | null;
   readonly profile: ProfileStore;
   readonly settings: SettingsStore;
+  /** The match rules this browser's Practice and proposed matches play by (C-59). */
+  readonly rules: RulesSource;
   /** A spec's window.terriestTest, or null on a normal page, which never has it. */
   readonly test: TerriestTest | null;
   readonly build: string;
@@ -535,10 +538,10 @@ export class App {
 
   private home(): void {
     this.clearJoinFragment();
-    const { profile, settings } = this.d;
+    const { profile, settings, rules } = this.d;
     this.show(homeScreen({
       profile, look: this.look,
-      persistent: () => profile.persistent && settings.persistent,
+      persistent: () => profile.persistent && settings.persistent && rules.persistent,
       propose: () => this.propose(),
       join: (id) => this.joinByCode(id),
       practice: () => this.practiceSetup(),
@@ -546,8 +549,26 @@ export class App {
     }));
   }
 
-  private practiceSetup(): void {
-    this.show(practiceScreen({ start: (s) => this.startPractice(s), home: () => this.home() }));
+  /** Practice's setup; chosen: the pack size and the length to show, as the Rules screen's Back brings
+   *  them back. */
+  private practiceSetup(chosen?: MatchSettings): void {
+    const rules = this.rulesEntry((c) => this.practiceSetup(c));
+    this.show(practiceScreen({ start: (s) => this.startPractice(s), home: () => this.home(), rules, ...(chosen === undefined ? {} : { chosen }) }));
+  }
+
+  /** The setup screens' Rules row (C-59): Rules… opens the Rules screen, whose Back returns to the setup
+   *  with its choices. */
+  private rulesEntry(back: (chosen: MatchSettings) => void): RulesEntry {
+    return {
+      summary: () => rulesSummary(this.d.rules.get()),
+      open: (chosen) => this.show(rulesScreen({ rules: this.d.rules, back: () => back(chosen) })),
+    };
+  }
+
+  /** The settings with the match rules this browser plays by, its last choices (C-59). */
+  private withRules(s: MatchSettings): MatchSettings {
+    const rules = this.d.rules.get();
+    return Object.keys(rules).length === 0 ? s : { ...s, rules };
   }
 
   /** Settings from Home; Back returns Home (§6). */
@@ -561,7 +582,7 @@ export class App {
   private startPractice(s: MatchSettings): void {
     if (this.match !== null) return;
     const p = this.d.profile.get();
-    const m = practiceMatch({ me: p.playerId, name: p.name, coat: p.coat, settings: s, build: this.d.build, clock: this.d.clock, page: this.d.page });
+    const m = practiceMatch({ me: p.playerId, name: p.name, coat: p.coat, settings: this.withRules(s), build: this.d.build, clock: this.d.clock, page: this.d.page });
     this.hold(m);
     this.enterPitch(m);
   }
@@ -586,13 +607,15 @@ export class App {
     });
   }
 
-  /** Home's Propose a match: after the canary (D-23). */
-  private propose(): void {
+  /** Home's Propose a match: after the canary (D-23). chosen: the pack size and the length to show, as
+   *  the Rules screen's Back brings them back. */
+  private propose(chosen?: MatchSettings): void {
     if (!this.canaryPasses()) {
       this.canaryMessage();
       return;
     }
-    this.show(proposeScreen({ create: (s) => void this.create(s), home: () => this.home() }));
+    const rules = this.rulesEntry((c) => this.propose(c));
+    this.show(proposeScreen({ create: (s) => void this.create(s), home: () => this.home(), rules, ...(chosen === undefined ? {} : { chosen }) }));
   }
 
   /** Create (§5.5): the match ID generated, the room opened, genesis proposed, the fragment set, and
@@ -618,7 +641,7 @@ export class App {
       m.close();
       return;
     }
-    m.propose(s);
+    m.propose(this.withRules(s));
     this.hold(m);
     this.setFragment(id);
     const created = createdScreen({
@@ -1134,7 +1157,7 @@ export class App {
     const f = this.timer;
     const status = m.status();
     return {
-      kind: m.kind, me: m.me, matchId: m.matchId,
+      kind: m.kind, me: m.me, matchId: m.matchId, settings: m.settings,
       started, paused: m.paused, inRoster: m.session.inRoster(), returning: status.returning, peers: status.peers, refusal: status.refusal,
       localTick: t.localTick, finalTick: t.finalTick, headTick: t.headTick,
       // The drawn head's, as the validated scripts time their holds (§9.1): the final state's lag w ticks.
@@ -1150,7 +1173,7 @@ export class App {
         : [],
       mine: T === null ? null : {
         x: T.x, y: T.y, z: T.z, heading: toRadians(T.heading), anim: T.anim, animStart: T.animStart, takeOffTick: T.takeOffTick,
-        pounceWait: T.pounceWait, meter: T.meter / defaultParams.meterFull, lastInput: T.prevInput,
+        pounceWait: T.pounceWait, meter: T.meter / paramsFor(H.rules).meterFull, lastInput: T.prevInput,
         lunges: this.lunges.count, lastLungeTick: this.lunges.last,
       },
       ball: started ? { x: H.ball.x, y: H.ball.y, z: H.ball.z } : { x: 0, y: 0, z: 0 },

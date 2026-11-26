@@ -1,20 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { config } from '../config';
-import { findTerrier, IN_PLAY, LUNGING, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
+import { config, type MatchRules, RULE_SETTINGS, type RuleSetting } from '../config';
+import { defaultParams, findTerrier, IN_PLAY, LUNGING, paramsFor, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
 import type { UiCommand } from '../input/source';
 import { REFUSAL, type Timeline } from '../core/session/index';
 import type { TransportOptions } from '../net/transport';
 import { MemoryStorage } from '../storage/kv';
+import { RULES_KEY } from '../storage/schema';
 import { browserLocation, STATUS_MOVES, statusMessage } from './app';
 import { type AppRig, appRig, type AppRigOptions, Locks, ME, nowhere, type RecordingStage, refusing } from './app-testing';
 import { FakeClock } from './clock-testing';
 import { pageDevices } from './devices';
-import { fake, FakeEvent, type FakeDocument, FakeNode, installDom, only } from './dom-testing';
+import { fake, FakeEvent, type FakeDocument, type FakeElement, FakeNode, installDom, only } from './dom-testing';
 import type { TransportFactory } from './game';
 import type { Inspection } from './inspect';
 import type { HudInspection } from './inspect';
 import type { MatchStatus } from './match-types';
 import { PITCH_LAYERS, pitchLayers } from './layers/index';
+import { NOT_KEPT } from './screens/home';
+import { changedRules, NOT_SAVED as RULES_NOT_SAVED, RESET as RULES_RESET, rulesSummary, SAVED as RULES_SAVED } from './screens/rules';
 import { NOT_SAVED, SAVED } from './screens/settings';
 import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-testing';
 
@@ -56,10 +59,17 @@ import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-te
 // length chosen by the d-pad's left and right on the way; the graphics
 // message a networked match gets, and a context lost before the pitch
 // screen; the page's fragment set by location.replace; and the page's own
-// leave guard on the window before any room. And the layers' order and the
-// page's devices. The networked screens over M3's network simulator are
-// app-net.test.ts's, and the frame loop and its governor, in virtual time,
-// src/ui/frame-loop.test.ts's (phase 2b).
+// leave guard on the window before any room. The match rules (C-59; PLAN
+// §10, §11): Practice's setup's and Propose's Rules row, Rules… to the
+// Rules screen, a rule chosen there stored, and its Back to the setup with
+// the pack size and the length chosen, Rules… focused, by pointer and by
+// the pad alone; a Practice, its Play again and a proposal playing by
+// them, the hook's meter its share of the match's own, Pre-match listing
+// them; A.3's record read back by the browser's next page, Reset to
+// defaults; and a refused write saying so there and on Home. And the
+// layers' order and the page's devices. The networked screens over M3's
+// network simulator are app-net.test.ts's, and the frame loop and its
+// governor, in virtual time, src/ui/frame-loop.test.ts's (phase 2b).
 
 let dom: { readonly document: FakeDocument; restore(): void };
 beforeEach(() => {
@@ -882,6 +892,9 @@ describe('the gamepad alone, from Home (L82, Q-17, §4.4)', () => {
     r.app.ui(pad('down'));
     expect(focused()).toBe('match-length');
     for (let k = config.matchLengthDefaultMinutes; k > config.matchLengthMinMinutes; k--) r.app.ui(pad('left'));
+    // Then the match rules' Rules…, before Start (C-59).
+    r.app.ui(pad('down'));
+    expect(focused()).toBe('rules');
     r.app.ui(pad('down'));
     expect(focused()).toBe('start');
     r.app.ui(pad('press'));
@@ -1254,5 +1267,250 @@ describe("the hook's match (§1.40)", () => {
     const ball = held(r).head.ball;
     expect(m.ball).toEqual({ x: ball.x, y: ball.y, z: ball.z });
     expect(m.ball.x).not.toBe(held(r).final.ball.x);
+  });
+});
+
+describe('the match rules through the app (C-59; PLAN §10, §11, A.3)', () => {
+  /** Rule k's first choice that isn't its default. */
+  const other = (k: RuleSetting): number => (config.matchRules[k] as readonly number[]).find((v) => v !== config[k])!;
+  /** The shortest zoomies meter on offer, shorter than the build's. */
+  const METER = config.matchRules.zoomiesFullSeconds[0];
+  const RUN = other('runSpeedMetresPerSecond');
+  const COUNTDOWN = other('kickoffCountdownSeconds');
+  const text = (r: Rig, test: string): string => only(screenEl(r), `[data-test="${test}"]`).textContent;
+  const sel = (r: Rig, test: string): FakeElement => only(screenEl(r), `select[data-test="${test}"]`);
+  /** A button that says it can't act, as setEnabled leaves one. */
+  const unable = (r: Rig, test: string): boolean => button(r, test).getAttribute('aria-disabled') === 'true';
+  /** Each rule's select as the Rules screen shows it, in A.1's order. */
+  const shownRules = (r: Rig): string[] => RULE_SETTINGS.map((k) => sel(r, `rule-${k}`).value);
+  /** Each rule's value under `rules`, as its select shows it: its own, else its default. */
+  const valuesOf = (rules: MatchRules): string[] => RULE_SETTINGS.map((k) => String(rules[k] ?? config[k]));
+  /** Home's note that the browser isn't keeping what's chosen (PLAN §10), shown. */
+  const notKept = (r: Rig): boolean => !only(screenEl(r), '[data-test="not-kept"]').hidden;
+  /** On the Rules screen, rule k's choice v, as a person's choice leaves its select: its value, then its change. */
+  function choose(r: Rig, k: RuleSetting, v: number): void {
+    const s = sel(r, `rule-${k}`);
+    s.value = String(v);
+    s.dispatchEvent(new FakeEvent('change', { bubbles: true }));
+  }
+
+  it("offers them on Practice's setup: Rules… to the Rules screen, a rule chosen there stored, Back to the setup with its choices and Rules… focused, and Start playing by them", async () => {
+    const r = rig();
+    await r.app.start();
+    // The compile done, so the pitch screen draws and the HUD writes what it's drawn.
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
+    button(r, 'practice').click();
+    expect([look(r).screen, text(r, 'rules-summary')]).toEqual(['practice', 'The defaults']);
+    // The pack size and the length away from their defaults, for Back to bring back.
+    sel(r, 'pack-size').value = String(config.packSizeMin);
+    sel(r, 'match-length').value = String(config.matchLengthMinMinutes);
+    button(r, 'rules').click();
+    expect(look(r).screen).toBe('rules');
+    expect(dom.document.activeElement.textContent).toBe('Rules'); // its heading (Q-17)
+    // A select a rule, in A.1's order, its choices the configuration's, each at its default, the one option
+    // marked so; Reset with nothing to do.
+    expect(screenEl(r).querySelectorAll('select').map((s) => s.getAttribute('data-test'))).toEqual(RULE_SETTINGS.map((k) => `rule-${k}`));
+    expect(shownRules(r)).toEqual(valuesOf({}));
+    for (const k of RULE_SETTINGS) {
+      const options = sel(r, `rule-${k}`).querySelectorAll('option');
+      expect(options.map((o) => o.value), k).toEqual((config.matchRules[k] as readonly number[]).map(String));
+      expect(options.filter((o) => o.textContent.endsWith(' (default)')).map((o) => o.value), k).toEqual([String(config[k])]);
+    }
+    expect(unable(r, 'rules-reset')).toBe(true);
+    // The shortest zoomies meter: stored at once, the status line saying so, Reset able to act.
+    const rules = { zoomiesFullSeconds: METER };
+    choose(r, 'zoomiesFullSeconds', METER);
+    expect([r.rules.get(), text(r, 'rules-message'), unable(r, 'rules-reset')]).toEqual([rules, RULES_SAVED, false]);
+    // Back: the setup with its choices, Rules… focused, the rule in its summary.
+    button(r, 'back').click();
+    expect(look(r).screen).toBe('practice');
+    expect([sel(r, 'pack-size').value, sel(r, 'match-length').value]).toEqual([String(config.packSizeMin), String(config.matchLengthMinMinutes)]);
+    expect(focused()).toBe('rules');
+    expect(text(r, 'rules-summary')).toBe(rulesSummary(rules));
+    expect(text(r, 'rules-summary')).toContain(`Zoomies meter ${METER} s`);
+    // Start: a Practice of those choices under the rule, its timeline stepping by the rule's parameters.
+    button(r, 'start').click();
+    await settle();
+    expect([look(r).screen, look(r).match!.settings]).toEqual([
+      'prematch', { packSize: config.packSizeMin, matchMinutes: config.matchLengthMinMinutes, rules },
+    ]);
+    const t = held(r);
+    expect(t.final.rules).toEqual(rules);
+    expect(t.params).toBe(paramsFor(rules));
+    expect(t.params.meterFull).toBeLessThan(defaultParams.meterFull);
+    // The person's terrier with the rule's full meter, which the hook and the HUD read as full.
+    playUntil(r, () => look(r).match!.inRoster, 2000);
+    play(r, 100);
+    const F = t.final;
+    expect(F.terriers[findTerrier(F, ME)]!.meter).toBe(t.params.meterFull);
+    expect([look(r).match!.mine!.meter, hudOf(look(r)).meter]).toEqual([1, 1]);
+    // Pre-match lists the rule, from the match's state.
+    const listed = only(screenEl(r), '[data-test="prematch-rules"]');
+    expect([listed.hidden, listed.textContent]).toEqual([false, `This match’s rules: ${changedRules(rules)[0]}.`]);
+    expect(listed.textContent).toContain(`Zoomies meter ${METER} s`);
+  });
+
+  it("works the Rules screen by the gamepad alone, from Practice's setup and back to its Start (L82, Q-17)", async () => {
+    const r = rig();
+    await r.app.start();
+    for (let k = 0; k < 3; k++) r.app.ui(pad('down'));
+    r.app.ui(pad('press'));
+    // The setup's d-pad: the pack size, the length, then Rules…, before Start.
+    for (let k = 0; k < 3; k++) r.app.ui(pad('down'));
+    expect([look(r).screen, focused()]).toEqual(['practice', 'rules']);
+    r.app.ui(pad('press'));
+    expect(look(r).screen).toBe('rules');
+    // The first rule's select, a choice on by the d-pad's right: stored as a person's choice is.
+    const first = RULE_SETTINGS[0]!;
+    const choices = config.matchRules[first] as readonly number[];
+    const next = choices[choices.indexOf(config[first]) + 1]!;
+    r.app.ui(pad('down'));
+    expect(focused()).toBe(`rule-${first}`);
+    r.app.ui(pad('right'));
+    expect([r.rules.get(), text(r, 'rules-message')]).toEqual([{ [first]: next }, RULES_SAVED]);
+    // Round the ends to Back, the last of its controls: the setup, Rules… focused, and on to Start.
+    r.app.ui(pad('up'));
+    expect(focused()).toBe('back');
+    r.app.ui(pad('press'));
+    expect([look(r).screen, focused()]).toEqual(['practice', 'rules']);
+    r.app.ui(pad('down'));
+    expect(focused()).toBe('start');
+    r.app.ui(pad('press'));
+    expect([look(r).screen, look(r).match!.settings.rules]).toEqual(['prematch', { [first]: next }]);
+  });
+
+  it("keeps them in this browser, A.3's record, for its next page, and Reset to defaults sets every rule to its default (PLAN §10)", async () => {
+    const storage = new MemoryStorage();
+    const r = rig({ storage });
+    await r.app.start();
+    button(r, 'practice').click();
+    button(r, 'rules').click();
+    expect(storage.getItem(RULES_KEY)).toBeNull(); // nothing written before a rule is chosen
+    choose(r, 'kickoffCountdownSeconds', COUNTDOWN);
+    choose(r, 'runSpeedMetresPerSecond', RUN);
+    // The whole record at each change: the rules alone, each as its value, in A.1's order.
+    const rules = { runSpeedMetresPerSecond: RUN, kickoffCountdownSeconds: COUNTDOWN };
+    expect(storage.getItem(RULES_KEY)).toBe(JSON.stringify({ v: 1, rules }));
+    // The browser's next page, over the same storage: its setup's summary and its Rules screen read them back.
+    const next = rig({ storage });
+    await next.app.start();
+    button(next, 'practice').click();
+    expect(text(next, 'rules-summary')).toBe(`Run speed ${RUN} m/s; Kickoff countdown ${COUNTDOWN} s`);
+    button(next, 'rules').click();
+    expect(shownRules(next)).toEqual(valuesOf(rules));
+    expect(unable(next, 'rules-reset')).toBe(false);
+    // Reset to defaults: every rule at its default, the record none, the status saying so, Reset with nothing
+    // more to do; and the setup's summary the defaults again.
+    button(next, 'rules-reset').click();
+    expect(shownRules(next)).toEqual(valuesOf({}));
+    expect([next.rules.get(), storage.getItem(RULES_KEY), text(next, 'rules-message'), unable(next, 'rules-reset')]).toEqual([
+      {}, JSON.stringify({ v: 1, rules: {} }), RULES_RESET, true,
+    ]);
+    button(next, 'back').click();
+    expect(text(next, 'rules-summary')).toBe('The defaults');
+  });
+
+  it("says a rule is in use for this visit alone when the browser keeps nothing, there and on Home, until a write succeeds (PLAN §10)", async () => {
+    const storage = new MemoryStorage();
+    const r = rig({ storage });
+    await r.app.start();
+    expect(notKept(r)).toBe(false);
+    storage.full = true; // every write refused from now on, as a full quota's are
+    button(r, 'practice').click();
+    button(r, 'rules').click();
+    choose(r, 'runSpeedMetresPerSecond', RUN);
+    // In force on this page, unwritten, and said so.
+    expect([r.rules.get(), r.rules.persistent, storage.getItem(RULES_KEY), text(r, 'rules-message')]).toEqual([
+      { runSpeedMetresPerSecond: RUN }, false, null, RULES_NOT_SAVED,
+    ]);
+    button(r, 'back').click();
+    expect(text(r, 'rules-summary')).toBe(`Run speed ${RUN} m/s`);
+    button(r, 'back').click();
+    expect([look(r).screen, notKept(r)]).toEqual(['home', true]);
+    // Its words name the rules among what isn't kept, the settings having been kept.
+    expect([r.settings.persistent, text(r, 'not-kept')]).toEqual([true, NOT_KEPT]);
+    expect(NOT_KEPT).toContain('rules');
+    // Kept again: the next change writes the whole record, saying so, and Home's note goes.
+    storage.full = false;
+    button(r, 'practice').click();
+    button(r, 'rules').click();
+    choose(r, 'kickoffCountdownSeconds', COUNTDOWN);
+    expect([r.rules.persistent, text(r, 'rules-message')]).toEqual([true, RULES_SAVED]);
+    expect(storage.getItem(RULES_KEY)).toBe(JSON.stringify({ v: 1, rules: { runSpeedMetresPerSecond: RUN, kickoffCountdownSeconds: COUNTDOWN } }));
+    button(r, 'back').click();
+    button(r, 'back').click();
+    expect([look(r).screen, notKept(r)]).toEqual(['home', false]);
+  });
+
+  it("plays Practice's Play again by the same rules (Q-15)", async () => {
+    const r = rig();
+    await r.app.start();
+    r.frames.run();
+    r.clock.advance(0);
+    await r.stages[0]!.finish();
+    await settle();
+    // The shortest kickoff countdown, set in the store the Rules screen sets and Start reads.
+    const rules = { kickoffCountdownSeconds: COUNTDOWN };
+    r.rules.set(rules);
+    startPractice(r);
+    await settle();
+    const first = held(r);
+    expect([first.final.rules, first.params]).toEqual([rules, paramsFor(rules)]);
+    playUntil(r, () => button(r, 'ready').getAttribute('aria-disabled') !== 'true', 2000);
+    button(r, 'ready').click();
+    playUntil(r, () => look(r).screen === 'results', 240_000, 100);
+    expect(look(r).match!.settings.rules).toEqual(rules);
+    r.clock.advance(config.resultsPressGuardSeconds * 1000);
+    r.app.ui(press('press', r.clock.now()));
+    await settle();
+    // The new match's Pre-match: a timeline of its own, from its genesis, under the same rules.
+    const t = held(r);
+    expect([look(r).screen, t === first, t.localTick]).toEqual(['prematch', false, 0]);
+    expect([look(r).match!.settings, t.final.rules]).toEqual([{ packSize: 1, matchMinutes: 1, rules }, rules]);
+    expect(t.params).toBe(paramsFor(rules));
+  });
+
+  it('offers them on Propose too, Back bringing its choices back, and Create proposes them: a room opened, the held match under them, its Pre-match listing them', async () => {
+    const r = rig();
+    await r.app.start();
+    button(r, 'propose').click();
+    expect([look(r).screen, text(r, 'rules-summary')]).toEqual(['propose', 'The defaults']);
+    sel(r, 'pack-size').value = String(config.packSizeMax);
+    sel(r, 'match-length').value = String(config.matchLengthMaxMinutes);
+    button(r, 'rules').click();
+    expect(look(r).screen).toBe('rules');
+    choose(r, 'runSpeedMetresPerSecond', RUN);
+    button(r, 'back').click();
+    expect([look(r).screen, sel(r, 'pack-size').value, sel(r, 'match-length').value, focused(), text(r, 'rules-summary')]).toEqual([
+      'propose', String(config.packSizeMax), String(config.matchLengthMaxMinutes), 'rules', `Run speed ${RUN} m/s`,
+    ]);
+    // Create: the room opened, genesis proposed under the rules, Created.
+    button(r, 'create').click();
+    await settle();
+    const rules = { runSpeedMetresPerSecond: RUN };
+    const m = look(r).match!;
+    expect([look(r).screen, m.kind, r.rooms.map((x) => x.matchId)]).toEqual(['created', 'net', [m.matchId]]);
+    expect(m.settings).toEqual({ packSize: config.packSizeMax, matchMinutes: config.matchLengthMaxMinutes, rules });
+    const t = held(r);
+    expect([t.started, t.final.rules, t.final.packSize]).toEqual([true, rules, config.packSizeMax]);
+    expect(t.params).toBe(paramsFor(rules));
+    // Its Pre-match lists them, so whoever joins sees what the match plays by.
+    button(r, 'play-0').click();
+    play(r, 100);
+    const listed = only(screenEl(r), '[data-test="prematch-rules"]');
+    expect([look(r).screen, listed.hidden, listed.textContent]).toEqual(['prematch', false, `This match’s rules: Run speed ${RUN} m/s.`]);
+  });
+
+  it("plays a match this browser joins by its proposer's rules alone: the defaults until it holds a state, whatever this browser chose", async () => {
+    const r = rig({ hash: '#join=TERR1ESTDESKT0PM30004' });
+    r.rules.set({ runSpeedMetresPerSecond: RUN });
+    await r.app.start();
+    await settle();
+    expect(look(r).screen).toBe('join');
+    expect(look(r).match).toMatchObject({ kind: 'net', started: false, settings: { packSize: config.packSizeDefault, matchMinutes: config.matchLengthDefaultMinutes } });
+    expect(look(r).match!.settings.rules).toBeUndefined();
   });
 });

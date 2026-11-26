@@ -112,7 +112,8 @@ test('a gamepad alone works Settings from Home and in the match menu, and the ch
   await choose(page, PAD.right, 'pack-size', [...sizes, String(config.packSizeMax)], "Propose's size, to the last and no further");
   await dpad(page, PAD.down, ['match-length'], "Propose's nav");
   await choose(page, PAD.left, 'match-length', [String(config.matchLengthDefaultMinutes - 1)], "Propose's length");
-  await dpad(page, PAD.down, ['create', 'back'], "Propose's nav to Back");
+  // Past the match rules' Rules… (C-59), to Create and Back.
+  await dpad(page, PAD.down, ['rules', 'create', 'back'], "Propose's nav to Back");
   await press(page, PAD.start, SHOWN_MS);
   await waitForScreen(page, 'home', SHOWN_MS);
   expect((await inspect(page)).match, 'no match proposed').toBeNull();
@@ -127,7 +128,7 @@ test('a gamepad alone works Settings from Home and in the match menu, and the ch
   await dpad(page, PAD.down, ['match-length'], "Practice's setup");
   const minutes = Array.from({ length: config.matchLengthDefaultMinutes - 1 }, (_, k) => String(config.matchLengthDefaultMinutes - k - 1));
   await choose(page, PAD.left, 'match-length', minutes, "Practice's length, to 1 minute");
-  await dpad(page, PAD.down, ['start'], "Practice's setup");
+  await dpad(page, PAD.down, ['rules', 'start'], "Practice's setup, past the match rules' Rules… (C-59)");
   await press(page, PAD.start, SHOWN_MS);
   await waitForScreen(page, 'prematch', SHOWN_MS);
   const made = await waitForInspection(page, (i) => i.match?.inRoster === true, { what: 'the person in the final roster', timeoutMs: SHOWN_MS });

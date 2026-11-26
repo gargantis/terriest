@@ -10,21 +10,32 @@ import { addStyle } from '../style';
 import { MemoryProfile, MemorySettings } from '../pitch-testing';
 import { checkedCoat, homeScreen, NOT_KEPT } from './home';
 import { matchMenu } from './menu';
-import { minutesText, practiceChoices, practiceScreen, sizeText } from './practice';
+import { minutesText, practiceChoices, practiceScreen, type RulesEntry, sizeText } from './practice';
 import { coatSwatch, focusScreen, packName } from './screen';
 import { NOT_SAVED, settingsScreen } from './settings';
 
 // The screens' parts (M4's design §1.42, §1.43, §5.3, §5.4, §5.8, §6, §9.2;
-// PLAN §10, §11, C-17): the shared helpers; Home's name, fitted and stored
-// on change, its coat stored on change, and its notice when the browser
-// won't keep them; Practice's choices from the configuration, made by the
-// pad's d-pad too, its left and right stepping a focused one (L82); Settings'
-// minimal screen storing each choice, the rules' defaults shown until one
-// is made; and the menu's buttons for Practice and a networked match.
+// PLAN §10, §11, C-17, C-59): the shared helpers; Home's name, fitted and
+// stored on change, its coat stored on change, and its notice when the
+// browser won't keep them; Practice's choices from the configuration, made
+// by the pad's d-pad too, its left and right stepping a focused one (L82),
+// and with the app's match rules their row, its Rules… opening the Rules
+// screen with the choices made, which its Back brings back, Rules… the
+// focus; Settings' minimal screen storing each choice, the rules' defaults
+// shown until one is made; and the menu's buttons for Practice and a
+// networked match.
 
 const LOOK = PLACEHOLDER_LOOK;
 const ME = personId(7, 0);
 const change = (el: { dispatchEvent(e: FakeEvent): boolean }): boolean => el.dispatchEvent(new FakeEvent('change', { bubbles: true }));
+/** What the app's match rules sum up to: any text, which the setup screens show as it is. */
+const SUMMARY = 'The rules as the app sums them up';
+
+/** The app's match rules for a setup screen (C-59): their summary, and each choice Rules… opened with. */
+function rulesEntry(): { readonly entry: RulesEntry; readonly opened: MatchSettings[] } {
+  const opened: MatchSettings[] = [];
+  return { entry: { summary: () => SUMMARY, open: (c) => opened.push(c) }, opened };
+}
 
 let dom: { readonly document: FakeDocument; restore(): void };
 beforeEach(() => {
@@ -148,7 +159,7 @@ describe('Home (§5.3)', () => {
     expect([checkedCoat(LOOK, 7), checkedCoat(LOOK, LOOK.coats.length), checkedCoat(LOOK, -1), checkedCoat(LOOK, 1.5)]).toEqual([7, 0, 0, 0]);
   });
 
-  it("says when the browser won't keep the name, coat and settings (PLAN §10)", () => {
+  it("says when the browser won't keep the name, coat, settings and rules (PLAN §10, C-59)", () => {
     expect(only(home(true).el, '[data-test="not-kept"]').hidden).toBe(true);
     const kept = only(home(false).el, '[data-test="not-kept"]');
     expect([kept.hidden, kept.textContent]).toEqual([false, NOT_KEPT]);
@@ -237,6 +248,64 @@ describe("Practice's setup (§5.4)", () => {
     cmd('down');
     cmd('press');
     expect(went).toEqual(['home']);
+  });
+
+  it("offers no Rules row without the app's match rules, its nav as before, and with them their summary and Rules…, between the choices and Start, which opens the Rules screen with the pack size and the length chosen (C-59)", () => {
+    const bare = practiceScreen({ start: () => {}, home: () => {} });
+    dom.document.body.append(fake(bare.el));
+    expect(fake(bare.el).querySelectorAll('[data-test="rules"], [data-test="rules-summary"]')).toHaveLength(0);
+    const order: (string | null)[] = [];
+    for (let k = 0; k < 4; k++) {
+      bare.ui!({ kind: 'down', pressedAt: 0, source: 'gamepad', repeat: false });
+      order.push(dom.document.activeElement.getAttribute('data-test'));
+    }
+    expect(order).toEqual(['pack-size', 'match-length', 'start', 'back']);
+    const started: MatchSettings[] = [];
+    const { entry, opened } = rulesEntry();
+    const el = fake(practiceScreen({ start: (s) => started.push(s), home: () => {}, rules: entry }).el);
+    const summary = only(el, '[data-test="rules-summary"]');
+    const rules = only(el, 'button[data-test="rules"]');
+    // The summary is the button's description, so a screen reader hears what the rules are.
+    expect([summary.textContent, rules.textContent, rules.getAttribute('aria-describedby'), rules.hasAttribute('data-focus')]).toEqual([SUMMARY, 'Rules…', summary.id, false]);
+    expect(el.querySelectorAll('select, button').map((x) => x.getAttribute('data-test'))).toEqual(['pack-size', 'match-length', 'rules', 'start', 'back']);
+    only(el, 'select[data-test="pack-size"]').value = String(config.packSizeMax);
+    only(el, 'select[data-test="match-length"]').value = String(config.matchLengthMaxMinutes);
+    rules.click();
+    expect([opened, started]).toEqual([[{ packSize: config.packSizeMax, matchMinutes: config.matchLengthMaxMinutes }], []]);
+  });
+
+  it("takes the gamepad's d-pad through the choices, Rules…, Start and Back, its Start on Rules… opening the Rules screen with what it chose (C-59, L82)", () => {
+    const { entry, opened } = rulesEntry();
+    const screen = practiceScreen({ start: () => {}, home: () => {}, rules: entry });
+    dom.document.body.append(fake(screen.el));
+    const cmd = (kind: 'down' | 'right' | 'press'): void => screen.ui!({ kind, pressedAt: 0, source: 'gamepad', repeat: false });
+    const order: (string | null)[] = [];
+    for (let k = 0; k < 5; k++) {
+      cmd('down');
+      order.push(dom.document.activeElement.getAttribute('data-test'));
+    }
+    expect(order).toEqual(['pack-size', 'match-length', 'rules', 'start', 'back']);
+    cmd('down');
+    cmd('down');
+    cmd('right'); // a minute longer
+    cmd('down');
+    cmd('press');
+    expect(opened).toEqual([{ packSize: config.packSizeDefault, matchMinutes: config.matchLengthDefaultMinutes + 1 }]);
+  });
+
+  it('comes back from the Rules screen at the choices it went with, Rules… its focus, and starts with them (C-59)', () => {
+    const chosen: MatchSettings = { packSize: config.packSizeMin, matchMinutes: config.matchLengthMaxMinutes };
+    const started: MatchSettings[] = [];
+    const screen = practiceScreen({ start: (s) => started.push(s), home: () => {}, rules: rulesEntry().entry, chosen });
+    const el = fake(screen.el);
+    dom.document.body.append(el);
+    expect(['pack-size', 'match-length'].map((t) => only(el, `select[data-test="${t}"]`).value)).toEqual([String(chosen.packSize), String(chosen.matchMinutes)]);
+    const rules = only(el, 'button[data-test="rules"]');
+    expect(rules.getAttribute('data-focus')).toBe('');
+    focusScreen(screen);
+    expect(dom.document.activeElement).toBe(rules);
+    only(el, 'button[data-test="start"]').click();
+    expect(started).toEqual([chosen]);
   });
 });
 

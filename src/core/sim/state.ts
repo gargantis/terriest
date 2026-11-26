@@ -8,6 +8,7 @@
 // and overtime, slipFrom as a body slot, and the ball's hit change. The
 // spike's per-tick intents leave the state for the Sim's scratch (A.1).
 
+import { canonicalRules, type MatchRules, NO_RULES } from '../../config';
 import { defaultParams, type SimParams } from './params';
 import type { Pack } from './pitch';
 
@@ -81,12 +82,17 @@ export interface Terrier extends Body {
 export interface MatchSettings {
   packSize: number;
   matchMinutes: number;
+  /** The match rules (C-59): none, the build's own settings, if left out. */
+  rules?: MatchRules;
 }
 
 export interface MatchState {
   phase: Phase; phaseStart: number; overtime: boolean; tick: number;
   packSize: number; // set at genesis, then never changed
   matchLengthTicks: number; // set at genesis, then never changed
+  /** The match rules, set at genesis, then never changed (C-59): only where they differ from the
+   *  build's settings, frozen, and shared by every clone. */
+  readonly rules: MatchRules;
   clock: number; // ticks left; in overtime, ticks since it began
   score: [number, number];
   lastGoalTick: number; lastGoalPack: Pack; ownGoal: boolean;
@@ -96,10 +102,13 @@ export interface MatchState {
 }
 
 /** Tick 0 of a match (D-8): warm-up, nobody in it yet, the clock at the
- *  match's length, the ball at rest on the centre spot. Throws on a pack
- *  size or a length outside the configuration: whole minutes, 1 to 10. */
+ *  match's length, the ball at rest on the centre spot, and the match's
+ *  rules over P's base configuration, those it already has dropped
+ *  (C-59). Throws on a pack size or a length outside the configuration:
+ *  whole minutes, 1 to 10; and on a rule that isn't one of its choices. */
 export function genesis(settings: MatchSettings, P: SimParams = defaultParams): MatchState {
   const { packSize, matchMinutes } = settings;
+  const rules = settings.rules === undefined ? NO_RULES : canonicalRules(settings.rules, (P.base ?? P).config);
   if (!(Number.isInteger(packSize) && packSize >= P.packSizeMin && packSize <= P.packSizeMax)) {
     throw new Error(`a pack size of ${packSize} is outside ${P.packSizeMin} to ${P.packSizeMax}`);
   }
@@ -109,7 +118,7 @@ export function genesis(settings: MatchSettings, P: SimParams = defaultParams): 
   const length = matchMinutes * P.ticksPerMinute;
   return {
     phase: WARM_UP, phaseStart: 0, overtime: false, tick: 0,
-    packSize, matchLengthTicks: length, clock: length,
+    packSize, matchLengthTicks: length, rules, clock: length,
     score: [0, 0], lastGoalTick: NEVER, lastGoalPack: 0, ownGoal: false, scorers: 0,
     ball: {
       x: 0, y: 0, z: P.ballRadius, vx: 0, vy: 0, vz: 0, onFloor: true,
@@ -117,6 +126,14 @@ export function genesis(settings: MatchSettings, P: SimParams = defaultParams): 
     },
     terriers: [],
   };
+}
+
+/** The settings a match's genesis took (C-59): its pack size, its length in
+ *  minutes and, where it has any, its rules. */
+export function matchSettingsOf(s: Readonly<MatchState>, P: SimParams = defaultParams): MatchSettings {
+  const settings: MatchSettings = { packSize: s.packSize, matchMinutes: s.matchLengthTicks / P.ticksPerMinute };
+  for (const k in s.rules) if (s.rules[k as keyof MatchRules] !== undefined) return { ...settings, rules: s.rules };
+  return settings;
 }
 
 /** A terrier that joins at tick: spot 0, at rest on the floor at the

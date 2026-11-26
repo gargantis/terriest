@@ -16,6 +16,7 @@
 // the canary's replay without the runs this module builds at its top level
 // (M4's design §1.50, M4-Q5).
 
+import { canonicalRules, config, type MatchRules } from '../../config';
 import { encodeInput, FRAME_BALL, FRAME_NOSE, FRAME_PITCH, JOIN, LEAVE, READY, SWITCH, type TickInput, UNREADY } from './input';
 import { dir, HALF_TURN, mix } from './math';
 import { defaultParams } from './params';
@@ -85,6 +86,8 @@ export interface ScriptSpec {
   readonly input: (pack: Pack, rank: number, t: number, s: Readonly<MatchState>) => ScriptInput | null;
   readonly covers: Coverage;
   readonly checks?: readonly ScriptCheck[];
+  /** The match rules it plays by (C-59); none, the build's own settings, if left out. */
+  readonly rules?: MatchRules;
 }
 
 // --- The inputs of a tick: src/core/sim/script-inputs.ts's, with placed runs (M4) ---
@@ -145,12 +148,32 @@ const SCORING_MATCH: readonly Phase[] = [WARM_UP, START_COUNTDOWN, IN_PLAY, CELE
 
 /** A match from genesis under the spike's seeded play, in all three frames:
  *  its seed picked so that it scores and kicks off again (design §7.1). */
-function seededMatch(name: string, packSize: number, matchMinutes: number, ticks: number, seed: number, covers: Coverage): ScriptSpec {
+export function seededMatch(name: string, packSize: number, matchMinutes: number, ticks: number, seed: number, covers: Coverage, rules?: MatchRules): ScriptSpec {
   return {
     name, packSize, matchMinutes, ticks, start: 'genesis', seed, mirrored: false,
-    input: joining(chasey(seed, 'all'), soonAfter), covers,
+    input: joining(chasey(seed, 'all'), soonAfter), covers, ...(rules === undefined ? {} : { rules }),
   };
 }
+
+/** House rules for a golden run (C-59): every rule away from the build's setting, faster and livelier
+ *  where it can be, each one of its choices. */
+export const HOUSE_RULES: MatchRules = canonicalRules({
+  runSpeedMetresPerSecond: 8, // not a setting: a golden run's rule
+  zoomiesSpeedMetresPerSecond: 11, // not a setting: a golden run's rule
+  zoomiesFullSeconds: 2, // not a setting: a golden run's rule
+  turnRateTurnsPerSecond: 3, // not a setting: a golden run's rule
+  idleFrictionMetresPerSecond2: 5, // not a setting: a golden run's rule
+  jumpHeightMetres: 1.25, // not a setting: a golden run's rule
+  pounceSpeedMetresPerSecond: 12, // not a setting: a golden run's rule
+  pounceWaitSeconds: 1, // not a setting: a golden run's rule
+  bowlingSpeedMetresPerSecond: 3, // not a setting: a golden run's rule
+  tumbleSeconds: 2, // not a setting: a golden run's rule
+  tumbleGuardSeconds: 1, // not a setting: a golden run's rule
+  ballRestitution: 0.6, // not a setting: a golden run's rule
+  ballMassKg: 3, // not a setting: a golden run's rule
+  rollingSlowdownMetresPerSecond2: 0.3, // not a setting: a golden run's rule
+  kickoffCountdownSeconds: 2, // not a setting: a golden run's rule
+}, config);
 
 /** P8's runs, hashed: a mirrored kickoff from genesis, pack B sending the
  *  mirror of pack A's seeded play at the ball, so the state stays mirrored
@@ -413,7 +436,7 @@ const POUNCE_SCENE: Scene = {
     if (t <= 200) {
       if (k !== 0) return NOTHING;
       const me = s.terriers[0]!;
-      const close = s.terriers[1]!.x - me.x < 2.5;
+      const close = s.terriers[1]!.x - me.x < 2.5; // not a setting: the script's reach
       return encodeInput({ step: 0, frame: FRAME_PITCH, pounce: close || me.lunge + me.pounceWait > 0 ? 1 : 0 });
     }
     return encodeInput({ step: [0, 0, 4, 28][(t >> 6) & 3]!, frame: FRAME_BALL, pounce: Math.floor((t + 20 * k) / 50) });
@@ -512,6 +535,9 @@ const pinch = (name: string, scene: Scene, more: Coverage = {}): ScriptSpec =>
     { tick: 1500, what: 'still mirrored', holds: isMirrored },
   ]);
 
+/** The house-rules run's seed, picked so that it scores, pounces, tumbles and zooms (design §7.1). */
+const HOUSE_RULES_SEED = 2; // not a setting: the run's seed
+
 // --- The suite ---
 
 /** The golden runs, in design §7.1's order. Seeds and scripts are fixed
@@ -544,6 +570,8 @@ export const GOLDEN_SCRIPTS: readonly ScriptSpec[] = [
   seededMatch('long run', 4, 3, 10000, 7, { // not a setting: the run's shape
     goals: 1, pounces: 1, tumbles: 1, hits: 1, zooms: 1, bounces: 1, pushes: 1, slipOuts: 1, phases: SCORING_MATCH,
   }),
+  // C-59: a match under house rules, every rule changed, so the goldens hold a match's own parameters too.
+  seededMatch('house rules 4', 4, 1, 4500, HOUSE_RULES_SEED, { goals: 1, pounces: 1, tumbles: 1, zooms: 1, phases: SCORING_MATCH, overtime: false }, HOUSE_RULES), // not a setting: the run's shape
 ];
 
 // --- The canary (D-23; design §7.3): src/core/sim/canary.ts's, in the page's module alone (M4-Q5) ---

@@ -20,7 +20,7 @@
 // writes only `out` (P11). Render-only maths, three-free.
 
 import { HALF_TURN, TURN } from '../core/sim/math';
-import { defaultParams } from '../core/sim/params';
+import { paramsFor } from '../core/sim/params';
 import { type Ball, KICKOFF_COUNTDOWN, type MatchState, NEVER, START_COUNTDOWN, type Terrier } from '../core/sim/state';
 import type { DrawnBall, DrawnMatch, DrawnTerrier, PrevShift } from './frame';
 
@@ -102,7 +102,7 @@ function drawBall(d: DrawnBall, a: Readonly<Ball>, b: Readonly<Ball>, f: number,
   d.lastContactTick = n.lastContactTick;
 }
 
-function drawTerrier(d: DrawnTerrier, a: Readonly<Terrier>, b: Readonly<Terrier>, f: number, s: Shift | undefined): void {
+function drawTerrier(d: DrawnTerrier, a: Readonly<Terrier>, b: Readonly<Terrier>, f: number, s: Shift | undefined, meterFull: number): void {
   const ax = a.x + (s?.dx ?? 0);
   const ay = a.y + (s?.dy ?? 0);
   const az = a.z + (s?.dz ?? 0);
@@ -134,7 +134,7 @@ function drawTerrier(d: DrawnTerrier, a: Readonly<Terrier>, b: Readonly<Terrier>
   d.lastPushTick = n.lastPushTick;
   d.sitting = n.sitting;
   d.ballOverhead = n.ballOverhead;
-  d.meter = (a.meter + (b.meter - a.meter) * f) / defaultParams.meterFull;
+  d.meter = (a.meter + (b.meter - a.meter) * f) / meterFull;
   d.pounceWait = n.pounceWait;
   d.lunge = n.lunge;
   d.tumble = n.tumble;
@@ -177,12 +177,14 @@ export function interpolate(
   const list = head.terriers;
   const drawn = out.terriers;
   drawn.length = list.length;
+  // The meter's share of the match's own full meter: its rules' (C-59).
+  const meterFull = paramsFor(head.rules).meterFull;
   for (let i = 0; i < list.length; i++) {
     const B = list[i]!;
     const A = asIs ? undefined : earlier(prev, B, i);
     const d = drawn[i] ?? newDrawnTerrier();
-    if (A === undefined) drawTerrier(d, B, B, 1, undefined);
-    else drawTerrier(d, A, B, g, prevShift?.get(B.id));
+    if (A === undefined) drawTerrier(d, B, B, 1, undefined, meterFull);
+    else drawTerrier(d, A, B, g, prevShift?.get(B.id), meterFull);
     drawn[i] = d;
   }
   return out;

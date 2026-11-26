@@ -16,6 +16,7 @@
 // gone with that.
 // Exact operations only (D-1).
 
+import { sameRules } from '../../config';
 import { canonicalInputs, type TickInput } from './input';
 import { advanceTimers, animate, endLunge, recordPush, resolveIntents, tumble } from './movement';
 import type { SimParams } from './params';
@@ -130,9 +131,12 @@ export function bindSlots(sim: Sim, s: MatchState): void {
   }
 }
 
-/** Advances s by one tick, in place. Throws if s.packSize ≠ sim.packSize. */
+/** Advances s by one tick, in place. Throws if s.packSize ≠ sim.packSize,
+ *  or s's match rules aren't the ones sim's parameters were made for
+ *  (C-59). */
 export function step(sim: Sim, s: MatchState, inputs: readonly TickInput[]): void {
   if (s.packSize !== sim.packSize) throw new Error(`a ${s.packSize}-a-side state can't be stepped by a ${sim.packSize}-a-side Sim`);
+  if (!sameRules(s.rules, sim.P.rules)) throw new Error("a state can't be stepped by a Sim made for another match's rules (C-59)");
   const t = s.tick + 1;
   // ENDED is terminal (design §6.6).
   if (s.phase === ENDED) {

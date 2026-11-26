@@ -35,6 +35,7 @@ import { h, isEnabled, setEnabled, setShown, setText } from './dom';
 import type { Match } from './match-types';
 import css from './prematch.css?inline';
 import { botWord, terrierSwatch } from './screens/bot-head';
+import { changedRules } from './screens/rules';
 import { invitePanel, inviteButtons, type InviteOptions } from './screens/invite';
 import { coatName, coatSwatch, packName, packSwatch, screenStyles } from './screens/screen';
 import { addStyle } from './style';
@@ -160,6 +161,10 @@ export function prematchPanel(host: PrematchHost): PrematchPanel {
   setShown(inviteToggle, networked);
   if (playing) ready.setAttribute('data-focus', '');
   const full = h('p', { class: 'notice', 'data-test': 'switch-refused', hidden: true }, 'The other pack is full.');
+  // The match's rules where they differ from the defaults, from its state, so whoever joins knows what it
+  // plays by (C-59).
+  const rulesNote = h('p', { class: 'muted small', 'data-test': 'prematch-rules', hidden: true });
+  let rulesShown = '';
   const invite = host.invite === null || match.matchId === null ? null : invitePanel(match.matchId, host.invite);
   if (invite !== null) setShown(invite, false);
 
@@ -179,6 +184,7 @@ export function prematchPanel(host: PrematchHost): PrematchPanel {
     // Its buttons first, so Ready shows at the panel's top however long the lists run below it.
     h('div', { class: 'prematch-buttons' }, ready, switchPack, leave, inviteToggle),
     full,
+    rulesNote,
     invite,
     h('div', { class: 'prematch-packs' }, ...packs.map((x) => x.section)));
 
@@ -250,6 +256,13 @@ export function prematchPanel(host: PrematchHost): PrematchPanel {
     const s = switchButton(F, headPhase, me);
     setEnabled(switchPack, s.enabled, s.text);
     setShown(full, refused);
+    const changed = F === null ? [] : changedRules(F.rules);
+    const said = changed.length === 0 ? '' : `This match’s rules: ${changed.join('; ')}.`;
+    if (said !== rulesShown) {
+      rulesShown = said;
+      setText(rulesNote, said);
+      setShown(rulesNote, said !== '');
+    }
     for (const p of [0, 1] as const) {
       const x = packs[p]!;
       if (networked) {

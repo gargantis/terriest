@@ -35,10 +35,11 @@
 //   sees only what has reached it.
 // Pure: the timeline it's handed is its only way out.
 
+import { sameRules } from '../../config';
 import { botCoat, botIds, botName } from '../bot/bot-id';
 import { type BotParams, type Brain, newBrain, think } from '../bot/brain';
 import type { EventPayload } from '../protocol/messages';
-import { findTerrier, JOIN, KEPT_BITS, LEAVE, type MatchState, type Pack, packCount, READY, type SimParams, WARM_UP } from '../sim/index';
+import { findTerrier, JOIN, KEPT_BITS, LEAVE, type MatchState, type Pack, packCount, paramsFor, READY, type SimParams, WARM_UP } from '../sim/index';
 import type { RoomSettings } from './settings';
 
 /** What BotHost needs of a timeline, declared here so bot-host builds beside the timeline (design §0);
@@ -80,6 +81,8 @@ export interface HostedBot {
 
 /** The sampler's memory beside a hosted bot's, and its name. */
 interface Hosted extends HostedBot {
+  /** The parameters its brain plays by: its match's, its rules over the host's (C-59). */
+  params: SimParams;
   thought: number; // the head tick it last thought on, −1 for none
   input: number; // what it thought then
   /** The name the state shows, or until it shows the bot, the one its last JOIN carried: '' before
@@ -135,8 +138,9 @@ export class BotHost {
     if (s !== null && s.phase !== WARM_UP) return null;
     const id = this.freeId(s);
     if (id === null) return null;
+    const params = this.paramsOf(s);
     const b: Hosted = {
-      id, pack, brain: newBrain(id, 0, this.P, this.B), wanted: true,
+      id, pack, brain: newBrain(id, 0, params, this.B), params, wanted: true,
       joinSentAt: NONE, readySentAt: NONE, leaveAt: NONE, triedOther: !again, thought: NONE, input: 0, name: '',
     };
     this.list.push(b);
@@ -174,6 +178,7 @@ export class BotHost {
     if (!t.started || t === this.adoptedFor) return;
     this.adoptedFor = t;
     const s = t.final;
+    const params = this.paramsOf(s);
     for (const id of this.ids) {
       const at = findTerrier(s, id);
       if (at < 0) continue;
@@ -181,7 +186,7 @@ export class BotHost {
       let b = this.list.find((x) => x.id === id);
       if (!b) {
         b = {
-          id, pack: T.pack, brain: newBrain(id, 0, this.P, this.B), wanted: true,
+          id, pack: T.pack, brain: newBrain(id, 0, params, this.B), params, wanted: true,
           joinSentAt: NONE, readySentAt: NONE, leaveAt: NONE, triedOther: true, thought: NONE, input: 0, name: T.name,
         };
         this.list.push(b);
@@ -189,7 +194,8 @@ export class BotHost {
       const n = t.newestInput(id);
       b.pack = T.pack;
       b.name = T.name;
-      b.brain = newBrain(id, n !== undefined && n.tick > t.finalTick ? n.input & KEPT_BITS : T.prevInput, this.P, this.B);
+      b.params = params;
+      b.brain = newBrain(id, n !== undefined && n.tick > t.finalTick ? n.input & KEPT_BITS : T.prevInput, params, this.B);
       b.thought = NONE;
       b.joinSentAt = NONE;
       t.bots.set(id, this.sampler(b, t));
@@ -300,11 +306,25 @@ export class BotHost {
   private sampler(b: Hosted, t: BotTimeline): () => number {
     return () => {
       if (t.headTick !== b.thought) {
+        // A bot made before its match was held, as Play again's are, plays by the match's rules from
+        // its first thought (C-59): its brain made again, its press counters from its last input. By
+        // the rules' values, so a brain outlives paramsFor's memo.
+        const rules = t.head.rules;
+        if (rules !== b.params.rules && !sameRules(rules, b.params.rules)) {
+          b.params = this.paramsOf(t.head);
+          b.brain = newBrain(b.id, b.input & KEPT_BITS, b.params, this.B);
+        }
         b.input = think(b.brain, t.head);
         b.thought = t.headTick;
       }
       return b.input;
     };
+  }
+
+  /** The parameters a bot plays by in s's match: its rules over the host's (C-59); the host's own
+   *  without a match held. */
+  private paramsOf(s: Readonly<MatchState> | null): SimParams {
+    return s === null ? this.P : paramsFor(s.rules, this.P);
   }
 
   /** Its JOIN | READY, named afresh each time it goes, so a retry, Play again's other pack and a new

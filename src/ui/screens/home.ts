@@ -5,14 +5,14 @@
 // Propose a match; Join with a code, which takes lowercase, dashes, spaces
 // and Crockford's look-alikes (L190), and says so of a code that isn't
 // one, contacting nothing; Practice; and Settings. When the browser won't
-// keep the profile or the settings, Home says so (PLAN §10). Opening a
-// #join= link skips it (L162). Its controls are native, for the keyboard's
-// own Tab and Enter, the code's Enter submitting its form; the gamepad's
-// commands move among and press its buttons (Q-17, L82). roslambo's home
-// screen, without its balance, ledger and unsettled rounds. Phase 1's
-// (shell) had the name, the coat, Practice and Settings; phase 2's
-// net-screens adds Propose a match and Join, each shown when its host
-// offers it. New at M4.
+// keep the profile, the settings or the match rules, Home says so (PLAN
+// §10, C-59). Opening a #join= link skips it (L162). Its controls are
+// native, for the keyboard's own Tab and Enter, the code's Enter
+// submitting its form; the gamepad's commands move among and press its
+// buttons (Q-17, L82). roslambo's home screen, without its balance,
+// ledger and unsettled rounds. Phase 1's (shell) had the name, the coat,
+// Practice and Settings; phase 2's net-screens adds Propose a match and
+// Join, each shown when its host offers it. New at M4.
 
 import { normalizeMatchId } from '../../core/match-id';
 import { fitName, shownName } from '../../core/names';
@@ -27,7 +27,8 @@ import { coatSwatch, type Screen, screenStyles } from './screen';
 export interface HomeHost {
   readonly profile: ProfileSource;
   readonly look: Look;
-  /** The browser keeps the profile and the settings: both stores' persistent (PLAN §10). */
+  /** The browser keeps the profile, the settings and the match rules: each store's persistent (PLAN §10,
+   *  C-59). */
   persistent(): boolean;
   /** Propose a match: the app checks the canary first (D-23). */
   propose?(): void;
@@ -38,7 +39,7 @@ export interface HomeHost {
 }
 
 /** What Home says when the browser won't keep what's typed (PLAN §10). */
-export const NOT_KEPT = 'This browser isn’t keeping your name, coat and settings between visits.';
+export const NOT_KEPT = 'This browser isn’t keeping your name, coat, settings and rules between visits.';
 
 /** What Home says of a code that isn't one (roslambo's): nothing is contacted. */
 export const NOT_A_CODE = 'That code isn’t valid. Check it and try again: it has 21 characters.';

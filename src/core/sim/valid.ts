@@ -4,8 +4,9 @@
 // checks, then the ones the rules imply (D-8, D-12): apart from the codec,
 // so the rules' owner never edits a file it doesn't own.
 
+import { rulesProblem } from '../../config';
 import { isPlayerId, KEPT_BITS } from './input';
-import { defaultParams, type SimParams } from './params';
+import { defaultParams, paramsFor, type SimParams } from './params';
 import { ballSlot, CELEBRATION, ENDED, KICKOFF_COUNTDOWN, type MatchState, nameAllowed, SITTING, slotOf, STANDING, WARM_UP } from './state';
 
 const whole = (x: number, min: number, max: number): boolean => Number.isInteger(x) && x >= min && x <= max;
@@ -15,10 +16,19 @@ const whole = (x: number, min: number, max: number): boolean => Number.isInteger
  *  Ready's end included, leaves A.1's u32 (design §6.7). */
 const TICK_LIMIT = 0x80000000; // not a setting: 2^31
 
-/** What makes a state invalid; [] for a valid one. */
-export function stateProblems(s: Readonly<MatchState>, P: SimParams = defaultParams): string[] {
+/** What makes a state invalid; [] for a valid one. Checked under the
+ *  match's own parameters: its rules over P's base (C-59). */
+export function stateProblems(s: Readonly<MatchState>, given: SimParams = defaultParams): string[] {
   const problems: string[] = [];
   const size = s.packSize;
+
+  // The match rules: each one of its choices, and none the base's own setting (C-59). The rest is
+  // checked under the parameters they make, or the base's if they're refused.
+  const base = given.base ?? given;
+  const rules: unknown = s.rules;
+  const rulesWrong = typeof rules !== 'object' || rules === null ? 'they are no object of rules' : rulesProblem(s.rules, base.config);
+  if (rulesWrong !== null) problems.push(`the match rules: ${rulesWrong} (C-59)`);
+  const P = rulesWrong === null ? paramsFor(s.rules, base) : base;
 
   // The match.
   if (!whole(s.phase, WARM_UP, ENDED)) problems.push(`the phase is ${s.phase}, not 0 to 5`);

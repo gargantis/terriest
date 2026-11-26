@@ -346,7 +346,7 @@ export async function expectFocusOnce(page: Page, what: string, text: string | n
 
 /** The focused select's option of `value`, chosen by the arrows, a step at a time from where it stands, as
  *  each engine's closed select takes them; each step must move it. */
-async function chooseByKeys(page: Page, value: string): Promise<void> {
+export async function chooseByKeys(page: Page, value: string): Promise<void> {
   const at = (): Promise<{ index: number; want: number }> => page.evaluate((v) => {
     const sel = document.activeElement as HTMLSelectElement;
     return { index: sel.selectedIndex, want: Array.from(sel.options).findIndex((o) => o.value === v) };
@@ -731,7 +731,8 @@ export class PracticeRun {
     await chooseByKeys(page, String(MINUTES));
     const chosen = await page.evaluate(() => ['pack-size', 'match-length'].map((t) => document.querySelector<HTMLSelectElement>(`[data-test="${t}"]`)!.value));
     expect(chosen, 'the pack size and the length, chosen by keys').toEqual([String(PACK_SIZE), String(MINUTES)]);
-    await tabThrough(page, ['start'], "Practice's setup");
+    // Past the match rules' Rules… (C-59), at their defaults: the setups are validated at them (§9.1).
+    await tabThrough(page, ['rules', 'start'], "Practice's setup");
     await page.keyboard.press('Enter');
     await this.until((i) => i.screen === 'prematch', { what: 'Pre-match, by Enter on Start', timeoutMs: SHOWN_MS });
     this.mark(mark);

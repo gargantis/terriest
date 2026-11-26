@@ -12,6 +12,7 @@
 // M1's own. Types only.
 
 import type { ResultRow } from '../core/session/index';
+import type { MatchSettings } from '../core/sim/index';
 import type { ControlsInspection, GamepadInspection, InputKind } from '../input/source';
 import type { IceMode } from '../net/transport';
 import type { NetHook } from '../nettest-params';
@@ -19,7 +20,7 @@ import type { MatchViewApi, RenderInfo } from '../render/stage-types';
 import type { OwnFigures } from './match-types';
 import type { WakeLockInspection } from './phone';
 
-export type ScreenName = 'home' | 'settings' | 'propose' | 'created' | 'practice' | 'join' | 'prematch' | 'match' | 'results' | 'message';
+export type ScreenName = 'home' | 'settings' | 'rules' | 'propose' | 'created' | 'practice' | 'join' | 'prematch' | 'match' | 'results' | 'message';
 
 export interface Inspection {
   readonly screen: ScreenName;
@@ -57,6 +58,10 @@ export interface Inspection {
 
 export interface MatchInspection {
   readonly kind: 'practice' | 'net'; readonly me: string; readonly matchId: string | null;
+  /** The settings the match plays by (C-59): its pack size, its length and, where it has any, its rules;
+   *  Practice's as its setup made it, a networked match's from the held timeline's state, and a joiner's
+   *  the defaults until it holds one. */
+  readonly settings: MatchSettings;
   readonly started: boolean; readonly paused: boolean; readonly inRoster: boolean; readonly returning: boolean;
   /** The room's connections, status().peers; 0 in Practice (M4's design §9.3, from phase 2d). */
   readonly peers: number;

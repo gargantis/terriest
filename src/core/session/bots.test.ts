@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { canonicalRules, config, NO_RULES } from '../../config';
 import { BOT_NAMES, botCoat, botId, botIds, botName, botNames, personId } from '../bot/bot-id';
 import { defaultBotParams, newBrain, think } from '../bot/brain';
 import {
@@ -7,12 +8,14 @@ import {
 } from '../protocol/messages';
 import {
   cloneState, defaultParams, encodeInput, encodeState, findTerrier, genesis, hash64, IN_PLAY, JOIN, jumpCount, LEAVE, makeSim,
-  type MatchSettings, type MatchState, type Pack, pounceCount, READY, type Sim, START_COUNTDOWN, step, type TickInput, WARM_UP,
+  type MatchSettings, type MatchState, type Pack, paramsFor, pounceCount, READY, type Sim, type SimParams, START_COUNTDOWN, step,
+  type TickInput, WARM_UP, ZOOMIES,
 } from '../sim/index';
 import { park, place, placeBall, placedMatch } from '../sim/scenes';
+import { HOUSE_RULES } from '../sim/scripts';
 import { at, tickOf } from '../timeline/testing';
 import { Timeline } from '../timeline/timeline';
-import { BotHost, type BotTimeline } from './bots';
+import { BotHost, type BotTimeline, type HostedBot } from './bots';
 import { netSettings, type RoomSettings } from './settings';
 
 // BotHost (PLAN §14, D-39, C-41; M3's design §1.11, §4.8, §4.9) against a
@@ -22,7 +25,9 @@ import { netSettings, type RoomSettings } from './settings';
 // up when full or started, Play again's pack fallback, and one think per
 // head tick. Then over the real timeline, which satisfies BotTimeline: a
 // removed bot hosted until its LEAVE is final here, wherever a catch-up or a
-// STATE put it (M3 phase 2's integration).
+// STATE put it (M3 phase 2's integration). And a match's rules (C-59): each
+// brain thinks under its match's own parameters, Play again's made again at
+// its first thought once a match is held.
 
 // The real timeline's runs verify their chains: CPU-bound, as M2's suites are.
 vi.setConfig({ testTimeout: 120_000 });
@@ -87,10 +92,11 @@ class FakeTimeline implements BotTimeline {
   private readonly inputs = new Map<number, TickInput[]>();
   private readonly sim: Sim;
 
-  /** Genesis with settings, or a state held at its tick, as adopted: final there, the clock w on. */
+  /** Genesis with settings, or a state held at its tick, as adopted: final there, the clock w on.
+   *  Stepped under its match's own parameters, its rules over P (C-59). */
   constructor(from: MatchSettings | MatchState) {
     this.final = 'phase' in from ? cloneState(from) : genesis(from, P);
-    this.sim = makeSim(P, this.final.packSize);
+    this.sim = makeSim(paramsFor(this.final.rules, P), this.final.packSize);
     this.finalTick = this.final.tick;
     this.localTick = 'phase' in from ? this.finalTick + W : 0;
     this.head = cloneState(this.final);
@@ -1105,5 +1111,104 @@ describe('BotHost over the real timeline (design §2.4, §4.8)', () => {
     expect(moved[0]).toBeGreaterThan(leaveTick);
     expect(unhostedAt).toBe(moved[0]);
     expect([host.hosted, t.stats.resyncs, t.stats.verifyMismatches]).toEqual([[], 1, 0]);
+  });
+});
+
+// --- A match's rules (C-59) ---
+
+/** The parameters a hosted bot's brain thinks under: the ones newBrain was given. */
+const thinksUnder = (b: HostedBot): SimParams => (b.brain as unknown as { readonly P: SimParams }).P;
+
+describe("BotHost under a match's rules (C-59)", () => {
+  const MATCH = 'c59c59c59c59c59c';
+
+  it("makes Play again's bot, added before any timeline, again under the match's own parameters at its first thought, once; under none it keeps its brain", () => {
+    for (const rules of [HOUSE_RULES, NO_RULES]) {
+      const t = new FakeTimeline({ packSize: 2, matchMinutes: 1, rules });
+      t.started = false;
+      const host = new BotHost(me, P, B, ROOM);
+      const b = host.add(0, t, true)!;
+      const made = b.brain;
+      // No match held yet: the host's own parameters.
+      expect(thinksUnder(b)).toBe(P);
+      // The next match's timeline comes. The bot isn't in its roster, so adopt leaves its brain.
+      t.started = true;
+      host.adopt(t);
+      host.tend(t, false);
+      expect(b.brain).toBe(made);
+      // Its first thought, on the head: under the match's parameters, a brain of their own if they're another's.
+      t.advance();
+      const M = paramsFor(t.head.rules, P);
+      expect(thinksUnder(b)).toBe(M);
+      expect(b.brain === made).toBe(rules === NO_RULES);
+      // Once: it joins and plays on with that brain.
+      const brain = b.brain;
+      run(t, host, 1 + D + W + 60);
+      expect([b.brain === brain, findTerrier(t.final, b.id) >= 0]).toEqual([true, true]);
+      // Each input is a brain's made under them at its first thought, its counters from its last input,
+      // 0, thinking once on each new head.
+      const ref = newBrain(b.id, 0, M, B);
+      let thought = -1;
+      let input = 0;
+      for (const x of t.sent) {
+        if (x.headTick !== thought) {
+          input = think(ref, x.head);
+          thought = x.headTick;
+        }
+        expect(x.input, `tick ${x.tick}`).toBe(input);
+      }
+    }
+  });
+
+  it("makes a bot's brain under a held match's own parameters: one added, and one adopt takes back, whose first input zooms from a meter short of the build's half", () => {
+    // A match whose zoomies meter is its shortest choice.
+    const rules = canonicalRules({ zoomiesFullSeconds: Math.min(...config.matchRules.zoomiesFullSeconds) }, config);
+    const M = paramsFor(rules, P);
+    // Added to a match held: under its parameters at once.
+    const held = new FakeTimeline({ packSize: 1, matchMinutes: 1, rules });
+    expect(thinksUnder(new BotHost(me, P, B, ROOM).add(0, held)!)).toBe(M);
+    // In play, the bot far behind the ball and the rival further: it chases with zoomies, which a brain
+    // begins only from a meter half full, here half the match's full meter and short of half the
+    // build's.
+    const s = placedMatch(M, 1, { phase: IN_PLAY });
+    s.terriers[0]!.id = ids[0]!;
+    s.terriers[0]!.name = botName(ids[0]!);
+    place(M, s, 0, -15, 0);
+    park(M, s, 1);
+    s.terriers[0]!.meter = Math.ceil(M.meterFull / 2);
+    expect(s.terriers[0]!.meter).toBeLessThan(P.meterFull / 2);
+    const zooms = (Q: SimParams): boolean => (think(newBrain(ids[0]!, 0, Q, B), s) & ZOOMIES) !== 0;
+    expect([zooms(M), zooms(P)]).toEqual([true, false]);
+    // The page reloads into it: a new host, a timeline from a peer's STATE.
+    const rival = s.terriers[1]!.id;
+    const t = new FakeTimeline(s);
+    t.people = () => [{ id: rival, input: 0, events: 0 }];
+    const host = new BotHost(me, P, B, ROOM);
+    host.adopt(t);
+    const b = host.hosted[0]!;
+    expect(thinksUnder(b)).toBe(M);
+    const brain = b.brain;
+    run(t, host, 30);
+    expect(t.sent[0]!.input & ZOOMIES).toBe(ZOOMIES);
+    // Made under the match's parameters, it thinks on with its brain.
+    expect(b.brain).toBe(brain);
+  });
+
+  it("plays Play again's bot over the real timeline under the rules of the match this browser then starts, from its first input", () => {
+    const t = new Timeline({ ...NET.timeline, P, me }, { broadcast: () => {}, sendToPlayer: () => false, sendToPeer: () => {} });
+    const host = new BotHost(me, P, B, ROOM);
+    const b = host.add(1, t, true)!;
+    const made = b.brain;
+    expect(thinksUnder(b)).toBe(P);
+    // Started here, as the session's propose does: the bot's JOIN goes at the first timer run's tend,
+    // riding in tick 2 + d, and its first input at that run's advance.
+    t.start(0, { packSize: 1, matchMinutes: 1, rules: HOUSE_RULES }, MATCH);
+    for (let n = 1; n <= 2 + D + W; n++) {
+      t.advance(at(n));
+      host.tend(t, false);
+      expect(thinksUnder(b), `local tick ${n}`).toBe(t.params);
+    }
+    expect(t.params).toBe(paramsFor(HOUSE_RULES, P));
+    expect([b.brain === made, findTerrier(t.final, b.id) >= 0]).toEqual([false, true]);
   });
 });

@@ -32,6 +32,7 @@ import { PAGE_LOOK } from './render/look';
 import { createStage } from './render/scene';
 import type { Stage } from './render/stage-types';
 import { ProfileStore } from './storage/profile';
+import { RulesStore } from './storage/rules';
 import { SettingsStore } from './storage/settings';
 import { App, appRoot } from './ui/app';
 import { browserClock, browserPage } from './ui/clock';
@@ -95,7 +96,7 @@ async function start(boot: Boot): Promise<void> {
   const audio = audioOut();
   soundFollows(settings, audio);
   const app = new App({
-    root, stage, makeStage, profile: new ProfileStore(), settings, test,
+    root, stage, makeStage, profile: new ProfileStore(), settings, rules: new RulesStore(), test,
     build: buildHash(config, BUILD_INPUTS), clock: browserClock, page: browserPage, boot,
     messages, wake: new WakeLock({ page: browserPage }), audio,
   });

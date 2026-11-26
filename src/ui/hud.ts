@@ -39,10 +39,10 @@
 // 1's by the shell; phase 2's results-hud adds the banner, the follow
 // choice and the graphics note. New at M4.
 
-import { config } from '../config';
+import { config, NO_RULES } from '../config';
 import { shownName } from '../core/names';
 import type { ConfirmedGoal } from '../core/session/index';
-import { CELEBRATION, defaultParams, IN_PLAY, KICKOFF_COUNTDOWN, type Pack, type SimParams, START_COUNTDOWN } from '../core/sim/index';
+import { CELEBRATION, defaultParams, IN_PLAY, KICKOFF_COUNTDOWN, type Pack, paramsFor, type SimParams, START_COUNTDOWN } from '../core/sim/index';
 import type { UiCommand } from '../input/source';
 import type { CameraMode, DrawnMatch, DrawnTerrier } from '../render/frame';
 import { h, setClass, setShown, setText } from './dom';
@@ -169,7 +169,6 @@ function gauge(label: string, test: string): { el: HTMLElement; fill: HTMLElemen
 
 export function hudLayer(host: PitchHost): HudLayer {
   addStyle(css);
-  const P = defaultParams;
   const me = host.match.me;
   const look = host.look;
   const match = host.match;
@@ -303,6 +302,8 @@ export function hudLayer(host: PitchHost): HudLayer {
     graphics.hidden ? 'ok' : graphics.getAttribute('data-graphics') === 'lost' ? 'lost' : 'restoring';
 
   const update = (ctx: PitchContext): void => {
+    // The match's own parameters, its rules' (C-59), read at each update: a joiner's come with its STATE.
+    const P = paramsFor(match.settings.rules ?? NO_RULES);
     const score = match.scoreboard.score;
     const m = ctx.drawn;
     const mine = m?.terriers.find((t) => t.id === me) ?? null;

@@ -21,13 +21,18 @@ import { ButtonNav, padOnly } from '../nav';
 import { addStyle } from '../style';
 import { invitePanel, inviteButtons, type InviteOptions } from './invite';
 import css from './join.css?inline';
-import { minutesText, practiceChoices, sizeText } from './practice';
+import { minutesText, practiceChoices, type RulesEntry, rulesRow, sizeText } from './practice';
 import { packName, packSwatch, type Screen, screenStyles } from './screen';
 
 export interface ProposeHost {
   /** Create: the app opens the room, proposes and moves to Created. */
   create(s: MatchSettings): void;
   home(): void;
+  /** The match rules' row (C-59), as Practice's setup has it: without it the screen offers none. */
+  readonly rules?: RulesEntry;
+  /** The pack size and the length to show, as the Rules screen's Back returns with them; the defaults
+   *  without. */
+  readonly chosen?: MatchSettings;
 }
 
 /** "Play in the Blue pack": a pack by its look's name. */
@@ -48,8 +53,10 @@ export function proposeScreen(host: ProposeHost): Screen {
     sel.value = String(at);
     return sel;
   };
-  const size = select(c.sizes, c.start.packSize, sizeText, 'pack-size');
-  const minutes = select(c.minutes, c.start.matchMinutes, minutesText, 'match-length');
+  const at = host.chosen ?? c.start;
+  const size = select(c.sizes, at.packSize, sizeText, 'pack-size');
+  const minutes = select(c.minutes, at.matchMinutes, minutesText, 'match-length');
+  const chosen = (): MatchSettings => ({ packSize: Number(size.value), matchMinutes: Number(minutes.value) });
   let creating = false;
   const create = h('button', {
     type: 'button', class: 'primary', 'data-test': 'create',
@@ -57,16 +64,18 @@ export function proposeScreen(host: ProposeHost): Screen {
       if (creating) return;
       creating = true;
       setEnabled(create, false, 'Creating…');
-      host.create({ packSize: Number(size.value), matchMinutes: Number(minutes.value) });
+      host.create(chosen());
     },
   }, 'Create');
   const back = h('button', { type: 'button', class: 'secondary', 'data-test': 'back', onclick: () => host.home() }, 'Back');
-  const nav = new ButtonNav(() => [size, minutes, create, back]);
+  const rules = host.rules === undefined ? null : rulesRow(host.rules, chosen, host.chosen !== undefined);
+  const nav = new ButtonNav(() => [size, minutes, ...(rules === null ? [] : [rules.button]), create, back]);
   const el = h('section', { class: 'screen propose' },
     h('h1', {}, 'Propose a match'),
     h('p', { class: 'muted' }, 'Choose the pack size and the length. Then share the link or the code, and play or watch at once.'),
     h('label', { class: 'field' }, h('span', {}, 'Pack size'), size),
     h('label', { class: 'field' }, h('span', {}, 'Match length'), minutes),
+    ...(rules === null ? [] : [rules.row]),
     h('div', { class: 'row' }, create, back),
   );
   return { el, name: 'propose', ui: padOnly(nav) };

@@ -5,7 +5,7 @@
 // the changed keys for src/config.ts and the plan's and the requirements'
 // table rows in their own wording. DOM-free, so model.test.ts runs it.
 
-import { config, type Config, packSpots } from '../../src/config';
+import { config, type Config, packSpots, RULE_SETTINGS } from '../../src/config';
 import { type BotParams, botParams } from '../../src/core/bot/brain';
 import { simParams, type SimParams } from '../../src/core/sim/params';
 import { insideFloorPlan } from '../../src/core/sim/pitch';
@@ -222,6 +222,9 @@ export const NOT_TUNED: readonly { readonly key: string; readonly why: string }[
   { key: 'budgetDrawCalls', why: 'the drawing budget (§12, C-2), checked in the page and the build, M4' },
   { key: 'budgetDownloadBytesPerWay', why: 'the drawing budget (§12, C-2), checked in the page and the build, M4' },
   { key: 'terrierModelUrl', why: "the model drawer's (D-27), empty in the MVP, M4" },
+  // Each match rule's choices (C-59): what the setup screens offer, never read by simParams, which
+  // takes a match's chosen value through matchConfig. Each value has its own slider.
+  ...RULE_SETTINGS.map((k) => ({ key: `matchRules.${k}`, why: `the choices a match's rules offer for ${k} (C-59), not a value the simulation reads` })),
 ];
 
 export const sliderOf = (key: string): Slider | undefined => SLIDERS.find((s) => s.key === key);

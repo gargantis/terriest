@@ -10,12 +10,17 @@
 // (drive, friction, rolling) go: a test passes an acceleration, idle
 // friction or rolling slowdown of 0, which gives the same bits (design §4.1).
 
-import { config, type Config, type Derived, derive, type SpotTable } from '../../config';
+import { config, type Config, type Derived, derive, matchConfig, type MatchRules, NO_RULES, RULE_SETTINGS, sameRules, type SpotTable } from '../../config';
 import { dir, fractionOfTurn, TURN } from './math';
 import { buildPitch, type Pitch } from './pitch';
 
 export interface SimParams {
+  /** The configuration these parameters are of: a match's, with its rules' settings (C-59). */
   readonly config: Config;
+  /** The match rules they were made for over base's configuration: NO_RULES for a base's own. */
+  readonly rules: MatchRules;
+  /** The parameters without rules these were made from, or null for those themselves. */
+  readonly base: SimParams | null;
   readonly derived: Derived;
   readonly pitch: Pitch;
   readonly substeps: number; // 4 (D-3)
@@ -108,6 +113,10 @@ function formatProblems(c: Config, d: Derived): string[] {
 /** The simulation's parameters for a configuration. Throws as derive()
  *  does, and on counts the solver and A.1 can't hold. */
 export function simParams(c: Config = config): SimParams {
+  return build(c, NO_RULES, null);
+}
+
+function build(c: Config, rules: MatchRules, base: SimParams | null): SimParams {
   const d = derive(c);
   const problems = formatProblems(c, d);
   if (problems.length > 0) throw new Error(problems.join('; '));
@@ -116,6 +125,8 @@ export function simParams(c: Config = config): SimParams {
   dir(fractionOfTurn(c.slipOutConeDegrees, 360), cone); // not a setting: degrees a turn
   return Object.freeze({
     config: c,
+    rules,
+    base,
     derived: d,
     pitch: buildPitch(c.pitch),
     substeps: c.substepsPerTick,
@@ -183,3 +194,31 @@ export function simParams(c: Config = config): SimParams {
 
 /** The parameters of src/config.ts. */
 export const defaultParams: SimParams = simParams(config);
+
+/** The last parameters paramsFor made, newest first: a page plays one match's rules at a time, its
+ *  drawing and its timeline asking for them each tick, and a few more serve a merge's two. */
+const made: SimParams[] = [];
+const MADE_MAX = 4; // not a setting: the parameters paramsFor keeps
+
+/** A match's parameters (C-59): P's own base's, with the match's rules' settings (matchConfig). No
+ *  rules give the base itself, so a match at the build's settings steps with the very parameters it
+ *  always has. The rules are a match's, each one of its choices (canonicalRules); throws as
+ *  simParams does. */
+export function paramsFor(rules: MatchRules, P: SimParams = defaultParams): SimParams {
+  const base = P.base ?? P;
+  if (rules === NO_RULES || rules === base.rules || noRules(rules)) return base;
+  for (let k = 0; k < made.length; k++) {
+    const m = made[k]!;
+    if (m.base === base && sameRules(m.rules, rules)) return m;
+  }
+  const p = build(matchConfig(base.config, rules), Object.isFrozen(rules) ? rules : Object.freeze({ ...rules }), base);
+  made.unshift(p);
+  if (made.length > MADE_MAX) made.pop();
+  return p;
+}
+
+/** Whether rules set nothing. */
+function noRules(rules: MatchRules): boolean {
+  for (let k = 0; k < RULE_SETTINGS.length; k++) if (rules[RULE_SETTINGS[k]!] !== undefined) return false;
+  return true;
+}

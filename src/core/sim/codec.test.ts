@@ -1,11 +1,11 @@
 import fc from 'fast-check';
 import { describe, expect, it, vi } from 'vitest';
-import { config } from '../../config';
+import { canonicalRules, config, type MatchRules, NO_RULES, RULE_SETTINGS } from '../../config';
 import { BOT_NAMES } from '../bot/bot-id';
 import { CODEC_VERSION, decodeState, encodeState, hashState } from './codec';
 import { bytesToHash, hash64, hashToBytes } from './hash';
 import { KEPT_BITS } from './input';
-import { defaultParams, simParams } from './params';
+import { defaultParams, paramsFor, type SimParams, simParams } from './params';
 import {
   type AnimPhase, ballSlot, CELEBRATION, cleanName, cloneState, ENDED, findTerrier, genesis, IN_PLAY, isNameControl, KICKOFF_COUNTDOWN,
   type MatchState, nameAllowed, NEVER, newTerrier, type Pack, packCount, type Phase, slotOf, sortTerriers, STANDING, type Terrier, WARM_UP,
@@ -61,7 +61,7 @@ const name = fc.oneof(fc.constantFrom(...NAMES), fc.string({ unit: 'grapheme', m
 
 /** A terrier in a slot, whose slipped-from names the ball, another present
  *  slot, or nothing. Its ID is set with the others', unique. */
-function terrier(slot: number, slots: readonly number[], packSize: number, tick: number): fc.Arbitrary<Terrier> {
+function terrier(slot: number, slots: readonly number[], packSize: number, tick: number, M: SimParams): fc.Arbitrary<Terrier> {
   const from = [ballSlot(packSize), ...slots.filter((k) => k !== slot)];
   return fc
     .record({
@@ -75,11 +75,11 @@ function terrier(slot: number, slots: readonly number[], packSize: number, tick:
       heading: u32, overheadRef: u32,
       sitting: fc.boolean(), zoomLocked: fc.boolean(), ballOverhead: fc.boolean(), slipping: fc.boolean(), touchingBall: fc.boolean(),
       slipFrom: fc.constantFrom(-1, ...from),
-      meter: fc.integer({ min: 0, max: P.meterFull }),
-      pounceWait: fc.integer({ min: 0, max: P.pounceWaitTicks }),
-      lunge: fc.integer({ min: 0, max: P.lungeTicks }),
-      tumble: fc.integer({ min: 0, max: P.tumbleTicks }),
-      guard: fc.integer({ min: 0, max: P.guardTicks }),
+      meter: fc.integer({ min: 0, max: M.meterFull }),
+      pounceWait: fc.integer({ min: 0, max: M.pounceWaitTicks }),
+      lunge: fc.integer({ min: 0, max: M.lungeTicks }),
+      tumble: fc.integer({ min: 0, max: M.tumbleTicks }),
+      guard: fc.integer({ min: 0, max: M.guardTicks }),
       touches: u16, goals: u8,
       anim: fc.integer({ min: 0, max: 7 }).map((a) => a as AnimPhase), animStart: u32, gait: u32,
       takeOffTick: u32, landingTick: u32, lastBallContactTick: u32, lastTerrierContactTick: u32, lastPushDir: u32, lastPushTick: u32,
@@ -88,21 +88,29 @@ function terrier(slot: number, slots: readonly number[], packSize: number, tick:
     .map((t) => ({ ...t, slipping: t.slipFrom !== -1 }));
 }
 
+/** Any match rules (C-59): each rule the build's own setting or another of its choices. */
+const matchRules: fc.Arbitrary<MatchRules> = fc
+  .tuple(...RULE_SETTINGS.map((k) => fc.option(fc.constantFrom(...config.matchRules[k].filter((v) => v !== config[k])), { nil: undefined })))
+  .map((values) => canonicalRules(Object.fromEntries(RULE_SETTINGS.map((k, i) => [k, values[i]])), config));
+
 /** Any valid state, the rules' checks of §6.7 included: in warm-up any
  *  roster, and from the start countdown on, both packs full; overtime only
  *  from the kickoff countdown on, with the clock in the match otherwise;
  *  the tick under 2^31, and the phase's start no later; scorers only in a
  *  celebration or the end; Ready within its expiry, and join and input
- *  ticks no later than the tick. */
+ *  ticks no later than the tick; and none or any match rules, the timers
+ *  within the maxima of the match's own parameters (C-59). */
 const state: fc.Arbitrary<MatchState> = fc
   .record({
+    rules: fc.oneof(fc.constant(NO_RULES), matchRules),
     packSize: fc.integer({ min: 1, max: 4 }),
     phase: fc.integer({ min: 0, max: 5 }).map((p) => p as Phase),
     tick: fc.oneof(fc.integer({ min: 0, max: 5000 }), fc.integer({ min: 0, max: 0x7fffffff })),
     here: fc.array(fc.boolean(), { minLength: 8, maxLength: 8 }),
   })
-  .chain(({ packSize, phase, tick, here }) => {
+  .chain(({ rules, packSize, phase, tick, here }) => {
     const slots = Array.from({ length: 2 * packSize }, (_, k) => k).filter((k) => phase !== WARM_UP || here[k]);
+    const M = paramsFor(rules);
     return fc
       .record({
         phaseStart: fc.integer({ min: 0, max: tick }),
@@ -116,11 +124,11 @@ const state: fc.Arbitrary<MatchState> = fc
           x: float, y: float, z: float, vx: float, vy: float, vz: float, onFloor: fc.boolean(),
           lastHitTick: u32, lastHitStrength: float, lastHitDvx: float, lastHitDvy: float, lastHitDvz: float, lastContactTick: u32,
         }),
-        terriers: fc.tuple(...slots.map((slot) => terrier(slot, slots, packSize, tick))),
+        terriers: fc.tuple(...slots.map((slot) => terrier(slot, slots, packSize, tick, M))),
         ids: fc.uniqueArray(hexId, { minLength: slots.length, maxLength: slots.length }),
       })
       .map(({ ids, clock, terriers, ...rest }): MatchState => ({
-        ...rest, phase, tick, packSize,
+        ...rest, phase, tick, packSize, rules,
         clock: rest.overtime ? clock : clock % (rest.matchLengthTicks + 1),
         terriers: terriers.map((t, k) => ({ ...t, id: ids[k]! })),
       }));
@@ -178,7 +186,8 @@ describe('the codec (A.1, design §1.6)', () => {
     });
     const bytes = encodeState(s);
     const v = new DataView(bytes.buffer);
-    expect([v.getUint16(0, true), bytes[2], v.getUint32(3, true), bytes[7], v.getUint32(8, true), bytes[12]]).toEqual([CODEC_VERSION, IN_PLAY, 0x01020304, 1, 0x05060708, 2]);
+    // A match without rules: version 1's layout, as before the match rules (C-59).
+    expect([v.getUint16(0, true), bytes[2], v.getUint32(3, true), bytes[7], v.getUint32(8, true), bytes[12]]).toEqual([1, IN_PLAY, 0x01020304, 1, 0x05060708, 2]);
     expect([v.getUint32(13, true), v.getUint32(17, true), bytes[21], bytes[22], v.getUint32(23, true), bytes[27], bytes[28], bytes[29]]).toEqual([3 * 3600, 7, 3, 4, 9, 1, 1, 5]);
     expect([30, 38, 46, 54, 62, 70].map((o) => v.getFloat64(o, true))).toEqual([1.5, -2.5, 0.8, 3, -0, 4]);
     expect([bytes[78], v.getUint32(79, true), v.getFloat64(83, true), v.getFloat64(91, true), v.getFloat64(99, true), v.getFloat64(107, true)]).toEqual([0, 11, 2.5, 0.25, -0.5, 1]);
@@ -208,6 +217,61 @@ describe('the codec (A.1, design §1.6)', () => {
       full.terriers.push(u);
     }
     expect(encodeState(full)).toHaveLength(1512);
+  });
+
+  it("lays a match with rules out in version 2: version 1's bytes with a byte a rule after the match length (C-59)", () => {
+    const R = RULE_SETTINGS.length;
+    const first = RULE_SETTINGS[0]!;
+    const last = RULE_SETTINGS[R - 1]!;
+    const plain = base();
+    const ruled = base();
+    const rules = canonicalRules({ [first]: config.matchRules[first][0], [last]: config.matchRules[last].at(-1) }, config);
+    Object.assign(ruled, { rules });
+    const a = encodeState(plain);
+    const b = encodeState(ruled);
+    expect(CODEC_VERSION).toBe(2);
+    expect(b.length).toBe(a.length + R);
+    expect([new DataView(b.buffer).getUint16(0, true), b[0], b[1]]).toEqual([2, 2, 0]);
+    // The header to the match length as version 1's, then the rules: 0 for the build's own setting, else
+    // 1 + the choice's index, then the rest as version 1's.
+    expect(Array.from(b.subarray(2, 17))).toEqual(Array.from(a.subarray(2, 17)));
+    expect(Array.from(b.subarray(17, 17 + R))).toEqual(RULE_SETTINGS.map((_, k) => (k === 0 ? 1 : k === R - 1 ? config.matchRules[last].length : 0)));
+    expect(Array.from(b.subarray(17 + R))).toEqual(Array.from(a.subarray(17)));
+    const back = decodeState(b)!;
+    expect(back.rules).toEqual(rules);
+    expect(back).toEqual(ruled);
+    // A match without rules is never written in version 2, so a block of zeros is refused, and so are a
+    // byte past its rule's choices and the choice that's the build's own setting, written as 0.
+    const zeros = b.slice();
+    zeros.fill(0, 17, 17 + R);
+    expect(decodeState(zeros)).toBeNull();
+    const past = b.slice();
+    past[17] = config.matchRules[first].length + 1;
+    expect(decodeState(past)).toBeNull();
+    const own = b.slice();
+    own[17] = 1 + (config.matchRules[first] as readonly number[]).indexOf(config[first]);
+    expect(decodeState(own)).toBeNull();
+    // Version 1's bytes read as version 2 are short or wrong, and version 3 is refused.
+    const asTwo = a.slice();
+    asTwo[0] = 2;
+    expect(decodeState(asTwo)).toBeNull();
+    const three = b.slice();
+    three[0] = 3;
+    expect(decodeState(three)).toBeNull();
+    // A state built by hand with a rule at the build's own setting encodes but never decodes.
+    const byHand = base();
+    Object.assign(byHand, { rules: { [first]: config[first] } });
+    expect(decodeState(encodeState(byHand))).toBeNull();
+    // And its timers are checked against the match's own maxima: a tumble the defaults refuse, under a
+    // longer tumble's rule, decodes.
+    const longer = (config.matchRules.tumbleSeconds as readonly number[]).find((x) => x > config.tumbleSeconds)!;
+    const slow = base();
+    Object.assign(slow, { rules: canonicalRules({ tumbleSeconds: longer }, config) });
+    slow.terriers[2]!.tumble = P.tumbleTicks + 1;
+    expect(decodeState(encodeState(slow))?.terriers[2]!.tumble).toBe(P.tumbleTicks + 1);
+    const plainSlow = base();
+    plainSlow.terriers[2]!.tumble = P.tumbleTicks + 1;
+    expect(decodeState(encodeState(plainSlow))).toBeNull();
   });
 
   it('round-trips any valid state byte for byte, −0 included', () => {
@@ -342,7 +406,8 @@ describe('the codec (A.1, design §1.6)', () => {
     expect(decodedAfter(s, (b) => slips(b, 1, 2))!.terriers[1]!.slipFrom).toBe(2);
     expect(decodedAfter(s, (b) => slips(b, 3, 4))!.terriers[3]!.slipFrom).toBe(4);
     const refused: [string, (bytes: Uint8Array, v: DataView) => void][] = [
-      ['version 2', (b) => (b[0] = 2)],
+      ['version 2 without its rules', (b) => (b[0] = 2)],
+      ['version 3', (b) => (b[0] = 3)],
       ['phase 6', (b) => (b[2] = 6)],
       ['an overtime byte of 2', (b) => (b[7] = 2)],
       ['an own-goal byte of 2', (b) => (b[28] = 2)],

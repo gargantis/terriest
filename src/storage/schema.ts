@@ -5,12 +5,14 @@
 // defaults, and what the screens need of the stores. Nothing here touches
 // storage. Three-free.
 
-import type { RenderQuality } from '../config';
+import type { MatchRules, RenderQuality } from '../config';
 
 export const PROFILE_KEY = 'terriest.v1.profile';
 /** The last unreadable profile, verbatim (D-24). */
 export const PROFILE_BACKUP_KEY = 'terriest.v1.profile.backup';
 export const SETTINGS_KEY = 'terriest.v1.settings';
+/** The match rules last chosen in this browser (C-59). */
+export const RULES_KEY = 'terriest.v1.rules';
 
 export interface Profile {
   readonly v: 1;
@@ -79,4 +81,24 @@ export interface SettingsSource {
   set(change: Partial<StoredSettings>): string | null;
   /** The settings in force on each change; returns its removal. */
   subscribe(fn: (s: Settings) => void): () => void;
+}
+
+/** The match rules as stored (C-59): the player's last choices, only where they differ from the
+ *  build's settings. */
+export interface StoredRules {
+  readonly v: 1;
+  readonly rules: MatchRules;
+}
+
+/** What the screens need of src/storage/rules.ts's RulesStore, which implements it (C-59). */
+export interface RulesSource {
+  /** false without storage, with its read failing, or from a failed write until a later one succeeds: the
+   *  Rules screen then says a change is in force for this visit only, and Home that the rules aren't kept
+   *  (PLAN §10). */
+  readonly persistent: boolean;
+  /** The rules in force: the player's last choices, each one of its choices now (C-59). */
+  get(): MatchRules;
+  /** The rules as `rules` makes them, those at the build's settings dropped, stored by one write of the
+   *  whole record; NO_RULES sets every rule to its default. */
+  set(rules: MatchRules): void;
 }

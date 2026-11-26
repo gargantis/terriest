@@ -11,8 +11,10 @@
 // window's scroll, each scrollTo and scrollIntoView recorded; events
 // dispatched through capture, target and bubble, with preventDefault and
 // both stops, so src/ui/nav.ts's capture listeners act as they do on a
-// page; and click()'s activation of a checkbox or a radio, its change
-// fired, as a pad's Start presses one through the nav. Selectors are the
+// page; click()'s activation of a checkbox or a radio, its change
+// fired, as a pad's Start presses one through the nav; and the window's
+// Event, with which the nav fires a select's change as the pad's left and
+// right step it (L82, C-59). Selectors are the
 // simple ones the screens use: a tag, .class, [attr] and [attr="v"],
 // compounded, a comma between several. And for the layout no
 // Node test can draw, a stylesheet's declarations by selector and their
@@ -377,9 +379,11 @@ function compile(selector: string): (el: FakeElement) => boolean {
   return (el) => (tag === null || el.localName === tag) && tests.every((t) => t(el));
 }
 
-/** The document's window, as far as the screens use one: its scroll, each move recorded, and a computed
- *  style, with no layout behind it. */
+/** The document's window, as far as the screens use one: its scroll, each move recorded, a computed style,
+ *  with no layout behind it, and its Event, with which src/ui/nav.ts fires a select's input and change as
+ *  the pad steps it, as a person's choice does, so the Rules screen stores the pad's choice (L82, C-59). */
 export class FakeWindow {
+  readonly Event = FakeEvent;
   scrollX = 0;
   scrollY = 0;
   /** Each scrollTo and scrollIntoView, in order. */
