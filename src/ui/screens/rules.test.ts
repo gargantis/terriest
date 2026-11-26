@@ -5,7 +5,7 @@ import { MemoryStorage } from '../../storage/kv';
 import { RulesStore } from '../../storage/rules';
 import { RULES_KEY, type StoredRules } from '../../storage/schema';
 import { fake, FakeEvent, type FakeDocument, type FakeElement, installDom, only } from '../dom-testing';
-import { changedRules, NOT_SAVED, RESET, RULE_WORDS, ruleValue, rulesScreen, rulesSummary, SAVED } from './rules';
+import { changedRules, NOT_SAVED, RESET, RESET_IDLE, RULE_WORDS, ruleValue, rulesScreen, rulesSummary, SAVED } from './rules';
 import type { Screen } from './screen';
 
 // The Rules screen (C-59; PLAN §10, §11, A.3), on the DOM fake over the
@@ -13,12 +13,14 @@ import type { Screen } from './screen';
 // choices the configuration's, its default marked, the stored choice
 // chosen, else the default; each change stored at once, a rule back at its
 // default dropped, the status line saying so, or that the change is in
-// force for this visit alone where the browser doesn't keep it; Reset to
-// defaults, marked while every rule is at its default, setting each to it;
-// Back; the gamepad's d-pad through every select, Reset and Back, its left
-// and right stepping a focused select a choice at a time, each step stored,
-// the keys left to the browser (L82); and the rules in words, for the
-// setup screens' summary and Pre-match.
+// force for this visit alone where the browser doesn't keep it; whether
+// the browser keeps the choices said from the start, by the intro and the
+// status line; Reset to defaults, marked while every rule is at its
+// default, setting each to it; Back; the gamepad's d-pad through every
+// select, Reset and Back, its left and right stepping a focused select a
+// choice at a time, each step stored, the keys left to the browser (L82);
+// and the rules in words, for the setup screens' summary and Pre-match,
+// the ball's bounce as a share of its speed, with its note.
 
 /** A rule's choices, the configuration's. */
 const choices = (k: RuleSetting): readonly number[] => config.matchRules[k];
@@ -90,7 +92,40 @@ describe('the Rules screen (C-59, PLAN §11)', () => {
     }
     // Nothing said yet, and Reset marked, since every rule is at its default.
     expect([r.message.textContent, r.message.getAttribute('role')]).toEqual(['', 'status']);
-    expect([r.reset.textContent, r.reset.getAttribute('aria-disabled')]).toEqual(['Reset to defaults', 'true']);
+    expect([r.reset.textContent, r.reset.getAttribute('aria-disabled')]).toEqual([RESET_IDLE, 'true']);
+  });
+
+  it("says from the start whether this browser keeps the choices: the intro only while it does, and the status line already saying it doesn't where it doesn't (PLAN §10)", () => {
+    const KEEPS = 'This browser keeps your choices.';
+    /** The intro, the first paragraph, and the status line of a screen over `rules`, as it opens. */
+    const opened = (rules: RulesStore): { readonly intro: string; readonly message: string } => {
+      const el = fake(rulesScreen({ rules, back: () => {} }).el);
+      return { intro: el.children.find((c) => c.localName === 'p')!.textContent, message: only(el, '[data-test="rules-message"]').textContent };
+    };
+    // Kept: the intro says so, and the status line says nothing yet.
+    const kept = opened(new RulesStore(new MemoryStorage()));
+    expect(kept.intro).toContain(KEEPS);
+    expect(kept.message).toBe('');
+    // Not kept, before any change: no storage; storage whose read is blocked; and a store whose last write
+    // was refused, its change in force for this page alone.
+    const blocked = new MemoryStorage();
+    blocked.blocked = true;
+    const full = new MemoryStorage();
+    const refused = new RulesStore(full);
+    full.full = true;
+    const a = RULE_SETTINGS[0]!;
+    refused.set(rulesOf([a, other(a)]));
+    const stores: [string, RulesStore][] = [['no storage', new RulesStore(null)], ['a blocked read', new RulesStore(blocked)], ['a refused write', refused]];
+    for (const [what, rules] of stores) {
+      expect(rules.persistent, what).toBe(false);
+      // The same intro, but for the words that would say the browser keeps them.
+      expect(opened(rules), what).toEqual({ intro: kept.intro.replace(` ${KEEPS}`, ''), message: NOT_SAVED });
+    }
+    expect(kept.intro.replace(` ${KEEPS}`, '')).not.toMatch(/keep/i);
+    // A write that succeeds again: kept, and the next screen says so again.
+    full.full = false;
+    refused.set(NO_RULES);
+    expect([refused.persistent, opened(refused)]).toEqual([true, kept]);
   });
 
   it('shows the stored rules chosen, every other rule at its default, and Reset able to act', () => {
@@ -145,7 +180,7 @@ describe('the Rules screen (C-59, PLAN §11)', () => {
     r.reset.click();
     expect([storedIn(r.kv), r.rules.get(), r.message.textContent]).toEqual([{ v: 1, rules: {} }, NO_RULES, RESET]);
     expect(RULE_SETTINGS.filter((k) => r.select(k).value !== String(config[k]))).toEqual([]);
-    expect([r.reset.textContent, r.reset.getAttribute('aria-disabled')]).toEqual(['Reset to defaults', 'true']);
+    expect([r.reset.textContent, r.reset.getAttribute('aria-disabled')]).toEqual([RESET_IDLE, 'true']);
   });
 
   it('goes back to the setup it came from by Back', () => {
@@ -212,6 +247,26 @@ describe('the rules in words (C-59)', () => {
       for (const t of texts) expect(t, k).not.toMatch(/\d\.\d{3}/);
     }
     expect(RULE_WORDS.turnRateTurnsPerSecond.text(1)).toBe('1 turn a second');
+  });
+
+  it("reads the ball's bounce as the percentage of its speed it keeps, each choice so on its select, which its note describes", () => {
+    const k = 'ballRestitution';
+    const r = rig();
+    const sel = r.select(k);
+    // Each option a whole percentage, the share it keeps, the default marked.
+    const texts = sel.querySelectorAll('option').map((o) => o.textContent);
+    expect(texts).toHaveLength(choices(k).length);
+    choices(k).forEach((v, i) => {
+      const m = /^(\d+)%( \(default\))?$/.exec(texts[i]!);
+      expect(m, texts[i]).not.toBeNull();
+      expect([Number(m![1]) / 100, m![2] !== undefined], texts[i]).toEqual([v, v === config[k]]);
+    });
+    // Its note, which says what the share is of, describes its select, so a screen reader hears it too.
+    const note = RULE_WORDS[k].note;
+    expect(note).toMatch(/speed/);
+    const described = sel.getAttribute('aria-describedby');
+    expect(described).not.toBeNull();
+    expect(only(r.el, `[id="${described!}"]`).textContent).toBe(note);
   });
 
   it("reads a rule's value in a match, its own or its default, and lists the changed rules in A.1's order, each by name and value", () => {

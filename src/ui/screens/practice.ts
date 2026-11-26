@@ -1,16 +1,17 @@
 // Practice's setup (M4's design, research/m4/DESIGN.md, §1.43, §5.4; PLAN
 // Q-15, D-22; L158, L164): the pack size and the match length, from the
-// configuration's ranges and defaults, then Start, which goes to Pre-match
-// with Practice's match made, or Back, Home. Native controls, so the
-// browser's own keys work them; the gamepad's d-pad moves among the two
-// choices, Start and Back, its left and right step a focused choice an
-// option at a time, and its Start presses a button, as on Propose, so a pad
-// player who comes here from Home's nav needs no mouse (L82, §4.4, §4.9's
-// pad parts, extended in phase 2b). New at M4.
+// configuration's ranges and defaults, side by side where there's room;
+// from C-59 the match rules' row, their summary and Rules…; then Start,
+// which goes to Pre-match with Practice's match made, or Back, Home. Native
+// controls, so the browser's own keys work them; the gamepad's d-pad moves
+// among the two choices, Rules…, Start and Back, its left and right step a
+// focused choice an option at a time, and its Start presses a button, as on
+// Propose, so a pad player who comes here from Home's nav needs no mouse
+// (L82, §4.4, §4.9's pad parts, extended in phase 2b). New at M4.
 
 import { config } from '../../config';
 import type { MatchSettings } from '../../core/sim/index';
-import { h } from '../dom';
+import { h, isEnabled } from '../dom';
 import { ButtonNav, padOnly } from '../nav';
 import { type Screen, screenStyles } from './screen';
 
@@ -36,7 +37,9 @@ export interface RulesEntry {
  *  choices as they stand; marked as the screen's focus when the Rules screen's Back returns to it. */
 export function rulesRow(entry: RulesEntry, chosen: () => MatchSettings, returning: boolean): { readonly row: HTMLElement; readonly button: HTMLButtonElement } {
   const button = h('button', {
-    type: 'button', class: 'secondary', 'data-test': 'rules', 'aria-describedby': 'rules-summary', onclick: () => entry.open(chosen()),
+    type: 'button', class: 'secondary', 'data-test': 'rules', 'aria-describedby': 'rules-summary', onclick: () => {
+      if (isEnabled(button)) entry.open(chosen());
+    },
     ...(returning ? { 'data-focus': '' } : {}),
   }, 'Rules…');
   const row = h('div', { class: 'field' },
@@ -79,8 +82,7 @@ export function practiceScreen(host: PracticeHost): Screen {
   const el = h('section', { class: 'screen practice' },
     h('h1', {}, 'Practice'),
     h('p', { class: 'muted' }, 'A match against bots in this browser, contacting no one: you play in the first pack, and bots take every other place.'),
-    h('label', { class: 'field' }, h('span', {}, 'Pack size'), size),
-    h('label', { class: 'field' }, h('span', {}, 'Match length'), minutes),
+    h('div', { class: 'field-pair' }, h('label', { class: 'field' }, h('span', {}, 'Pack size'), size), h('label', { class: 'field' }, h('span', {}, 'Match length'), minutes)),
     ...(rules === null ? [] : [rules.row]),
     h('div', { class: 'row' }, go, back),
   );

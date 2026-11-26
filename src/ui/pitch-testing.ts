@@ -4,13 +4,16 @@
 // and the slice wires the real ones): a stage whose ready() the test
 // settles, a view and controls that record each call into one log, so a
 // test reads their order, and a Match over a state the test sets, its timer
-// runs, stalls and corrections told when the test says. A real Practice
+// runs, stalls and corrections told when the test says, and its settings,
+// from C-59 its rules among them, its final state's. A real Practice
 // match in virtual time stands in where the session's rules matter
 // (src/ui/match.ts's practiceMatch). Only tests import it, so no build
 // bundles it. New at M4.
 
 import type { BarkEvent, ConfirmedEnd, ConfirmedGoal, Correction, MatchNetSummary, Scoreboard, Session, TimelineStats } from '../core/session/index';
-import { defaultParams, genesis, type MatchSettings, type MatchState, newTerrier, type Pack, READY, sortTerriers, UNREADY } from '../core/sim/index';
+import {
+  defaultParams, genesis, type MatchSettings, matchSettingsOf, type MatchState, newTerrier, type Pack, READY, sortTerriers, UNREADY,
+} from '../core/sim/index';
 import type { ControlsApi, ControlsInspection } from '../input/source';
 import type { CameraMode, DrawnMatch, FrameOut, StageFrame } from '../render/frame';
 import { interpolate, newDrawnMatch } from '../render/interpolate';
@@ -226,7 +229,6 @@ export class StateMatch implements Match {
   kind: 'practice' | 'net' = 'practice';
   readonly me: string;
   readonly matchId = null;
-  readonly settings: MatchSettings = { packSize: 1, matchMinutes: 1 };
   readonly clock: FakeClock;
   readonly reasons = new Set<PauseReason>();
   readonly readies: boolean[] = [];
@@ -263,6 +265,12 @@ export class StateMatch implements Match {
 
   get state(): MatchState {
     return this.timeline.head;
+  }
+
+  /** The settings its final state's genesis took, its rules among them (matchSettingsOf), as a networked
+   *  match's follow its held timeline's final state (C-59). */
+  get settings(): MatchSettings {
+    return matchSettingsOf(this.timeline.final);
   }
 
   /** The head alone moves on: a predicted state the final hasn't reached. */

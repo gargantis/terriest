@@ -9,7 +9,7 @@ import base from './vitest.config';
 // files, NET_UNIT), the bot marks, the UI glue's freeze matches and the timeline's whole-match
 // file: most of the unit stage's time (CLAUDE.md's Tests). A new whole-match file goes in one of
 // those or is added here; a new unit file in src/net goes in NET_UNIT.
-const NET_UNIT = ['local.test.ts', 'loopback.test.ts', 'match-rules.test.ts', 'room-config.test.ts', 'third-party.test.ts', 'trystero.test.ts'];
+const NET_UNIT = ['local.test.ts', 'loopback.test.ts', 'room-config.test.ts', 'third-party.test.ts', 'trystero.test.ts'];
 const net = fileURLToPath(new URL('./src/net/', import.meta.url));
 
 export const REPLAYS: readonly string[] = [

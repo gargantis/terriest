@@ -20,6 +20,12 @@
 // - Four watchers, the cap (config.spectatorsMax), open the link and press
 //   Watch: each a spectator on Pre-match, and every page counting the
 //   other four.
+// - The match rules (C-59): the proposer's browser has a rule stored, which
+//   its Propose shows; the first watcher's, a joiner's, has rules of its
+//   own, the same rule at another choice and another rule. Once the
+//   watchers are in, every page's match plays by the proposer's rules,
+//   never the joiner's, from the state it holds, and every page's Pre-match
+//   lists the proposer's rule alone; the joiner's browser keeps its own.
 // - A fifth opens the link and presses Watch: it's one spectator too many
 //   by its own count (D-21, C-11), so it leaves the room and is shown
 //   "This match has the most spectators it can take" with Try again and
@@ -51,13 +57,15 @@
 // New at M4, by phase 2d.
 
 import type { Browser, Locator, Page } from '@playwright/test';
-import { config } from '../src/config';
+import { config, type MatchRules, type RuleSetting } from '../src/config';
 import { BOT_NAMES, botIds, botName, personId } from '../src/core/bot/bot-id';
 import type { Inspection } from '../src/main';
 import { startNostrRelay } from '../vendor/hermet/nostr-relay.mjs';
 import { type AppPage, launch, openAppPage, SPEC_SEED } from './lib/browsers';
 import { expect, expectEverywhere, test } from './lib/guards';
-import { expectAxeClean, inspect, markOf, markText, monotonicMs, namesInRow, POLL_MS, rowMarks, waitForInspection, waitForScreen } from './lib/page';
+import {
+  expectAxeClean, inspect, markOf, markText, monotonicMs, namesInRow, POLL_MS, rowMarks, storedRules, waitForInspection, waitForScreen,
+} from './lib/page';
 
 const PACK_SIZE = 2; // not a setting: the room's (§9.3)
 const MINUTES = 1; // not a setting: the room's
@@ -72,6 +80,18 @@ const BOTS = botIds(PROPOSER);
 const BOT = BOTS[0]!;
 /** Its name, as its host names it with the proposer's own name taken (the owner, 2026-11-22). */
 const BOT_NAME = botName(BOT, [nameOf(0)]);
+/** A rule's n-th choice other than its default (C-59). */
+const otherChoice = (k: RuleSetting, n: number): number => (config.matchRules[k] as readonly number[]).filter((v) => v !== config[k])[n]!;
+/** The match rules each browser keeps (C-59): the proposer's, which the match plays by, and the first
+ *  watcher's, a joiner's own, which it never does: the proposer's rule at another choice, and another rule. */
+const PROPOSER_RULES: MatchRules = { kickoffCountdownSeconds: otherChoice('kickoffCountdownSeconds', 0) };
+const JOINER_RULES: MatchRules = {
+  runSpeedMetresPerSecond: otherChoice('runSpeedMetresPerSecond', 0), kickoffCountdownSeconds: otherChoice('kickoffCountdownSeconds', 1),
+};
+/** The proposer's rule as the screens word it (src/ui/screens/rules.ts' RULE_WORDS, which no spec can import:
+ *  that module imports its stylesheet as the bundler does), and Pre-match's line listing it. */
+const PROPOSER_RULE_TEXT = `Kickoff countdown ${PROPOSER_RULES.kickoffCountdownSeconds} s`;
+const PREMATCH_RULES_TEXT = `This match’s rules: ${PROPOSER_RULE_TEXT}.`;
 /** A phone held upright, as it shows Join, and sideways, as it watches Pre-match and Match (D-30): the screens
  *  spec's phone. */
 const PHONE_UPRIGHT = { width: 412, height: 915 } as const;
@@ -131,7 +151,7 @@ async function joinScreen(p: AppPage, status: string): Promise<void> {
   await expect(at(p.page, 'join-status'), "Join's status once the state is held").toHaveText(status, { timeout: JOIN_MS });
 }
 
-test('a networked Pre-match adds, removes and adds a bot, shows its invite, takes four watchers and refuses a fifth, a Leave clearing the fragment, and a full room offers Watch in view (D-39, C-11, P8)', async ({ baseURL }) => {
+test('a networked Pre-match adds, removes and adds a bot, shows its invite, takes four watchers, every page playing by the proposer\'s rules, and refuses a fifth, a Leave clearing the fragment, and a full room offers Watch in view (D-39, C-11, C-59, P8)', async ({ baseURL }) => {
   test.setTimeout(WATCHERS_TEST_MS);
   const base = baseURL!;
   const relayServer = await startNostrRelay();
@@ -149,13 +169,15 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     const cr = await launch('chromium');
     browsers.push(cr);
 
-    // The proposer: Home, Propose a match at 2 a side for a minute, Create, then Play in pack A.
-    const proposer = await openAppPage(cr, base, { k: 0, name: nameOf(0), relay });
+    // The proposer, its browser's rule stored: Home, Propose a match at 2 a side for a minute, its rules the
+    // stored one, Create, then Play in pack A.
+    const proposer = await openAppPage(cr, base, { k: 0, name: nameOf(0), relay, rules: PROPOSER_RULES });
     pages.push(proposer);
     const pp = proposer.page;
     await waitForScreen(pp, 'home', ANSWER_MS);
     await at(pp, 'propose').click();
     await waitForScreen(pp, 'propose', ANSWER_MS);
+    await expect(at(pp, 'rules-summary'), "Propose's rules, the browser's stored choice (C-59)").toHaveText(PROPOSER_RULE_TEXT);
     await at(pp, 'pack-size').selectOption(String(PACK_SIZE));
     await at(pp, 'match-length').selectOption(String(MINUTES));
     await at(pp, 'create').click();
@@ -205,9 +227,10 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     expect(await groupLines(pp, 'invite-code'), "the invite's code, each group of four on one line at 640 × 360 (C-15)").toEqual(Array(6).fill(1));
     await expectAxeClean(pp);
 
-    // Four watchers, the cap, open the link and Watch: each a spectator on Pre-match, every page meshed.
+    // Four watchers, the cap, open the link and Watch: each a spectator on Pre-match, every page meshed. The
+    // first is a joiner with match rules of its own stored (C-59).
     const watchers = await timed('watchers open', () => Promise.all(
-      Array.from({ length: WATCHERS }, (_, n) => openAppPage(cr, base, { k: n + 1, name: nameOf(n + 1), relay, fragment })),
+      Array.from({ length: WATCHERS }, (_, n) => openAppPage(cr, base, { k: n + 1, name: nameOf(n + 1), relay, fragment, ...(n === 0 ? { rules: JOINER_RULES } : {}) })),
     ));
     pages.push(...watchers);
     await timed('watchers join', () => Promise.all(watchers.map((w) => joinScreen(w, 'Play in a pack, or watch.'))));
@@ -217,6 +240,16 @@ test('a networked Pre-match adds, removes and adds a bot, shows its invite, take
     for (const w of watchers) await expect(at(w.page, 'ready'), "a spectator's Ready").toBeHidden();
     const room = [proposer, ...watchers];
     took['meshed'] = Math.round(await expectPeers(room, WATCHERS, 'the proposer and the watchers'));
+    // The match's rules on every page, the proposer's from the state each holds, never the joiner's own; and
+    // every Pre-match listing the proposer's rule alone (C-59).
+    for (const [k, p] of room.entries()) {
+      const who = `${nameOf(k)}'s page${k === 1 ? ', the joiner with its own rules' : ''}`;
+      expect((await inspect(p.page)).match?.settings.rules, `${who}: the match's rules`).toEqual(PROPOSER_RULES);
+      const listedRules = at(p.page, 'prematch-rules');
+      await expect(listedRules, `${who}: Pre-match's rules shown`).toBeVisible();
+      await expect(listedRules, `${who}: Pre-match's rules`).toHaveText(PREMATCH_RULES_TEXT);
+    }
+    expect(await storedRules(watchers[0]!.page), "the joiner's own choices, kept as its browser stored them").toEqual({ v: 1, rules: JOINER_RULES });
 
     // A fifth is one spectator too many (C-11): its message, with Try again, axe; the others count four again.
     // It opens once every page counts the other four, so each watcher has met the room and counted it.

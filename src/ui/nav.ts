@@ -13,8 +13,8 @@
 // browser won't focus it; one the nav moves to is brought into view, its
 // window's or its panel's scroll, so a short window never hides the focus
 // (§5.14). Settings' pad nav holds its checkboxes and radios too, each
-// pressed as a pointer would press it (padOnly, L82); Practice's setup's and
-// Propose's hold their selects, whose value the d-pad's left and right step
+// pressed as a pointer would press it (padOnly, L82); Practice's setup's,
+// Propose's and from C-59 the Rules screen's hold their selects, whose value the d-pad's left and right step
 // an option at a time, up and down still moving on, and whose keys stay the
 // browser's (§4.9's pad parts, extended for L82 in phase 2b). New at M4.
 

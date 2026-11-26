@@ -49,11 +49,14 @@ export const RULE_WORDS: { readonly [K in RuleSetting]: RuleWords } = {
   pounceWaitSeconds: { name: 'Pounce wait', text: each('s'), note: 'How long after a pounce the next can start.' },
   bowlingSpeedMetresPerSecond: {
     name: 'Bowling speed', text: each('m/s'),
-    note: 'A ball at least this fast tumbles a terrier it hits, unless that terrier touched it last.',
+    note: 'A ball coming at a terrier at least this fast, by its speed toward it, tumbles it, unless that terrier is pouncing or touched the ball last.',
   },
   tumbleSeconds: { name: 'Tumble', text: each('s'), note: 'How long a tumbled terrier is down, getting up included.' },
   tumbleGuardSeconds: { name: 'Tumble guard', text: each('s'), note: 'How long after getting up a terrier can’t be tumbled again.' },
-  ballRestitution: { name: 'Ball bounce', text: (v) => `keeps ${Math.round(v * 100)}% of its speed`, note: 'Off the floor, the walls, the net overhead and the goal frame.' },
+  ballRestitution: {
+    name: 'Ball bounce', text: (v) => `${Math.round(v * 100)}%`,
+    note: 'The share of its speed into the floor, a wall, the net overhead or the goal frame that the ball keeps as it bounces off; along them it keeps all of it.',
+  },
   ballMassKg: { name: 'Ball weight', text: (v) => `${v / config.terrierMassKg} times a terrier’s` },
   rollingSlowdownMetresPerSecond2: { name: 'Ball slowdown', text: each('m/s²'), note: 'How fast a rolling ball slows: lower rolls further.' },
   kickoffCountdownSeconds: { name: 'Kickoff countdown', text: each('s'), note: 'Before every kickoff but the first.' },
@@ -86,6 +89,8 @@ export function rulesSummary(rules: MatchRules): string {
 
 export const SAVED = 'Saved.';
 export const RESET = 'Every rule is at its default.';
+/** Reset to defaults while there's nothing to reset: what it would do, said as why it can't (setEnabled). */
+export const RESET_IDLE = 'Every rule at its default';
 export const NOT_SAVED = 'In use for this visit: this browser isn’t keeping your rules.';
 
 export interface RulesHost {
@@ -117,8 +122,11 @@ export function rulesScreen(host: RulesHost): Screen {
     selects.set(k, sel);
     fields.push(h('label', { class: 'field' }, h('span', {}, words.name), sel), ...(note === null ? [] : [note]));
   }
-  /** Reset says it can do nothing while every rule is at its default. */
-  const showReset = (): void => setEnabled(reset, Object.keys(store.get()).length > 0, 'Reset to defaults');
+  /** Reset says why it can do nothing while every rule is at its default, as a button that can't act does. */
+  const showReset = (): void => {
+    const any = Object.keys(store.get()).length > 0;
+    setEnabled(reset, any, any ? 'Reset to defaults' : RESET_IDLE);
+  };
   reset.addEventListener('click', () => {
     if (Object.keys(store.get()).length === 0) return;
     store.set(NO_RULES);
@@ -129,9 +137,11 @@ export function rulesScreen(host: RulesHost): Screen {
   showReset();
   const back = h('button', { type: 'button', class: 'secondary', 'data-test': 'back', onclick: () => host.back() }, 'Back');
   const nav = new ButtonNav(() => [...selects.values(), reset, back]);
+  // A browser that isn't keeping the rules says so from the start, not only at the first change (PLAN §10).
+  if (!store.persistent) setText(message, NOT_SAVED);
   const el = h('section', { class: 'screen rules' },
     h('h1', {}, 'Rules'),
-    h('p', { class: 'muted' }, 'How your matches play: Practice, and the matches you propose. This browser keeps your choices. A match you join plays by the rules of the person who proposed it.'),
+    h('p', { class: 'muted' }, `How your matches play: Practice, and the matches you propose.${store.persistent ? ' This browser keeps your choices.' : ''} A match you join plays by the rules of the person who proposed it.`),
     h('div', { class: 'rules-list' }, ...fields),
     h('div', { class: 'row' }, reset, back),
     message,

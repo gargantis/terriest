@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { config } from '../config';
+import { canonicalRules, config, type RuleSetting } from '../config';
 import { botIds, botName, personId } from '../core/bot/bot-id';
 import type { ConfirmedGoal } from '../core/session/index';
-import { CELEBRATION, defaultParams, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
+import { CELEBRATION, defaultParams, IN_PLAY, KICKOFF_COUNTDOWN, type MatchState, paramsFor, START_COUNTDOWN, WARM_UP } from '../core/sim/index';
 import type { UiCommand } from '../input/source';
 import type { CameraMode } from '../render/frame';
 import { cssDeclarations, cssLength, fake, type FakeDocument, FakeElement, heardText, installDom, only, shownText } from './dom-testing';
@@ -26,7 +26,8 @@ import { type Calls, drawnOf, FakeControls, FakeStage, FakeView, StateMatch, sta
 // while the context is lost; a spectator's follow choice, Ball and each
 // terrier by pack and spot, a tap and next and prev following one through
 // setMode; each read back for the hook from what the HUD wrote; and where
-// the CSS puts them.
+// the CSS puts them. From C-59, the kickoff countdown's seconds and the
+// pounce gauge by the match's own rules, its state's.
 
 const P = defaultParams;
 const TPS = config.ticksPerSecond;
@@ -131,6 +132,42 @@ describe('the HUD layer', () => {
     expect(only(el, '.hud-gauges').hidden).toBe(true);
     expect(shownText(only(el, '.hud-score'))).toBe('Blue1–Orange2');
     expect((layer.inspect!() as HudInspection).meter).toBeNull();
+  });
+
+  it("reads the kickoff countdown and the pounce gauge by the match's own rules, its state's, from the frame its state brings them (C-59)", () => {
+    const shortest = (k: RuleSetting): number => config.matchRules[k][0];
+    const rules = canonicalRules({ kickoffCountdownSeconds: shortest('kickoffCountdownSeconds'), pounceWaitSeconds: shortest('pounceWaitSeconds') }, config);
+    const M = paramsFor(rules);
+    expect(M.kickoffCountdownTicks).not.toBe(P.kickoffCountdownTicks);
+    expect(M.pounceWaitTicks).not.toBe(P.pounceWaitTicks);
+    // First a match at the defaults, as a joiner's is until the proposer's STATE reaches it.
+    const { match, layer, ctx } = hud();
+    const el = layer.el!;
+    const countdown = only(el, '[data-test="hud-countdown"]');
+    const gauge = only(el, '[data-test="hud-pounce"]');
+    /** The match at its kickoff countdown's first tick, ME's pounce wait at w. */
+    const kickoff = (w: number): MatchState => {
+      const s = { ...match.state, phase: KICKOFF_COUNTDOWN, phaseStart: match.state.tick } as MatchState;
+      s.terriers = match.state.terriers.map((T) => (T.id === ME ? { ...T, pounceWait: w } : T));
+      return s;
+    };
+    layer.frame!(ctx(kickoff(M.pounceWaitTicks)));
+    expect([countdown.textContent, gauge.getAttribute('aria-valuenow')]).toEqual([
+      String(P.kickoffCountdownTicks / TPS), String(percent(1 - M.pounceWaitTicks / P.pounceWaitTicks)),
+    ]);
+    // The state under the rules: the countdown its rule's seconds, not the default's, and the gauge empty at
+    // the rule's whole wait and half full at half of it.
+    match.state = stateWith(1, 100, match.state.terriers.map((T) => ({ id: T.id, pack: T.pack })), { rules });
+    expect(match.settings.rules).toEqual(rules);
+    layer.frame!(ctx(kickoff(M.pounceWaitTicks)));
+    expect([countdown.hidden, countdown.textContent]).toEqual([false, String(M.kickoffCountdownTicks / TPS)]);
+    expect(countdown.textContent).toBe(String(shortest('kickoffCountdownSeconds')));
+    expect([gauge.getAttribute('aria-valuenow'), gauge.classList.contains('waiting')]).toEqual(['0', true]);
+    layer.frame!(ctx(kickoff(M.pounceWaitTicks / 2)));
+    expect(gauge.getAttribute('aria-valuenow')).toBe('50');
+    expect(only(gauge, '.hud-gauge-fill').style.getPropertyValue('--fill')).toBe('50%');
+    // The hook reads what it wrote.
+    expect(layer.inspect!()).toMatchObject({ countdown: String(M.kickoffCountdownTicks / TPS), pounceWait: M.pounceWaitTicks / 2 } satisfies Partial<HudInspection>);
   });
 
   it('announces each countdown once as it shows, and each goal as it latches and again as it is taken back (§1.40)', () => {

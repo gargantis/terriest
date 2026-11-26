@@ -381,6 +381,9 @@ export class App {
   private preparedAt: number | null = null;
   /** A room on its way, Create's or Play again's: a second press waits for it. */
   private opening = false;
+  /** The latest Create while a room opens, with the screen it was pressed on: a Create pressed again
+   *  from a later Propose, after Rules… or Back went away, is the one the room serves (C-59's review). */
+  private createWanted: { readonly s: MatchSettings; readonly at: number } | null = null;
   /** This tab holds the game's Web Lock (D-24); Use here is taking it. */
   private lockHeld = false;
   private taking = false;
@@ -622,9 +625,9 @@ export class App {
    *  Created. A room that opens once Propose has gone is closed; one that can't open says so, its Try
    *  again back to Propose, rather than leave Create reading "Creating…". */
   private async create(s: MatchSettings): Promise<void> {
+    this.createWanted = { s, at: this.shows };
     if (this.opening) return;
     this.opening = true;
-    const at = this.shows;
     const id = generateMatchId();
     let m: NetMatch | null = null;
     try {
@@ -633,15 +636,19 @@ export class App {
       notOpened(e);
     }
     this.opening = false;
+    // The Create still wanted: the last pressed, on the screen that still shows, else none.
+    const wanted = this.createWanted;
+    this.createWanted = null;
+    const live = wanted !== null && this.shows === wanted.at && this.lockHeld;
     if (m === null) {
-      if (this.shows === at && this.lockHeld) this.showMessage('open', { tryAgain: () => this.propose(), home: () => this.home() });
+      if (live) this.showMessage('open', { tryAgain: () => this.propose(), home: () => this.home() });
       return;
     }
-    if (this.shows !== at || !this.lockHeld) {
+    if (!live) {
       m.close();
       return;
     }
-    m.propose(this.withRules(s));
+    m.propose(this.withRules(wanted.s));
     this.hold(m);
     this.setFragment(id);
     const created = createdScreen({
@@ -822,7 +829,7 @@ export class App {
     const again = old.kind === 'net' ? this.room().then((room) => (old as NetMatch).playAgain(room)) : old.playAgain();
     again.then(
       (next) => {
-        this.opening = false;
+        this.opened();
         if (this.match !== old || !this.lockHeld) {
           next.close();
           return;
@@ -832,10 +839,20 @@ export class App {
         this.enterPitch(next);
       },
       (e: unknown) => {
-        this.opening = false;
+        this.opened();
         console.error('Play again failed:', e);
       },
     );
+  }
+
+  /** Play again's room settled: a Create pressed meanwhile on the Propose that still shows, which found a
+   *  room already opening, opens its own now, so it's never left reading "Creating…" (C-59's review). */
+  private opened(): void {
+    this.opening = false;
+    const wanted = this.createWanted;
+    if (wanted === null) return;
+    this.createWanted = null;
+    if (this.shows === wanted.at && this.lockHeld) void this.create(wanted.s);
   }
 
   /** Leave on Pre-match, in the menu, on Created or Join, and Results' Home (§5.11): the match left, the
@@ -900,6 +917,8 @@ export class App {
       this.taking = false;
       if (!held || this.lockHeld) return;
       this.lockHeld = true;
+      // The other tab may have chosen rules since this page read them (C-59).
+      this.d.rules.reload?.();
       this.route();
       if (!this.prepareBegun) this.prepareSoon(this.stage, true);
     });

@@ -2,8 +2,10 @@
 // §5.5, §5.13; PLAN §11, L163, D-30): Propose, after the canary, picks the
 // pack size (1–4, default 2) and the match length (1–10 minutes, default
 // 3), from the configuration's ranges and defaults, as Practice's setup
-// does; Create opens the match's room, proposes genesis and sets the
-// fragment, the app's work, its button reading "Creating…" meanwhile.
+// does, side by side where there's room, and from C-59 the match rules'
+// row, as Practice's setup has it; Create opens the match's room, proposes
+// genesis and sets the fragment, the app's work, its button reading
+// "Creating…" meanwhile, when Rules… can't act, so the Create isn't left.
 // Created shows the link and the code (invite.ts), says to keep the page
 // open until someone joins and how many have, and offers, at once, Play
 // in either pack, Watch and Leave (L163). A screen wake lock is held while
@@ -64,6 +66,7 @@ export function proposeScreen(host: ProposeHost): Screen {
       if (creating) return;
       creating = true;
       setEnabled(create, false, 'Creating…');
+      if (rules !== null) setEnabled(rules.button, false, 'Rules… (creating)');
       host.create(chosen());
     },
   }, 'Create');
@@ -73,8 +76,7 @@ export function proposeScreen(host: ProposeHost): Screen {
   const el = h('section', { class: 'screen propose' },
     h('h1', {}, 'Propose a match'),
     h('p', { class: 'muted' }, 'Choose the pack size and the length. Then share the link or the code, and play or watch at once.'),
-    h('label', { class: 'field' }, h('span', {}, 'Pack size'), size),
-    h('label', { class: 'field' }, h('span', {}, 'Match length'), minutes),
+    h('div', { class: 'field-pair' }, h('label', { class: 'field' }, h('span', {}, 'Pack size'), size), h('label', { class: 'field' }, h('span', {}, 'Match length'), minutes)),
     ...(rules === null ? [] : [rules.row]),
     h('div', { class: 'row' }, create, back),
   );

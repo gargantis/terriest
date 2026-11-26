@@ -71,6 +71,19 @@ export class RulesStore implements RulesSource {
     return this.value;
   }
 
+  /** The record read again, as another tab may have written it while this one waited (Use here, D-24),
+   *  unless the last write failed, whose change stays in force for this page alone. */
+  reload(): void {
+    if (this.kv === null || !this.keptNow) return;
+    let raw: string | null;
+    try {
+      raw = this.kv.getItem(RULES_KEY);
+    } catch {
+      return;
+    }
+    this.value = parseRules(raw);
+  }
+
   /** The rules, each one of its choices, those at the build's settings dropped (keptRules), stored by one
    *  write of the whole record; one that changes nothing writes nothing. */
   set(rules: MatchRules): void {

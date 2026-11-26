@@ -1,4 +1,4 @@
-// The match rules, PLAN D-8 and D-12 (design §1.10, §6): events, presence,
+// The rules of play, PLAN D-8 and D-12 (design §1.10, §6): events, presence,
 // phases, kickoffs and arrivals, Q-8's bowling, goals and credit, the clock,
 // the end and the Terriest. From the M0 spike's step.ts (bowled, goal, the
 // phase changes) and state.ts (placeKickoff), and roslambo's rules.ts (the

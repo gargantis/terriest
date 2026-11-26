@@ -1,13 +1,16 @@
 import type { Page } from '@playwright/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { config } from '../../src/config';
 import type { Inspection } from '../../src/main';
-import { POLL_MS, waitForInspection, waitForScreen } from './page';
+import { PROFILE_KEY, RULES_KEY, SETTINGS_KEY } from '../../src/storage/schema';
+import { POLL_MS, seedStorage, waitForInspection, waitForScreen } from './page';
 
 // The specs' waits for the hook (M4's design §9.1; e2e/lib/page.ts): a
 // look every POLL_MS, never on animation frames, until what's waited for
 // shows, each deadline on the monotonic clock, so a step of the machine's
 // clock, which phase 1c measured a second ahead every 32 s, never ends a
-// wait early.
+// wait early. And the storage a spec seeds (M4-Q4), from C-59 the match
+// rules among it: each record written only while its key is absent.
 
 /** A page whose hook reports `screens` in turn, a look each, the last again once they run out; its waits
  *  move a fake monotonic clock by their length, while the machine's clock steps a minute ahead each time
@@ -29,6 +32,7 @@ function fakePage(screens: readonly string[]): { readonly page: Page; looks(): n
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("the specs' waits for the hook (§9.1)", () => {
@@ -46,5 +50,41 @@ describe("the specs' waits for the hook (§9.1)", () => {
       .rejects.toThrow(/^Settings: not reached within 1000 ms \(screen home, no match\)$/);
     // Looks at 0, 50, …, 1000 ms, and the one at 1050 ms past the deadline.
     expect(p.looks()).toBe(1000 / POLL_MS + 2);
+  });
+});
+
+/** The init script seedStorage adds and its argument, run as the page would before its own scripts: against
+ *  a localStorage of `stored`'s keys. */
+async function seeded(seed: Parameters<typeof seedStorage>[1], stored: Map<string, string>): Promise<void> {
+  let script: ((arg: unknown) => void) | null = null;
+  let arg: unknown = null;
+  const page = {
+    addInitScript: async (fn: (a: unknown) => void, a: unknown) => {
+      script = fn;
+      arg = a;
+    },
+  };
+  await seedStorage(page as unknown as Page, seed);
+  vi.stubGlobal('localStorage', { getItem: (k: string) => stored.get(k) ?? null, setItem: (k: string, v: string) => void stored.set(k, v) });
+  (script as ((a: unknown) => void) | null)?.(arg);
+}
+
+describe("the specs' seeded storage (M4-Q4, C-59)", () => {
+  const rules = { kickoffCountdownSeconds: config.matchRules.kickoffCountdownSeconds[0] };
+
+  it("writes the match rules as A.3's record, beside the profile and the settings", async () => {
+    const stored = new Map<string, string>();
+    await seeded({ profile: { playerId: 'p' }, settings: { quality: 'low' }, rules }, stored);
+    expect([...stored.keys()].sort()).toEqual([PROFILE_KEY, RULES_KEY, SETTINGS_KEY].sort());
+    expect(JSON.parse(stored.get(RULES_KEY)!)).toEqual({ v: 1, rules });
+  });
+
+  it('writes no record a seed leaves out, and none over a stored one, as a reload reads what the page stored', async () => {
+    const none = new Map<string, string>();
+    await seeded({ settings: { quality: 'low' } }, none);
+    expect([...none.keys()]).toEqual([SETTINGS_KEY]);
+    const kept = new Map([[RULES_KEY, '{"v":1,"rules":{}}']]);
+    await seeded({ rules }, kept);
+    expect(kept.get(RULES_KEY)).toBe('{"v":1,"rules":{}}');
   });
 });

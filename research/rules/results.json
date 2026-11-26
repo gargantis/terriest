@@ -4,6 +4,7 @@
  "rounds": {
   "1, each value alone": [
    {
+    "run": "accelerationMetresPerSecond2=10",
     "settings": {
      "accelerationMetresPerSecond2": 10
     },
@@ -15,6 +16,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "accelerationMetresPerSecond2=12",
     "settings": {
      "accelerationMetresPerSecond2": 12
     },
@@ -25,6 +27,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "accelerationMetresPerSecond2=20",
     "settings": {
      "accelerationMetresPerSecond2": 20
     },
@@ -36,6 +39,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "accelerationMetresPerSecond2=25",
     "settings": {
      "accelerationMetresPerSecond2": 25
     },
@@ -47,6 +51,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballMassKg=1.5",
     "settings": {
      "ballMassKg": 1.5
     },
@@ -59,6 +64,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballMassKg=1",
     "settings": {
      "ballMassKg": 1
     },
@@ -72,6 +78,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballMassKg=3",
     "settings": {
      "ballMassKg": 3
     },
@@ -80,6 +87,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballMassKg=4",
     "settings": {
      "ballMassKg": 4
     },
@@ -88,6 +96,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballRestitution=0.3",
     "settings": {
      "ballRestitution": 0.3
     },
@@ -96,6 +105,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballRestitution=0.4",
     "settings": {
      "ballRestitution": 0.4
     },
@@ -104,6 +114,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballRestitution=0.5",
     "settings": {
      "ballRestitution": 0.5
     },
@@ -112,6 +123,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballRestitution=0.6",
     "settings": {
      "ballRestitution": 0.6
     },
@@ -120,6 +132,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballRestitution=0.8",
     "settings": {
      "ballRestitution": 0.8
     },
@@ -130,6 +143,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "ballRestitution=0.9",
     "settings": {
      "ballRestitution": 0.9
     },
@@ -140,6 +154,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "bowlingSpeedMetresPerSecond=10",
     "settings": {
      "bowlingSpeedMetresPerSecond": 10
     },
@@ -148,6 +163,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "bowlingSpeedMetresPerSecond=2",
     "settings": {
      "bowlingSpeedMetresPerSecond": 2
     },
@@ -156,6 +172,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "bowlingSpeedMetresPerSecond=3",
     "settings": {
      "bowlingSpeedMetresPerSecond": 3
     },
@@ -164,6 +181,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "bowlingSpeedMetresPerSecond=5",
     "settings": {
      "bowlingSpeedMetresPerSecond": 5
     },
@@ -172,6 +190,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "bowlingSpeedMetresPerSecond=6",
     "settings": {
      "bowlingSpeedMetresPerSecond": 6
     },
@@ -180,6 +199,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "bowlingSpeedMetresPerSecond=8",
     "settings": {
      "bowlingSpeedMetresPerSecond": 8
     },
@@ -188,6 +208,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "gravityMetresPerSecond2=12",
     "settings": {
      "gravityMetresPerSecond2": 12
     },
@@ -198,6 +219,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "gravityMetresPerSecond2=15",
     "settings": {
      "gravityMetresPerSecond2": 15
     },
@@ -206,6 +228,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "gravityMetresPerSecond2=4.9",
     "settings": {
      "gravityMetresPerSecond2": 4.9
     },
@@ -218,6 +241,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "gravityMetresPerSecond2=7",
     "settings": {
      "gravityMetresPerSecond2": 7
     },
@@ -230,6 +254,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "idleFrictionMetresPerSecond2=10",
     "settings": {
      "idleFrictionMetresPerSecond2": 10
     },
@@ -240,6 +265,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "idleFrictionMetresPerSecond2=12",
     "settings": {
      "idleFrictionMetresPerSecond2": 12
     },
@@ -250,6 +276,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "idleFrictionMetresPerSecond2=4",
     "settings": {
      "idleFrictionMetresPerSecond2": 4
     },
@@ -258,6 +285,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "idleFrictionMetresPerSecond2=6",
     "settings": {
      "idleFrictionMetresPerSecond2": 6
     },
@@ -266,6 +294,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "jumpHeightMetres=0.5",
     "settings": {
      "jumpHeightMetres": 0.5
     },
@@ -274,6 +303,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "jumpHeightMetres=0.75",
     "settings": {
      "jumpHeightMetres": 0.75
     },
@@ -282,6 +312,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "jumpHeightMetres=1.25",
     "settings": {
      "jumpHeightMetres": 1.25
     },
@@ -290,6 +321,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "jumpHeightMetres=1.5",
     "settings": {
      "jumpHeightMetres": 1.5
     },
@@ -298,6 +330,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceSpeedMetresPerSecond=12",
     "settings": {
      "pounceSpeedMetresPerSecond": 12
     },
@@ -306,6 +339,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceSpeedMetresPerSecond=14",
     "settings": {
      "pounceSpeedMetresPerSecond": 14
     },
@@ -314,6 +348,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceSpeedMetresPerSecond=15",
     "settings": {
      "pounceSpeedMetresPerSecond": 15
     },
@@ -324,6 +359,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceSpeedMetresPerSecond=16",
     "settings": {
      "pounceSpeedMetresPerSecond": 16
     },
@@ -334,6 +370,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceSpeedMetresPerSecond=6",
     "settings": {
      "pounceSpeedMetresPerSecond": 6
     },
@@ -342,6 +379,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceSpeedMetresPerSecond=7",
     "settings": {
      "pounceSpeedMetresPerSecond": 7
     },
@@ -350,6 +388,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceSpeedMetresPerSecond=8",
     "settings": {
      "pounceSpeedMetresPerSecond": 8
     },
@@ -358,6 +397,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceWaitSeconds=0.25",
     "settings": {
      "pounceWaitSeconds": 0.25
     },
@@ -366,6 +406,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceWaitSeconds=0.5",
     "settings": {
      "pounceWaitSeconds": 0.5
     },
@@ -374,6 +415,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceWaitSeconds=1",
     "settings": {
      "pounceWaitSeconds": 1
     },
@@ -382,6 +424,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceWaitSeconds=2",
     "settings": {
      "pounceWaitSeconds": 2
     },
@@ -390,6 +433,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "pounceWaitSeconds=3",
     "settings": {
      "pounceWaitSeconds": 3
     },
@@ -398,6 +442,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "rollingSlowdownMetresPerSecond2=0.1",
     "settings": {
      "rollingSlowdownMetresPerSecond2": 0.1
     },
@@ -406,6 +451,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "rollingSlowdownMetresPerSecond2=0.2",
     "settings": {
      "rollingSlowdownMetresPerSecond2": 0.2
     },
@@ -414,6 +460,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "rollingSlowdownMetresPerSecond2=0.3",
     "settings": {
      "rollingSlowdownMetresPerSecond2": 0.3
     },
@@ -422,6 +469,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "rollingSlowdownMetresPerSecond2=1.5",
     "settings": {
      "rollingSlowdownMetresPerSecond2": 1.5
     },
@@ -430,6 +478,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "rollingSlowdownMetresPerSecond2=1",
     "settings": {
      "rollingSlowdownMetresPerSecond2": 1
     },
@@ -438,6 +487,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "rollingSlowdownMetresPerSecond2=2",
     "settings": {
      "rollingSlowdownMetresPerSecond2": 2
     },
@@ -446,6 +496,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=10",
     "settings": {
      "runSpeedMetresPerSecond": 10
     },
@@ -454,6 +505,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=3",
     "settings": {
      "runSpeedMetresPerSecond": 3
     },
@@ -464,6 +516,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=4.5",
     "settings": {
      "runSpeedMetresPerSecond": 4.5
     },
@@ -472,6 +525,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=4",
     "settings": {
      "runSpeedMetresPerSecond": 4
     },
@@ -480,6 +534,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=5.5",
     "settings": {
      "runSpeedMetresPerSecond": 5.5
     },
@@ -488,6 +543,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=5",
     "settings": {
      "runSpeedMetresPerSecond": 5
     },
@@ -496,6 +552,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=6.5",
     "settings": {
      "runSpeedMetresPerSecond": 6.5
     },
@@ -504,6 +561,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=7.5",
     "settings": {
      "runSpeedMetresPerSecond": 7.5
     },
@@ -512,6 +570,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=7",
     "settings": {
      "runSpeedMetresPerSecond": 7
     },
@@ -520,6 +579,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=8",
     "settings": {
      "runSpeedMetresPerSecond": 8
     },
@@ -528,6 +588,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "runSpeedMetresPerSecond=9",
     "settings": {
      "runSpeedMetresPerSecond": 9
     },
@@ -536,6 +597,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "terrierBallRestitution=0.2",
     "settings": {
      "terrierBallRestitution": 0.2
     },
@@ -546,6 +608,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "terrierBallRestitution=0.3",
     "settings": {
      "terrierBallRestitution": 0.3
     },
@@ -557,6 +620,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "terrierBallRestitution=0.4",
     "settings": {
      "terrierBallRestitution": 0.4
     },
@@ -567,6 +631,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "terrierBallRestitution=0.6",
     "settings": {
      "terrierBallRestitution": 0.6
     },
@@ -577,6 +642,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "terrierBallRestitution=0.7",
     "settings": {
      "terrierBallRestitution": 0.7
     },
@@ -589,6 +655,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "terrierBallRestitution=0.8",
     "settings": {
      "terrierBallRestitution": 0.8
     },
@@ -602,6 +669,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "tumbleGuardSeconds=0.5",
     "settings": {
      "tumbleGuardSeconds": 0.5
     },
@@ -610,6 +678,7 @@
     "guardShare": 0.742
    },
    {
+    "run": "tumbleGuardSeconds=0",
     "settings": {
      "tumbleGuardSeconds": 0
     },
@@ -618,6 +687,7 @@
     "guardShare": 0.987
    },
    {
+    "run": "tumbleGuardSeconds=1",
     "settings": {
      "tumbleGuardSeconds": 1
     },
@@ -626,6 +696,7 @@
     "guardShare": 0.593
    },
    {
+    "run": "tumbleGuardSeconds=2",
     "settings": {
      "tumbleGuardSeconds": 2
     },
@@ -634,6 +705,7 @@
     "guardShare": 0.445
    },
    {
+    "run": "tumbleGuardSeconds=3",
     "settings": {
      "tumbleGuardSeconds": 3
     },
@@ -642,6 +714,7 @@
     "guardShare": 0.346
    },
    {
+    "run": "tumbleGuardSeconds=4",
     "settings": {
      "tumbleGuardSeconds": 4
     },
@@ -650,6 +723,7 @@
     "guardShare": 0.297
    },
    {
+    "run": "tumbleSeconds=1.25",
     "settings": {
      "tumbleSeconds": 1.25
     },
@@ -658,6 +732,7 @@
     "guardShare": 0.452
    },
    {
+    "run": "tumbleSeconds=1",
     "settings": {
      "tumbleSeconds": 1
     },
@@ -666,6 +741,7 @@
     "guardShare": 0.393
    },
    {
+    "run": "tumbleSeconds=2.5",
     "settings": {
      "tumbleSeconds": 2.5
     },
@@ -674,6 +750,7 @@
     "guardShare": 0.643
    },
    {
+    "run": "tumbleSeconds=2",
     "settings": {
      "tumbleSeconds": 2
     },
@@ -682,6 +759,7 @@
     "guardShare": 0.593
    },
    {
+    "run": "tumbleSeconds=3",
     "settings": {
      "tumbleSeconds": 3
     },
@@ -690,6 +768,7 @@
     "guardShare": 0.694
    },
    {
+    "run": "turnRateTurnsPerSecond=0.75",
     "settings": {
      "turnRateTurnsPerSecond": 0.75
     },
@@ -698,6 +777,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "turnRateTurnsPerSecond=1.5",
     "settings": {
      "turnRateTurnsPerSecond": 1.5
     },
@@ -706,6 +786,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "turnRateTurnsPerSecond=1",
     "settings": {
      "turnRateTurnsPerSecond": 1
     },
@@ -714,6 +795,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "turnRateTurnsPerSecond=2.5",
     "settings": {
      "turnRateTurnsPerSecond": 2.5
     },
@@ -722,6 +804,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "turnRateTurnsPerSecond=3",
     "settings": {
      "turnRateTurnsPerSecond": 3
     },
@@ -730,6 +813,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "turnRateTurnsPerSecond=4",
     "settings": {
      "turnRateTurnsPerSecond": 4
     },
@@ -738,6 +822,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesFullSeconds=1.5",
     "settings": {
      "zoomiesFullSeconds": 1.5,
      "zoomiesRefillSeconds": 3.0
@@ -747,6 +832,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesFullSeconds=1",
     "settings": {
      "zoomiesFullSeconds": 1,
      "zoomiesRefillSeconds": 2
@@ -756,6 +842,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesFullSeconds=2.5",
     "settings": {
      "zoomiesFullSeconds": 2.5,
      "zoomiesRefillSeconds": 5.0
@@ -765,6 +852,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesFullSeconds=2",
     "settings": {
      "zoomiesFullSeconds": 2,
      "zoomiesRefillSeconds": 4
@@ -774,6 +862,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesFullSeconds=4",
     "settings": {
      "zoomiesFullSeconds": 4,
      "zoomiesRefillSeconds": 8
@@ -783,6 +872,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesFullSeconds=5",
     "settings": {
      "zoomiesFullSeconds": 5,
      "zoomiesRefillSeconds": 10
@@ -792,6 +882,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesFullSeconds=6",
     "settings": {
      "zoomiesFullSeconds": 6,
      "zoomiesRefillSeconds": 12
@@ -801,6 +892,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesSpeedMetresPerSecond=10",
     "settings": {
      "zoomiesSpeedMetresPerSecond": 10,
      "pushAssistCapMetresPerSecond": 10
@@ -810,6 +902,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesSpeedMetresPerSecond=11",
     "settings": {
      "zoomiesSpeedMetresPerSecond": 11,
      "pushAssistCapMetresPerSecond": 11
@@ -819,6 +912,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesSpeedMetresPerSecond=12",
     "settings": {
      "zoomiesSpeedMetresPerSecond": 12,
      "pushAssistCapMetresPerSecond": 12
@@ -828,6 +922,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesSpeedMetresPerSecond=13",
     "settings": {
      "zoomiesSpeedMetresPerSecond": 13,
      "pushAssistCapMetresPerSecond": 13
@@ -837,6 +932,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesSpeedMetresPerSecond=14",
     "settings": {
      "zoomiesSpeedMetresPerSecond": 14,
      "pushAssistCapMetresPerSecond": 14
@@ -846,6 +942,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesSpeedMetresPerSecond=6",
     "settings": {
      "zoomiesSpeedMetresPerSecond": 6,
      "pushAssistCapMetresPerSecond": 9
@@ -857,6 +954,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesSpeedMetresPerSecond=7",
     "settings": {
      "zoomiesSpeedMetresPerSecond": 7,
      "pushAssistCapMetresPerSecond": 9
@@ -868,6 +966,7 @@
     "guardShare": 0.494
    },
    {
+    "run": "zoomiesSpeedMetresPerSecond=8",
     "settings": {
      "zoomiesSpeedMetresPerSecond": 8,
      "pushAssistCapMetresPerSecond": 9
@@ -1973,7 +2072,7 @@
     "guardShare": 0.494
    }
   ],
-  "4, random mixes on the final lists, and rechecks": [
+  "4, random mixes on the lists then, and rechecks": [
    {
     "run": "allMinFinal",
     "settings": {
@@ -2675,6 +2774,85 @@
     "roll3Metres": 2.981,
     "guardShare": 0.411
    }
+  ],
+  "5, every rule at its highest on the final lists, and the choices not yet run alone": [
+   {
+    "run": "allMaxFinal",
+    "settings": {
+     "runSpeedMetresPerSecond": 10,
+     "zoomiesSpeedMetresPerSecond": 12,
+     "zoomiesFullSeconds": 6,
+     "turnRateTurnsPerSecond": 4,
+     "jumpHeightMetres": 1.5,
+     "pounceSpeedMetresPerSecond": 14,
+     "pounceWaitSeconds": 3,
+     "bowlingSpeedMetresPerSecond": 10,
+     "tumbleSeconds": 3,
+     "tumbleGuardSeconds": 4,
+     "ballMassKg": 4,
+     "rollingSlowdownMetresPerSecond2": 1.5,
+     "kickoffCountdownSeconds": 5,
+     "pushAssistCapMetresPerSecond": 12,
+     "zoomiesRefillSeconds": 12
+    },
+    "fails": [],
+    "roll3Metres": 2.981,
+    "guardShare": 0.462
+   },
+   {
+    "run": "kickoffCountdownSeconds=1",
+    "settings": {
+     "kickoffCountdownSeconds": 1
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "kickoffCountdownSeconds=2",
+    "settings": {
+     "kickoffCountdownSeconds": 2
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "kickoffCountdownSeconds=4",
+    "settings": {
+     "kickoffCountdownSeconds": 4
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "kickoffCountdownSeconds=5",
+    "settings": {
+     "kickoffCountdownSeconds": 5
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "pounceWaitSeconds=0.75",
+    "settings": {
+     "pounceWaitSeconds": 0.75
+    },
+    "fails": [],
+    "roll3Metres": 8.981,
+    "guardShare": 0.494
+   },
+   {
+    "run": "rollingSlowdownMetresPerSecond2=1.5",
+    "settings": {
+     "rollingSlowdownMetresPerSecond2": 1.5
+    },
+    "fails": [],
+    "roll3Metres": 2.981,
+    "guardShare": 0.494
+   }
   ]
  },
  "bots": [
@@ -3266,6 +3444,125 @@
     100
    ],
    "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "allMaxFinal",
+   "settings": {
+    "runSpeedMetresPerSecond": 10,
+    "zoomiesSpeedMetresPerSecond": 12,
+    "zoomiesFullSeconds": 6,
+    "turnRateTurnsPerSecond": 4,
+    "jumpHeightMetres": 1.5,
+    "pounceSpeedMetresPerSecond": 14,
+    "pounceWaitSeconds": 3,
+    "bowlingSpeedMetresPerSecond": 10,
+    "tumbleSeconds": 3,
+    "tumbleGuardSeconds": 4,
+    "ballMassKg": 4,
+    "rollingSlowdownMetresPerSecond2": 1.5,
+    "kickoffCountdownSeconds": 5,
+    "pushAssistCapMetresPerSecond": 12,
+    "zoomiesRefillSeconds": 12
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "kickoffCountdownSeconds=1",
+   "settings": {
+    "kickoffCountdownSeconds": 1
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "kickoffCountdownSeconds=5",
+   "settings": {
+    "kickoffCountdownSeconds": 5
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "pounceWaitSeconds=0.75",
+   "settings": {
+    "pounceWaitSeconds": 0.75
+   },
+   "emptyGoal": 99,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 100,
+   "e2e": {
+    "three-engine": 25,
+    "practice": 25
+   },
+   "wholeMatchesStuck": 0,
+   "fails": []
+  },
+  {
+   "run": "rollingSlowdownMetresPerSecond2=1.5",
+   "settings": {
+    "rollingSlowdownMetresPerSecond2": 1.5
+   },
+   "emptyGoal": 100,
+   "emptyGoalStuck": 0,
+   "fallBack": [
+    100,
+    100,
+    100,
+    100
+   ],
+   "regulation": 99,
    "e2e": {
     "three-engine": 25,
     "practice": 25

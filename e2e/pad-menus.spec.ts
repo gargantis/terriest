@@ -5,9 +5,17 @@
 // turning Sound off, and on down to Back, at the foot of a screen taller
 // than the gate's window, which the nav brings into view; Back to Home;
 // Propose, its pack size and length chosen by the d-pad's left and right,
-// a step past the last size going no further, and Back, creating nothing;
-// Practice's setup likewise, 1 a side and 1 minute, and its Start, the
-// match made at what was chosen; on Pre-match the pad's Back opening the
+// a step past the last size going no further; from C-59 its Rules… by
+// Start, and the Rules screen's Back by the d-pad's up round its top, to
+// Propose again, its choices kept, Rules… focused and the rules' summary
+// the defaults; and Back, creating nothing; Practice's setup likewise, 1 a
+// side and 1 minute, then its Rules…: the Rules screen's first rule a
+// choice up by the d-pad's right, stored at once as A.3's record says and
+// the status line saying so, the d-pad on down every other rule, Reset and
+// Back, each focus brought into view on a screen taller than the window,
+// and Back to the setup, its choices kept, Rules… focused and the rule in
+// its summary; and its Start, the match made at what was chosen, its rule
+// among it (C-59); on Pre-match the pad's Back opening the
 // menu, its Settings panel, Start turning Sound on again there, the d-pad
 // down to Show control hints again below the panel's fold and back up to
 // the first radio, each focus brought into the panel's view clear of its
@@ -16,21 +24,28 @@
 // review; the choices by phase 2b (§4.9's pad parts, extended). Its
 // timeouts by e2e/lib/practice.ts' margins (phase 2b's review, specs-F9):
 // each press's effect is SHOWN_MS's kind, a pad's press, which phase 2b
-// measured at most 857 ms; the whole test ran 7.7 to 8.9 s an engine, made
-// as long as a hang in its longest wait, the start's 30 s, would make it,
-// × 2, as the touch tests' are: (8.9 + 30) × 2 = 77.8 s.
+// measured at most 857 ms; the whole test ran 7.7 to 8.9 s an engine, and
+// with C-59's walks through the Rules screen 10.5 to 12.5 s, made as long
+// as a hang in its longest wait, the start's 30 s, would make it, × 2, as
+// the touch tests' are: (12.5 + 30) × 2 = 85 s.
 
 import type { Page } from '@playwright/test';
-import { config } from '../src/config';
+import { config, RULE_SETTINGS, type RuleSetting } from '../src/config';
 import { personId } from '../src/core/bot/bot-id';
 import { PAD, installGamepad, press } from './lib/gamepad';
 import { expect, expectWebGL2, test } from './lib/guards';
-import { expectStarted, inspect, installHook, seedStorage, smallViewport, waitForInspection, waitForScreen } from './lib/page';
+import { expectStarted, inspect, installHook, seedStorage, smallViewport, storedRules, waitForInspection, waitForScreen } from './lib/page';
 import { SHOWN_MS } from './lib/practice';
 
 test.use({ viewport: smallViewport });
 
-const PAD_MENUS_TEST_MS = 80_000;
+const PAD_MENUS_TEST_MS = 85_000;
+
+/** The Rules screen's first rule, and its choice a step up from its default, as the d-pad's right steps it
+ *  (C-59). */
+const RULE: RuleSetting = 'runSpeedMetresPerSecond';
+const CHOICES: readonly number[] = config.matchRules[RULE];
+const STEPPED = CHOICES[CHOICES.indexOf(config[RULE]) + 1]!;
 
 /** What has the focus, and its box against the window and, inside the Settings panel, the panel's view
  *  under its sticky head; a half pixel's slack for the engines' rounding. */
@@ -64,6 +79,17 @@ async function dpad(page: Page, button: number, expected: readonly string[], why
     expect(f.inWindow, `${why}: ${want} inside the window (§5.14)`).toBe(true);
     if (f.inPanel !== null) expect(f.inPanel, `${why}: ${want} in the panel's view, clear of its head (§5.14)`).toBe(true);
   }
+}
+
+/** A setup screen, Propose or Practice's, back from the Rules screen (C-59): its pack size and length as they
+ *  were chosen, Rules… focused and in view, and the rules' summary. */
+async function expectSetup(page: Page, screen: 'propose' | 'practice', chosen: readonly [string, string], summary: string, why: string): Promise<void> {
+  await waitForScreen(page, screen, SHOWN_MS);
+  const f = await focusBox(page);
+  expect([f.what, f.inWindow], `${why}: Rules… focused, inside the window`).toEqual(['rules', true]);
+  await expect(page.locator('[data-test="pack-size"]'), `${why}: the pack size kept`).toHaveValue(chosen[0]);
+  await expect(page.locator('[data-test="match-length"]'), `${why}: the length kept`).toHaveValue(chosen[1]);
+  await expect(page.locator('[data-test="rules-summary"]'), `${why}: the rules' summary`).toHaveText(summary);
 }
 
 /** Presses of the d-pad's left or right on a focused select, its value after each as `values` says, the focus
@@ -112,13 +138,22 @@ test('a gamepad alone works Settings from Home and in the match menu, and the ch
   await choose(page, PAD.right, 'pack-size', [...sizes, String(config.packSizeMax)], "Propose's size, to the last and no further");
   await dpad(page, PAD.down, ['match-length'], "Propose's nav");
   await choose(page, PAD.left, 'match-length', [String(config.matchLengthDefaultMinutes - 1)], "Propose's length");
-  // Past the match rules' Rules… (C-59), to Create and Back.
-  await dpad(page, PAD.down, ['rules', 'create', 'back'], "Propose's nav to Back");
+  // Rules… by the pad's Start, the Rules screen's Back by its d-pad's up round the top, and Propose again,
+  // its choices kept, Rules… focused and the rules the defaults (C-59).
+  await dpad(page, PAD.down, ['rules'], "Propose's nav to Rules…");
+  await press(page, PAD.start, SHOWN_MS);
+  await waitForScreen(page, 'rules', SHOWN_MS);
+  await dpad(page, PAD.up, ['back'], "the Rules screen's nav, round the top to Back");
+  await press(page, PAD.start, SHOWN_MS);
+  await expectSetup(page, 'propose', [String(config.packSizeMax), String(config.matchLengthDefaultMinutes - 1)], 'The defaults', "Propose, back from Rules");
+  // On past Rules… to Create and Back.
+  await dpad(page, PAD.down, ['create', 'back'], "Propose's nav to Back");
   await press(page, PAD.start, SHOWN_MS);
   await waitForScreen(page, 'home', SHOWN_MS);
   expect((await inspect(page)).match, 'no match proposed').toBeNull();
 
-  // Practice's setup by the pad: 1 a side and 1 minute, then Start, the match made at both.
+  // Practice's setup by the pad: 1 a side and 1 minute, then the match rules, then Start, the match made at all
+  // three.
   await dpad(page, PAD.down, ['propose', 'join', 'practice'], "Home's nav to Practice");
   await press(page, PAD.start, SHOWN_MS);
   await waitForScreen(page, 'practice', SHOWN_MS);
@@ -128,12 +163,32 @@ test('a gamepad alone works Settings from Home and in the match menu, and the ch
   await dpad(page, PAD.down, ['match-length'], "Practice's setup");
   const minutes = Array.from({ length: config.matchLengthDefaultMinutes - 1 }, (_, k) => String(config.matchLengthDefaultMinutes - k - 1));
   await choose(page, PAD.left, 'match-length', minutes, "Practice's length, to 1 minute");
-  await dpad(page, PAD.down, ['rules', 'start'], "Practice's setup, past the match rules' Rules… (C-59)");
+
+  // The match rules by the pad (C-59): Rules… by Start; on the Rules screen the first rule's select a choice
+  // up by the d-pad's right, stored at once as A.3's record says, the status line saying so; on down every
+  // other rule, Reset and Back, each brought into view on a screen taller than the window (§5.14); and Back
+  // by Start, to the setup with its choices kept, Rules… focused and the rule in its summary.
+  await dpad(page, PAD.down, ['rules'], "Practice's setup to Rules…");
+  await press(page, PAD.start, SHOWN_MS);
+  await waitForScreen(page, 'rules', SHOWN_MS);
+  expect(RULE_SETTINGS[0], "the Rules screen's first select").toBe(RULE);
+  await dpad(page, PAD.down, [`rule-${RULE}`], "the Rules screen's nav");
+  await choose(page, PAD.right, `rule-${RULE}`, [String(STEPPED)], 'the run speed, a choice up');
+  await expect(page.locator('[data-test="rules-message"]'), 'the status line, the rule stored').toHaveText('Saved.');
+  await expect.poll(() => storedRules(page), { message: "A.3's record, the rule alone", timeout: SHOWN_MS }).toEqual({ v: 1, rules: { [RULE]: STEPPED } });
+  await dpad(page, PAD.down, [...RULE_SETTINGS.slice(1).map((k) => `rule-${k}`), 'rules-reset', 'back'], "the Rules screen's nav to Back");
+  await press(page, PAD.start, SHOWN_MS);
+  await expectSetup(page, 'practice', [String(config.packSizeMin), minutes.at(-1)!], `Run speed ${STEPPED} m/s`, "Practice's setup, back from Rules");
+
+  // Start, the match made at what was chosen, its rule among it.
+  await dpad(page, PAD.down, ['start'], "Practice's setup, past the match rules' Rules… (C-59)");
   await press(page, PAD.start, SHOWN_MS);
   await waitForScreen(page, 'prematch', SHOWN_MS);
   const made = await waitForInspection(page, (i) => i.match?.inRoster === true, { what: 'the person in the final roster', timeoutMs: SHOWN_MS });
   expect([made.match!.roster.map((r) => r.pack), made.match!.clock], 'the person in A and a bot in B, a match of 1 minute (Q-15)')
     .toEqual([[0, 1], 60 * config.ticksPerSecond]);
+  expect(made.match!.settings, "the match's settings, by the pad's choices and its rule (C-59)")
+    .toEqual({ packSize: config.packSizeMin, matchMinutes: Number(minutes.at(-1)), rules: { [RULE]: STEPPED } });
 
   // The match menu by the pad's Back, its Settings panel by Start.
   await press(page, PAD.back, SHOWN_MS);

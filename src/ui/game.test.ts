@@ -9,8 +9,12 @@ import {
 } from '../core/protocol/messages';
 import type { RoomPeer } from '../core/session/room-peer';
 import { againTimelineId } from '../core/session/roster';
+import { Session } from '../core/session/session';
 import { netSettings } from '../core/session/settings';
-import { defaultParams, encodeInput, findTerrier, IN_PLAY, LEAVE, type MatchState, type Terrier, WARM_UP } from '../core/sim/index';
+import {
+  defaultParams, encodeInput, findTerrier, IN_PLAY, LEAVE, type MatchSettings, type MatchState, paramsFor, type Terrier, WARM_UP,
+} from '../core/sim/index';
+import { HOUSE_RULES } from '../core/sim/scripts';
 import { expectAgreement, TEST_BUILD } from '../core/timeline/testing';
 import { LocalTransport } from '../net/local';
 import { type LinkSpec, LoopbackNet, type LoopNode, mulberry32 } from '../net/loopback';
@@ -27,10 +31,11 @@ import { NetGame, type NetGameOptions } from './game';
 // keeps sending; leave() closes after its grace, with its LEAVE out first;
 // a fifth spectator, and a page a full room refused, leave; Play again
 // proposes only without an AGAIN, under the press tick's ID, and the earlier
-// of two presses wins; the counting link; the summary over every timeline a
-// match passes through, a rejoin's and a merge's, and from M4 the clock's
-// samples taken and dropped over a rejoin's; and only this glue loads
-// src/net/trystero.ts, by import().
+// of two presses wins, from C-59 the next match by this one's rules; the
+// counting link; the summary over every timeline a match passes through, a
+// rejoin's and a merge's, and from M4 the clock's samples taken and dropped
+// over a rejoin's; and only this glue loads src/net/trystero.ts, by
+// import().
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -192,10 +197,11 @@ const online = (t: Tab, matchId = ROOM): boolean => t.rooms.get(matchId)!.node.o
 const ticksSent = (t: Tab): number => t.game.traffic.byType[T.TICK]?.sent ?? 0;
 const spectatorsSeenBy = (t: Tab): number => [...t.game.session.connectedRoles().values()].filter((r) => r === ROLE.SPECTATOR).length;
 
-/** Page 0 proposes 1 a side and plays pack A; page 1 joins and plays pack B; both in the roster. */
-async function pair(world: World): Promise<[Tab, Tab]> {
+/** Page 0 proposes `settings`, 1 a side by default, and plays pack A; page 1 joins and plays pack B; both
+ *  in the roster. */
+async function pair(world: World, settings: MatchSettings = ONE_A_SIDE): Promise<[Tab, Tab]> {
   const a = await world.open(0);
-  a.game.propose(ONE_A_SIDE);
+  a.game.propose(settings);
   a.game.play(0);
   world.run(200);
   const b = await world.open(1);
@@ -752,24 +758,66 @@ describe('Play again (§4.9, D-12, C-42)', () => {
     expectClean(world);
   });
 
-  it('ranks two presses that each saw no AGAIN by their ticks: both propose, and the earlier wins on both pages', async () => {
-    const world = new World(17);
-    const [a, b] = await pair(world);
-    // The earlier press's random bytes sort last, so only its tick can make it win the tie.
-    randomBytes([0xff, 0xff, 0xff, 0xff], [0x00, 0x00, 0x00, 0x00]);
-    const first = a.game.playAgain();
-    world.run(2 * Math.ceil(NET.tickMs));
-    const second = b.game.playAgain();
-    [a.game, b.game] = await Promise.all([first, second]);
-    const [ta, tb] = [a.game.session.timeline, b.game.session.timeline];
-    expect([ta.started, tb.started]).toEqual([true, true]);
-    expect(ta.id < tb.id).toBe(true);
-    world.until(() => b.game.session.timeline.id === ta.id && inRoster(b, b.me) && inRoster(a, b.me) && inRoster(b, a.me), 8000);
-    expect(a.game.session.timeline).toBe(ta);
-    expect([terrierIn(a, a.me)!.pack, terrierIn(a, b.me)!.pack]).toEqual([0, 1]);
+  it("keeps the match's rules: the next match, proposed by the first press and joined by the page that saw its AGAIN, plays by them, by their parameters (C-59)", async () => {
+    const world = new World(13);
+    const ruled: MatchSettings = { ...ONE_A_SIDE, rules: HOUSE_RULES };
+    const [a, b] = await pair(world, ruled);
+    for (const t of [a, b]) {
+      expect(finalOf(t).rules, `page ${t.k}`).toEqual(HOUSE_RULES);
+      expect(t.game.session.timeline.params, `page ${t.k}`).toBe(paramsFor(HOUSE_RULES));
+    }
+    // Each proposal from here: the next match's settings, as its genesis takes them.
+    const proposed = vi.spyOn(Session.prototype, 'propose');
+    const [oldA, oldB] = [a.game, b.game];
+    a.game = await oldA.playAgain();
+    world.until(() => b.game.session.againSeen, 500);
+    b.game = await oldB.playAgain();
+    expect([b.game.session.timeline.started, proposed.mock.calls.length]).toEqual([false, 1]); // it joins, proposing nothing
+    world.until(() => inRoster(a, a.me) && inRoster(a, b.me) && inRoster(b, a.me) && inRoster(b, b.me), 5000);
+    // The one proposal, the first press's, carried this match's settings, its rules among them.
+    expect(proposed.mock.calls.map((c) => c[1])).toEqual([ruled]);
+    // Each page's next match: a new room and timeline, under the same rules, stepped by their parameters.
+    const next = await nextMatchId(ROOM);
+    for (const t of [a, b]) {
+      const tl = t.game.session.timeline;
+      expect([t.game.matchId, tl === oldA.session.timeline || tl === oldB.session.timeline], `page ${t.k}`).toEqual([next, false]);
+      expect(finalOf(t).rules, `page ${t.k}`).toEqual(HOUSE_RULES);
+      expect(tl.params, `page ${t.k}`).toBe(paramsFor(HOUSE_RULES));
+    }
+    expect([finalOf(b).packSize, finalOf(b).matchLengthTicks]).toEqual([ONE_A_SIDE.packSize, ONE_A_SIDE.matchMinutes * P.ticksPerMinute]);
     agree([a, b]);
     expectClean(world);
   });
+
+  for (const [under, settings] of [['', ONE_A_SIDE], [', under the match rules (C-59)', { ...ONE_A_SIDE, rules: HOUSE_RULES }]] as const) {
+    it(`ranks two presses that each saw no AGAIN by their ticks: both propose, and the earlier wins on both pages${under}`, async () => {
+      const world = new World(17);
+      const [a, b] = await pair(world, settings);
+      // The earlier press's random bytes sort last, so only its tick can make it win the tie.
+      randomBytes([0xff, 0xff, 0xff, 0xff], [0x00, 0x00, 0x00, 0x00]);
+      const proposed = vi.spyOn(Session.prototype, 'propose');
+      const first = a.game.playAgain();
+      world.run(2 * Math.ceil(NET.tickMs));
+      const second = b.game.playAgain();
+      [a.game, b.game] = await Promise.all([first, second]);
+      const [ta, tb] = [a.game.session.timeline, b.game.session.timeline];
+      expect([ta.started, tb.started]).toEqual([true, true]);
+      expect(ta.id < tb.id).toBe(true);
+      // Each proposed this match's settings, its rules among them where it has any.
+      expect(proposed.mock.calls.map((c) => c[1])).toEqual([settings, settings]);
+      world.until(() => b.game.session.timeline.id === ta.id && inRoster(b, b.me) && inRoster(a, b.me) && inRoster(b, a.me), 8000);
+      expect(a.game.session.timeline).toBe(ta);
+      expect([terrierIn(a, a.me)!.pack, terrierIn(a, b.me)!.pack]).toEqual([0, 1]);
+      // The winner's match on both pages, by the rules the last match played by.
+      const rules = 'rules' in settings ? settings.rules : {};
+      for (const t of [a, b]) {
+        expect(finalOf(t).rules, `page ${t.k}`).toEqual(rules);
+        expect(t.game.session.timeline.params, `page ${t.k}`).toBe(paramsFor(rules));
+      }
+      agree([a, b]);
+      expectClean(world);
+    });
+  }
 
   it('brings its bots along, in their packs, and watches again after watching', async () => {
     const world = new World(19);

@@ -154,9 +154,11 @@ function choiceIndex(choices: readonly number[], v: number): number {
   return -1;
 }
 
-/** Whether a match has rules: any rule set (C-59). */
+/** Whether a match has rules: any rule set (C-59). A key that names no rule, which the codec can't
+ *  carry, is refused, so a state stateProblems reports never decodes. */
 function hasRules(r: MatchRules): boolean {
   if (typeof r !== 'object' || r === null) fail('the match rules', r, 'an object of rules');
+  for (const key in r) if (!Object.hasOwn(config.matchRules, key)) fail(`the match rule ${key}`, r[key as keyof MatchRules], 'a rule of the configuration (C-59)');
   for (let k = 0; k < RULES; k++) if (r[RULE_SETTINGS[k]!] !== undefined) return true;
   return false;
 }

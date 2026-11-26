@@ -348,6 +348,31 @@ describe('the codec (A.1, design §1.6)', () => {
     expect(encodeState(s)).toHaveLength(encodeState(base()).length - utf8('Terrier 2').length + 255);
   });
 
+  it('refuses to encode match rules holding a key that names no rule, alone or beside a rule, which stateProblems reports too (C-59)', () => {
+    const first = RULE_SETTINGS[0]!;
+    const rule = config.matchRules[first].find((v) => !Object.is(v, config[first]))!;
+    const cases: [string, MatchRules][] = [
+      // Alone, the rules set nothing the codec carries: written in version 1's layout, it would hash as a
+      // match without rules.
+      ['alone', { spinTurnsPerSecond: 1 } as MatchRules],
+      ['beside a rule', { [first]: rule, spinTurnsPerSecond: 1 } as MatchRules],
+      // A setting of the configuration that's no rule is none, even at its own value.
+      ['a setting that is no rule', { gravityMetresPerSecond2: config.gravityMetresPerSecond2 } as MatchRules],
+    ];
+    for (const [what, rules] of cases) {
+      const s = base();
+      Object.assign(s, { rules });
+      expect(stateProblems(s).join('\n'), what).toMatch(/the match rules: \w+ is no match rule \(C-59\)/);
+      expect(() => encodeState(s), what).toThrow(/^the match rule \w+ is \S+, not a rule of the configuration \(C-59\)/);
+      expect(() => hashState(s), what).toThrow(/not a rule of the configuration \(C-59\)/);
+    }
+    // A refusal leaves the shared buffer ready for the next state, a match with rules among them.
+    expect(decodeState(encodeState(base()))).toEqual(base());
+    const ruled = base();
+    Object.assign(ruled, { rules: canonicalRules({ [first]: rule }, config) });
+    expect(decodeState(encodeState(ruled))).toEqual(ruled);
+  });
+
   it('writes names as TextEncoder does, a leading U+FEFF kept', () => {
     fc.assert(
       fc.property(fc.string({ unit: 'binary', maxLength: 60 }), (n) => {

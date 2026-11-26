@@ -101,4 +101,6 @@ export interface RulesSource {
   /** The rules as `rules` makes them, those at the build's settings dropped, stored by one write of the
    *  whole record; NO_RULES sets every rule to its default. */
   set(rules: MatchRules): void;
+  /** The record read again, as another tab may have written it, when this tab takes the game (D-24). */
+  reload?(): void;
 }

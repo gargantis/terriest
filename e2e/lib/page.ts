@@ -21,9 +21,12 @@ import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { extname, join, normalize, posix } from 'node:path';
 import type { Page } from '@playwright/test';
+import type { MatchRules } from '../../src/config';
 import type { TouchInspection } from '../../src/input/touch';
 import type { Inspection, TerriestTest } from '../../src/main';
-import { DEFAULT_SETTINGS, type Profile, PROFILE_KEY, SETTINGS_KEY, type StoredSettings } from '../../src/storage/schema';
+import {
+  DEFAULT_SETTINGS, type Profile, PROFILE_KEY, RULES_KEY, SETTINGS_KEY, type StoredRules, type StoredSettings,
+} from '../../src/storage/schema';
 import type { HudInspection, OverlayInspection, ScreenName } from '../../src/ui/inspect';
 import type { HintsInspection } from '../../src/ui/layers/devices';
 import type { TurnInspection } from '../../src/ui/phone';
@@ -57,16 +60,19 @@ export async function installHook(page: Page, fields: HookFields = {}): Promise<
   }, fields);
 }
 
-/** What a spec seeds: a profile's fields over a fresh one's, and settings over the defaults. */
+/** What a spec seeds: a profile's fields over a fresh one's, settings over the defaults, and from C-59 the
+ *  match rules last chosen, as A.3's record holds them: only those that differ from the defaults. */
 export interface Seed {
   readonly profile?: Partial<Profile> & Pick<Profile, 'playerId'>;
   readonly settings?: Partial<StoredSettings>;
+  readonly rules?: MatchRules;
 }
 
 /** A.3's records written before the page's scripts run, each only while its key is absent, so a reload
  *  reads what the page stored and never the seed again, as a player's own stored choices would be
  *  (§1.62, M4-Q4): the gate's low quality, and a fixed player ID, so a setup's bots are the validated
- *  ones (§6). Once per context: localStorage is the origin's. */
+ *  ones (§6); and a page's own match rules, which its Practice and the matches it proposes play by
+ *  (C-59). Once per context: localStorage is the origin's. */
 export async function seedStorage(page: Page, seed: Seed): Promise<void> {
   const records: [string, string][] = [];
   if (seed.profile) {
@@ -74,6 +80,10 @@ export async function seedStorage(page: Page, seed: Seed): Promise<void> {
     records.push([PROFILE_KEY, JSON.stringify(p)]);
   }
   if (seed.settings) records.push([SETTINGS_KEY, JSON.stringify({ ...DEFAULT_SETTINGS, ...seed.settings, v: 1 })]);
+  if (seed.rules) {
+    const r: StoredRules = { v: 1, rules: seed.rules };
+    records.push([RULES_KEY, JSON.stringify(r)]);
+  }
   await page.addInitScript((all) => {
     try {
       for (const [key, value] of all) if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
@@ -81,6 +91,11 @@ export async function seedStorage(page: Page, seed: Seed): Promise<void> {
       // Storage blocked: the page plays from memory, as a player's would (PLAN §10).
     }
   }, records);
+}
+
+/** A.3's match rules record as the page stored it (C-59), parsed: null with none stored. */
+export async function storedRules(page: Page): Promise<unknown> {
+  return JSON.parse((await page.evaluate((key) => localStorage.getItem(key), RULES_KEY)) ?? 'null') as unknown;
 }
 
 /** What the page reports through the hook. */

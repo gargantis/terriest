@@ -2,8 +2,9 @@
    right, under the HUD's top bar and clear of its gauges at the bottom
    left, its left edge well right of the middle, where your terrier, its
    mark and the countdown are drawn, inside the safe area as the HUD is;
-   its buttons first, then the invite while it shows, the lists scrolling
-   below them; every piece of text on an opaque backing. */
+   its buttons first, then the invite while it shows, from C-59 the match's
+   rules where they differ from the defaults, the lists scrolling below
+   them; every piece of text on an opaque backing. */
 .prematch {
   position: absolute; top: calc(56px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px));
   z-index: 15; display: grid; gap: 8px; align-content: start;

@@ -66,10 +66,15 @@ import { FakeStage, StateMatch, stateWith, testHost, FakeView } from './pitch-te
 // the pad alone; a Practice, its Play again and a proposal playing by
 // them, the hook's meter its share of the match's own, Pre-match listing
 // them; A.3's record read back by the browser's next page, Reset to
-// defaults; and a refused write saying so there and on Home. And the
-// layers' order and the page's devices. The networked screens over M3's
-// network simulator are app-net.test.ts's, and the frame loop and its
-// governor, in virtual time, src/ui/frame-loop.test.ts's (phase 2b).
+// defaults; a refused write saying so there and on Home; a joined match
+// at the defaults until it holds its state; Rules… unable to act once
+// Create is pressed, a Create pressed again from a later Propose served
+// by the room the first asked for, and a room whose Propose has gone
+// left; and the rules read again when Use here takes the game from
+// another tab. And the layers' order and the page's devices. The
+// networked screens over M3's network simulator are app-net.test.ts's,
+// and the frame loop and its governor, in virtual time,
+// src/ui/frame-loop.test.ts's (phase 2b).
 
 let dom: { readonly document: FakeDocument; restore(): void };
 beforeEach(() => {
@@ -1504,7 +1509,7 @@ describe('the match rules through the app (C-59; PLAN §10, §11, A.3)', () => {
     expect([look(r).screen, listed.hidden, listed.textContent]).toEqual(['prematch', false, `This match’s rules: Run speed ${RUN} m/s.`]);
   });
 
-  it("plays a match this browser joins by its proposer's rules alone: the defaults until it holds a state, whatever this browser chose", async () => {
+  it('reports a match it joins at the defaults until it holds its state, whatever rules this browser stored', async () => {
     const r = rig({ hash: '#join=TERR1ESTDESKT0PM30004' });
     r.rules.set({ runSpeedMetresPerSecond: RUN });
     await r.app.start();
@@ -1512,5 +1517,148 @@ describe('the match rules through the app (C-59; PLAN §10, §11, A.3)', () => {
     expect(look(r).screen).toBe('join');
     expect(look(r).match).toMatchObject({ kind: 'net', started: false, settings: { packSize: config.packSizeDefault, matchMinutes: config.matchLengthDefaultMinutes } });
     expect(look(r).match!.settings.rules).toBeUndefined();
+  });
+
+  /** A room's transport that reaches no one, each room's open waiting till the test lets it through, as a
+   *  slow relay's would: let() lets the oldest through; each room left, by its match ID, in `left`. */
+  function lateRooms(): {
+    readonly transport: (rooms: TransportOptions[]) => TransportFactory; readonly waiting: number; readonly left: string[]; let(): void;
+  } {
+    const waiting: (() => void)[] = [];
+    const left: string[] = [];
+    return {
+      transport: (rooms) => (peer, now, o) => new Promise((resolve, reject) => {
+        waiting.push(() => {
+          nowhere(rooms)(peer, now, o).then((t) => resolve({
+            ...t, leave: () => {
+              left.push(o.matchId);
+              return t.leave();
+            },
+          }), reject);
+        });
+      }),
+      get waiting() {
+        return waiting.length;
+      },
+      left,
+      let: () => waiting.shift()!(),
+    };
+  }
+  /** Microtask turns until `cond` holds, at most a few settles: a room's open is a chain of them. */
+  const settled = async (cond: () => boolean): Promise<void> => {
+    for (let k = 0; k < 10 && !cond(); k++) await settle();
+  };
+  /** The buttons on the screen reading "Creating…". */
+  const creating = (r: Rig): FakeElement[] => screenEl(r).querySelectorAll('button').filter((b) => b.textContent === 'Creating…');
+
+  it("keeps Rules… from acting once Create is pressed, and serves a Create pressed again from a later Propose with the room the first asked for, by that Propose's choices and the rules as they stand (C-59's review)", async () => {
+    const rooms = lateRooms();
+    const r = rig({ transport: rooms.transport });
+    const rules = { runSpeedMetresPerSecond: RUN };
+    r.rules.set(rules);
+    await r.app.start();
+    button(r, 'propose').click();
+    button(r, 'create').click();
+    await settled(() => rooms.waiting === 1);
+    // Creating…: Rules… says it can't act, and a click on it leaves Propose and its Create as they are.
+    expect([look(r).screen, creating(r).length, unable(r, 'rules'), rooms.waiting]).toEqual(['propose', 1, true, 1]);
+    button(r, 'rules').click();
+    expect([look(r).screen, creating(r).length]).toEqual(['propose', 1]);
+    // Back to Home, and Propose a match again while the first room is still on its way: other choices, and
+    // Rules… able to act there, a second rule chosen, Back keeping the choices.
+    button(r, 'back').click();
+    expect(look(r).screen).toBe('home');
+    button(r, 'propose').click();
+    expect([creating(r).length, unable(r, 'rules')]).toEqual([0, false]);
+    sel(r, 'pack-size').value = String(config.packSizeMax);
+    sel(r, 'match-length').value = String(config.matchLengthMaxMinutes);
+    button(r, 'rules').click();
+    choose(r, 'kickoffCountdownSeconds', COUNTDOWN);
+    button(r, 'back').click();
+    const both = { ...rules, kickoffCountdownSeconds: COUNTDOWN };
+    expect([look(r).screen, sel(r, 'pack-size').value, sel(r, 'match-length').value, text(r, 'rules-summary')]).toEqual([
+      'propose', String(config.packSizeMax), String(config.matchLengthMaxMinutes), rulesSummary(both),
+    ]);
+    // Create again: no second room asked for.
+    button(r, 'create').click();
+    await settle();
+    expect([look(r).screen, creating(r).length, unable(r, 'rules'), rooms.waiting, look(r).match]).toEqual(['propose', 1, true, 1, null]);
+    // The first room opens: it serves the Create on screen, with that Propose's choices and the rules as
+    // they stand.
+    rooms.let();
+    await settled(() => look(r).screen === 'created');
+    const m = look(r).match!;
+    expect([look(r).screen, m.kind, m.started, r.rooms.map((x) => x.matchId), r.location.hash()]).toEqual([
+      'created', 'net', true, [m.matchId], `#join=${m.matchId}`,
+    ]);
+    expect(m.settings).toEqual({ packSize: config.packSizeMax, matchMinutes: config.matchLengthMaxMinutes, rules: both });
+    const t = held(r);
+    expect([t.final.packSize, t.final.rules]).toEqual([config.packSizeMax, both]);
+    expect(t.params).toBe(paramsFor(both));
+    // One room, kept, and nothing left reading "Creating…".
+    play(r, 500);
+    expect([rooms.waiting, r.rooms.length, rooms.left, look(r).screen, creating(r).length]).toEqual([0, 1, [], 'created', 0]);
+  });
+
+  it("closes a room that opens once its Create's Propose has gone, leaving no Create reading Creating…, and a Create on the Propose that shows opens its own (C-59's review)", async () => {
+    const rooms = lateRooms();
+    const r = rig({ transport: rooms.transport });
+    await r.app.start();
+    button(r, 'propose').click();
+    button(r, 'create').click();
+    await settled(() => rooms.waiting === 1);
+    // Back, and Propose again, pressing nothing there before the first room opens: it's left, never held.
+    button(r, 'back').click();
+    button(r, 'propose').click();
+    rooms.let();
+    await settled(() => rooms.left.length === 1);
+    expect(rooms.left).toEqual([r.rooms[0]!.matchId]);
+    expect([look(r).screen, look(r).match, creating(r).length, unable(r, 'create'), unable(r, 'rules'), r.location.hash()]).toEqual([
+      'propose', null, 0, false, false, '',
+    ]);
+    r.clock.advance(0);
+    expect(r.clock.pending).toBe(0); // its timer stopped with it: no room runs behind Propose
+    // A Create there opens a room of its own.
+    button(r, 'create').click();
+    await settled(() => rooms.waiting === 1);
+    rooms.let();
+    await settled(() => look(r).screen === 'created');
+    expect([look(r).screen, r.rooms.length, look(r).match?.matchId]).toEqual(['created', 2, r.rooms[1]!.matchId]);
+  });
+
+  it("reads the rules again when Use here takes the game from another tab, so its setup, its next change and its Start keep that tab's (D-24)", async () => {
+    const locks = new Locks();
+    const storage = new MemoryStorage();
+    const a = rig({ locks, storage });
+    await a.app.start();
+    // Tab B, opened while A plays: the other tab's message, its store read as the browser's record stood.
+    const b = rig({ locks, storage });
+    await b.app.start();
+    expect(look(b)).toMatchObject({ screen: 'message', message: 'other-tab' });
+    // Tab A chooses a rule on its Rules screen, stored at once.
+    button(a, 'practice').click();
+    button(a, 'rules').click();
+    choose(a, 'runSpeedMetresPerSecond', RUN);
+    const theirs = { runSpeedMetresPerSecond: RUN };
+    expect(storage.getItem(RULES_KEY)).toBe(JSON.stringify({ v: 1, rules: theirs }));
+    // B takes the game: its Practice's setup sums A's rule up, and its Rules screen shows it chosen.
+    button(b, 'message-useHere').click();
+    await settle();
+    expect([look(b).screen, look(a).message]).toEqual(['home', 'other-tab']);
+    button(b, 'practice').click();
+    expect(text(b, 'rules-summary')).toBe(rulesSummary(theirs));
+    button(b, 'rules').click();
+    expect(shownRules(b)).toEqual(valuesOf(theirs));
+    // B's next change keeps A's rule in the record.
+    choose(b, 'kickoffCountdownSeconds', COUNTDOWN);
+    const both = { runSpeedMetresPerSecond: RUN, kickoffCountdownSeconds: COUNTDOWN };
+    expect([b.rules.get(), storage.getItem(RULES_KEY)]).toEqual([both, JSON.stringify({ v: 1, rules: both })]);
+    // And its Start plays by them.
+    button(b, 'back').click();
+    expect(text(b, 'rules-summary')).toBe(rulesSummary(both));
+    button(b, 'start').click();
+    await settle();
+    expect([look(b).screen, look(b).match!.settings.rules, held(b).final.rules]).toEqual(['prematch', both, both]);
+    expect(held(b).params).toBe(paramsFor(both));
   });
 });

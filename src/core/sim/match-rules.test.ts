@@ -1,19 +1,22 @@
 import { describe, expect, it, vi } from 'vitest';
-import { canonicalRules, config, matchConfig, type MatchRules, NO_RULES, RULE_SETTINGS, type RuleSetting, sameRules } from '../../config';
+import { canonicalRules, config, matchConfig, type MatchRules, NO_RULES, RULE_SETTINGS, type RuleSetting, rulesProblem, sameRules } from '../../config';
 import { hashState } from './codec';
 import { JOIN } from './input';
 import { defaultParams, paramsFor, type SimParams, simParams } from './params';
+import { replay } from './replay';
 import { chasey, park, pitchDir, placedMatch, rankedIds, type Scene, sceneInputs, sceneStart } from './scenes';
-import { HOUSE_RULES } from './scripts';
+import { placed } from './script-inputs';
+import { HOUSE_RULES, type ScriptSpec, seededMatch } from './scripts';
 import { cloneState, genesis, IN_PLAY, KICKOFF_COUNTDOWN, matchSettingsOf, type MatchState, type Terrier } from './state';
 import { makeSim, step } from './step';
 import { mirrorMismatches, run, SECOND_SHAPE } from './testing';
 
 // The match rules in the simulation (C-59): a match's own parameters, its rules over the build's
-// (paramsFor); its rules in its state, written canonical at genesis, frozen and shared by every clone,
-// and given back by matchSettingsOf for Play again; the step, which takes a state only with a Sim made
-// for its rules; and P8 under the golden run's house rules. The choices and matchConfig are
-// src/config.test.ts's to check, and the rules' bytes codec.test.ts's.
+// (paramsFor), which refuses rules no match has, as a script's replay does before it plays; its rules
+// in its state, written canonical at genesis, frozen and shared by every clone, and given back by
+// matchSettingsOf for Play again; the step, which takes a state only with a Sim made for its rules;
+// and P8 under the golden run's house rules. The choices and matchConfig are src/config.test.ts's to
+// check, and the rules' bytes codec.test.ts's.
 vi.setConfig({ testTimeout: 120_000 });
 
 const P = defaultParams;
@@ -182,6 +185,70 @@ describe("a match's parameters: paramsFor (C-59)", () => {
     expect(runs[0]!.s.phase).toBe(IN_PLAY);
     expect(runs[0]!.sim.physics.stats.contacts).toBeGreaterThan(0);
     for (const r of runs) expect(r.s.rules).toBe(NO_RULES);
+  });
+
+  it('refuses rules no match has, as rulesProblem does, from the first call for them, keeping none; canonical rules still build', async () => {
+    // A params module of its own, so it holds no match's parameters yet: each call below is the first for
+    // its rules.
+    vi.resetModules();
+    const fresh = await import('./params');
+    const wait = others('pounceWaitSeconds')[0]!;
+    const countdown = others('kickoffCountdownSeconds')[0]!;
+    const canonical = canonicalRules({ pounceWaitSeconds: wait, kickoffCountdownSeconds: countdown }, config);
+    const waits = config.matchRules.pounceWaitSeconds;
+    const refused: [string, MatchRules][] = [
+      ['a rule at its default', { tumbleGuardSeconds: config.tumbleGuardSeconds }],
+      ['a rule at its default beside rules', { ...canonical, tumbleGuardSeconds: config.tumbleGuardSeconds }],
+      ['a value off its list', { ...canonical, pounceWaitSeconds: (waits[0] + waits[1]) / 2 }],
+      ['a key that names no rule beside rules', { ...canonical, spinTurnsPerSecond: 1 } as MatchRules],
+    ];
+    for (const [what, rules] of refused) {
+      const problem = rulesProblem(rules, config);
+      expect(problem, what).not.toBeNull();
+      // Thrown at the first call, and at the next: no parameters were kept for them.
+      for (const call of ['first', 'second']) expect(() => fresh.paramsFor(rules), `${what}, the ${call} call`).toThrow(`${problem!} (C-59)`);
+    }
+    // Canonical rules still build, over that module's own base, and are kept.
+    const M = fresh.paramsFor(canonical);
+    expect(M.base).toBe(fresh.defaultParams);
+    expect([sameRules(M.rules, canonical), M.pounceWaitTicks, M.kickoffCountdownTicks]).toEqual([
+      true, wait * config.ticksPerSecond, countdown * config.ticksPerSecond,
+    ]);
+    expect(fresh.paramsFor({ ...canonical })).toBe(M);
+    // Whatever the memo holds: once the canonical rules' parameters are kept, the same rules with a key that
+    // names no rule beside them, or alone, still throw, never taking the kept parameters or the base.
+    for (const rules of [{ ...canonical, spinTurnsPerSecond: 1 }, Object.freeze({ spinTurnsPerSecond: 1 })] as MatchRules[]) {
+      expect(() => fresh.paramsFor(rules)).toThrow(`${rulesProblem(rules, config)!} (C-59)`);
+    }
+  });
+
+  it("refuses to replay a script under rules no match has before it plays a tick, a genesis run's and a placed run's, and plays one under canonical rules", () => {
+    const scene: Scene = { name: 'seeded kickoff', packSize: 1, phase: KICKOFF_COUNTDOWN, mirrored: false, input: chasey(5, 'all') };
+    const asked: string[] = [];
+    /** The script under rules, noting each tick it's asked for an input: a tick it plays. */
+    const under = (spec: ScriptSpec, rules: MatchRules): ScriptSpec => ({
+      ...spec, rules, input: (pack, rank, t, s) => {
+        asked.push(`${spec.name} ${t}`);
+        return spec.input(pack, rank, t, s);
+      },
+    });
+    const scripts = (what: string): ScriptSpec[] => [seededMatch(`genesis, ${what}`, 1, 1, 60, 1, {}), placed(`placed, ${what}`, scene, 60, {})];
+    const runs = config.matchRules.runSpeedMetresPerSecond;
+    const wrong: [string, MatchRules][] = [
+      ['a rule at its default', { runSpeedMetresPerSecond: config.runSpeedMetresPerSecond }],
+      ['a rule at its default beside rules', { ...FAST, tumbleGuardSeconds: config.tumbleGuardSeconds }],
+      ['a value off its list', { runSpeedMetresPerSecond: (runs[0] + runs[1]) / 2 }],
+    ];
+    for (const [what, rules] of wrong) {
+      const problem = `${rulesProblem(rules, config)!} (C-59)`;
+      for (const spec of scripts(what)) expect(() => replay(under(spec, rules)), spec.name).toThrow(problem);
+    }
+    expect(asked).toEqual([]);
+    // Canonical rules: the same scripts play every tick.
+    for (const spec of scripts('canonical')) {
+      const result = replay(under(spec, FAST));
+      expect([result.tick, asked.some((x) => x === `${spec.name} ${result.tick}`)], spec.name).toEqual([60, true]);
+    }
   });
 });
 

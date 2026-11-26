@@ -20,6 +20,9 @@
 //   canAddBot says no, Remove shown only while this browser hosts a bot
 //   there (D-39, PLAN §14). Practice has neither: bots fill every place
 //   (Q-15).
+// - From C-59, the match's rules where they differ from the defaults, from
+//   its final state, under the invite and above the lists, so a joiner
+//   knows what it plays by.
 // - From the start countdown the roster is locked: Ready, Switch pack and
 //   the bots' buttons are aria-disabled, saying so, and the focus stays
 //   where it was (§1.42, §5.7).
@@ -184,8 +187,8 @@ export function prematchPanel(host: PrematchHost): PrematchPanel {
     // Its buttons first, so Ready shows at the panel's top however long the lists run below it.
     h('div', { class: 'prematch-buttons' }, ready, switchPack, leave, inviteToggle),
     full,
-    rulesNote,
     invite,
+    rulesNote,
     h('div', { class: 'prematch-packs' }, ...packs.map((x) => x.section)));
 
   const buttons = (): HTMLButtonElement[] => [

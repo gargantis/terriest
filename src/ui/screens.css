@@ -49,6 +49,9 @@ button.primary:hover:not([aria-disabled="true"]) { background: var(--primary-hov
 button.secondary { background: transparent; }
 
 .field { display: grid; gap: 4px; }
+/* Two fields side by side where there's room, stacked where there isn't: Practice's setup's and Propose's
+   pack size and length, so Start or Create stays in view on a phone held sideways (C-59). */
+.field-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 16px; }
 .field > span, legend { font-size: 14px; color: var(--muted); }
 input[type="text"], select {
   font: inherit; font-size: 16px; color: var(--fg); background: var(--surface);

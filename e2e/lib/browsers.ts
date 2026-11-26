@@ -32,7 +32,7 @@
 //   phase 2d's match builder.
 
 import { chromium, firefox, webkit, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { config } from '../../src/config';
+import { config, type MatchRules } from '../../src/config';
 import { personId } from '../../src/core/bot/bot-id';
 import { generateMatchId } from '../../src/core/match-id';
 import type { NetReport } from '../../src/nettest-params';
@@ -111,6 +111,8 @@ export interface AppPageOptions {
   /** The profile's coat; k's own by default, k mod the coat count, as the #test=net page's and the Node
    *  replays' pages take (src/nettest-params.ts, src/net/setups-testing.ts). */
   readonly coat?: number;
+  /** The match rules last chosen, A.3's record (C-59): none by default, as a first visit has. */
+  readonly rules?: MatchRules;
   /** The local relay, a ws: URL on the loopback: the hook's relay, and every room's only one (M4-Q3). */
   readonly relay: string;
   /** '#join=…' or none: loaded at base + fragment. */
@@ -124,7 +126,7 @@ export interface AppPageOptions {
 }
 
 /** A normal page of the built app (never a #test= page) in a browser a test launched: storage seeded (personId(7, k),
- *  the name, low quality), the hook installed with the local relay and ice 'local' (§5.12, M4-Q3), a 640 × 360 viewport
+ *  the name, low quality, any match rules given), the hook installed with the local relay and ice 'local' (§5.12, M4-Q3), a 640 × 360 viewport
  *  unless given, e2e/lib/gamepad.ts's stub if asked, watched by watchPage with the base URL and the relay allowed,
  *  loaded at base + fragment and started (data-boot=started). WebGL 2 is asserted first, in a page of the new context,
  *  so a run without a display fails at once (C-6). The storage is seeded each key only while it's absent, so a reload
@@ -138,6 +140,7 @@ export async function openAppPage(browser: Browser, base: string, o: AppPageOpti
   await seedStorage(page, {
     profile: { playerId: personId(SPEC_SEED, o.k), name: o.name ?? '', coat: o.coat ?? o.k % config.coatCount },
     settings: { quality: 'low' },
+    ...(o.rules === undefined ? {} : { rules: o.rules }),
   });
   await installHook(page, { relay: o.relay, ice: 'local' });
   if (o.gamepad === true) await installGamepad(page);
