@@ -58,7 +58,7 @@ export const RULE_WORDS: { readonly [K in RuleSetting]: RuleWords } = {
     note: 'The share of its speed into the floor, a wall, the net overhead or the goal frame that the ball keeps as it bounces off; along them it keeps all of it.',
   },
   ballMassKg: { name: 'Ball weight', text: (v) => `${v / config.terrierMassKg} times a terrier’s` },
-  rollingSlowdownMetresPerSecond2: { name: 'Ball slowdown', text: each('m/s²'), note: 'How fast a rolling ball slows: lower rolls further.' },
+  rollingSlowdownMetresPerSecond2: { name: 'Ball slowdown', text: each('m/s²'), note: 'How fast the ball slows as it rolls: lower rolls further.' },
   kickoffCountdownSeconds: { name: 'Kickoff countdown', text: each('s'), note: 'Before every kickoff but the first.' },
 };
 
